@@ -7,11 +7,11 @@ A desktop personal finance management app for Windows, targeting Indian househol
 - **Language:** Java 17, JavaFX 21 (no FXML — UI built programmatically)
 - **JSON:** Gson 2.10.1
 - **Build:** Maven (`mvn javafx:run` to run, `build.sh` for packaging)
-- **Entry point:** `com.financeapp.MainApp`
+- **Entry point:** `com.sanchay.MainApp`
 
 ## Package structure
 ```
-com.financeapp/
+com.sanchay/
   MainApp.java
   model/          — Account, BankAccount, CreditCardAccount, LoanAccount,
                     InvestmentAccount, Transaction, RecurringTransaction,

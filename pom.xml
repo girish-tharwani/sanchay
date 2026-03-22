@@ -5,8 +5,8 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.financeapp</groupId>
-    <artifactId>personal-finance</artifactId>
+    <groupId>com.sanchay</groupId>
+    <artifactId>sanchay-personal-finance</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -63,7 +63,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>com.financeapp.MainApp</mainClass>
+                    <mainClass>com.sanchay.MainApp</mainClass>
                 </configuration>
             </plugin>
             <plugin>
@@ -77,7 +77,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.financeapp.MainApp</mainClass>
+                                    <mainClass>com.sanchay.MainApp</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
