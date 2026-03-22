@@ -21,7 +21,7 @@
     -text-muted:     #9E9E9E;
     -text-on-dark:   #FFFFFF;
 
-    /* Status colours — used only in badges/icons, NOT for card amounts (v0.5) */
+    /* Status colours — used only in badges/icons, NOT for card amounts */
     -color-income:  #27AE60;
     -color-expense: #E74C3C;
     -color-transfer:#2E75B6;
@@ -56,7 +56,7 @@
 }
 
 /*
- * v0.6 — When the FY dropdown popup opens, list items must use dark text
+ * When the FY dropdown popup opens, list items must use dark text
  * against the popup's light background. The white style above applies only
  * to the closed-state selected cell inside the dark top bar.
  */
@@ -140,13 +140,7 @@
     -fx-font-weight: normal;
 }
 
-/*
- * v0.5 — All summary card amount values use ONE uniform colour (-text-primary).
- * The old card-value-green / card-value-red / card-value-blue classes are
- * intentionally removed so no tile is singled out with a different colour.
- * Status colouring (e.g. negative net worth) is applied programmatically in
- * DashboardScreen only when a value crosses a meaningful threshold.
- */
+/* All summary card amount values use a uniform colour. */
 .card-value {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
@@ -174,11 +168,7 @@
     -fx-font-size: 12px;
 }
 
-/*
- * v0.5 — Row selection: medium-blue background + white text.
- * The old combination (light-blue bg + white text) had very poor contrast.
- * New rule: -brand-mid background is dark enough to pair with white.
- */
+/* Row selection: medium-blue background + white text for good contrast. */
 .table-row-cell:selected {
     -fx-background-color: -brand-mid;
 }
@@ -272,12 +262,7 @@
 }
 
 /* ── Tags / badges ──────────────────────────────────────────────────────── */
-/*
- * v0.5 — Badges have a fixed -fx-min-width of 90px so every badge occupies
- * the same horizontal space in pending-item rows.  This aligns the description
- * text that follows, regardless of how long the badge label is.
- * "CC Payment" is the longest label at ~72px; 90px gives comfortable padding.
- */
+/* Badges have a fixed min-width for consistent alignment in pending-item rows. */
 .badge-expense    {
     -fx-background-color: #FDECEA; -fx-text-fill: -color-expense;
     -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
@@ -410,11 +395,7 @@
 }
 
 /* ── Pending widget ─────────────────────────────────────────────────────── */
-/*
- * v0.5 — Background changed from #FFFBEA (loud warm yellow) to a subtle
- * light-grey (#F5F6FA is the main bg; #EBEEF2 gives just enough separation).
- * Border changed from amber to a quiet mid-grey.
- */
+/* Subtle light-grey background for pending items. */
 .pending-item {
     -fx-background-color: #EBEEF2;
     -fx-border-color: #C8D0DA;

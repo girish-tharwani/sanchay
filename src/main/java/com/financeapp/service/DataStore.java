@@ -291,7 +291,7 @@ public class DataStore {
                             || (expenseOrTransfer
                                 && (r.getTransactionType().equals("EXPENSE")
                                     || r.getTransactionType().equals("TRANSFER")));
-                    return typeMatches && descriptionMatches(needle, r.getNormalizedKey());
+                    return typeMatches && DescriptionNormalizer.matches(needle, r.getNormalizedKey());
                 })
                 .collect(Collectors.toList());
     }
@@ -331,158 +331,11 @@ public class DataStore {
         return sorted;
     }
 
-    // ── Description normalisation helpers ─────────────────────────────────────
+    // ── Description normalisation (delegates to DescriptionNormalizer) ────────
 
-    /**
-     * Extracts a stable, human-meaningful key from a raw bank transaction description.
-     * Strips payment-rail prefixes (UPI/, NEFT-, BIL/INFT/, etc.), transaction IDs,
-     * reference hashes, bank names, and other noise so that repeated transactions
-     * to the same merchant produce the same key.
-     *
-     * Examples:
-     *   "UPI/Swiggy Lim/swiggy1online.@axb/…"  → "swiggy"
-     *   "UPI/GCMHATRE A/q478084833@ybl/…"       → "gcmhatre a"   (generic VPA → use display)
-     *   "NEFT-BARCN…-BARCLAYS GLOBAL SERVICE…"  → "barclays global service centre salary"
-     *   "BIL/INFT/EJ…/INFT//VIDHI THARWANI"    → "vidhi tharwani"
-     *   "BIL/Home Loan XX47458 EMI Girish T"    → "home loan emi girish t"
-     *   "CAM/09852OAR/CASH WDL/27-09-25"        → "cash withdrawal atm"
-     */
+    /** Delegates to {@link DescriptionNormalizer#normalize(String)}. */
     public static String normalizeDesc(String raw) {
-        if (raw == null || raw.isBlank()) return "";
-        String s = raw.trim();
-        String u = s.toUpperCase();
-
-        // ── UPI: UPI/{display}/{vpa}/{remark}/{bank}/{txnId}/{ref}/
-        if (u.startsWith("UPI/")) {
-            String[] p = s.split("/", -1);
-            String display = p.length > 1 ? p[1].trim() : "";
-            String vpa     = p.length > 2 ? p[2].trim() : "";
-            return cleanDesc(extractUpiMerchant(display, vpa));
-        }
-
-        // ── UPL: UPL/{txnId}/UPI/{account}/{bank}/{ref} — linked-account auto-debit
-        if (u.startsWith("UPL/")) {
-            String[] p = s.split("/", -1);
-            String account = p.length > 3 ? p[3].replaceAll("[^0-9]", "") : "";
-            String suffix  = account.length() >= 4 ? account.substring(account.length() - 4) : account;
-            return cleanDesc("auto debit " + suffix);
-        }
-
-        // ── NEFT: NEFT-{ref}-{counterparty}-{more}-…
-        if (u.startsWith("NEFT")) {
-            String body = s.replaceFirst("(?i)^NEFT[-/\\s]*", "");
-            String[] parts = body.split("[-/]+");
-            StringBuilder sb = new StringBuilder();
-            for (String part : parts) {
-                String p = part.trim();
-                if (p.isEmpty()
-                        || p.matches("\\d+")               // pure number (ref/amount)
-                        || p.matches("[A-Z0-9]{10,}"))     // long alphanumeric ref code
-                    continue;
-                sb.append(p).append(" ");
-            }
-            return cleanDesc(sb.toString());
-        }
-
-        // ── BIL/NEFT/{ref}/{party}/{bank}
-        if (u.startsWith("BIL/NEFT/")) {
-            String[] p = s.split("/", -1);
-            String party = p.length > 3 ? p[3].trim() : s;
-            return cleanDesc(party);
-        }
-
-        // ── BIL/INFT/{ref}/{desc}/{party} (ref may be "INFT" or alphanumeric)
-        if (u.startsWith("BIL/INFT/")) {
-            String[] p = s.split("/", -1);
-            StringBuilder sb = new StringBuilder();
-            for (int i = 3; i < p.length; i++) {
-                String part = p[i].trim();
-                if (!part.isEmpty()
-                        && !part.equalsIgnoreCase("INFT")
-                        && !part.matches("[A-Z0-9]{6,}")   // skip ref codes
-                        && !part.matches("\\d+")) {
-                    sb.append(part).append(" ");
-                }
-            }
-            return cleanDesc(sb.toString());
-        }
-
-        // ── BIL/{other}: e.g. "BIL/Home Loan XX47458 EMI Girish T"
-        if (u.startsWith("BIL/")) {
-            String rest = s.substring(4).replaceAll("(?i)XX\\d+", "").trim();
-            return cleanDesc(rest);
-        }
-
-        // ── CAM: ATM cash withdrawal
-        if (u.startsWith("CAM/")) return "cash withdrawal atm";
-
-        // ── ACH: NACH/ECS mandate debit
-        if (u.startsWith("ACH/")) {
-            String[] p = s.split("/", -1);
-            String code = p.length > 1 ? p[1].replaceAll("\\d+$", "").trim() : "";
-            return cleanDesc("nach " + code);
-        }
-
-        // ── Interest credit
-        if (s.matches("(?i).*int\\.?pd.*") || u.contains("INTEREST")) return "interest credit";
-
-        // ── Internal transfers
-        if (u.startsWith("TRF TO FD")) return "transfer to fd";
-        if (u.startsWith("TO RD AC"))  return "rd account transfer";
-
-        // ── Fallback: clean the whole string
-        return cleanDesc(s);
-    }
-
-    /** Picks the stable merchant identifier from a UPI display name + VPA pair. */
-    private static String extractUpiMerchant(String display, String vpa) {
-        // Extract the handle portion (before @) from VPA
-        String handle = vpa.contains("@") ? vpa.substring(0, vpa.indexOf('@')) : vpa;
-        // Strip trailing punctuation and digits (e.g. "mokobara-12410" → "mokobara")
-        handle = handle.replaceAll("[.\\-_]+$", "").replaceAll("\\d+$", "").trim();
-
-        // Generic payment-gateway VPAs carry no merchant identity → fall back to display name.
-        // length <= 2: phone-based UPI VPAs strip to a single prefix char (e.g. q406442473@ybl → "q")
-        boolean isGenericGateway = handle.isEmpty()
-                || handle.length() <= 2
-                || handle.matches("\\d+")
-                || handle.toLowerCase().matches("paytm.*")  // paytmqr…, paytm.s1…, paytm-…
-                || handle.toLowerCase().startsWith("vyapar")
-                || handle.toLowerCase().startsWith("pinelabs")
-                || handle.toLowerCase().startsWith("razorpay");
-
-        if (isGenericGateway) {
-            String fallback = display.replaceAll("[^a-zA-Z0-9 ]+", " ").trim();
-            // Strip trailing single-char tokens ("zomatoorder1 g" → "zomatoorder1")
-            fallback = fallback.replaceAll("\\s+\\S$", "").trim();
-            // Strip trailing digits from display name ("swiggy1" → "swiggy")
-            fallback = fallback.replaceAll("\\d+$", "").trim();
-            return fallback;
-        }
-
-        // Trim common merchant name suffixes that add noise
-        handle = handle.replaceAll("(?i)(online|pay|app|store|\\d+)$", "").trim();
-        return handle.isEmpty() ? display : handle;
-    }
-
-    /** Lowercases, removes non-alphanumeric characters, and collapses whitespace. */
-    private static String cleanDesc(String s) {
-        return s.trim().toLowerCase()
-                .replaceAll("[^a-z0-9 ]+", " ")
-                .replaceAll("\\s{2,}", " ")
-                .strip();
-    }
-
-    private static boolean descriptionMatches(String needle, String haystack) {
-        if (needle.equals(haystack)) return true;
-        // Build word sets for each side — only words of 5+ chars are significant.
-        // Compare whole words only (not substrings) to avoid false matches like
-        // "vidhitharwani" matching "ansh tharwani" because "tharwani" is a suffix.
-        Set<String> nw = Arrays.stream(needle.split(" "))
-                .filter(w -> w.length() >= 5).collect(Collectors.toSet());
-        Set<String> hw = Arrays.stream(haystack.split(" "))
-                .filter(w -> w.length() >= 5).collect(Collectors.toSet());
-        return nw.stream().anyMatch(hw::contains);
+        return DescriptionNormalizer.normalize(raw);
     }
 
     // ── Convenience in-place save triggers ───────────────────────────────────

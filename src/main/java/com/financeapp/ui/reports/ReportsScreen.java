@@ -165,10 +165,6 @@ public class ReportsScreen {
     }
 
     private VBox buildSummaryCategoryBars(LocalDate from, LocalDate to, String label) {
-        VBox section = new VBox(10);
-        Label heading = new Label("Expenses by Category — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
-
         Map<String, Long> byCategory = DataStore.getInstance().getTransactions().stream()
                 .filter(t -> t.getType() == Transaction.Type.EXPENSE
                           && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
@@ -177,38 +173,8 @@ public class ReportsScreen {
                         Collectors.summingLong(Transaction::getAmountPaise)));
 
         long total = byCategory.values().stream().mapToLong(Long::longValue).sum();
-        Label totalLbl = new Label("Total: " + String.format("₹%,.2f", total / 100.0));
-        totalLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #595959;");
-
-        VBox bars = new VBox(8);
-        bars.getStyleClass().add("card");
-        bars.setPadding(new Insets(16));
-        if (byCategory.isEmpty()) {
-            bars.getChildren().add(new Label("No expense transactions for this period."));
-        } else {
-            String[] colours = {"#E74C3C","#E67E22","#F39C12","#8E44AD","#2E75B6",
-                                "#1ABC9C","#27AE60","#2980B9","#C0392B","#16A085"};
-            int ci = 0;
-            for (Map.Entry<String, Long> e :
-                    byCategory.entrySet().stream()
-                            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                            .toList()) {
-                double pct = total > 0 ? (e.getValue() * 100.0 / total) : 0;
-                String colour = colours[ci++ % colours.length];
-                HBox barRow = new HBox(10); barRow.setAlignment(Pos.CENTER_LEFT);
-                Label cat = new Label(e.getKey()); cat.setMinWidth(160); cat.setStyle("-fx-font-size: 12px;");
-                StackPane bar = new StackPane(); bar.setMinHeight(18); bar.setMaxHeight(18);
-                Rectangle bg   = new Rectangle(300, 18, Color.web("#F0F4F8")); bg.setArcWidth(6); bg.setArcHeight(6);
-                Rectangle fill = new Rectangle(Math.max(4, pct * 3), 18, Color.web(colour)); fill.setArcWidth(6); fill.setArcHeight(6);
-                StackPane.setAlignment(fill, Pos.CENTER_LEFT); bar.getChildren().addAll(bg, fill);
-                Label pctLbl = new Label(String.format("%.1f%%  ₹%,.0f", pct, e.getValue() / 100.0));
-                pctLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
-                barRow.getChildren().addAll(cat, bar, pctLbl);
-                bars.getChildren().add(barRow);
-            }
-        }
-        section.getChildren().addAll(heading, totalLbl, bars);
-        return section;
+        return buildCategoryBarChart("Expenses by Category — " + label,
+                "No expense transactions for this period.", byCategory, total, true);
     }
 
     /**
@@ -425,10 +391,6 @@ public class ReportsScreen {
 
     private VBox buildCCCategoryBars(List<CreditCardAccount> cards, LocalDate from, LocalDate to,
                                      String label, DataStore ds) {
-        VBox section = new VBox(10);
-        Label heading = new Label("CC Spending by Category — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
-
         Set<String> cardIds = cards.stream().map(CreditCardAccount::getId).collect(Collectors.toSet());
         Map<String, Long> byCategory = ds.getTransactions().stream()
                 .filter(t -> t.getType() == Transaction.Type.EXPENSE
@@ -439,32 +401,8 @@ public class ReportsScreen {
                         Collectors.summingLong(Transaction::getAmountPaise)));
 
         long total = byCategory.values().stream().mapToLong(Long::longValue).sum();
-        VBox bars = new VBox(8); bars.getStyleClass().add("card"); bars.setPadding(new Insets(16));
-        if (byCategory.isEmpty()) {
-            bars.getChildren().add(new Label("No CC expenses for this period."));
-        } else {
-            String[] colours = {"#E74C3C","#E67E22","#F39C12","#8E44AD","#2E75B6",
-                                "#1ABC9C","#27AE60","#2980B9","#C0392B","#16A085"};
-            int ci = 0;
-            for (Map.Entry<String, Long> e :
-                    byCategory.entrySet().stream()
-                            .sorted(Map.Entry.<String, Long>comparingByValue().reversed()).toList()) {
-                double pct = total > 0 ? (e.getValue() * 100.0 / total) : 0;
-                String colour = colours[ci++ % colours.length];
-                HBox barRow = new HBox(10); barRow.setAlignment(Pos.CENTER_LEFT);
-                Label cat = new Label(e.getKey()); cat.setMinWidth(160); cat.setStyle("-fx-font-size: 12px;");
-                StackPane bar = new StackPane(); bar.setMinHeight(18); bar.setMaxHeight(18);
-                Rectangle bg   = new Rectangle(300, 18, Color.web("#F0F4F8")); bg.setArcWidth(6); bg.setArcHeight(6);
-                Rectangle fill = new Rectangle(Math.max(4, pct * 3), 18, Color.web(colour)); fill.setArcWidth(6); fill.setArcHeight(6);
-                StackPane.setAlignment(fill, Pos.CENTER_LEFT); bar.getChildren().addAll(bg, fill);
-                Label pctLbl = new Label(String.format("%.1f%%  ₹%,.0f", pct, e.getValue() / 100.0));
-                pctLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
-                barRow.getChildren().addAll(cat, bar, pctLbl);
-                bars.getChildren().add(barRow);
-            }
-        }
-        section.getChildren().addAll(heading, bars);
-        return section;
+        return buildCategoryBarChart("CC Spending by Category — " + label,
+                "No CC expenses for this period.", byCategory, total, false);
     }
 
     private VBox buildCCTransactionTable(List<CreditCardAccount> cards, LocalDate from, LocalDate to,
@@ -494,6 +432,63 @@ public class ReportsScreen {
                 amtCol2
         );
         section.getChildren().addAll(heading, table);
+        return section;
+    }
+
+    // ── Shared bar chart builder ────────────────────────────────────────────
+
+    private static final String[] BAR_COLOURS = {
+            "#E74C3C","#E67E22","#F39C12","#8E44AD","#2E75B6",
+            "#1ABC9C","#27AE60","#2980B9","#C0392B","#16A085"};
+
+    private VBox buildCategoryBarChart(String headingText, String emptyMessage,
+                                       Map<String, Long> byCategory, long total,
+                                       boolean showTotal) {
+        VBox section = new VBox(10);
+        Label heading = new Label(headingText);
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        section.getChildren().add(heading);
+
+        if (showTotal) {
+            Label totalLbl = new Label("Total: " + String.format("₹%,.2f", total / 100.0));
+            totalLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #595959;");
+            section.getChildren().add(totalLbl);
+        }
+
+        VBox bars = new VBox(8);
+        bars.getStyleClass().add("card");
+        bars.setPadding(new Insets(16));
+        if (byCategory.isEmpty()) {
+            bars.getChildren().add(new Label(emptyMessage));
+        } else {
+            int ci = 0;
+            for (Map.Entry<String, Long> e :
+                    byCategory.entrySet().stream()
+                            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                            .toList()) {
+                double pct = total > 0 ? (e.getValue() * 100.0 / total) : 0;
+                String colour = BAR_COLOURS[ci++ % BAR_COLOURS.length];
+                HBox barRow = new HBox(10);
+                barRow.setAlignment(Pos.CENTER_LEFT);
+                Label cat = new Label(e.getKey());
+                cat.setMinWidth(160);
+                cat.setStyle("-fx-font-size: 12px;");
+                StackPane bar = new StackPane();
+                bar.setMinHeight(18);
+                bar.setMaxHeight(18);
+                Rectangle bg = new Rectangle(300, 18, Color.web("#F0F4F8"));
+                bg.setArcWidth(6); bg.setArcHeight(6);
+                Rectangle fill = new Rectangle(Math.max(4, pct * 3), 18, Color.web(colour));
+                fill.setArcWidth(6); fill.setArcHeight(6);
+                StackPane.setAlignment(fill, Pos.CENTER_LEFT);
+                bar.getChildren().addAll(bg, fill);
+                Label pctLbl = new Label(String.format("%.1f%%  ₹%,.0f", pct, e.getValue() / 100.0));
+                pctLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
+                barRow.getChildren().addAll(cat, bar, pctLbl);
+                bars.getChildren().add(barRow);
+            }
+        }
+        section.getChildren().add(bars);
         return section;
     }
 

@@ -1,7 +1,12 @@
 package com.financeapp.ui;
 
+import com.financeapp.model.Transaction;
+import javafx.geometry.Pos;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
@@ -11,6 +16,60 @@ import java.util.List;
 
 public final class UiUtils {
     private UiUtils() {}
+
+    /**
+     * Builds a numbered step row used in setup guides.
+     * Shared by DashboardScreen (welcome banner) and HelpDialog (get started section).
+     */
+    public static HBox buildStep(String number, String stepTitle, String detail) {
+        HBox row = new HBox(14);
+        row.setAlignment(Pos.TOP_LEFT);
+
+        Label num = new Label(number);
+        num.setMinSize(28, 28);
+        num.setPrefSize(28, 28);
+        num.setAlignment(Pos.CENTER);
+        num.setStyle("-fx-background-color: #1F4E79; -fx-text-fill: white; "
+                + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 14;");
+
+        VBox text = new VBox(3);
+        Label titleLbl = new Label(stepTitle);
+        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #1F4E79;");
+        Label detailLbl = new Label(detail);
+        detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
+        detailLbl.setWrapText(true);
+        text.getChildren().addAll(titleLbl, detailLbl);
+        HBox.setHgrow(text, Priority.ALWAYS);
+
+        row.getChildren().addAll(num, text);
+        return row;
+    }
+
+    /** Returns the CSS style class for a transaction type badge. */
+    public static String badgeStyle(Transaction.Type type) {
+        return switch (type) {
+            case EXPENSE    -> "badge-expense";
+            case INCOME     -> "badge-income";
+            case TRANSFER   -> "badge-transfer";
+            case INVESTMENT -> "badge-investment";
+            case CC_PAYMENT -> "badge-cc-payment";
+            case REFUND     -> "badge-income";
+            case REDEEM     -> "badge-investment";
+        };
+    }
+
+    /** Returns the display text for a transaction type badge. */
+    public static String badgeText(Transaction.Type type) {
+        return switch (type) {
+            case EXPENSE    -> "Expense";
+            case INCOME     -> "Income";
+            case TRANSFER   -> "Transfer";
+            case INVESTMENT -> "Investment";
+            case CC_PAYMENT -> "CC Payment";
+            case REFUND     -> "Refund";
+            case REDEEM     -> "Redeem";
+        };
+    }
 
     /** Small italic hint label for placement below editable tables. */
     public static Label hintLabel(String text) {

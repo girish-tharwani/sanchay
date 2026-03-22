@@ -6,11 +6,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Window;
 
-/**
- * Popup dialog showing the "Get Started" setup guide.
- * Opened from the Help sidebar button. Designed to be extended into full
- * help documentation in future — add more sections below the setup guide.
- */
+/** Popup dialog showing the "Get Started" setup guide, opened from the Help sidebar button. */
 public class HelpDialog {
 
     private final Window owner;
@@ -80,13 +76,13 @@ public class HelpDialog {
 
         VBox steps = new VBox(12);
         steps.getChildren().addAll(
-                buildStep("1", "Add family members",
+                UiUtils.buildStep("1", "Add family members",
                         "Go to Profile → + Add Member. Add everyone in your household. "
                         + "Don't mark anyone as an earning member yet — you'll do that in step 3."),
-                buildStep("2", "Add your bank accounts",
+                UiUtils.buildStep("2", "Add your bank accounts",
                         "Go to Accounts → Bank Accounts → + Add. Add the accounts where "
                         + "salaries and income are deposited. You can add credit cards and loans later."),
-                buildStep("3", "Complete earnings details",
+                UiUtils.buildStep("3", "Complete earnings details",
                         "Return to Profile and click the ₹ button next to each earning member. "
                         + "Mark them as earning and fill in their salary and income details.")
         );
@@ -95,27 +91,4 @@ public class HelpDialog {
         return section;
     }
 
-    private HBox buildStep(String number, String stepTitle, String detail) {
-        HBox row = new HBox(14);
-        row.setAlignment(Pos.TOP_LEFT);
-
-        Label num = new Label(number);
-        num.setMinSize(28, 28);
-        num.setPrefSize(28, 28);
-        num.setAlignment(Pos.CENTER);
-        num.setStyle("-fx-background-color: #1F4E79; -fx-text-fill: white; "
-                + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 14;");
-
-        VBox text = new VBox(3);
-        Label titleLbl = new Label(stepTitle);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #1F4E79;");
-        Label detailLbl = new Label(detail);
-        detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
-        detailLbl.setWrapText(true);
-        text.getChildren().addAll(titleLbl, detailLbl);
-        HBox.setHgrow(text, Priority.ALWAYS);
-
-        row.getChildren().addAll(num, text);
-        return row;
-    }
 }

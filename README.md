@@ -2,8 +2,6 @@
 ## Product Requirements Specification
 **Updated:** March 2026 | **Platform:** Windows 11+ | **Currency:** INR
 
-> For the full version history, see [CHANGELOG.md](CHANGELOG.md).
-
 ---
 
 ## Table of Contents
@@ -84,7 +82,7 @@ A lightweight configuration file at `%APPDATA%\PersonalFinance\app-config.json` 
 ```json
 {
   "dataFolderPath": "C:\\Users\\Girish\\Documents\\PersonalFinance",
-  "appVersion": "0.9"
+  "appVersion": "0.1.0-SNAPSHOT"
 }
 ```
 
@@ -174,7 +172,7 @@ The top bar is a slim, fixed-height bar running the full width of the window abo
 |---------|----------|-----------|
 | Application name / logo | Left | Static; non-interactive |
 
-The top bar contains no other controls. The financial year selector has been removed from the top bar as of v0.9. Date filtering is now handled independently within each screen (Reports screen, Account Transaction History). The quick-add button lives in the main panel, not the top bar.
+The top bar contains no other controls. Date filtering is handled independently within each screen (Reports screen, Account Transaction History). The quick-add button lives in the main panel, not the top bar.
 
 ### 3.4 Floating Quick-Add Button
 
@@ -203,7 +201,7 @@ The dashboard is the home screen shown on application launch. It provides a hous
 - Clicking **Skip** advances the schedule without posting a transaction
 - Clicking the widget heading navigates to the Recurring screen
 
-> **Note:** The Recent Transactions widget has been removed. Transaction history is accessed per account from the Accounts screen. The space previously occupied by Recent Transactions is reserved for a future widget (TBD).
+> **Note:** The Recent Transactions widget shows the 10 most recent transactions across all accounts. Full transaction history is accessed per account from the Accounts screen.
 
 ---
 
@@ -319,9 +317,9 @@ Credit cards are modelled as liability accounts. Spending on a credit card is re
 | Status | Dropdown | Active / Closed / Settled |
 | Notes | Text (multi-line) | Optional |
 
-> **v0.9 bug fix:** The Loan Account Add/Edit dialog now correctly shows the Joint Account toggle and Co-applicant Name field. These were present in the specification but were missing from the implementation in v0.8.
+> The Loan Account Add/Edit dialog correctly shows the Joint Account toggle and Co-applicant Name field.
 
-**Interest rate changes:** When a floating rate changes, the user simply overwrites the Interest Rate field. The previous rate is not retained in this version. Rate change history is a future enhancement.
+**Interest rate changes:** When a floating rate changes, the user simply overwrites the Interest Rate field. The previous rate is not retained . Rate change history is a future enhancement.
 
 > On saving a loan account, the application automatically creates a **recurring transaction** (type: Expense, category: EMI / Loan Repayment, frequency: Monthly) for the EMI amount from the user's chosen bank account. See Section 7.
 
@@ -635,7 +633,7 @@ When the user confirms:
 - The recurring schedule's `lastRecordedDate` is updated
 - The pending item **immediately disappears** from the pending list without requiring screen navigation
 
-> **v0.9 clarification:** The sub-category from the recurring schedule is always copied to the posted transaction. Recurring schedules that were created before v0.8 (which introduced sub-category support) will not have a sub-category on their posted transactions; this is expected behaviour for historical schedules.
+> The sub-category from the recurring schedule is always copied to the posted transaction.
 
 - The user may also **Skip** an occurrence (e.g., if an EMI was already auto-debited and recorded separately)
 - Recurring transactions do **not** post automatically — user confirmation is always required
@@ -692,7 +690,7 @@ Both earnings-linked schedules are paused/resumed together whenever the member's
 | Gift / Bonus | One-time receipts |
 | Miscellaneous | Other income |
 
-> Income categories do not have sub-categories in the initial version.
+> Income categories do not have sub-categories.
 
 ### 8.3 Categories Screen
 
@@ -720,7 +718,7 @@ Sub-categories allow finer-grained expense tracking within a parent category. Th
 
 **Data model:**
 - Each sub-category belongs to exactly one parent category
-- Sub-categories are only supported under **Expense** categories in the initial version
+- Sub-categories are only supported under **Expense** categories
 - A sub-category inherits the active/inactive status of its parent; if a parent category is deactivated, all its sub-categories are also hidden from entry dropdowns
 - Sub-categories have their own active/inactive flag independently of the parent
 
@@ -729,9 +727,6 @@ Sub-categories allow finer-grained expense tracking within a parent category. Th
 - Each sub-category row supports: **Rename**, **Deactivate / Reactivate**, **Delete** (only if zero transactions use it), and **Show Transactions**
 - The **Show Transactions** button on a sub-category row correctly filters transactions by that sub-category's ID. Transactions that have the sub-category's ID in either `categoryId` or `subCategoryId` are included
 - An **"+ Add Sub-category"** button within an expanded category opens a dialog with a single field: sub-category name (parent is implicit)
-- Sub-categories cannot be moved between parent categories in this version
-
-> **v0.9 bug fix:** The **Show Transactions** button on sub-category rows previously crashed with a NullPointerException when any transaction in the data set had a null `subCategoryId`. This is now fixed — the filter correctly handles null values.
 
 **Transaction entry behaviour:**
 - When a user selects a category in the Expense transaction form, the Sub-category dropdown is populated with that category's active sub-categories
@@ -838,7 +833,7 @@ Every time the application launches, it follows this decision tree before showin
 7. Show main application shell → Dashboard
 ```
 
-> **v0.9 note:** Step 6 is explicitly required. The DataStore must have the resolved data folder path set before any screen is constructed so that the Settings screen displays the correct path rather than "Not configured".
+> Step 6 is explicitly required. The DataStore must have the resolved data folder path set before any screen is constructed so that the Settings screen displays the correct path.
 
 #### 10.1.2 Write Strategy — Save on Every Mutation
 
@@ -879,7 +874,7 @@ The user can change the data folder path at any time from the Settings screen. W
 5. If **Switch**: only `app-config.json` is updated; no files are moved
 6. On next launch the app reads from the new folder
 
-#### 10.1.5 Members Data Schema (v0.10)
+#### 10.1.5 Members Data Schema
 
 Family members are stored as structured objects in **`members.json`**. The file is a **flat JSON array** — there is no wrapper object.
 
@@ -913,8 +908,6 @@ Family members are stored as structured objects in **`members.json`**. The file 
 | `relationship` | Enum string | One of: `SELF`, `SPOUSE`, `CHILD`, `SIBLING`, `PARENT`, `OTHER` |
 | `earning` | Boolean | Whether this member has their own income; used for future reporting features |
 
-> **Migration note:** `categories.json` files from v0.8 and earlier may contain a `familyMembers` string array. This field is ignored by v0.10+. Users must re-enter their family members via the Profile screen after upgrading.
-
 ---
 
 ## 11. Settings
@@ -928,9 +921,7 @@ Family members are stored as structured objects in **`members.json`**. The file 
 | Backup | Button | Triggers one-click backup to ZIP |
 | About / Version | Read-only | App version, build date, data schema version |
 
-> **Note:** Family Members has moved to the **Profile** screen (§12). Category Manager has moved to the **Categories** screen (§8.3). The **Active Financial Year** setting has been removed as of v0.9 — the financial year selector is no longer a global application state. Each screen (Reports, Account Transaction History) manages its own date filter independently.
-
-> **v0.9 bug fix:** The Data Folder Path field now correctly shows the path that was loaded from `app-config.json` on startup. In v0.8 this field incorrectly showed "Not configured" even when the application had successfully loaded data from a configured folder.
+> **Note:** Family Members is managed on the **Profile** screen (§12). Category Manager is on the **Categories** screen (§8.3). Each screen (Reports, Account Transaction History) manages its own date filter independently.
 
 ---
 
@@ -1001,7 +992,7 @@ The Net In-hand figure becomes the INCOME recurring schedule amount. If a PF acc
 The following features are explicitly deferred to future versions:
 
 - Cloud sync or multi-device access
-- Bank statement import via PDF or OFX format (CSV import is supported as of v0.11)
+- Bank statement import via PDF or OFX format
 - FD / RD maturity alerts and push notifications
 - Loan amortization schedule auto-generation
 - Investment current market value / NAV lookup

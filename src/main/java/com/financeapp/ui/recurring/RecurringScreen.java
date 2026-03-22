@@ -29,11 +29,6 @@ public class RecurringScreen {
         buildView();
     }
 
-    /** @deprecated Always use {@link #RecurringScreen(MainWindow)}. */
-    @Deprecated
-    public RecurringScreen() {
-        throw new IllegalStateException("Use new RecurringScreen(mainWindow).");
-    }
 
     public Node getView() { return view; }
 
@@ -91,7 +86,7 @@ public class RecurringScreen {
                 super.updateItem(item, empty);
                 if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
                 RecurringTransaction r = getTableRow().getItem();
-                Label badge = new Label(formatType(r.getTransactionType()));
+                Label badge = new Label(UiUtils.badgeText(r.getTransactionType()));
                 badge.getStyleClass().add(
                         "badge-" + r.getTransactionType().name().toLowerCase().replace("_", "-"));
                 setGraphic(badge);
@@ -400,19 +395,19 @@ public class RecurringScreen {
             GridPane dg = miniGrid();
             switch (sel.getInvestmentType()) {
                 case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
-                    dynFormRow(dg, 0, "Scheme / Script", invSchemeFld);
-                    dynFormRow(dg, 1, "Units / NAV",     invUnitsFld);
+                    formRow(dg, 0, "Scheme / Script", invSchemeFld);
+                    formRow(dg, 1, "Units / NAV",     invUnitsFld);
                 }
                 case FIXED_DEPOSIT -> {
-                    dynFormRow(dg, 0, "FD Reference No",   invFdRefFld);
-                    dynFormRow(dg, 1, "Interest Rate (%)", invFdRateFld);
-                    dynFormRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
-                    dynFormRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
+                    formRow(dg, 0, "FD Reference No",   invFdRefFld);
+                    formRow(dg, 1, "Interest Rate (%)", invFdRateFld);
+                    formRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
+                    formRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
                 }
                 case RECURRING_DEPOSIT -> {
-                    dynFormRow(dg, 0, "RD Reference No",   invRdRefFld);
-                    dynFormRow(dg, 1, "Interest Rate (%)", invRdRateFld);
-                    dynFormRow(dg, 2, "Maturity Date",     invRdMaturityPicker);
+                    formRow(dg, 0, "RD Reference No",   invRdRefFld);
+                    formRow(dg, 1, "Interest Rate (%)", invRdRateFld);
+                    formRow(dg, 2, "Maturity Date",     invRdMaturityPicker);
                 }
                 case PROVIDENT_FUND -> { /* no additional fields */ }
             }
@@ -437,12 +432,12 @@ public class RecurringScreen {
 
             GridPane tg = miniGrid();
             if (t == Transaction.Type.TRANSFER) {
-                dynFormRow(tg, 0, "To Account*", transferToCb);
+                formRow(tg, 0, "To Account*", transferToCb);
             } else if (t == Transaction.Type.INVESTMENT) {
-                dynFormRow(tg, 0, "To Inv. Account*", invDestCb);
-                dynFormRow(tg, 1, "Investment Type",  invTypeLbl);
+                formRow(tg, 0, "To Inv. Account*", invDestCb);
+                formRow(tg, 1, "Investment Type",  invTypeLbl);
             } else {
-                dynFormRow(tg, 0, "To Credit Card*", ccpCardCb);
+                formRow(tg, 0, "To Credit Card*", ccpCardCb);
             }
             toAccountSection.getChildren().add(tg);
             if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
@@ -651,16 +646,6 @@ public class RecurringScreen {
         return g;
     }
 
-    /** Adds a labelled row to a dynamic mini-GridPane. */
-    private void dynFormRow(GridPane g, int rowIdx, String labelText, Node control) {
-        Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
-        lbl.setMinWidth(145);
-        g.add(lbl,     0, rowIdx);
-        g.add(control, 1, rowIdx);
-        GridPane.setFillWidth(control, true);
-    }
-
     /** Packs investment-type-specific fields into a structured notes string. */
     private String buildInvNotes(InvestmentAccount dest,
             TextField schemeFld, TextField unitsFld,
@@ -703,19 +688,6 @@ public class RecurringScreen {
         g.add(lbl,     0, rowIdx);
         g.add(control, 1, rowIdx);
         GridPane.setFillWidth(control, true);
-    }
-
-    private static String formatType(Transaction.Type t) {
-        if (t == null) return "—";
-        return switch (t) {
-            case EXPENSE    -> "Expense";
-            case INCOME     -> "Income";
-            case TRANSFER   -> "Transfer";
-            case INVESTMENT -> "Investment";
-            case CC_PAYMENT -> "CC Payment";
-            case REFUND     -> "Refund";
-            case REDEEM     -> "Redeem";
-        };
     }
 
     private static String formatFrequency(RecurringTransaction.Frequency f) {

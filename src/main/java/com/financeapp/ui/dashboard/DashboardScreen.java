@@ -4,6 +4,7 @@ import com.financeapp.model.RecurringTransaction;
 import com.financeapp.model.Transaction;
 import com.financeapp.service.DataStore;
 import com.financeapp.ui.MainWindow;
+import com.financeapp.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -96,43 +97,19 @@ public class DashboardScreen {
         // Steps
         VBox steps = new VBox(10);
         steps.getChildren().addAll(
-                buildStep("1", "Add family members",
+                UiUtils.buildStep("1", "Add family members",
                         "Go to Profile → + Add Member. Add everyone in your household. "
                         + "Don't mark anyone as an earning member yet — you'll do that in step 3."),
-                buildStep("2", "Add your bank accounts",
+                UiUtils.buildStep("2", "Add your bank accounts",
                         "Go to Accounts → Bank Accounts → + Add. Add the accounts where "
                         + "salaries and income are deposited. You can add credit cards and loans later."),
-                buildStep("3", "Complete earnings details",
+                UiUtils.buildStep("3", "Complete earnings details",
                         "Return to Profile and click the ₹ button next to each earning member. "
                         + "Mark them as earning and fill in their salary and income details.")
         );
 
         card.getChildren().addAll(heading, intro, steps);
         return card;
-    }
-
-    private HBox buildStep(String number, String stepTitle, String detail) {
-        HBox row = new HBox(14);
-        row.setAlignment(Pos.TOP_LEFT);
-
-        Label num = new Label(number);
-        num.setMinSize(28, 28);
-        num.setPrefSize(28, 28);
-        num.setAlignment(Pos.CENTER);
-        num.setStyle("-fx-background-color: #1F4E79; -fx-text-fill: white; "
-                + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 14;");
-
-        VBox text = new VBox(3);
-        Label titleLbl = new Label(stepTitle);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #1F4E79;");
-        Label detailLbl = new Label(detail);
-        detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
-        detailLbl.setWrapText(true);
-        text.getChildren().addAll(titleLbl, detailLbl);
-        HBox.setHgrow(text, Priority.ALWAYS);
-
-        row.getChildren().addAll(num, text);
-        return row;
     }
 
     // ── Summary row ───────────────────────────────────────────────────────────
@@ -224,8 +201,8 @@ public class DashboardScreen {
         item.getStyleClass().add("pending-item");
         item.setAlignment(Pos.CENTER_LEFT);
 
-        Label typeBadge = new Label(badgeText(r.getTransactionType()));
-        typeBadge.getStyleClass().add(badgeStyle(r.getTransactionType()));
+        Label typeBadge = new Label(UiUtils.badgeText(r.getTransactionType()));
+        typeBadge.getStyleClass().add(UiUtils.badgeStyle(r.getTransactionType()));
 
         Label desc = new Label(r.getDescription());
         desc.setStyle("-fx-font-weight: bold;");
@@ -277,8 +254,8 @@ public class DashboardScreen {
             row.setAlignment(Pos.CENTER_LEFT);
             row.setPadding(new Insets(4, 0, 4, 0));
 
-            Label typeBadge = new Label(badgeText(t.getType()));
-            typeBadge.getStyleClass().add(badgeStyle(t.getType()));
+            Label typeBadge = new Label(UiUtils.badgeText(t.getType()));
+            typeBadge.getStyleClass().add(UiUtils.badgeStyle(t.getType()));
 
             Label dateL = new Label(t.getDate().format(DATE_FMT));
             dateL.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
@@ -308,27 +285,4 @@ public class DashboardScreen {
         return String.format("₹%,.2f", paise / 100.0);
     }
 
-    private String badgeStyle(Transaction.Type type) {
-        return switch (type) {
-            case EXPENSE    -> "badge-expense";
-            case INCOME     -> "badge-income";
-            case TRANSFER   -> "badge-transfer";
-            case INVESTMENT -> "badge-investment";
-            case CC_PAYMENT -> "badge-cc-payment";
-            case REFUND     -> "badge-income";
-            case REDEEM     -> "badge-investment";
-        };
-    }
-
-    private String badgeText(Transaction.Type type) {
-        return switch (type) {
-            case EXPENSE    -> "Expense";
-            case INCOME     -> "Income";
-            case TRANSFER   -> "Transfer";
-            case INVESTMENT -> "Investment";
-            case CC_PAYMENT -> "CC Payment";
-            case REFUND     -> "Refund";
-            case REDEEM     -> "Redeem";
-        };
-    }
 }
