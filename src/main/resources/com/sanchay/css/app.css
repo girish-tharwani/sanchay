@@ -353,15 +353,15 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
 }
 
-/* Month/year header bar — use literal colours; CSS variables from .root are not
-   guaranteed to resolve in the DatePicker popup's separate JavaFX scene. */
+/* Month/year header bar — light background + dark text so the month/year label
+   is always visible even if background CSS does not resolve in the popup scene. */
 .date-picker-popup > * > .month-year-pane {
-    -fx-background-color: #1F4E79;
+    -fx-background-color: #E8EEF5;
     -fx-padding: 6px 8px;
 }
 
 .date-picker-popup > * > .month-year-pane .label {
-    -fx-text-fill: white;
+    -fx-text-fill: #1F4E79;
     -fx-font-weight: bold;
 }
 
@@ -371,12 +371,12 @@
 }
 
 .date-picker-popup > * > .month-year-pane .button:hover {
-    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-background-color: rgba(0,0,0,0.07);
 }
 
 .date-picker-popup > * > .month-year-pane .left-arrow,
 .date-picker-popup > * > .month-year-pane .right-arrow {
-    -fx-background-color: white;
+    -fx-background-color: #1F4E79;
 }
 
 /* Day-of-week header row */
@@ -450,5 +450,9 @@
 
 .dialog-pane .label,
 .dialog-pane GridPane .label {
+    -fx-text-fill: #1A1A2E;
+}
+
+.dialog-pane .check-box {
     -fx-text-fill: #1A1A2E;
 }

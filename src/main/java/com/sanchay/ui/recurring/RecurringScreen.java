@@ -4,11 +4,13 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.layout.*;
 import javafx.util.StringConverter;
 
@@ -306,6 +308,9 @@ public class RecurringScreen {
                 : (existing.getStartDate() != null ? existing.getStartDate() : LocalDate.now()));
         startPicker.setMaxWidth(Double.MAX_VALUE);
         UiUtils.applySmartDateConverter(startPicker);
+        startPicker.showingProperty().addListener((obs, wasShowing, nowShowing) -> {
+            if (nowShowing) Platform.runLater(() -> stylePickerPopup(startPicker));
+        });
 
         // ── Amount ────────────────────────────────────────────────────────────
         TextField amtFld = new TextField(isNew ? ""
@@ -562,6 +567,7 @@ public class RecurringScreen {
 
         // ── Auto-record ───────────────────────────────────────────────────────
         CheckBox autoRecordCb = new CheckBox("Auto-record after");
+        autoRecordCb.setStyle("-fx-text-fill: #1A1A2E;");
         Spinner<Integer> autoRecordDaysSp = new Spinner<>(1, 30, 3);
         autoRecordDaysSp.setPrefWidth(70);
         autoRecordDaysSp.setDisable(true);
@@ -798,6 +804,19 @@ public class RecurringScreen {
         c.setCellValueFactory(d ->
                 new javafx.beans.property.SimpleStringProperty(extractor.apply(d.getValue())));
         return c;
+    }
+
+    /** Styles the DatePicker popup header via the skin since CSS doesn't reliably reach it. */
+    private static void stylePickerPopup(DatePicker picker) {
+        if (!(picker.getSkin() instanceof DatePickerSkin skin)) return;
+        Node content = skin.getPopupContent();
+        Node monthPane = content.lookup(".month-year-pane");
+        if (monthPane == null) return;
+        monthPane.setStyle("-fx-background-color: #E8EEF5;");
+        monthPane.lookupAll(".label").forEach(n ->
+                n.setStyle("-fx-text-fill: #1F4E79; -fx-font-weight: bold;"));
+        monthPane.lookupAll(".left-arrow, .right-arrow").forEach(n ->
+                n.setStyle("-fx-background-color: #1F4E79;"));
     }
 
     private void alert(String title, String msg) {

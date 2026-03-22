@@ -1,3 +1,9 @@
+## v0.1.8 — 2026-03-22
+
+### Fixed
+- "Auto-record after" checkbox label in the recurring schedule dialog is now visible (was white/invisible)
+- Date picker calendar popup month/year header now shows correctly styled text (was white/invisible due to CSS not reaching the popup scene)
+
 ## v0.1.7 — 2026-03-22
 
 ### Fixed
