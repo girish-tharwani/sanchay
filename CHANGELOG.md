@@ -1,3 +1,8 @@
+## v0.1.9 — 2026-03-22
+
+### Fixed
+- Date picker calendar popup now has consistent styling (dark-blue header, visible navigation arrows) across all screens — Transaction dialog, Accounts screen, Recurring screen, main window date picker, and profile date of birth picker
+
 ## v0.1.8 — 2026-03-22
 
 ### Fixed

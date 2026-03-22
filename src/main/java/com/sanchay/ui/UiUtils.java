@@ -1,9 +1,12 @@
 package com.sanchay.ui;
 
 import com.sanchay.model.Transaction;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -82,6 +85,30 @@ public final class UiUtils {
         Label lbl = new Label(text);
         lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #888888; -fx-font-style: italic;");
         return lbl;
+    }
+
+    /**
+     * Attaches a listener that styles the DatePicker's calendar popup header each time
+     * it opens. Uses the DatePickerSkin to reach the popup's separate scene, since CSS
+     * from the main/dialog scene does not reliably propagate to popup scenes.
+     * Safe to call on any DatePicker in any context (dialog or main scene).
+     */
+    public static void styleOnShow(DatePicker dp) {
+        dp.showingProperty().addListener((obs, wasShowing, nowShowing) -> {
+            if (nowShowing) Platform.runLater(() -> applyPopupHeaderStyle(dp));
+        });
+    }
+
+    private static void applyPopupHeaderStyle(DatePicker dp) {
+        if (!(dp.getSkin() instanceof DatePickerSkin skin)) return;
+        Node content = skin.getPopupContent();
+        Node monthPane = content.lookup(".month-year-pane");
+        if (monthPane == null) return;
+        monthPane.setStyle("-fx-background-color: #E8EEF5;");
+        monthPane.lookupAll(".label").forEach(n ->
+                n.setStyle("-fx-text-fill: #1F4E79; -fx-font-weight: bold;"));
+        monthPane.lookupAll(".left-arrow, .right-arrow").forEach(n ->
+                n.setStyle("-fx-background-color: #1F4E79;"));
     }
 
     /**

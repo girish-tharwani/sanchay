@@ -368,6 +368,8 @@ public class AccountsScreen {
         toPicker.setPrefWidth(130);
         UiUtils.applySmartDateConverter(fromPicker);
         UiUtils.applySmartDateConverter(toPicker);
+        UiUtils.styleOnShow(fromPicker);
+        UiUtils.styleOnShow(toPicker);
 
         Label fromLbl = new Label("From:");
         fromLbl.getStyleClass().add("form-label");
@@ -941,6 +943,7 @@ public class AccountsScreen {
         DatePicker openDate = new DatePicker(isNew ? LocalDate.now() : existing.getOpeningDate());
         openDate.setMaxWidth(Double.MAX_VALUE);
         UiUtils.applySmartDateConverter(openDate);
+        UiUtils.styleOnShow(openDate);
         TextField openBalFld = tf(isNew ? "0.00"
                 : String.format("%.2f", existing.getOpeningBalancePaise() / 100.0), "Opening balance");
 

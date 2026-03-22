@@ -237,6 +237,7 @@ public class MainWindow {
         DatePicker datePicker = new DatePicker(LocalDate.now());
         datePicker.setMaxWidth(Double.MAX_VALUE);
         UiUtils.applySmartDateConverter(datePicker);
+        UiUtils.styleOnShow(datePicker);
         addDialogField(g, "Date:", datePicker, row++);
 
         TextField amtFld = new TextField(

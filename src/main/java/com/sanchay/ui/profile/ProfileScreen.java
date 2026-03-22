@@ -278,6 +278,7 @@ public class ProfileScreen {
         dobPicker.setPromptText("dd/MM/yyyy");
         dobPicker.setMaxWidth(Double.MAX_VALUE);
         UiUtils.applySmartDateConverter(dobPicker);
+        UiUtils.styleOnShow(dobPicker);
         if (!isNew && existing.getDateOfBirth() != null) dobPicker.setValue(existing.getDateOfBirth());
 
         // Relationship

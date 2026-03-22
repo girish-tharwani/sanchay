@@ -3,6 +3,7 @@ package com.sanchay.ui.transactions;
 import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -105,6 +106,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         // Shared fields
         sharedDate  = new DatePicker(LocalDate.now());
+        UiUtils.styleOnShow(sharedDate);
         sharedDesc  = new TextField();
         sharedDesc.setPromptText("e.g. Electricity Bill");
         sharedAmt   = new TextField();
@@ -1116,6 +1118,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 invFdRefFld         = tf("optional");
                 invFdRateFld        = tf("e.g. 7.5");
                 invFdMaturityPicker = new DatePicker();
+                UiUtils.styleOnShow(invFdMaturityPicker);
                 invFdMaturityAmtFld = tf("optional");
                 dynRow(g, 0, "FD Reference No",    invFdRefFld);
                 dynRow(g, 1, "Interest Rate (%)",   invFdRateFld);
@@ -1126,6 +1129,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 invRdRefFld         = tf("optional");
                 invRdRateFld        = tf("e.g. 6.5");
                 invRdMaturityPicker = new DatePicker();
+                UiUtils.styleOnShow(invRdMaturityPicker);
                 dynRow(g, 0, "RD Reference No",    invRdRefFld);
                 dynRow(g, 1, "Interest Rate (%)",   invRdRateFld);
                 dynRow(g, 2, "Maturity Date",       invRdMaturityPicker);
