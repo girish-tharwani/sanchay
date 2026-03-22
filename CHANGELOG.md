@@ -1,3 +1,12 @@
+## v0.1.4 — 2026-03-22
+
+### Fixed
+- Accepting an auto-categorized transaction via the `?` badge now correctly sets the source indicator to `RECONCILED` (was incorrectly set to `MANUAL`), preventing re-import on future statement imports
+- ACH/NACH SIP transactions for a recurring fund now match existing type rules regardless of the date embedded in the description (e.g. `KOTAKMF05032026` now matches `KOTAKMF05012026`)
+
+### Changed
+- Transaction grid "2nd Account" column renamed to "To / From Account"
+
 ## v0.1.3 — 2026-03-22
 
 ### Fixed

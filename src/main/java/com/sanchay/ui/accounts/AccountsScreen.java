@@ -402,6 +402,12 @@ public class AccountsScreen {
                 setGraphic(typeBadge(getTableRow().getItem().getType()));
             }
         });
+        TableColumn<Transaction, String> acctCol = col("To / From Account", 140, t -> {
+            String secondId = acc.getId().equals(t.getFromAccountId())
+                    ? t.getToAccountId() : t.getFromAccountId();
+            String name = ds.getAccountName(secondId);
+            return "—".equals(name) ? "" : name;
+        });
         TableColumn<Transaction, String> catCol  = col("Category", 100,
                 t -> ds.getCategoryName(t.getCategoryId()));
         TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
@@ -565,10 +571,27 @@ public class AccountsScreen {
                         badge.setStyle("-fx-background-color: #FFF3CD; -fx-text-fill: #856404; "
                                 + "-fx-font-weight: bold; -fx-font-size: 10px; "
                                 + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
-                        badge.setTooltip(new Tooltip(
-                                "Category auto-filled — click to accept, or double-click row to edit"));
+                        // Build tooltip showing what was auto-suggested
+                        StringBuilder tip = new StringBuilder();
+                        boolean isTypeSuggested = t.getType() != Transaction.Type.EXPENSE
+                                               && t.getType() != Transaction.Type.INCOME;
+                        if (isTypeSuggested) {
+                            tip.append("Type auto-filled: ").append(t.getType().toString());
+                            String secondId = acc.getId().equals(t.getFromAccountId())
+                                    ? t.getToAccountId() : t.getFromAccountId();
+                            String acctName = ds.getAccountName(secondId);
+                            if (!"—".equals(acctName)) tip.append(" → ").append(acctName);
+                        } else {
+                            tip.append("Category auto-filled");
+                            if (t.getCategoryId() != null)
+                                tip.append(": ").append(ds.getCategoryName(t.getCategoryId()));
+                            if (t.getSubCategoryId() != null)
+                                tip.append(" / ").append(ds.getCategoryName(t.getSubCategoryId()));
+                        }
+                        tip.append("\nClick to accept, or double-click to edit");
+                        badge.setTooltip(new Tooltip(tip.toString()));
                         badge.setOnMouseClicked(e -> {
-                            t.setSourceIndicator(Transaction.SourceIndicator.IMPORTED);
+                            t.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
                             DataStore.getInstance().saveTransactionsNow();
                             applyFilter.run();
                             e.consume();
@@ -593,7 +616,7 @@ public class AccountsScreen {
             }
         });
 
-        table.getColumns().addAll(dateCol, descCol, typeCol, catCol, subCatCol, amtCol,
+        table.getColumns().addAll(dateCol, descCol, typeCol, acctCol, catCol, subCatCol, amtCol,
                 srcCol, actionsCol);
         table.getSortOrder().add(dateCol);
 

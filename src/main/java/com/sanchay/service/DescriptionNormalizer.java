@@ -98,9 +98,11 @@ public final class DescriptionNormalizer {
     }
 
     // ── ACH: NACH/ECS mandate debit
+    // p[1] often looks like "KOTAKMF05032026 CAMS" — strip ALL digit sequences so the
+    // date component doesn't make every month a distinct key.
     private static String normalizeAch(String s) {
         String[] p = s.split("/", -1);
-        String code = p.length > 1 ? p[1].replaceAll("\\d+$", "").trim() : "";
+        String code = p.length > 1 ? p[1].replaceAll("\\d+", " ").trim() : "";
         return cleanDesc("nach " + code);
     }
 
@@ -148,6 +150,9 @@ public final class DescriptionNormalizer {
     /**
      * Returns true if two normalized descriptions match (exact or fuzzy word overlap).
      * Only words of 5+ characters are compared to avoid false positives on short tokens.
+     * Prefix matching is also accepted so that old stored keys containing an embedded date
+     * (e.g. "kotakmf05012026") still match a freshly-normalized key with the date stripped
+     * (e.g. "kotakmf").
      */
     public static boolean matches(String needle, String haystack) {
         if (needle.equals(haystack)) return true;
@@ -155,6 +160,10 @@ public final class DescriptionNormalizer {
                 .filter(w -> w.length() >= 5).collect(java.util.stream.Collectors.toSet());
         java.util.Set<String> hw = java.util.Arrays.stream(haystack.split(" "))
                 .filter(w -> w.length() >= 5).collect(java.util.stream.Collectors.toSet());
-        return nw.stream().anyMatch(hw::contains);
+        return nw.stream().anyMatch(nWord ->
+                hw.stream().anyMatch(hWord ->
+                        hWord.equals(nWord)
+                        || hWord.startsWith(nWord)
+                        || nWord.startsWith(hWord)));
     }
 }
