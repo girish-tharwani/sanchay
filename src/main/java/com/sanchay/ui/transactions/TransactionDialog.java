@@ -84,6 +84,10 @@ public class TransactionDialog extends Dialog<Transaction> {
     private final Map<Type, Node> panels = new EnumMap<>(Type.class);
     private VBox typeSection;
 
+    // ── Context account (edit-mode type changes) ──────────────────────────────
+    private String  contextAccountId; // account in context when editing Expense/Income
+    private boolean contextIsSource;  // true = "from" account (Expense), false = "to" (Income)
+
     // ─────────────────────────────────────────────────────────────────────────
 
     public TransactionDialog() {
@@ -137,8 +141,11 @@ public class TransactionDialog extends Dialog<Transaction> {
         typeSection = new VBox();
         typeSection.getChildren().add(panels.get(Type.EXPENSE));
 
-        typeCb.valueProperty().addListener((obs, old, type) ->
-                typeSection.getChildren().setAll(panels.get(type)));
+        typeCb.valueProperty().addListener((obs, old, type) -> {
+            typeSection.getChildren().setAll(panels.get(type));
+            if (contextAccountId != null && (old == Type.EXPENSE || old == Type.INCOME))
+                applyContextAccount(type);
+        });
 
         wireAutoSuggest();
 
@@ -751,6 +758,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         // Type-specific fields
         switch (t.getType()) {
             case EXPENSE -> {
+                contextAccountId = t.getFromAccountId();
+                contextIsSource  = true;
                 setAccount(expAcctCb, t.getFromAccountId());
                 prefillCat(expCatCb, expSubCatCb, t);
                 setPayMode(expModeCb, t.getPaymentMode());
@@ -759,6 +768,8 @@ public class TransactionDialog extends Dialog<Transaction> {
             }
             case INCOME -> {
                 String id = t.getToAccountId() != null ? t.getToAccountId() : t.getFromAccountId();
+                contextAccountId = id;
+                contextIsSource  = false;
                 setAccount(incAcctCb, id);
                 prefillCat(incCatCb, null, t);
                 setText(incSrcFld,    t.getSource());
@@ -850,6 +861,35 @@ public class TransactionDialog extends Dialog<Transaction> {
                         default -> {}
                     }
                 });
+    }
+
+    // ── Context account pre-population on type change ─────────────────────────
+
+    private void applyContextAccount(Type newType) {
+        Account acct = ds.getAccounts().stream()
+                .filter(a -> a.getId().equals(contextAccountId))
+                .findFirst().orElse(null);
+        if (acct == null) return;
+        switch (newType) {
+            case TRANSFER -> {
+                if (contextIsSource) setAccount(trfFromCb, contextAccountId);
+                else                 setAccount(trfToCb,   contextAccountId);
+            }
+            case INVESTMENT -> {
+                if (acct instanceof BankAccount) setAccount(invFromCb, contextAccountId);
+            }
+            case CC_PAYMENT -> {
+                if (contextIsSource && acct instanceof BankAccount)
+                    setAccount(ccBankCb, contextAccountId);
+                else if (!contextIsSource && acct instanceof CreditCardAccount)
+                    setAccount(ccCardCb, contextAccountId);
+            }
+            case REFUND -> setAccount(refAcctCb, contextAccountId);
+            case REDEEM -> {
+                if (!contextIsSource) setAccount(rdeToCb, contextAccountId);
+            }
+            default -> {}
+        }
     }
 
     // ── Investment dynamic fields ─────────────────────────────────────────────

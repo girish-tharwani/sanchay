@@ -151,7 +151,7 @@ public class PersistenceService {
     }
 
     /**
-     * Seeds three default investment accounts on first run (when accounts.json is absent or corrupt).
+     * Seeds default investment accounts on first run (when accounts.json is absent or corrupt).
      */
     private void seedDefaultAccounts(DataStore store) {
         Object[][] defs = {
@@ -161,6 +161,10 @@ public class PersistenceService {
               "This is where you record all your mutual funds transactions." },
             { "All Bonds",       InvestmentAccount.InvestmentType.DEBT_BONDS,
               "This is where you record all your bonds transactions." },
+            { "All FDs",         InvestmentAccount.InvestmentType.FIXED_DEPOSIT,
+              "This is where you record all your FD transactions." },
+            { "All RDs",         InvestmentAccount.InvestmentType.RECURRING_DEPOSIT,
+              "This is where you record all your RD transactions." },
         };
         for (Object[] def : defs) {
             InvestmentAccount acc = new InvestmentAccount(
@@ -326,6 +330,8 @@ public class PersistenceService {
                 {"Miscellaneous",
                         "Auto/Cab", "Bank Charges", "Donations",
                         "Gifts", "Personal Care"},
+                {"Capital Market",
+                        "Charges and Fees", "Mutual Funds Loss", "Trading Loss"},
                 {"Taxes",
                         "Income Tax", "Property Tax"},
                 {"Travel/Vacation",
@@ -342,11 +348,24 @@ public class PersistenceService {
         }
 
         String[] incomeDefs = {
-                "Bonus", "Business", "Dividend", "Interest",
+                "Bonus", "Business", "Interest",
                 "Miscellaneous", "Rental Income", "Salary"
         };
         for (String name : incomeDefs) {
             store.addCategoryInternal(new Category(name, Category.CategoryType.INCOME, null));
+        }
+
+        String[][] incomeWithSubDefs = {
+                {"Capital Market",
+                        "Dividend", "Mutual Funds", "Trading"},
+        };
+        for (String[] def : incomeWithSubDefs) {
+            Category parent = new Category(def[0], Category.CategoryType.INCOME, null);
+            store.addCategoryInternal(parent);
+            for (int i = 1; i < def.length; i++) {
+                store.addCategoryInternal(
+                        new Category(def[i], Category.CategoryType.INCOME, parent.getId()));
+            }
         }
     }
 
