@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find D:/Projects/sanchay -maxdepth 3 -not -path */.git/* -not -path */work-folder/*)",
+      "Bash(find D:/Projects/sanchay/src -not -path */.git/*)",
+      "Bash(bash build.sh compile)",
+      "Bash(bash build.sh clean compile)",
+      "Bash(grep -r \"com\\\\.financeapp\" . --include=\"*.java\" --include=\"*.xml\" --include=\"*.properties\" --include=\"*.md\" --include=\"*.sh\" ! -path \"./target/*\" ! -path \"./.idea/*\" ! -path \"./.git/*\")",
+      "Bash(grep -r com.financeapp . --include=*.java --include=*.xml --include=*.md ! -path */target/* ! -path */.idea/*)",
+      "Bash(cd:*)",
+      "Bash(find src/main/java/com/sanchay -name \"*.java\" -exec sed -i 's/com\\\\.financeapp/com.sanchay/g' {} +)",
+      "Bash(find src/main/java/com/sanchay -name \"*.java\" -exec sed -i 's|com/financeapp/|com/sanchay/|g' {} +)",
+      "Bash(./mvnw compile:*)",
+      "Bash(bash build.sh)"
+    ]
+  }
+}

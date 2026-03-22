@@ -183,7 +183,8 @@ public class AccountsScreen {
             valueColour = out > 0 ? "#B71C1C" : "#1B5E20";
         } else if (acc instanceof LoanAccount la) {
             long paid = ds.getTransactions().stream()
-                    .filter(t -> t.getType() == Transaction.Type.TRANSFER
+                    .filter(t -> (t.getType() == Transaction.Type.TRANSFER
+                              || t.getType() == Transaction.Type.LOAN_PAYMENT)
                               && la.getId().equals(t.getToAccountId()))
                     .mapToLong(Transaction::getAmountPaise).sum();
             long outstanding = Math.max(0, la.getOutstandingPrincipalPaise() - paid);
@@ -270,7 +271,8 @@ public class AccountsScreen {
             addField(fields, "EMI",             String.format("₹%,.2f", la.getEmiAmountPaise() / 100.0));
             addField(fields, "EMI Due Day",     la.getEmiDueDay() + " of month");
             long laPaid = DataStore.getInstance().getTransactions().stream()
-                    .filter(t -> t.getType() == Transaction.Type.TRANSFER
+                    .filter(t -> (t.getType() == Transaction.Type.TRANSFER
+                              || t.getType() == Transaction.Type.LOAN_PAYMENT)
                               && la.getId().equals(t.getToAccountId()))
                     .mapToLong(Transaction::getAmountPaise).sum();
             addField(fields, "Current Outstanding Amount", String.format("₹%,.2f",
@@ -619,9 +621,16 @@ public class AccountsScreen {
     // ── Import CSV ────────────────────────────────────────────────────────────
 
     private void doImportCsv(Account acc, Runnable refreshTable) {
+        DataStore ds = DataStore.getInstance();
+
         FileChooser fc = new FileChooser();
         fc.setTitle("Import Bank / CC Statement");
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        ImportMapping prior = ImportService.findMapping(acc.getId(), ds.getImportMappings());
+        if (prior != null && prior.getLastImportPath() != null) {
+            File lastDir = new File(prior.getLastImportPath());
+            if (lastDir.isDirectory()) fc.setInitialDirectory(lastDir);
+        }
         File file = fc.showOpenDialog(null);
         if (file == null) return;
 
@@ -640,8 +649,8 @@ public class AccountsScreen {
             return;
         }
 
-        DataStore ds = DataStore.getInstance();
         ImportMapping saved = ImportService.findMapping(acc.getId(), ds.getImportMappings());
+        String importDir    = file.getParentFile() != null ? file.getParentFile().getAbsolutePath() : null;
         String snapshot     = String.join(",", rows.get(0));
         boolean snapshotOk  = saved != null && snapshot.equals(saved.getHeaderSnapshot());
 
@@ -653,6 +662,7 @@ public class AccountsScreen {
 
         ImportMapping mapping = mappingOpt.get();
         mapping.setHeaderSnapshot(snapshot);
+        if (importDir != null) mapping.setLastImportPath(importDir);
         ds.saveOrUpdateImportMapping(mapping);
 
         // Execute import
@@ -731,7 +741,8 @@ public class AccountsScreen {
                     long signedPaise;
                     if (t.getType() == Transaction.Type.INCOME) {
                         signedPaise = t.getAmountPaise();
-                    } else if (t.getType() == Transaction.Type.TRANSFER) {
+                    } else if (t.getType() == Transaction.Type.TRANSFER
+                            || t.getType() == Transaction.Type.LOAN_PAYMENT) {
                         signedPaise = acc.getId().equals(t.getFromAccountId())
                                 ? -t.getAmountPaise() : t.getAmountPaise();
                     } else {
@@ -1290,14 +1301,15 @@ public class AccountsScreen {
     public static Label typeBadge(Transaction.Type type) {
         String text; String bg; String fg;
         switch (type) {
-            case EXPENSE    -> { text = "Expense";    bg = "#FFE8E8"; fg = "#B71C1C"; }
-            case INCOME     -> { text = "Income";     bg = "#E8F5E9"; fg = "#1B5E20"; }
-            case TRANSFER   -> { text = "Transfer";   bg = "#E3F2FD"; fg = "#0D47A1"; }
-            case INVESTMENT -> { text = "Investment"; bg = "#F3E5F5"; fg = "#4A148C"; }
-            case CC_PAYMENT -> { text = "CC Payment"; bg = "#E0F2F1"; fg = "#004D40"; }
-            case REFUND     -> { text = "Refund";     bg = "#E8F5E9"; fg = "#1B5E20"; }
-            case REDEEM     -> { text = "Redeem";     bg = "#FFF8E1"; fg = "#E65100"; }
-            default         -> { text = type.name();  bg = "#EEEEEE"; fg = "#333333"; }
+            case EXPENSE      -> { text = "Expense";      bg = "#FFE8E8"; fg = "#B71C1C"; }
+            case INCOME       -> { text = "Income";       bg = "#E8F5E9"; fg = "#1B5E20"; }
+            case TRANSFER     -> { text = "Transfer";     bg = "#E3F2FD"; fg = "#0D47A1"; }
+            case INVESTMENT   -> { text = "Investment";   bg = "#F3E5F5"; fg = "#4A148C"; }
+            case CC_PAYMENT   -> { text = "CC Payment";   bg = "#E0F2F1"; fg = "#004D40"; }
+            case REFUND       -> { text = "Refund";       bg = "#E8F5E9"; fg = "#1B5E20"; }
+            case REDEEM       -> { text = "Redeem";       bg = "#FFF8E1"; fg = "#E65100"; }
+            case LOAN_PAYMENT -> { text = "Loan Payment"; bg = "#FFF3E0"; fg = "#E65100"; }
+            default           -> { text = type.name();    bg = "#EEEEEE"; fg = "#333333"; }
         }
         Label lbl = new Label(text);
         lbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: " + fg + "; "

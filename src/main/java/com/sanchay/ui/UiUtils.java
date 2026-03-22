@@ -48,26 +48,28 @@ public final class UiUtils {
     /** Returns the CSS style class for a transaction type badge. */
     public static String badgeStyle(Transaction.Type type) {
         return switch (type) {
-            case EXPENSE    -> "badge-expense";
-            case INCOME     -> "badge-income";
-            case TRANSFER   -> "badge-transfer";
-            case INVESTMENT -> "badge-investment";
-            case CC_PAYMENT -> "badge-cc-payment";
-            case REFUND     -> "badge-income";
-            case REDEEM     -> "badge-investment";
+            case EXPENSE      -> "badge-expense";
+            case INCOME       -> "badge-income";
+            case TRANSFER     -> "badge-transfer";
+            case INVESTMENT   -> "badge-investment";
+            case CC_PAYMENT   -> "badge-cc-payment";
+            case REFUND       -> "badge-income";
+            case REDEEM       -> "badge-investment";
+            case LOAN_PAYMENT -> "badge-cc-payment";
         };
     }
 
     /** Returns the display text for a transaction type badge. */
     public static String badgeText(Transaction.Type type) {
         return switch (type) {
-            case EXPENSE    -> "Expense";
-            case INCOME     -> "Income";
-            case TRANSFER   -> "Transfer";
-            case INVESTMENT -> "Investment";
-            case CC_PAYMENT -> "CC Payment";
-            case REFUND     -> "Refund";
-            case REDEEM     -> "Redeem";
+            case EXPENSE      -> "Expense";
+            case INCOME       -> "Income";
+            case TRANSFER     -> "Transfer";
+            case INVESTMENT   -> "Investment";
+            case CC_PAYMENT   -> "CC Payment";
+            case REFUND       -> "Refund";
+            case REDEEM       -> "Redeem";
+            case LOAN_PAYMENT -> "Loan Payment";
         };
     }
 

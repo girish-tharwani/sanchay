@@ -34,18 +34,22 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     // ── Category combos ───────────────────────────────────────────────────────
     private ComboBox<Category> expCatCb,  expSubCatCb;
-    private ComboBox<Category> incCatCb;
+    private ComboBox<Category> incCatCb,  incSubCatCb;
     private ComboBox<Category> trfCatCb,  trfSubCatCb;
     private ComboBox<Category> refCatCb,  refSubCatCb;
+    private ComboBox<Category> lnCatCb,   lnSubCatCb;
 
     // ── Category master lists for autocomplete ────────────────────────────────
     private final List<Category> expCatMaster    = new ArrayList<>();
     private final List<Category> incCatMaster    = new ArrayList<>();
     private final List<Category> trfCatMaster    = new ArrayList<>();
     private final List<Category> refCatMaster    = new ArrayList<>();
+    private final List<Category> lnCatMaster     = new ArrayList<>();
     private final List<Category> expSubCatMaster = new ArrayList<>();
+    private final List<Category> incSubCatMaster = new ArrayList<>();
     private final List<Category> trfSubCatMaster = new ArrayList<>();
     private final List<Category> refSubCatMaster = new ArrayList<>();
+    private final List<Category> lnSubCatMaster  = new ArrayList<>();
 
     // ── Account combos (per type) ─────────────────────────────────────────────
     private ComboBox<Account> expAcctCb;
@@ -54,12 +58,15 @@ public class TransactionDialog extends Dialog<Transaction> {
     private ComboBox<Account> invFromCb;
     private ComboBox<Account> ccBankCb,  ccCardCb;
     private ComboBox<Account> refAcctCb;
+    private ComboBox<Account> lnFromCb;
+    private ComboBox<LoanAccount> lnToCb;
 
     // ── Other type-specific fields ────────────────────────────────────────────
-    private ComboBox<String> expModeCb, refModeCb;
+    private ComboBox<String> expModeCb, refModeCb, lnModeCb;
     private TextField        expFamilyFld, expRefFld;
     private TextField        incSrcFld,    incFamilyFld;
     private TextField        refFamilyFld, refRefFld;
+    private TextField        lnRefFld;
 
     // ── Redeem-specific ───────────────────────────────────────────────────────
     private ComboBox<InvestmentAccount> rdeFromCb;
@@ -109,19 +116,20 @@ public class TransactionDialog extends Dialog<Transaction> {
         typeCb = new ComboBox<>();
         typeCb.getItems().addAll(
                 Type.EXPENSE, Type.INCOME, Type.TRANSFER,
-                Type.REFUND, Type.INVESTMENT, Type.CC_PAYMENT, Type.REDEEM);
+                Type.REFUND, Type.INVESTMENT, Type.CC_PAYMENT, Type.REDEEM, Type.LOAN_PAYMENT);
         typeCb.setValue(Type.EXPENSE);
         typeCb.setMaxWidth(Double.MAX_VALUE);
         typeCb.setConverter(typeNameConverter());
 
         // Build all panels up front
-        panels.put(Type.EXPENSE,    buildExpensePanel());
-        panels.put(Type.INCOME,     buildIncomePanel());
-        panels.put(Type.TRANSFER,   buildTransferPanel());
-        panels.put(Type.REFUND,     buildRefundPanel());
-        panels.put(Type.INVESTMENT, buildInvestmentPanel());
-        panels.put(Type.CC_PAYMENT, buildCCPaymentPanel());
-        panels.put(Type.REDEEM,     buildRedeemPanel());
+        panels.put(Type.EXPENSE,      buildExpensePanel());
+        panels.put(Type.INCOME,       buildIncomePanel());
+        panels.put(Type.TRANSFER,     buildTransferPanel());
+        panels.put(Type.REFUND,       buildRefundPanel());
+        panels.put(Type.INVESTMENT,   buildInvestmentPanel());
+        panels.put(Type.CC_PAYMENT,   buildCCPaymentPanel());
+        panels.put(Type.REDEEM,       buildRedeemPanel());
+        panels.put(Type.LOAN_PAYMENT, buildLoanPaymentPanel());
 
         // Shared top grid: Type, Date, Description, Amount
         GridPane topGrid = form();
@@ -186,13 +194,14 @@ public class TransactionDialog extends Dialog<Transaction> {
             @Override public String toString(Type t) {
                 if (t == null) return "";
                 return switch (t) {
-                    case EXPENSE    -> "Expense";
-                    case INCOME     -> "Income";
-                    case TRANSFER   -> "Transfer";
-                    case INVESTMENT -> "Investment";
-                    case CC_PAYMENT -> "CC Payment";
-                    case REFUND     -> "Refund";
-                    case REDEEM     -> "Redeem";
+                    case EXPENSE      -> "Expense";
+                    case INCOME       -> "Income";
+                    case TRANSFER     -> "Transfer";
+                    case INVESTMENT   -> "Investment";
+                    case CC_PAYMENT   -> "CC Payment";
+                    case REFUND       -> "Refund";
+                    case REDEEM       -> "Redeem";
+                    case LOAN_PAYMENT -> "Loan Payment";
                 };
             }
             @Override public Type fromString(String s) { return null; }
@@ -227,8 +236,11 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private Node buildIncomePanel() {
         incCatMaster.addAll(ds.getIncomeCategories());
-        incCatCb = makeCatCb(incCatMaster, "Select category");
-        makeAutoComplete(incCatCb, incCatMaster);
+        incCatCb    = makeCatCb(incCatMaster, "Select category");
+        incSubCatCb = makeSubCatCb(incSubCatMaster);
+        wireCatSubCat(incCatCb, incSubCatCb, incSubCatMaster);
+        makeAutoComplete(incCatCb,    incCatMaster);
+        makeAutoComplete(incSubCatCb, incSubCatMaster);
 
         incAcctCb    = accountCombo(false);
         incSrcFld    = tf("e.g. Barclays");
@@ -238,6 +250,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         int r = 0;
         row(g, r++, "Into Account*",  incAcctCb);
         row(g, r++, "Category",       incCatCb);
+        row(g, r++, "Sub-category",   incSubCatCb);
         row(g, r++, "Source",         incSrcFld);
         row(g, r,   "Family Member",  incFamilyFld);
         return g;
@@ -350,6 +363,43 @@ public class TransactionDialog extends Dialog<Transaction> {
         GridPane g = panelGrid();
         row(g, 0, "From Bank Acc*",  ccBankCb);
         row(g, 1, "To Credit Card*", ccCardCb);
+        return g;
+    }
+
+    private Node buildLoanPaymentPanel() {
+        lnCatMaster.addAll(ds.getExpenseCategories());
+        lnCatCb    = makeCatCb(lnCatMaster, "Select category (optional)");
+        lnSubCatCb = makeSubCatCb(lnSubCatMaster);
+        wireCatSubCat(lnCatCb, lnSubCatCb, lnSubCatMaster);
+        makeAutoComplete(lnCatCb,    lnCatMaster);
+        makeAutoComplete(lnSubCatCb, lnSubCatMaster);
+
+        lnFromCb = accountCombo(false);
+        lnFromCb.getItems().removeIf(a -> !(a instanceof BankAccount));
+
+        lnToCb = new ComboBox<>();
+        lnToCb.setMaxWidth(Double.MAX_VALUE);
+        lnToCb.setPromptText("Select loan account");
+        ds.getActiveLoanAccounts().forEach(lnToCb.getItems()::add);
+        lnToCb.setCellFactory(lv -> new ListCell<>() {
+            @Override protected void updateItem(LoanAccount la, boolean empty) {
+                super.updateItem(la, empty);
+                setText(empty || la == null ? null : la.getName());
+            }
+        });
+        lnToCb.setButtonCell(lnToCb.getCellFactory().call(null));
+
+        lnModeCb = payModeCombo();
+        lnRefFld = tf("optional");
+
+        GridPane g = panelGrid();
+        int r = 0;
+        row(g, r++, "From Bank Acc*", lnFromCb);
+        row(g, r++, "Loan Account*",  lnToCb);
+        row(g, r++, "Category",       lnCatCb);
+        row(g, r++, "Sub-category",   lnSubCatCb);
+        row(g, r++, "Payment Mode",   lnModeCb);
+        row(g, r,   "Ref / UTR No",   lnRefFld);
         return g;
     }
 
@@ -535,33 +585,37 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private ComboBox<Category> catCbFor(Type type) {
         return switch (type) {
-            case EXPENSE  -> expCatCb;
-            case INCOME   -> incCatCb;
-            case TRANSFER -> trfCatCb;
-            case REFUND   -> refCatCb;
-            case REDEEM   -> rdeCatCb;
-            default       -> null;
+            case EXPENSE      -> expCatCb;
+            case INCOME       -> incCatCb;
+            case TRANSFER     -> trfCatCb;
+            case REFUND       -> refCatCb;
+            case REDEEM       -> rdeCatCb;
+            case LOAN_PAYMENT -> lnCatCb;
+            default           -> null;
         };
     }
 
     private List<Category> catMasterFor(Type type) {
         return switch (type) {
-            case EXPENSE  -> expCatMaster;
-            case INCOME   -> incCatMaster;
-            case TRANSFER -> trfCatMaster;
-            case REFUND   -> refCatMaster;
-            case REDEEM   -> rdeCatMaster;
-            default       -> null;
+            case EXPENSE      -> expCatMaster;
+            case INCOME       -> incCatMaster;
+            case TRANSFER     -> trfCatMaster;
+            case REFUND       -> refCatMaster;
+            case REDEEM       -> rdeCatMaster;
+            case LOAN_PAYMENT -> lnCatMaster;
+            default           -> null;
         };
     }
 
     private ComboBox<Category> subCatCbFor(Type type) {
         return switch (type) {
-            case EXPENSE  -> expSubCatCb;
-            case TRANSFER -> trfSubCatCb;
-            case REFUND   -> refSubCatCb;
-            case REDEEM   -> rdeSubCatCb;
-            default       -> null;
+            case EXPENSE      -> expSubCatCb;
+            case INCOME       -> incSubCatCb;
+            case TRANSFER     -> trfSubCatCb;
+            case REFUND       -> refSubCatCb;
+            case REDEEM       -> rdeSubCatCb;
+            case LOAN_PAYMENT -> lnSubCatCb;
+            default           -> null;
         };
     }
 
@@ -569,13 +623,14 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private Transaction save() {
         return switch (typeCb.getValue()) {
-            case EXPENSE    -> saveExpense();
-            case INCOME     -> saveIncome();
-            case TRANSFER   -> saveTransfer();
-            case INVESTMENT -> saveInvestment();
-            case CC_PAYMENT -> saveCCPayment();
-            case REFUND     -> saveRefund();
-            case REDEEM     -> saveRedeem();
+            case EXPENSE      -> saveExpense();
+            case INCOME       -> saveIncome();
+            case TRANSFER     -> saveTransfer();
+            case INVESTMENT   -> saveInvestment();
+            case CC_PAYMENT   -> saveCCPayment();
+            case REFUND       -> saveRefund();
+            case REDEEM       -> saveRedeem();
+            case LOAN_PAYMENT -> saveLoanPayment();
         };
     }
 
@@ -604,9 +659,29 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         Transaction t = new Transaction(Type.INCOME, date, desc, amt);
         t.setToAccountId(acct.getId());
-        if (incCatCb.getValue() != null) t.setCategoryId(incCatCb.getValue().getId());
+        if (incCatCb.getValue()    != null) t.setCategoryId(incCatCb.getValue().getId());
+        if (incSubCatCb.getValue() != null) t.setSubCategoryId(incSubCatCb.getValue().getId());
         t.setSource(nullIfBlank(incSrcFld.getText()));
         t.setFamilyMember(nullIfBlank(incFamilyFld.getText()));
+        t.setNotes(nullIfBlank(sharedNotes.getText()));
+        return persistTransaction(t);
+    }
+
+    private Transaction saveLoanPayment() {
+        LocalDate   date = requireDate();
+        String      desc = requireText(sharedDesc, "Description");
+        long        amt  = parsePaise(sharedAmt);
+        Account     from = requireAccount(lnFromCb, "From Bank Account");
+        LoanAccount to   = lnToCb.getValue();
+        if (to == null) throw new IllegalArgumentException("Please select a loan account.");
+
+        Transaction t = new Transaction(Type.LOAN_PAYMENT, date, desc, amt);
+        t.setFromAccountId(from.getId());
+        t.setToAccountId(to.getId());
+        if (lnCatCb.getValue()    != null) t.setCategoryId(lnCatCb.getValue().getId());
+        if (lnSubCatCb.getValue() != null) t.setSubCategoryId(lnSubCatCb.getValue().getId());
+        applyPayMode(t, lnModeCb);
+        t.setReferenceNumber(nullIfBlank(lnRefFld.getText()));
         t.setNotes(nullIfBlank(sharedNotes.getText()));
         return persistTransaction(t);
     }
@@ -736,9 +811,10 @@ public class TransactionDialog extends Dialog<Transaction> {
         if (existing != null) {
             t.setSourceIndicator(existing.getSourceIndicator());
             t.setImportHash(existing.getImportHash());
-            ds.deleteTransaction(existing.getId());
+            ds.updateTransactionInPlace(existing.getId(), t);
+        } else {
+            ds.addTransaction(t);
         }
-        ds.addTransaction(t);
         ds.learnFromTransaction(t);
         return t;
     }
@@ -771,7 +847,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 contextAccountId = id;
                 contextIsSource  = false;
                 setAccount(incAcctCb, id);
-                prefillCat(incCatCb, null, t);
+                prefillCat(incCatCb, incSubCatCb, t);
                 setText(incSrcFld,    t.getSource());
                 setText(incFamilyFld, t.getFamilyMember());
             }
@@ -801,6 +877,16 @@ public class TransactionDialog extends Dialog<Transaction> {
                 if (t.getPrincipalPaise() > 0)
                     rdePrincipalFld.setText(String.format("%.2f", t.getPrincipalPaise() / 100.0));
                 prefillCat(rdeCatCb, rdeSubCatCb, t);
+            }
+            case LOAN_PAYMENT -> {
+                setAccount(lnFromCb, t.getFromAccountId());
+                if (t.getToAccountId() != null)
+                    ds.getActiveLoanAccounts().stream()
+                            .filter(la -> la.getId().equals(t.getToAccountId()))
+                            .findFirst().ifPresent(lnToCb::setValue);
+                prefillCat(lnCatCb, lnSubCatCb, t);
+                setPayMode(lnModeCb, t.getPaymentMode());
+                setText(lnRefFld, t.getReferenceNumber());
             }
         }
     }

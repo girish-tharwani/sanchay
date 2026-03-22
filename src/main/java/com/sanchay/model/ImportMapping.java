@@ -49,6 +49,9 @@ public class ImportMapping {
      */
     private String  headerSnapshot;
 
+    /** The folder path last used when importing a CSV for this account. Used to restore the FileChooser location. */
+    private String  lastImportPath;
+
     public ImportMapping() {
         this.id = UUID.randomUUID().toString();
     }
@@ -65,6 +68,7 @@ public class ImportMapping {
     public boolean isAmountSplit()       { return amountSplit; }
     public String  getDateFormat()       { return dateFormat; }
     public String  getHeaderSnapshot()   { return headerSnapshot; }
+    public String  getLastImportPath()   { return lastImportPath; }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -78,4 +82,5 @@ public class ImportMapping {
     public void setAmountSplit(boolean b)            { this.amountSplit = b; }
     public void setDateFormat(String s)              { this.dateFormat = s; }
     public void setHeaderSnapshot(String s)          { this.headerSnapshot = s; }
+    public void setLastImportPath(String s)          { this.lastImportPath = s; }
 }

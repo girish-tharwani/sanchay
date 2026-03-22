@@ -8,9 +8,10 @@ public class Transaction {
 
     public enum Type {
         EXPENSE, INCOME, TRANSFER, INVESTMENT,
-        CC_PAYMENT, // Credit card bill payment from bank to credit card
-        REFUND,     // Money returned to account (offsets an expense category)
-        REDEEM      // Investment redemption: principal returned + gain/loss recorded
+        CC_PAYMENT,   // Credit card bill payment from bank to credit card
+        REFUND,       // Money returned to account (offsets an expense category)
+        REDEEM,       // Investment redemption: principal returned + gain/loss recorded
+        LOAN_PAYMENT  // Repayment from a bank account to a loan account
     }
 
     public enum PaymentMode {
@@ -61,7 +62,8 @@ public class Transaction {
 
     public String getSignedAmountInr(String viewingAccountId) {
         boolean isDebit;
-        if (type == Type.TRANSFER || type == Type.CC_PAYMENT || type == Type.INVESTMENT || type == Type.REDEEM) {
+        if (type == Type.TRANSFER || type == Type.CC_PAYMENT || type == Type.INVESTMENT
+                || type == Type.REDEEM || type == Type.LOAN_PAYMENT) {
             isDebit = viewingAccountId != null && viewingAccountId.equals(fromAccountId);
         } else {
             isDebit = (type == Type.EXPENSE);
@@ -72,7 +74,7 @@ public class Transaction {
     public String getTypedSignedAmountInr() {
         return switch (type) {
             case INCOME, TRANSFER, REFUND, REDEEM -> getAmountInr();
-            case EXPENSE, INVESTMENT, CC_PAYMENT   -> "(" + getAmountInr() + ")";
+            case EXPENSE, INVESTMENT, CC_PAYMENT, LOAN_PAYMENT -> "(" + getAmountInr() + ")";
         };
     }
 

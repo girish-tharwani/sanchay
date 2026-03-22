@@ -179,7 +179,7 @@ The top bar contains no other controls. Date filtering is handled independently 
 A circular **'+'** button is permanently anchored to the **bottom-right corner** of the main panel. It is visible on every screen.
 
 **Behaviour on click:**
-- Opens a **New Transaction** modal dialog. A **Type** dropdown at the top selects from six types: **Expense · Income · Transfer · Refund · Investment · CC Payment**. Type-specific fields swap in below the shared Date / Description / Amount row; shared fields are always visible.
+- Opens a **New Transaction** modal dialog. A **Type** dropdown at the top selects from seven types: **Expense · Income · Transfer · Refund · Investment · CC Payment · Loan Payment**. Type-specific fields swap in below the shared Date / Description / Amount row; shared fields are always visible.
 - The user fills in the form and clicks **Save** to post the transaction, or **Cancel** to discard
 
 ---
@@ -192,7 +192,7 @@ The dashboard is the home screen shown on application launch. It provides a hous
 - Total Bank Balance — computed running balance across all active bank accounts (opening balance ± all transactions)
 - Credit Card Balance — total outstanding across all active credit cards (sum of expenses charged minus payments made)
 - Total Investments — sum of invested amounts across all investment accounts (opening balance + all investment transactions)
-- Total Loan Outstanding — sum of outstanding principal across all active loan accounts (opening outstanding minus all Transfer payments made to each loan)
+- Total Loan Outstanding — sum of outstanding principal across all active loan accounts (opening outstanding minus all Loan Payment and Transfer transactions made to each loan account)
 
 **Pending Recurring Transactions widget:**
 - Lists all recurring transaction instances that are due within the next 7 days (or overdue)
@@ -237,7 +237,7 @@ Accessible via the **Transactions** button on any account card. Shows all transa
 - Filter by amount range
 - Filter by category
 - Filter by date range (defaults to current financial year)
-- Filter by transaction type (Expense / Income / Transfer / Investment / CC Payment)
+- Filter by transaction type (Expense / Income / Transfer / Investment / CC Payment / Loan Payment)
 - Sortable by date, amount, or category
 - Export to CSV
 
@@ -311,7 +311,7 @@ Credit cards are modelled as liability accounts. Spending on a credit card is re
 | Loan Tenure (Months) | Integer | Total repayment period |
 | EMI Amount | Currency (INR) | Monthly instalment amount |
 | EMI Due Date | Integer (1–28) | Day of month on which EMI is due |
-| Outstanding Principal | Currency (INR) | Opening outstanding balance at time of first entry; displayed outstanding is computed dynamically as this value minus all Transfer payments made to the loan account |
+| Outstanding Principal | Currency (INR) | Opening outstanding balance at time of first entry; displayed outstanding is computed dynamically as this value minus all Loan Payment (and Transfer) transactions made to the loan account |
 | Joint Account | Boolean | Toggle; reveals co-applicant name field |
 | Co-applicant Name | Text | Visible only when Joint Account is enabled |
 | Status | Dropdown | Active / Closed / Settled |
@@ -427,7 +427,7 @@ Each RD running within a bucket account is modelled as a **recurring investment 
 
 ## 6. Transactions Module
 
-The Transactions module is where the user records all money movements. There are six transaction types: **Expense, Income, Transfer, Refund, Investment,** and **Credit Card Payment**. All transactions are entered via a unified dialog with a **Type** dropdown; type-specific fields swap in below the shared Date / Description / Amount row. The same dialog is used for both new transactions and editing existing ones (double-click a row in any transaction table to edit). All transactions carry a financial year tag derived from their date.
+The Transactions module is where the user records all money movements. There are seven transaction types: **Expense, Income, Transfer, Refund, Investment, Credit Card Payment,** and **Loan Payment**. All transactions are entered via a unified dialog with a **Type** dropdown; type-specific fields swap in below the shared Date / Description / Amount row. The same dialog is used for both new transactions and editing existing ones (double-click a row in any transaction table to edit). All transactions carry a financial year tag derived from their date.
 
 **Common behaviour across all transaction types:**
 - Every transaction has a system-generated UUID
@@ -469,6 +469,7 @@ Records money received into a bank account.
 | Description | Text | e.g., "Monthly Salary – March 2026" |
 | Income Type | Dropdown | Salary / Interest / Dividend / Rental / Freelance / Gift / Other |
 | Category | Dropdown | From user-defined income categories |
+| Sub-category | Dropdown | Optional; child of selected category; populated based on selected category |
 | Amount | Currency (INR) | |
 | Credited To Account | Dropdown | Active bank account |
 | Source | Text | Optional; e.g., employer name |
@@ -477,7 +478,7 @@ Records money received into a bank account.
 
 ### 6.3 Transfer
 
-Records movement of funds between accounts. Typically bank-to-bank, but also supports bank-to-loan transfers for EMI / loan repayments.
+Records movement of funds between accounts. Typically bank-to-bank (e.g., transferring to an emergency fund or a joint account). For repaying a loan EMI, prefer the dedicated **Loan Payment** type (§6.7).
 
 | Field | Type / Format | Notes |
 |-------|--------------|-------|
@@ -567,6 +568,27 @@ Records the payment of a credit card bill from a bank account. This reduces the 
 | Notes | Text (multi-line) | Optional |
 
 > A Credit Card Payment does **not** count as an Expense — it is a settlement of an existing liability, not new spending. The original credit card expenses have already been recorded and categorised individually.
+
+### 6.7 Loan Payment
+
+Records a repayment made from a bank account towards a loan (home, vehicle, or personal). This reduces both the bank account balance and the outstanding loan principal. It is semantically distinct from a Transfer — the **To Account** dropdown is restricted to active loan accounts only, making it impossible to accidentally route a payment to a bank account.
+
+| Field | Type / Format | Notes |
+|-------|--------------|-------|
+| Date | Date | Date the payment was made |
+| Description | Text | e.g., "ICICI Home Loan EMI – March 2026" |
+| Amount | Currency (INR) | Amount paid toward the loan |
+| From Bank Account | Dropdown | Source bank account |
+| Loan Account | Dropdown | Active loan accounts only |
+| Category | Dropdown | Optional; from expense categories (e.g., EMI / Loan Repayment) |
+| Sub-category | Dropdown | Optional; child of selected category |
+| Payment Mode | Dropdown | UPI / Net Banking / NEFT / IMPS / Auto-debit / etc. |
+| Reference / UTR No. | Text | Optional |
+| Notes | Text (multi-line) | Optional |
+
+> **Balance impact:** The bank account balance decreases by the payment amount. The outstanding loan principal decreases by the same amount. Net worth is unchanged (liability and asset reduce equally).
+
+> **Backward compatibility:** Existing Transfer transactions that were previously used to record loan repayments continue to be counted correctly in loan outstanding calculations.
 
 ---
 
@@ -690,7 +712,7 @@ Both earnings-linked schedules are paused/resumed together whenever the member's
 | Gift / Bonus | One-time receipts |
 | Miscellaneous | Other income |
 
-> Income categories do not have sub-categories.
+Income categories support sub-categories. Sub-categories can be added via the Categories screen (§8.3) and are available in the Income transaction form.
 
 ### 8.3 Categories Screen
 
@@ -718,7 +740,7 @@ Sub-categories allow finer-grained expense tracking within a parent category. Th
 
 **Data model:**
 - Each sub-category belongs to exactly one parent category
-- Sub-categories are only supported under **Expense** categories
+- Sub-categories are supported under both **Expense** and **Income** categories
 - A sub-category inherits the active/inactive status of its parent; if a parent category is deactivated, all its sub-categories are also hidden from entry dropdowns
 - Sub-categories have their own active/inactive flag independently of the parent
 

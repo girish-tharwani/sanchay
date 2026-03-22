@@ -247,7 +247,8 @@ public class RecurringScreen {
 
         // Transaction type
         ComboBox<Transaction.Type> typeCb = new ComboBox<>();
-        typeCb.getItems().addAll(Transaction.Type.values());
+        for (Transaction.Type t : Transaction.Type.values())
+            if (t != Transaction.Type.LOAN_PAYMENT) typeCb.getItems().add(t);
         typeCb.setValue(isNew ? Transaction.Type.EXPENSE : existing.getTransactionType());
         typeCb.setMaxWidth(Double.MAX_VALUE);
 

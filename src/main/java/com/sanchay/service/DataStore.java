@@ -160,6 +160,23 @@ public class DataStore {
         if (persistence != null) persistence.saveTransactions(this);
     }
 
+    /**
+     * Replaces the transaction with the given oldId in-place (preserving its list position),
+     * then saves. Used by TransactionDialog when editing, so the table sort order is stable.
+     */
+    public void updateTransactionInPlace(String oldId, Transaction newT) {
+        int idx = -1;
+        for (int i = 0; i < transactions.size(); i++) {
+            if (transactions.get(i).getId().equals(oldId)) { idx = i; break; }
+        }
+        if (idx >= 0) {
+            transactions.set(idx, newT);
+        } else {
+            transactions.add(newT);
+        }
+        if (persistence != null) persistence.saveTransactions(this);
+    }
+
     public void addCategory(Category c) {
         categories.add(c);
         if (persistence != null) persistence.saveCategories(this);
@@ -484,7 +501,8 @@ public class DataStore {
 
     public List<Category> getIncomeCategories() {
         return categories.stream()
-                .filter(c -> c.getType() == Category.CategoryType.INCOME && c.isActive())
+                .filter(c -> c.getType() == Category.CategoryType.INCOME
+                        && c.isActive() && c.getParentId() == null)
                 .collect(Collectors.toList());
     }
 
@@ -553,7 +571,8 @@ public class DataStore {
         }).sum();
         long totalLoanOutstanding = getActiveLoanAccounts().stream().mapToLong(la -> {
             long paid = transactions.stream()
-                    .filter(t -> t.getType() == Type.TRANSFER && la.getId().equals(t.getToAccountId()))
+                    .filter(t -> (t.getType() == Type.TRANSFER || t.getType() == Type.LOAN_PAYMENT)
+                            && la.getId().equals(t.getToAccountId()))
                     .mapToLong(Transaction::getAmountPaise).sum();
             return Math.max(0, la.getOutstandingPrincipalPaise() - paid);
         }).sum();
