@@ -1,3 +1,11 @@
+## v0.1.5 — 2026-03-22
+
+### Added
+- "Show pending review only" checkbox in the transaction grid toolbar — filters the table to auto-categorized (`?`) rows only
+
+### Changed
+- Transaction grid filter toolbar restyled to match the rest of the app: filter labels use `form-label` class, row wrapped in a card, search field grows to fill available width
+
 ## v0.1.4 — 2026-03-22
 
 ### Fixed

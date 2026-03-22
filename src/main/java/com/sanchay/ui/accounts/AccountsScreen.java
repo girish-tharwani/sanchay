@@ -358,22 +358,36 @@ public class AccountsScreen {
         // ── Filters ────────────────────────────────────────────────────────────
         TextField search = new TextField();
         search.setPromptText("Search description or notes…");
-        search.setMaxWidth(300);
+        HBox.setHgrow(search, Priority.ALWAYS);
+        search.setMaxWidth(Double.MAX_VALUE);
 
         DataStore ds = DataStore.getInstance();
         DatePicker fromPicker = new DatePicker(ds.getActiveFYStart());
         DatePicker toPicker   = new DatePicker(ds.getActiveFYEnd());
-        fromPicker.setMaxWidth(140);
-        toPicker.setMaxWidth(140);
+        fromPicker.setPrefWidth(130);
+        toPicker.setPrefWidth(130);
         UiUtils.applySmartDateConverter(fromPicker);
         UiUtils.applySmartDateConverter(toPicker);
 
+        Label fromLbl = new Label("From:");
+        fromLbl.getStyleClass().add("form-label");
+        Label toLbl = new Label("To:");
+        toLbl.getStyleClass().add("form-label");
+        Label searchLbl = new Label("Search:");
+        searchLbl.getStyleClass().add("form-label");
+
+        CheckBox pendingOnly = new CheckBox("Show pending review only");
+        pendingOnly.setStyle("-fx-text-fill: #856404; -fx-font-size: 12px; -fx-font-weight: bold;");
+
         HBox filterRow = new HBox(10);
         filterRow.setAlignment(Pos.CENTER_LEFT);
+        filterRow.getStyleClass().add("card");
+        filterRow.setPadding(new Insets(10, 14, 10, 14));
         filterRow.getChildren().addAll(
-                new Label("From:"), fromPicker,
-                new Label("To:"), toPicker,
-                new Label("Search:"), search
+                fromLbl, fromPicker,
+                toLbl, toPicker,
+                searchLbl, search,
+                pendingOnly
         );
 
         // ── Transaction table ──────────────────────────────────────────────────
@@ -439,6 +453,8 @@ public class AccountsScreen {
                     .filter(t -> q.isEmpty()
                             || t.getDescription().toLowerCase().contains(q)
                             || (t.getNotes() != null && t.getNotes().toLowerCase().contains(q)))
+                    .filter(t -> !pendingOnly.isSelected()
+                            || t.getSourceIndicator() == Transaction.SourceIndicator.AUTO_CATEGORIZED)
                     .collect(Collectors.toList());
 
             if (table.getSortOrder().contains(dateCol)) {
@@ -468,6 +484,7 @@ public class AccountsScreen {
         fromPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         toPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         table.comparatorProperty().addListener((obs, o, n) -> applyFilter.run());
+        pendingOnly.selectedProperty().addListener((obs, o, n) -> applyFilter.run());
         applyFilter.run();
         mainWindow.setPostTransactionCallback(applyFilter);
 
