@@ -30,6 +30,11 @@ public class RecurringTransaction {
     private boolean autoCreated;
     /** Last date on which this recurring was confirmed and posted. */
     private LocalDate lastRecordedDate;
+    /**
+     * When > 0, the occurrence is auto-recorded (no user confirmation) once the due date
+     * has passed by this many days. 0 = manual confirmation always required.
+     */
+    private int autoRecordAfterDays;
 
     public RecurringTransaction(String description, Transaction.Type type,
                                 Frequency frequency, int dueDayOfMonth,
@@ -101,6 +106,7 @@ public class RecurringTransaction {
     public Status getStatus()               { return status; }
     public boolean isAutoCreated()          { return autoCreated; }
     public LocalDate getLastRecordedDate()  { return lastRecordedDate; }
+    public int getAutoRecordAfterDays()     { return autoRecordAfterDays; }
 
     public String getAmountInr() {
         return amountPaise > 0
@@ -125,4 +131,5 @@ public class RecurringTransaction {
     public void setStatus(Status s)                 { this.status = s; }
     public void setAutoCreated(boolean b)           { this.autoCreated = b; }
     public void setLastRecordedDate(LocalDate d)    { this.lastRecordedDate = d; }
+    public void setAutoRecordAfterDays(int n)       { this.autoRecordAfterDays = n; }
 }

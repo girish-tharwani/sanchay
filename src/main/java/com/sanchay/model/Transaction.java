@@ -94,6 +94,7 @@ public class Transaction {
 
     public String getId()                   { return id; }
     public Type getType()                   { return type; }
+    public void setType(Type t)             { this.type = t; }
     public LocalDate getDate()              { return date; }
     public String getDescription()          { return description; }
     public long getAmountPaise()            { return amountPaise; }

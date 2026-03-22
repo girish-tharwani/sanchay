@@ -850,17 +850,28 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private Transaction persistTransaction(Transaction t) {
         if (existing != null) {
-            // Any manual edit clears the imported/auto-categorized badge.
-            // RECONCILED is preserved so the green strip stays on reconciled entries.
+            // Editing an imported/auto-categorized transaction means the user has
+            // reviewed it — upgrade to RECONCILED (green border) to mark it as confirmed.
+            // MANUAL stays MANUAL; RECONCILED stays RECONCILED.
             Transaction.SourceIndicator indicator = existing.getSourceIndicator();
             if (indicator == Transaction.SourceIndicator.AUTO_CATEGORIZED
                     || indicator == Transaction.SourceIndicator.IMPORTED)
-                indicator = Transaction.SourceIndicator.MANUAL;
+                indicator = Transaction.SourceIndicator.RECONCILED;
             t.setSourceIndicator(indicator);
             t.setImportHash(existing.getImportHash());
             ds.updateTransactionInPlace(existing.getId(), t);
         } else {
             ds.addTransaction(t);
+        }
+        // Learn a type rule when the user reclassifies an imported EXPENSE/INCOME
+        // to a more specific type (e.g. CC_PAYMENT, LOAN_PAYMENT, TRANSFER).
+        if (existing != null
+                && (existing.getType() == Transaction.Type.EXPENSE
+                    || existing.getType() == Transaction.Type.INCOME)
+                && (existing.getSourceIndicator() == Transaction.SourceIndicator.IMPORTED
+                    || existing.getSourceIndicator() == Transaction.SourceIndicator.AUTO_CATEGORIZED)
+                && t.getType() != existing.getType()) {
+            ds.learnTypeRule(existing.getType(), t);
         }
         ds.learnFromTransaction(t);
         return t;

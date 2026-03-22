@@ -25,6 +25,7 @@ public class DataStore {
     private final List<FamilyMember>         familyMembers  = new ArrayList<>();
     private final List<ImportMapping>        importMappings = new ArrayList<>();
     private final List<CategoryRule>         categoryRules  = new ArrayList<>();
+    private final List<TypeRule>             typeRules      = new ArrayList<>();
 
     private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
@@ -66,6 +67,7 @@ public class DataStore {
     public List<FamilyMember>         getFamilyMembers()       { return Collections.unmodifiableList(familyMembers); }
     public List<ImportMapping>        getImportMappings()      { return Collections.unmodifiableList(importMappings); }
     public List<CategoryRule>         getCategoryRules()       { return Collections.unmodifiableList(categoryRules); }
+    public List<TypeRule>             getTypeRules()           { return Collections.unmodifiableList(typeRules); }
     public String                     getActiveFinancialYear() { return activeFinancialYear; }
 
     /** Returns the user-selected date format string: "DD/MM/YYYY" or "YYYY-MM-DD". */
@@ -264,6 +266,11 @@ public class DataStore {
     /** For internal load use only — does not trigger save. */
     public void addCategoryRuleInternal(CategoryRule r) { categoryRules.add(r); }
 
+    // ── Type rules (learn + suggest) ──────────────────────────────────────────
+
+    /** For internal load use only — does not trigger save. */
+    public void addTypeRuleInternal(TypeRule r) { typeRules.add(r); }
+
     /**
      * Called after a transaction is saved by the user to update the learned rules.
      * Returns true if a normalised key is worth storing as a category rule.
@@ -302,6 +309,7 @@ public class DataStore {
                         () -> categoryRules.add(new CategoryRule(
                                 key, typeStr, t.getCategoryId(), t.getSubCategoryId())));
         if (persistence != null) persistence.saveCategoryRules(this);
+        reapplyRulesToImported();
     }
 
     /**
@@ -341,6 +349,146 @@ public class DataStore {
         long distinctCats = matching.stream().map(CategoryRule::getCategoryId).distinct().count();
         if (distinctCats != 1) return Optional.empty();   // ambiguous
         return matching.stream().max(Comparator.comparingInt(CategoryRule::getCount));
+    }
+
+    /**
+     * Learns a type rule when the user edits an imported EXPENSE or INCOME transaction
+     * and changes its type to something more specific (e.g. CC_PAYMENT, LOAN_PAYMENT).
+     * Only valid source→target combinations are stored (see plan).
+     * After learning, triggers a retroactive pass over unreviewed imports.
+     */
+    public void learnTypeRule(Transaction.Type originalType, Transaction saved) {
+        if (saved.getDescription() == null) return;
+        String key = normalizeDesc(saved.getDescription());
+        if (!isUsableRuleKey(key)) return;
+
+        Transaction.Type newType = saved.getType();
+        boolean validChange =
+                (originalType == Transaction.Type.EXPENSE
+                        && (newType == Transaction.Type.CC_PAYMENT
+                         || newType == Transaction.Type.LOAN_PAYMENT
+                         || newType == Transaction.Type.INVESTMENT
+                         || newType == Transaction.Type.TRANSFER))
+             || (originalType == Transaction.Type.INCOME
+                        && (newType == Transaction.Type.REFUND
+                         || newType == Transaction.Type.TRANSFER));
+        if (!validChange) return;
+
+        // secondAccountId: for INCOME→TRANSFER the other bank is fromAccountId;
+        // for all EXPENSE-source types it is toAccountId;
+        // for INCOME→REFUND no second account is needed.
+        String secondAccountId = null;
+        if (originalType == Transaction.Type.INCOME && newType == Transaction.Type.TRANSFER) {
+            secondAccountId = saved.getFromAccountId();
+        } else if (newType != Transaction.Type.REFUND) {
+            secondAccountId = saved.getToAccountId();
+        }
+
+        final String srcType = originalType.name();
+        final String tgtType = newType.name();
+        final String secAcct = secondAccountId;
+        typeRules.stream()
+                .filter(r -> r.getNormalizedKey().equals(key)
+                          && r.getSourceType().equals(srcType)
+                          && r.getTargetType().equals(tgtType)
+                          && Objects.equals(r.getSecondAccountId(), secAcct))
+                .findFirst()
+                .ifPresentOrElse(
+                        TypeRule::incrementCount,
+                        () -> typeRules.add(new TypeRule(key, srcType, tgtType, secAcct)));
+        if (persistence != null) persistence.saveTypeRules(this);
+        reapplyRulesToImported();
+    }
+
+    /**
+     * Returns the best type rule for a description + imported type, or empty if:
+     * – no matching rules exist, or
+     * – matching rules disagree on targetType (ambiguous).
+     */
+    public Optional<TypeRule> suggestTypeForDescription(String description,
+                                                         Transaction.Type importedType) {
+        if (description == null || description.isBlank()) return Optional.empty();
+        String needle  = normalizeDesc(description);
+        String srcType = importedType.name();
+        List<TypeRule> matching = typeRules.stream()
+                .filter(r -> r.getSourceType().equals(srcType)
+                          && DescriptionNormalizer.matches(needle, r.getNormalizedKey()))
+                .collect(Collectors.toList());
+        if (matching.isEmpty()) return Optional.empty();
+        long distinctTargets = matching.stream().map(TypeRule::getTargetType).distinct().count();
+        if (distinctTargets != 1) return Optional.empty();   // ambiguous
+        return matching.stream().max(Comparator.comparingInt(TypeRule::getCount));
+    }
+
+    /**
+     * Retroactively applies type rules and category rules to all IMPORTED bank-account
+     * transactions that are still typed as EXPENSE or INCOME (raw, unreviewed imports).
+     * Also applies category rules to IMPORTED transactions that have no category yet.
+     *
+     * Called whenever a new rule is learned so that existing imports benefit immediately.
+     */
+    public void reapplyRulesToImported() {
+        Set<String> bankIds = getBankAccounts().stream()
+                .map(Account::getId).collect(Collectors.toSet());
+        boolean changed = false;
+
+        for (Transaction t : transactions) {
+            if (t.getSourceIndicator() != Transaction.SourceIndicator.IMPORTED) continue;
+
+            boolean isBankDebitOrCredit =
+                    (t.getType() == Transaction.Type.EXPENSE || t.getType() == Transaction.Type.INCOME)
+                    && (bankIds.contains(t.getFromAccountId()) || bankIds.contains(t.getToAccountId()));
+
+            boolean wasChanged = false;
+
+            // Type rule — bank EXPENSE/INCOME only
+            if (isBankDebitOrCredit) {
+                Optional<TypeRule> typeRule = suggestTypeForDescription(t.getDescription(), t.getType());
+                if (typeRule.isPresent()) {
+                    TypeRule rule = typeRule.get();
+                    Transaction.Type target = Transaction.Type.valueOf(rule.getTargetType());
+                    t.setType(target);
+                    if (rule.getSecondAccountId() != null && accountExists(rule.getSecondAccountId())) {
+                        applySecondAccount(t, rule.getSourceType(), target, rule.getSecondAccountId());
+                    }
+                    t.setSourceIndicator(Transaction.SourceIndicator.AUTO_CATEGORIZED);
+                    wasChanged = true;
+                }
+            }
+
+            // Category rule — only if no type rule applied and no category yet
+            if (!wasChanged && t.getCategoryId() == null) {
+                Optional<CategoryRule> catRule = suggestCategoryForDescription(t.getDescription(), t.getType());
+                if (catRule.isPresent()) {
+                    t.setCategoryId(catRule.get().getCategoryId());
+                    t.setSubCategoryId(catRule.get().getSubCategoryId());
+                    t.setSourceIndicator(Transaction.SourceIndicator.AUTO_CATEGORIZED);
+                    wasChanged = true;
+                }
+            }
+
+            if (wasChanged) changed = true;
+        }
+
+        if (changed && persistence != null) persistence.saveTransactions(this);
+    }
+
+    private boolean accountExists(String id) {
+        return accounts.stream().anyMatch(a -> a.getId().equals(id));
+    }
+
+    /**
+     * Sets the second (non-bank) account on a transaction being reclassified by a type rule.
+     * For INCOME→TRANSFER the secondAccount is the fromAccountId (the sending bank).
+     * For all EXPENSE-source types it is the toAccountId.
+     */
+    private static void applySecondAccount(Transaction t, String sourceType,
+                                            Transaction.Type targetType, String secondAccountId) {
+        if ("INCOME".equals(sourceType) && targetType == Transaction.Type.TRANSFER) {
+            t.setFromAccountId(secondAccountId);
+        } else {
+            t.setToAccountId(secondAccountId);
+        }
     }
 
     /**
@@ -537,6 +685,41 @@ public class DataStore {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Called at app startup. For any active schedule with autoRecordAfterDays > 0
+     * and a fixed amount, silently posts transactions for all occurrences that are
+     * overdue by at least that many days, advancing lastRecordedDate each time.
+     */
+    public void autoRecordPending() {
+        LocalDate today = LocalDate.now();
+        boolean anyRecorded = false;
+        for (RecurringTransaction r : new ArrayList<>(recurring)) {
+            if (r.getStatus() != RecurringTransaction.Status.ACTIVE) continue;
+            if (r.getAutoRecordAfterDays() <= 0 || r.getAmountPaise() <= 0) continue;
+            LocalDate nextDue = r.getNextDueDate();
+            while (nextDue != null
+                    && !today.isBefore(nextDue.plusDays(r.getAutoRecordAfterDays()))) {
+                Transaction t = new Transaction(
+                        r.getTransactionType(), nextDue, r.getDescription(), r.getAmountPaise());
+                t.setFromAccountId(r.getFromAccountId());
+                t.setToAccountId(r.getToAccountId());
+                t.setCategoryId(r.getCategoryId());
+                t.setSubCategoryId(r.getSubCategoryId());
+                t.setFromRecurring(true);
+                t.setRecurringId(r.getId());
+                t.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+                transactions.add(t);
+                r.markRecorded(nextDue);
+                anyRecorded = true;
+                nextDue = r.getNextDueDate();
+            }
+        }
+        if (anyRecorded && persistence != null) {
+            persistence.saveTransactions(this);
+            persistence.saveRecurring(this);
+        }
+    }
+
     public long getCategoryUsageCount(String categoryId) {
         if (categoryId == null) return 0;
         return transactions.stream()
@@ -633,6 +816,8 @@ public class DataStore {
         categories.clear();
         familyMembers.clear();
         importMappings.clear();
+        categoryRules.clear();
+        typeRules.clear();
         activeFinancialYear = "FY 2025-26";
         dateFormat = "DD/MM/YYYY";
         dataFolderPath = "Not configured";

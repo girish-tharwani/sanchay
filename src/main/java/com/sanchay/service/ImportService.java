@@ -13,6 +13,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Stateless service: CSV parsing, column-mapping lookup, dedup hashing,
@@ -23,16 +24,27 @@ public class ImportService {
     // ── Public result types ───────────────────────────────────────────────────
 
     public static class ImportResult {
-        public int newCount        = 0;
-        public int reconciledCount = 0;
-        public int skippedCount    = 0;
-        public final List<AmbiguousMatch> ambiguous = new ArrayList<>();
+        public int newCount               = 0;
+        public int reconciledCount        = 0;
+        public int recurringReconciledCount = 0;
+        public int skippedCount           = 0;
+        public final List<AmbiguousMatch>  ambiguous        = new ArrayList<>();
+        public final List<RecurringMatch>  recurringMatches = new ArrayList<>();
     }
 
     public static class AmbiguousMatch {
         public final Transaction       imported;
         public final List<Transaction> candidates;
         public AmbiguousMatch(Transaction imp, List<Transaction> cands) {
+            this.imported   = imp;
+            this.candidates = cands;
+        }
+    }
+
+    public static class RecurringMatch {
+        public final Transaction              imported;
+        public final List<RecurringTransaction> candidates;
+        public RecurringMatch(Transaction imp, List<RecurringTransaction> cands) {
             this.imported   = imp;
             this.candidates = cands;
         }
@@ -276,18 +288,47 @@ public class ImportService {
                             .map(g -> g.get(0)).collect(Collectors.toList());
                     result.ambiguous.add(new AmbiguousMatch(imported, reps));
                 } else {
-                    boolean categorized = store.suggestCategoryForDescription(
-                            imported.getDescription(), imported.getType())
-                            .map(rule -> {
-                                imported.setCategoryId(rule.getCategoryId());
-                                imported.setSubCategoryId(rule.getSubCategoryId());
-                                return true;
-                            }).orElse(false);
-                    imported.setSourceIndicator(categorized
-                            ? SourceIndicator.AUTO_CATEGORIZED
-                            : SourceIndicator.IMPORTED);
-                    toAdd.add(imported);
-                    result.newCount++;
+                    // For bank accounts: try type rule first, then category rule.
+                    boolean typeSuggested = false;
+                    if (account instanceof BankAccount) {
+                        typeSuggested = store.suggestTypeForDescription(
+                                imported.getDescription(), imported.getType())
+                                .map(rule -> {
+                                    Transaction.Type target =
+                                            Transaction.Type.valueOf(rule.getTargetType());
+                                    imported.setType(target);
+                                    String secondId = rule.getSecondAccountId();
+                                    if (secondId != null && accountExists(secondId, store)) {
+                                        applySecondAccount(imported, rule.getSourceType(),
+                                                target, secondId);
+                                    }
+                                    return true;
+                                }).orElse(false);
+                    }
+
+                    boolean categorized = false;
+                    if (!typeSuggested) {
+                        categorized = store.suggestCategoryForDescription(
+                                imported.getDescription(), imported.getType())
+                                .map(rule -> {
+                                    imported.setCategoryId(rule.getCategoryId());
+                                    imported.setSubCategoryId(rule.getSubCategoryId());
+                                    return true;
+                                }).orElse(false);
+                    }
+
+                    // Check if this matches a pending recurring occurrence before adding as new.
+                    List<RecurringTransaction> recurringCandidates = findRecurringMatches(
+                            imported, store.getRecurring(), account.getId());
+                    if (!recurringCandidates.isEmpty()) {
+                        result.recurringMatches.add(new RecurringMatch(imported, recurringCandidates));
+                    } else {
+                        imported.setSourceIndicator(typeSuggested || categorized
+                                ? SourceIndicator.AUTO_CATEGORIZED
+                                : SourceIndicator.IMPORTED);
+                        toAdd.add(imported);
+                        result.newCount++;
+                    }
                 }
             } else if (matches.size() == 1
                     && !contestedManualIds.contains(matches.get(0).getId())
@@ -332,6 +373,94 @@ public class ImportService {
         }
         manual.setSourceIndicator(SourceIndicator.RECONCILED);
         store.saveTransactionsNow();
+    }
+
+    // ── Recurring-match finder ────────────────────────────────────────────────
+
+    /**
+     * Finds ACTIVE recurring schedules for the same account and direction whose
+     * next due date is within ±2 days of the imported date and whose description
+     * has a token-overlap similarity ≥ 0.3 with the imported description.
+     *
+     * Amount check: if the recurring amount is non-zero, it must be within ±5% of
+     * the imported amount. Zero-amount recurrings (e.g. CC payment reminders) skip
+     * the amount check.
+     */
+    public static List<RecurringTransaction> findRecurringMatches(
+            Transaction imported,
+            List<RecurringTransaction> recurring,
+            String accountId) {
+
+        boolean importedIsDebit = accountId.equals(imported.getFromAccountId());
+
+        return recurring.stream()
+                .filter(r -> r.getStatus() == RecurringTransaction.Status.ACTIVE)
+                .filter(r -> importedIsDebit
+                        ? accountId.equals(r.getFromAccountId())
+                        : accountId.equals(r.getToAccountId()))
+                .filter(r -> {
+                    LocalDate nextDue = r.getNextDueDate();
+                    return nextDue != null
+                            && Math.abs(ChronoUnit.DAYS.between(nextDue, imported.getDate())) <= 2;
+                })
+                .filter(r -> {
+                    if (r.getAmountPaise() == 0) return true;  // variable amount — skip check
+                    long tolerance = Math.max(1L, Math.round(imported.getAmountPaise() * 0.05));
+                    return Math.abs(r.getAmountPaise() - imported.getAmountPaise()) <= tolerance;
+                })
+                .filter(r -> descriptionSimilarity(r.getDescription(),
+                                                   imported.getDescription()) >= 0.3)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Reconciles an imported transaction against a chosen recurring schedule.
+     *
+     * - Copies categoryId and subCategoryId from the recurring (if not already set).
+     * - Marks the transaction as fromRecurring, sets recurringId.
+     * - Sets sourceIndicator to RECONCILED.
+     * - Adds the transaction to the store and saves transactions.
+     * - Calls markRecorded() on the recurring and saves recurring.json.
+     */
+    public static void reconcileWithRecurring(Transaction imported,
+                                              RecurringTransaction recurring,
+                                              DataStore store) {
+        if (imported.getCategoryId() == null && recurring.getCategoryId() != null)
+            imported.setCategoryId(recurring.getCategoryId());
+        if (imported.getSubCategoryId() == null && recurring.getSubCategoryId() != null)
+            imported.setSubCategoryId(recurring.getSubCategoryId());
+
+        imported.setFromRecurring(true);
+        imported.setRecurringId(recurring.getId());
+        imported.setSourceIndicator(SourceIndicator.RECONCILED);
+
+        store.addTransactionInternal(imported);
+        store.saveTransactionsNow();
+
+        recurring.setLastRecordedDate(imported.getDate());
+        store.saveRecurringNow();
+    }
+
+    // ── Description similarity ────────────────────────────────────────────────
+
+    /**
+     * Token-overlap similarity between two description strings.
+     * Normalises to lowercase, splits on non-alphanumeric runs, ignores tokens shorter
+     * than 3 characters, then returns sharedTokenCount / min(|tokensA|, |tokensB|).
+     */
+    private static double descriptionSimilarity(String a, String b) {
+        Set<String> tokA = tokenize(a);
+        Set<String> tokB = tokenize(b);
+        if (tokA.isEmpty() || tokB.isEmpty()) return 0.0;
+        long common = tokA.stream().filter(tokB::contains).count();
+        return (double) common / Math.min(tokA.size(), tokB.size());
+    }
+
+    private static Set<String> tokenize(String s) {
+        if (s == null || s.isBlank()) return Collections.emptySet();
+        return Stream.of(s.toLowerCase().split("[^a-z0-9]+"))
+                .filter(t -> t.length() >= 3)
+                .collect(Collectors.toSet());
     }
 
     // ── Manual-match finder ───────────────────────────────────────────────────
@@ -500,6 +629,25 @@ public class ImportService {
             || up.contains("UPI CR")
             || up.contains("RTGS")
             || up.contains("IMPS CR");
+    }
+
+    /** Returns true if an account with the given id currently exists in the store. */
+    private static boolean accountExists(String id, DataStore store) {
+        return store.getAccounts().stream().anyMatch(a -> a.getId().equals(id));
+    }
+
+    /**
+     * Sets the second (non-bank) account on a transaction being reclassified by a type rule.
+     * For INCOME→TRANSFER the secondAccount is fromAccountId (the sending bank).
+     * For all EXPENSE-source types it is toAccountId.
+     */
+    private static void applySecondAccount(Transaction t, String sourceType,
+                                            Transaction.Type targetType, String secondAccountId) {
+        if ("INCOME".equals(sourceType) && targetType == Transaction.Type.TRANSFER) {
+            t.setFromAccountId(secondAccountId);
+        } else {
+            t.setToAccountId(secondAccountId);
+        }
     }
 
     /**

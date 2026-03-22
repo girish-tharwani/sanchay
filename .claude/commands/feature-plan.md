@@ -13,4 +13,6 @@ Once requirements are clear, explain your implementation plan:
 
 Wait for the user to confirm the plan before writing any code.
 
-After writing the code, do not try to commit and push the code. Let user ask for it separately. 
+After writing the code, build is using build.sh to check for compilation errors.
+
+Do not try to commit and push the code. Let user ask for it separately. 

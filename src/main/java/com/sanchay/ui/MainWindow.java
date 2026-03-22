@@ -64,6 +64,7 @@ public class MainWindow {
         stage.setMinHeight(600);
         stage.show();
 
+        DataStore.getInstance().autoRecordPending();
         navigateTo("Dashboard");
     }
 

@@ -530,14 +530,14 @@ public class AccountsScreen {
         actionsCol.setMinWidth(36);
         actionsCol.setMaxWidth(36);
         actionsCol.setCellFactory(tc -> new TableCell<>() {
-            private final Button deleteBtn = new Button("×");
+            private final Label deleteBtn = new Label("×");
             {
                 deleteBtn.setStyle(
                         "-fx-background-color: #F5DADA; -fx-text-fill: #A93226; "
-                        + "-fx-font-size: 13px; -fx-font-weight: bold; "
-                        + "-fx-padding: 1 6; -fx-background-radius: 3; -fx-cursor: hand;");
+                        + "-fx-font-size: 10px; -fx-font-weight: bold; "
+                        + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
                 deleteBtn.setTooltip(new Tooltip("Delete transaction"));
-                deleteBtn.setOnAction(e -> {
+                deleteBtn.setOnMouseClicked(e -> {
                     Transaction t = getTableRow().getItem();
                     if (t == null) return;
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
@@ -814,12 +814,42 @@ public class AccountsScreen {
         }
         if (!result.ambiguous.isEmpty()) ds.saveTransactionsNow();
 
+        // Resolve recurring matches — show RecurringMatchDialog for each.
+        for (ImportService.RecurringMatch rm : result.recurringMatches) {
+            RecurringMatchDialog rmd = new RecurringMatchDialog(rm.imported, rm.candidates);
+            java.util.Optional<com.sanchay.model.RecurringTransaction> choice = rmd.showAndWait();
+            if (choice.isEmpty()) continue;  // cancelled — skip silently
+
+            com.sanchay.model.RecurringTransaction chosen = choice.get();
+            if (chosen == RecurringMatchDialog.ADD_AS_NEW) {
+                boolean categorized = ds.suggestCategoryForDescription(
+                        rm.imported.getDescription(), rm.imported.getType())
+                        .map(rule -> {
+                            rm.imported.setCategoryId(rule.getCategoryId());
+                            rm.imported.setSubCategoryId(rule.getSubCategoryId());
+                            return true;
+                        }).orElse(false);
+                rm.imported.setSourceIndicator(categorized
+                        ? Transaction.SourceIndicator.AUTO_CATEGORIZED
+                        : Transaction.SourceIndicator.IMPORTED);
+                ds.addTransactionInternal(rm.imported);
+                ds.saveTransactionsNow();
+                result.newCount++;
+            } else {
+                ImportService.reconcileWithRecurring(rm.imported, chosen, ds);
+                result.recurringReconciledCount++;
+            }
+        }
+
         refreshTable.run();
 
         info("Import Complete",
-                "✓ " + result.newCount        + " new transaction(s) added\n"
-              + "✓ " + result.reconciledCount  + " reconciled with existing manual entries\n"
-              + "⊘ " + result.skippedCount     + " skipped (already imported)"
+                "✓ " + result.newCount                 + " new transaction(s) added\n"
+              + "✓ " + result.reconciledCount           + " reconciled with existing manual entries\n"
+              + (result.recurringReconciledCount > 0
+                  ? "✓ " + result.recurringReconciledCount + " recorded against recurring schedule\n"
+                  : "")
+              + "⊘ " + result.skippedCount              + " skipped (already imported)"
               + (result.ambiguous.isEmpty() ? "" :
                   "\n⚠ " + result.ambiguous.size() + " ambiguous match(es) resolved manually"));
     }

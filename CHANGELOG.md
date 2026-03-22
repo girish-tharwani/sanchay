@@ -1,3 +1,10 @@
+## v0.1.6 — 2026-03-22
+
+### Added
+- During CSV import, imported transactions with no manual match are now also matched against pending recurring schedule occurrences — same account, direction, ±2-day date window, ±5% amount tolerance, and description token-overlap similarity
+- New `RecurringMatchDialog` lets the user confirm or reject each recurring match, or add the transaction as new instead
+- Import summary now shows a separate count for transactions recorded against a recurring schedule
+
 ## v0.1.5 — 2026-03-22
 
 ### Added

@@ -10,6 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.util.StringConverter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -28,7 +29,6 @@ public class RecurringScreen {
         this.mainWindow = mainWindow;
         buildView();
     }
-
 
     public Node getView() { return view; }
 
@@ -78,7 +78,6 @@ public class RecurringScreen {
         TableColumn<RecurringTransaction, String> descCol = col("Description", 180,
                 RecurringTransaction::getDescription);
 
-        // Type column — badge label
         TableColumn<RecurringTransaction, Void> typeCol = new TableColumn<>("Type");
         typeCol.setMinWidth(100);
         typeCol.setCellFactory(tc -> new TableCell<>() {
@@ -106,34 +105,53 @@ public class RecurringScreen {
         TableColumn<RecurringTransaction, String> subCatCol = col("Sub-category", 120,
                 r -> ds.getCategoryName(r.getSubCategoryId()));
 
+        // Actions column: pause/resume + delete
         TableColumn<RecurringTransaction, Void> actionsCol = new TableColumn<>("");
-        actionsCol.setMinWidth(48);
-        actionsCol.setMaxWidth(48);
+        actionsCol.setMinWidth(96);
+        actionsCol.setMaxWidth(96);
         actionsCol.setCellFactory(tc -> new TableCell<>() {
-            private final Button pauseBtn = new Button();
+            private final Label pauseBtn  = new Label();
+            private final Label deleteBtn = new Label("×");
             {
                 pauseBtn.setStyle(
-                        "-fx-background-color: transparent; -fx-font-size: 14px; "
-                        + "-fx-padding: 2 6; -fx-cursor: hand;");
+                        "-fx-background-color: #E8F4F8; -fx-text-fill: #1A66CC; "
+                        + "-fx-font-size: 10px; -fx-font-weight: bold; "
+                        + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
                 pauseBtn.setTooltip(new Tooltip("Pause / Resume"));
+                deleteBtn.setStyle(
+                        "-fx-background-color: #F5DADA; -fx-text-fill: #A93226; "
+                        + "-fx-font-size: 10px; -fx-font-weight: bold; "
+                        + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
+                deleteBtn.setTooltip(new Tooltip("Delete schedule"));
             }
             @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
                 RecurringTransaction r = getTableRow().getItem();
-                pauseBtn.setText(r.getStatus() == RecurringTransaction.Status.ACTIVE ? "⏸" : "▶");
-                pauseBtn.setOnAction(e -> {
+                pauseBtn.setText(r.getStatus() == RecurringTransaction.Status.ACTIVE ? "‖" : "▶");
+                pauseBtn.setOnMouseClicked(e -> {
                     r.setStatus(r.getStatus() == RecurringTransaction.Status.ACTIVE
                             ? RecurringTransaction.Status.PAUSED
                             : RecurringTransaction.Status.ACTIVE);
                     DataStore.getInstance().saveRecurringNow();
                     allSchedulesTable.refresh();
                 });
-                setGraphic(pauseBtn);
+                deleteBtn.setOnMouseClicked(e -> {
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirm.setTitle("Delete Schedule");
+                    confirm.setHeaderText("Delete '" + r.getDescription() + "'?");
+                    confirm.setContentText("Past recorded transactions will not be affected.");
+                    confirm.showAndWait()
+                            .filter(b -> b == ButtonType.OK)
+                            .ifPresent(b -> {
+                                DataStore.getInstance().deleteRecurring(r.getId());
+                                buildView();
+                            });
+                });
+                setGraphic(new HBox(2, pauseBtn, deleteBtn));
             }
         });
 
-        // Double-click row to edit
         allSchedulesTable.setRowFactory(tv -> {
             TableRow<RecurringTransaction> row = new TableRow<>();
             row.setOnMouseClicked(e -> {
@@ -145,7 +163,8 @@ public class RecurringScreen {
             return row;
         });
 
-        allSchedulesTable.getColumns().addAll(descCol, typeCol, freqCol, amtCol, nextCol, statusCol, catCol, subCatCol, actionsCol);
+        allSchedulesTable.getColumns().addAll(
+                descCol, typeCol, freqCol, amtCol, nextCol, statusCol, catCol, subCatCol, actionsCol);
         content.getChildren().add(allSchedulesTable);
         content.getChildren().add(UiUtils.hintLabel("Double-click a row to edit"));
 
@@ -185,7 +204,7 @@ public class RecurringScreen {
         row.setPadding(new Insets(10, 14, 10, 14));
         row.setAlignment(Pos.CENTER_LEFT);
 
-        Label typeBadge = new Label(r.getTransactionType().name().replace("_", " "));
+        Label typeBadge = new Label(UiUtils.badgeText(r.getTransactionType()));
         typeBadge.setMinWidth(90);
         typeBadge.getStyleClass().add("badge-" + r.getTransactionType().name().toLowerCase().replace("_", "-"));
 
@@ -240,19 +259,27 @@ public class RecurringScreen {
         c2.setHgrow(Priority.ALWAYS);
         g.getColumnConstraints().addAll(c1, c2);
 
-        // Description
+        // ── Description ───────────────────────────────────────────────────────
         TextField descFld = new TextField(isNew ? "" : existing.getDescription());
         descFld.setPromptText("e.g. SBI Home Loan EMI");
         descFld.setMaxWidth(Double.MAX_VALUE);
 
-        // Transaction type
+        // ── Transaction type ──────────────────────────────────────────────────
         ComboBox<Transaction.Type> typeCb = new ComboBox<>();
-        for (Transaction.Type t : Transaction.Type.values())
-            if (t != Transaction.Type.LOAN_PAYMENT) typeCb.getItems().add(t);
+        typeCb.getItems().addAll(
+                Transaction.Type.EXPENSE, Transaction.Type.INCOME,
+                Transaction.Type.TRANSFER, Transaction.Type.INVESTMENT,
+                Transaction.Type.CC_PAYMENT, Transaction.Type.LOAN_PAYMENT);
+        typeCb.setConverter(new StringConverter<>() {
+            @Override public String toString(Transaction.Type t) {
+                return t == null ? "" : UiUtils.badgeText(t);
+            }
+            @Override public Transaction.Type fromString(String s) { return null; }
+        });
         typeCb.setValue(isNew ? Transaction.Type.EXPENSE : existing.getTransactionType());
         typeCb.setMaxWidth(Double.MAX_VALUE);
 
-        // Frequency
+        // ── Frequency ─────────────────────────────────────────────────────────
         ComboBox<RecurringTransaction.Frequency> freqCb = new ComboBox<>();
         freqCb.getItems().addAll(RecurringTransaction.Frequency.values());
         freqCb.setValue(isNew ? RecurringTransaction.Frequency.MONTHLY : existing.getFrequency());
@@ -270,44 +297,36 @@ public class RecurringScreen {
             }
         });
 
-        // Due day
+        // ── Due day ───────────────────────────────────────────────────────────
         Spinner<Integer> daySpinner = new Spinner<>(1, 28, isNew ? 1 : existing.getDueDayOfMonth());
         daySpinner.setMaxWidth(Double.MAX_VALUE);
 
-        // Start date
+        // ── Start date ────────────────────────────────────────────────────────
         DatePicker startPicker = new DatePicker(isNew ? LocalDate.now()
                 : (existing.getStartDate() != null ? existing.getStartDate() : LocalDate.now()));
         startPicker.setMaxWidth(Double.MAX_VALUE);
         UiUtils.applySmartDateConverter(startPicker);
 
-        // Amount
+        // ── Amount ────────────────────────────────────────────────────────────
         TextField amtFld = new TextField(isNew ? ""
                 : (existing.getAmountPaise() > 0
                 ? String.format("%.2f", existing.getAmountPaise() / 100.0) : ""));
         amtFld.setPromptText("Leave blank for variable (e.g. CC Payment)");
         amtFld.setMaxWidth(Double.MAX_VALUE);
 
-        // From Account
+        // ── From Account (contents vary by type) ──────────────────────────────
         DataStore ds = DataStore.getInstance();
         ComboBox<Account> accountCb = new ComboBox<>();
-        ds.getBankAccounts().forEach(accountCb.getItems()::add);
-        if (!accountCb.getItems().isEmpty()) accountCb.setValue(accountCb.getItems().get(0));
-        if (!isNew && existing.getFromAccountId() != null) {
-            accountCb.getItems().stream()
-                    .filter(a -> a.getId().equals(existing.getFromAccountId()))
-                    .findFirst().ifPresent(accountCb::setValue);
-        }
         accountCb.setMaxWidth(Double.MAX_VALUE);
 
-        // ── To Account controls (one per applicable type) ─────────────────────
-        // Transfer → bank accounts + loan accounts
+        // ── To Account controls ───────────────────────────────────────────────
+        // Transfer → bank accounts
         ComboBox<Account> transferToCb = new ComboBox<>();
         transferToCb.setPromptText("Select destination account");
         transferToCb.setMaxWidth(Double.MAX_VALUE);
         ds.getBankAccounts().forEach(transferToCb.getItems()::add);
-        ds.getActiveLoanAccounts().forEach(transferToCb.getItems()::add);
 
-        // Investment → investment accounts with type label
+        // Investment → investment accounts
         ComboBox<InvestmentAccount> invDestCb = new ComboBox<>();
         invDestCb.setPromptText("Select investment account");
         invDestCb.setMaxWidth(Double.MAX_VALUE);
@@ -334,20 +353,26 @@ public class RecurringScreen {
         ccpCardCb.setMaxWidth(Double.MAX_VALUE);
         ds.getCreditCardAccounts().forEach(ccpCardCb.getItems()::add);
 
+        // Loan Payment → loan accounts
+        ComboBox<Account> loanToCb = new ComboBox<>();
+        loanToCb.setPromptText("Select loan account");
+        loanToCb.setMaxWidth(Double.MAX_VALUE);
+        ds.getActiveLoanAccounts().forEach(loanToCb.getItems()::add);
+
         // ── Investment type-specific fields ───────────────────────────────────
-        TextField invSchemeFld = new TextField();
+        TextField invSchemeFld    = new TextField();
         invSchemeFld.setPromptText("e.g. HDFC Flexi Cap Fund, RELIANCE (optional)");
         invSchemeFld.setMaxWidth(Double.MAX_VALUE);
 
-        TextField invUnitsFld = new TextField();
+        TextField invUnitsFld     = new TextField();
         invUnitsFld.setPromptText("Units / NAV at investment time (optional)");
         invUnitsFld.setMaxWidth(Double.MAX_VALUE);
 
-        TextField invFdRefFld = new TextField();
+        TextField invFdRefFld     = new TextField();
         invFdRefFld.setPromptText("FD reference number (optional)");
         invFdRefFld.setMaxWidth(Double.MAX_VALUE);
 
-        TextField invFdRateFld = new TextField();
+        TextField invFdRateFld    = new TextField();
         invFdRateFld.setPromptText("Annual interest rate, e.g. 6.5");
         invFdRateFld.setMaxWidth(Double.MAX_VALUE);
 
@@ -360,11 +385,11 @@ public class RecurringScreen {
         invFdMaturityAmtFld.setPromptText("Expected maturity amount (optional)");
         invFdMaturityAmtFld.setMaxWidth(Double.MAX_VALUE);
 
-        TextField invRdRefFld = new TextField();
+        TextField invRdRefFld     = new TextField();
         invRdRefFld.setPromptText("RD reference number (optional)");
         invRdRefFld.setMaxWidth(Double.MAX_VALUE);
 
-        TextField invRdRateFld = new TextField();
+        TextField invRdRateFld    = new TextField();
         invRdRateFld.setPromptText("Annual interest rate, e.g. 7.0");
         invRdRateFld.setMaxWidth(Double.MAX_VALUE);
 
@@ -419,9 +444,32 @@ public class RecurringScreen {
 
         Runnable refreshToAccount = () -> {
             Transaction.Type t = typeCb.getValue();
+
+            // Update From Account contents based on type
+            Account prevFrom = accountCb.getValue();
+            accountCb.getItems().clear();
+            if (t == Transaction.Type.EXPENSE) {
+                ds.getBankAccounts().forEach(accountCb.getItems()::add);
+                ds.getCreditCardAccounts().forEach(accountCb.getItems()::add);
+            } else {
+                ds.getBankAccounts().forEach(accountCb.getItems()::add);
+            }
+            // Preserve selection if still valid, else restore from existing, else pick first
+            if (prevFrom != null && accountCb.getItems().contains(prevFrom)) {
+                accountCb.setValue(prevFrom);
+            } else if (!isNew && existing.getFromAccountId() != null) {
+                accountCb.getItems().stream()
+                        .filter(a -> a.getId().equals(existing.getFromAccountId()))
+                        .findFirst().ifPresent(accountCb::setValue);
+            }
+            if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
+                accountCb.setValue(accountCb.getItems().get(0));
+
+            // Update To Account section
             boolean showTo = t == Transaction.Type.TRANSFER
                           || t == Transaction.Type.INVESTMENT
-                          || t == Transaction.Type.CC_PAYMENT;
+                          || t == Transaction.Type.CC_PAYMENT
+                          || t == Transaction.Type.LOAN_PAYMENT;
             toAccountSection.getChildren().clear();
             invDynamicBox.getChildren().clear();
             invDynamicBox.setVisible(false);
@@ -433,12 +481,14 @@ public class RecurringScreen {
 
             GridPane tg = miniGrid();
             if (t == Transaction.Type.TRANSFER) {
-                formRow(tg, 0, "To Account*", transferToCb);
+                formRow(tg, 0, "To Account", transferToCb);
             } else if (t == Transaction.Type.INVESTMENT) {
-                formRow(tg, 0, "To Inv. Account*", invDestCb);
-                formRow(tg, 1, "Investment Type",  invTypeLbl);
+                formRow(tg, 0, "To Account",      invDestCb);
+                formRow(tg, 1, "Investment Type", invTypeLbl);
+            } else if (t == Transaction.Type.CC_PAYMENT) {
+                formRow(tg, 0, "To Account", ccpCardCb);
             } else {
-                formRow(tg, 0, "To Credit Card*", ccpCardCb);
+                formRow(tg, 0, "To Account", loanToCb);
             }
             toAccountSection.getChildren().add(tg);
             if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
@@ -510,7 +560,23 @@ public class RecurringScreen {
             }
         });
 
-        // ── Pre-select toAccountId when editing ───────────────────────────────
+        // ── Auto-record ───────────────────────────────────────────────────────
+        CheckBox autoRecordCb = new CheckBox("Auto-record after");
+        Spinner<Integer> autoRecordDaysSp = new Spinner<>(1, 30, 3);
+        autoRecordDaysSp.setPrefWidth(70);
+        autoRecordDaysSp.setDisable(true);
+        Label autoRecordSuffix = new Label("days overdue");
+        autoRecordSuffix.setStyle("-fx-text-fill: #595959; -fx-font-size: 12px;");
+        HBox autoRecordBox = new HBox(8, autoRecordCb, autoRecordDaysSp, autoRecordSuffix);
+        autoRecordBox.setAlignment(Pos.CENTER_LEFT);
+        autoRecordCb.selectedProperty().addListener((obs, o, n) -> autoRecordDaysSp.setDisable(!n));
+
+        if (!isNew && existing.getAutoRecordAfterDays() > 0) {
+            autoRecordCb.setSelected(true);
+            autoRecordDaysSp.getValueFactory().setValue(existing.getAutoRecordAfterDays());
+        }
+
+        // ── Pre-select to-account when editing ────────────────────────────────
         if (!isNew && existing.getToAccountId() != null) {
             Transaction.Type t = existing.getTransactionType();
             if (t == Transaction.Type.TRANSFER) {
@@ -525,29 +591,34 @@ public class RecurringScreen {
                 ds.getCreditCardAccounts().stream()
                         .filter(a -> a.getId().equals(existing.getToAccountId()))
                         .findFirst().ifPresent(ccpCardCb::setValue);
+            } else if (t == Transaction.Type.LOAN_PAYMENT) {
+                ds.getActiveLoanAccounts().stream()
+                        .filter(a -> a.getId().equals(existing.getToAccountId()))
+                        .findFirst().ifPresent(loanToCb::setValue);
             }
         }
 
-        // Trigger initial state based on selected type
+        // Trigger initial state (also populates accountCb)
         refreshToAccount.run();
 
         // ── Layout ────────────────────────────────────────────────────────────
         int row = 0;
-        formRow(g, row++, "Description*",     descFld);
-        formRow(g, row++, "Type",             typeCb);
-        formRow(g, row++, "Frequency",        freqCb);
-        formRow(g, row++, "Due Day of Month", daySpinner);
-        formRow(g, row++, "Start Date",       startPicker);
-        formRow(g, row++, "Amount (₹)",       amtFld);
-        formRow(g, row++, "Account",          accountCb);
+        formRow(g, row++, "Description*",    descFld);
+        formRow(g, row++, "Type",            typeCb);
+        formRow(g, row++, "Frequency",       freqCb);
+        formRow(g, row++, "Due Day of Month",daySpinner);
+        formRow(g, row++, "Start Date",      startPicker);
+        formRow(g, row++, "Amount (₹)",      amtFld);
+        formRow(g, row++, "From Account",    accountCb);
         g.add(toAccountSection, 0, row++, 2, 1);
         g.add(invDynamicBox,    0, row++, 2, 1);
-        formRow(g, row++, "Category",         catCb);
-        formRow(g, row,   "Sub-category",     subCatCb);
+        formRow(g, row++, "Category",        catCb);
+        formRow(g, row++, "Sub-category",    subCatCb);
+        g.add(autoRecordBox,    0, row,   2, 1);
 
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(420);
+        sp.setPrefHeight(440);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         dlg.getDialogPane().setContent(sp);
 
@@ -558,11 +629,10 @@ public class RecurringScreen {
             if (bt != saveBtn) return null;
             String desc = descFld.getText().trim();
             if (desc.isEmpty()) { alert("Validation", "Description is required."); return null; }
-            // fromAccount is optional (e.g. PF deposit schedules have no source bank account)
 
             Transaction.Type type               = typeCb.getValue();
             RecurringTransaction.Frequency freq = freqCb.getValue();
-            int day     = daySpinner.getValue();
+            int day   = daySpinner.getValue();
             LocalDate start = startPicker.getValue() != null ? startPicker.getValue() : LocalDate.now();
 
             // Validate to-account for types that require one
@@ -575,12 +645,20 @@ public class RecurringScreen {
             if (type == Transaction.Type.CC_PAYMENT && ccpCardCb.getValue() == null) {
                 alert("Validation", "Select a credit card for the payment."); return null;
             }
+            if (type == Transaction.Type.LOAN_PAYMENT && loanToCb.getValue() == null) {
+                alert("Validation", "Select a loan account for the payment."); return null;
+            }
 
             long paise = 0;
             String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
             if (!amtRaw.isEmpty()) {
                 try { paise = Math.round(Double.parseDouble(amtRaw) * 100); }
                 catch (NumberFormatException e) { alert("Validation", "Invalid amount."); return null; }
+            }
+
+            if (autoRecordCb.isSelected() && paise == 0) {
+                alert("Validation", "Auto-record requires a fixed amount. Enter an amount or uncheck auto-record.");
+                return null;
             }
 
             // Derive toAccountId
@@ -591,6 +669,8 @@ public class RecurringScreen {
                 toAccountId = invDestCb.getValue().getId();
             else if (type == Transaction.Type.CC_PAYMENT && ccpCardCb.getValue() != null)
                 toAccountId = ccpCardCb.getValue().getId();
+            else if (type == Transaction.Type.LOAN_PAYMENT && loanToCb.getValue() != null)
+                toAccountId = loanToCb.getValue().getId();
 
             // Pack investment-specific fields into notes
             String invNotes = null;
@@ -602,6 +682,7 @@ public class RecurringScreen {
             }
 
             String fromAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
+            int autoRecordDays   = autoRecordCb.isSelected() ? autoRecordDaysSp.getValue() : 0;
 
             if (isNew) {
                 RecurringTransaction r = new RecurringTransaction(desc, type, freq, day, start, paise);
@@ -610,6 +691,7 @@ public class RecurringScreen {
                 if (catCb.getValue() != null)    r.setCategoryId(catCb.getValue().getId());
                 if (subCatCb.getValue() != null) r.setSubCategoryId(subCatCb.getValue().getId());
                 r.setNotes(invNotes);
+                r.setAutoRecordAfterDays(autoRecordDays);
                 r.setStatus(RecurringTransaction.Status.ACTIVE);
                 ds.addRecurring(r);
             } else {
@@ -624,6 +706,7 @@ public class RecurringScreen {
                 existing.setCategoryId(catCb.getValue() != null ? catCb.getValue().getId() : null);
                 existing.setSubCategoryId(subCatCb.getValue() != null ? subCatCb.getValue().getId() : null);
                 existing.setNotes(invNotes);
+                existing.setAutoRecordAfterDays(autoRecordDays);
                 ds.saveRecurringNow();
             }
             return null;
@@ -634,7 +717,6 @@ public class RecurringScreen {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Mini-GridPane matching the main form layout, used inside dynamic VBox sections. */
     private GridPane miniGrid() {
         GridPane g = new GridPane();
         g.setHgap(12);
@@ -647,7 +729,6 @@ public class RecurringScreen {
         return g;
     }
 
-    /** Packs investment-type-specific fields into a structured notes string. */
     private String buildInvNotes(InvestmentAccount dest,
             TextField schemeFld, TextField unitsFld,
             TextField fdRefFld, TextField fdRateFld,

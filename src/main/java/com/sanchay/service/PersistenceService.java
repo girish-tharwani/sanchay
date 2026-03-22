@@ -25,6 +25,7 @@ public class PersistenceService {
     private static final String SETTINGS        = "settings.json";
     private static final String IMPORT_MAPPINGS  = "import_mappings.json";
     private static final String CATEGORY_RULES   = "category_rules.json";
+    private static final String TYPE_RULES       = "type_rules.json";
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -62,6 +63,7 @@ public class PersistenceService {
         loadRecurring(store);
         loadImportMappings(store);
         loadCategoryRules(store);
+        loadTypeRules(store);
     }
 
     private void loadSettings(DataStore store) {
@@ -215,6 +217,16 @@ public class PersistenceService {
         } catch (Exception e) { /* ignore malformed */ }
     }
 
+    private void loadTypeRules(DataStore store) {
+        Path p = dataFolder.resolve(TYPE_RULES);
+        if (!Files.exists(p)) return;
+        try {
+            Type listType = new TypeToken<List<TypeRule>>(){}.getType();
+            List<TypeRule> list = GSON.fromJson(readFile(p), listType);
+            if (list != null) list.forEach(store::addTypeRuleInternal);
+        } catch (Exception e) { /* ignore malformed */ }
+    }
+
     // ── Save ──────────────────────────────────────────────────────────────────
 
     public void saveAccounts(DataStore store) {
@@ -260,6 +272,10 @@ public class PersistenceService {
         atomicWrite(CATEGORY_RULES, GSON.toJson(store.getCategoryRules()));
     }
 
+    public void saveTypeRules(DataStore store) {
+        atomicWrite(TYPE_RULES, GSON.toJson(store.getTypeRules()));
+    }
+
     public void saveAll(DataStore store) {
         saveAccounts(store);
         saveTransactions(store);
@@ -268,6 +284,7 @@ public class PersistenceService {
         saveMembers(store);
         saveSettings(store);
         saveImportMappings(store);
+        saveTypeRules(store);
     }
 
     // ── Atomic write ──────────────────────────────────────────────────────────
