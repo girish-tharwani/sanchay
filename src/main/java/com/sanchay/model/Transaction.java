@@ -11,7 +11,9 @@ public class Transaction {
         CC_PAYMENT,   // Credit card bill payment from bank to credit card
         REFUND,       // Money returned to account (offsets an expense category)
         REDEEM,       // Investment redemption: principal returned + gain/loss recorded
-        LOAN_PAYMENT  // Repayment from a bank account to a loan account
+        LOAN_PAYMENT, // Repayment from a bank account to a loan account
+        GAIN,         // Investment gain posted to bank — created by code, not user-selectable
+        LOSE          // Investment loss debited from bank — created by code, not user-selectable
     }
 
     public enum PaymentMode {
@@ -42,9 +44,15 @@ public class Transaction {
     private Double unitsNav;
     private boolean fromRecurring;
     private String recurringId;
-    private long principalPaise; // REDEEM only: original invested amount being returned
+    private long principalPaise;      // REDEEM only: original invested amount being returned
+    private String groupTransactionId; // links the 3 transactions created by a REDEEM operation
 
-    public enum SourceIndicator { MANUAL, IMPORTED, RECONCILED }
+    public enum SourceIndicator {
+        MANUAL,           // User entered manually
+        IMPORTED,         // Imported from CSV; category not yet confirmed
+        AUTO_CATEGORIZED, // Imported and auto-categorized by rules; awaiting user acceptance
+        RECONCILED        // Import row matched and merged with an existing manual transaction
+    }
     private SourceIndicator sourceIndicator;
     private String importHash;
 
@@ -63,18 +71,18 @@ public class Transaction {
     public String getSignedAmountInr(String viewingAccountId) {
         boolean isDebit;
         if (type == Type.TRANSFER || type == Type.CC_PAYMENT || type == Type.INVESTMENT
-                || type == Type.REDEEM || type == Type.LOAN_PAYMENT) {
+                || type == Type.REDEEM || type == Type.LOAN_PAYMENT || type == Type.LOSE) {
             isDebit = viewingAccountId != null && viewingAccountId.equals(fromAccountId);
         } else {
-            isDebit = (type == Type.EXPENSE);
+            isDebit = (type == Type.EXPENSE); // INCOME, REFUND, GAIN → always credit
         }
         return isDebit ? "(" + getAmountInr() + ")" : getAmountInr();
     }
 
     public String getTypedSignedAmountInr() {
         return switch (type) {
-            case INCOME, TRANSFER, REFUND, REDEEM -> getAmountInr();
-            case EXPENSE, INVESTMENT, CC_PAYMENT, LOAN_PAYMENT -> "(" + getAmountInr() + ")";
+            case INCOME, TRANSFER, REFUND, REDEEM, GAIN -> getAmountInr();
+            case EXPENSE, INVESTMENT, CC_PAYMENT, LOAN_PAYMENT, LOSE -> "(" + getAmountInr() + ")";
         };
     }
 
@@ -124,4 +132,6 @@ public class Transaction {
     public void setImportHash(String h)               { this.importHash = h; }
     public long getPrincipalPaise()                   { return principalPaise; }
     public void setPrincipalPaise(long p)             { this.principalPaise = p; }
+    public String getGroupTransactionId()             { return groupTransactionId; }
+    public void setGroupTransactionId(String g)       { this.groupTransactionId = g; }
 }

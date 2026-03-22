@@ -56,6 +56,8 @@ public final class UiUtils {
             case REFUND       -> "badge-income";
             case REDEEM       -> "badge-investment";
             case LOAN_PAYMENT -> "badge-cc-payment";
+            case GAIN         -> "badge-income";
+            case LOSE         -> "badge-expense";
         };
     }
 
@@ -70,6 +72,8 @@ public final class UiUtils {
             case REFUND       -> "Refund";
             case REDEEM       -> "Redeem";
             case LOAN_PAYMENT -> "Loan Payment";
+            case GAIN         -> "Gain";
+            case LOSE         -> "Loss";
         };
     }
 

@@ -55,7 +55,8 @@ All data lives in a user-chosen folder (path stored in `%APPDATA%\sanchay\app-co
 - **Save-on-mutation:** every change rewrites the relevant JSON file atomically (write `.tmp` then rename)
 
 ## Transaction types
-`Expense`, `Income`, `Transfer`, `Refund`, `Investment`, `CC Payment`
+User-selectable: `Expense`, `Income`, `Transfer`, `Refund`, `Investment`, `CC Payment`, `Redeem`, `Loan Payment`
+Internal (code-generated, not shown in type picker): `GAIN`, `LOSE` — created as part of a REDEEM group to represent investment gain/loss posted to the bank account.
 
 ## Account types
 - **Bank:** Savings, Current
@@ -80,7 +81,7 @@ All data lives in a user-chosen folder (path stored in `%APPDATA%\sanchay\app-co
 Left sidebar (fixed, non-collapsible): Dashboard → Accounts → Recurring → Reports → Categories | Profile → Settings. No standalone Transactions screen — accessed via account card → Transactions button. Floating `+` button on every screen opens the New Transaction dialog.
 
 ## Current version
-`0.1.0-SNAPSHOT` (pom.xml)
+`0.1.1-SNAPSHOT` (pom.xml)
 
 ## Out of scope (initial version)
 Cloud sync, PDF/OFX import, push notifications, loan amortization schedule, market value tracking, budgeting, ITR summaries, mobile app, sub-categories for income, multi-user login.

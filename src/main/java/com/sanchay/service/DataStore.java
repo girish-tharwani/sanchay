@@ -156,8 +156,25 @@ public class DataStore {
     public void addRecurringInternal(RecurringTransaction r) { recurring.add(r); }
 
     public void deleteTransaction(String id) {
-        transactions.removeIf(t -> t.getId().equals(id));
+        Transaction target = transactions.stream()
+                .filter(t -> t.getId().equals(id)).findFirst().orElse(null);
+        if (target != null && target.getGroupTransactionId() != null) {
+            String groupId = target.getGroupTransactionId();
+            transactions.removeIf(t -> groupId.equals(t.getGroupTransactionId()));
+        } else {
+            transactions.removeIf(t -> t.getId().equals(id));
+        }
         if (persistence != null) persistence.saveTransactions(this);
+    }
+
+    /** Deletes all transactions in a group without saving (caller must save). */
+    public void deleteTransactionGroupInternal(String groupId) {
+        transactions.removeIf(t -> groupId.equals(t.getGroupTransactionId()));
+    }
+
+    /** Deletes a single transaction by id without saving (caller must save). */
+    public void deleteTransactionByIdInternal(String id) {
+        transactions.removeIf(t -> t.getId().equals(id));
     }
 
     /**
@@ -565,7 +582,8 @@ public class DataStore {
                 if (t.getType() == Type.TRANSFER && ia.getId().equals(t.getFromAccountId()))
                     invested -= t.getAmountPaise();
                 if (t.getType() == Type.REDEEM && ia.getId().equals(t.getFromAccountId()))
-                    invested -= t.getPrincipalPaise();
+                    // Old format: principalPaise set separately. New format: amountPaise == principal.
+                    invested -= t.getPrincipalPaise() > 0 ? t.getPrincipalPaise() : t.getAmountPaise();
             }
             return Math.max(0, invested);
         }).sum();

@@ -292,7 +292,7 @@ public class AccountsScreen {
                     - DataStore.getInstance().getTransactions().stream()
                         .filter(t -> t.getType() == Transaction.Type.REDEEM
                                   && ia.getId().equals(t.getFromAccountId()))
-                        .mapToLong(Transaction::getPrincipalPaise).sum();
+                        .mapToLong(t -> t.getPrincipalPaise() > 0 ? t.getPrincipalPaise() : t.getAmountPaise()).sum();
             addField(fields, "Investment Type",         ia.getAccountType());
             addField(fields, "Account Number",           ia.getFolioAccountNumber());
             addField(fields, "Current Invested Amount", String.format("₹%,.2f", Math.max(0, invested) / 100.0));
@@ -485,11 +485,15 @@ public class AccountsScreen {
                     if (t == null) return;
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                     confirm.setTitle("Delete Transaction");
-                    confirm.setHeaderText("Delete this transaction?");
+                    boolean isGrouped = t.getGroupTransactionId() != null;
+                    confirm.setHeaderText(isGrouped
+                            ? "Delete linked redemption group?"
+                            : "Delete this transaction?");
                     confirm.setContentText(
                             t.getDescription() + "\n"
                             + t.getAmountInr() + "  ·  "
-                            + t.getDate().format(dateFmt()));
+                            + t.getDate().format(dateFmt())
+                            + (isGrouped ? "\n\nThis will also delete the related principal and gain/loss entries." : ""));
                     confirm.showAndWait()
                             .filter(b -> b == ButtonType.OK)
                             .ifPresent(b -> {
@@ -521,6 +525,20 @@ public class AccountsScreen {
                                 + "-fx-font-weight: bold; -fx-font-size: 10px; "
                                 + "-fx-padding: 1 5; -fx-background-radius: 3;");
                         badge.setTooltip(new Tooltip("Imported from file"));
+                    }
+                    case AUTO_CATEGORIZED -> {
+                        badge.setText("?");
+                        badge.setStyle("-fx-background-color: #FFF3CD; -fx-text-fill: #856404; "
+                                + "-fx-font-weight: bold; -fx-font-size: 10px; "
+                                + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
+                        badge.setTooltip(new Tooltip(
+                                "Category auto-filled — click to accept, or double-click row to edit"));
+                        badge.setOnMouseClicked(e -> {
+                            t.setSourceIndicator(Transaction.SourceIndicator.IMPORTED);
+                            DataStore.getInstance().saveTransactionsNow();
+                            applyFilter.run();
+                            e.consume();
+                        });
                     }
                     case RECONCILED -> {
                         badge.setText("R");
@@ -680,12 +698,16 @@ public class AccountsScreen {
 
             if (available.isEmpty()) {
                 // All candidates were claimed by earlier CSV rows — add as new automatically
-                am.imported.setSourceIndicator(Transaction.SourceIndicator.IMPORTED);
-                ds.suggestCategoryForDescription(am.imported.getDescription(), am.imported.getType())
-                  .ifPresent(rule -> {
-                      am.imported.setCategoryId(rule.getCategoryId());
-                      am.imported.setSubCategoryId(rule.getSubCategoryId());
-                  });
+                boolean categorized = ds.suggestCategoryForDescription(
+                        am.imported.getDescription(), am.imported.getType())
+                        .map(rule -> {
+                            am.imported.setCategoryId(rule.getCategoryId());
+                            am.imported.setSubCategoryId(rule.getSubCategoryId());
+                            return true;
+                        }).orElse(false);
+                am.imported.setSourceIndicator(categorized
+                        ? Transaction.SourceIndicator.AUTO_CATEGORIZED
+                        : Transaction.SourceIndicator.IMPORTED);
                 ds.addTransactionInternal(am.imported);
                 result.newCount++;
                 continue;
@@ -700,12 +722,16 @@ public class AccountsScreen {
                     result.reconciledCount++;
                 } else {
                     // "Add as New" was clicked
-                    am.imported.setSourceIndicator(Transaction.SourceIndicator.IMPORTED);
-                    ds.suggestCategoryForDescription(am.imported.getDescription(), am.imported.getType())
-                      .ifPresent(rule -> {
-                          am.imported.setCategoryId(rule.getCategoryId());
-                          am.imported.setSubCategoryId(rule.getSubCategoryId());
-                      });
+                    boolean categorized = ds.suggestCategoryForDescription(
+                            am.imported.getDescription(), am.imported.getType())
+                            .map(rule -> {
+                                am.imported.setCategoryId(rule.getCategoryId());
+                                am.imported.setSubCategoryId(rule.getSubCategoryId());
+                                return true;
+                            }).orElse(false);
+                    am.imported.setSourceIndicator(categorized
+                            ? Transaction.SourceIndicator.AUTO_CATEGORIZED
+                            : Transaction.SourceIndicator.IMPORTED);
                     ds.addTransactionInternal(am.imported);
                     result.newCount++;
                 }
@@ -1309,6 +1335,8 @@ public class AccountsScreen {
             case REFUND       -> { text = "Refund";       bg = "#E8F5E9"; fg = "#1B5E20"; }
             case REDEEM       -> { text = "Redeem";       bg = "#FFF8E1"; fg = "#E65100"; }
             case LOAN_PAYMENT -> { text = "Loan Payment"; bg = "#FFF3E0"; fg = "#E65100"; }
+            case GAIN         -> { text = "Gain";         bg = "#E8F5E9"; fg = "#1B5E20"; }
+            case LOSE         -> { text = "Loss";         bg = "#FFE8E8"; fg = "#B71C1C"; }
             default           -> { text = type.name();    bg = "#EEEEEE"; fg = "#333333"; }
         }
         Label lbl = new Label(text);

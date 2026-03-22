@@ -202,6 +202,8 @@ public class TransactionDialog extends Dialog<Transaction> {
                     case REFUND       -> "Refund";
                     case REDEEM       -> "Redeem";
                     case LOAN_PAYMENT -> "Loan Payment";
+                    case GAIN         -> "Gain";
+                    case LOSE         -> "Loss";
                 };
             }
             @Override public Type fromString(String s) { return null; }
@@ -631,6 +633,7 @@ public class TransactionDialog extends Dialog<Transaction> {
             case REFUND       -> saveRefund();
             case REDEEM       -> saveRedeem();
             case LOAN_PAYMENT -> saveLoanPayment();
+            case GAIN, LOSE   -> throw new IllegalStateException("GAIN/LOSE cannot be saved directly");
         };
     }
 
@@ -794,22 +797,76 @@ public class TransactionDialog extends Dialog<Transaction> {
         InvestmentAccount from      = rdeFromCb.getValue();
         if (from == null) throw new IllegalArgumentException("From Investment Account is required.");
         Account           to        = requireAccount(rdeToCb, "To Bank Account");
+        if (principal > total)
+            throw new IllegalArgumentException("Principal cannot exceed total redemption amount.");
 
-        Transaction t = new Transaction(Type.REDEEM, date, desc, total);
-        t.setFromAccountId(from.getId());
-        t.setToAccountId(to.getId());
-        t.setPrincipalPaise(principal);
-        if (rdeCatCb.getValue()    != null) t.setCategoryId(rdeCatCb.getValue().getId());
-        if (rdeSubCatCb.getValue() != null) t.setSubCategoryId(rdeSubCatCb.getValue().getId());
-        t.setNotes(nullIfBlank(sharedNotes.getText()));
-        return persistTransaction(t);
+        String  notes    = nullIfBlank(sharedNotes.getText());
+        String  groupId  = UUID.randomUUID().toString();
+        long    gainLoss = total - principal;
+
+        // 1. Investment-side: outgoing REDEEM from investment account (amount = principal)
+        Transaction invTxn = new Transaction(Type.REDEEM, date, desc, principal);
+        invTxn.setFromAccountId(from.getId());
+        invTxn.setPrincipalPaise(principal);
+        invTxn.setGroupTransactionId(groupId);
+        invTxn.setNotes(notes);
+        invTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+
+        // 2. Bank-side: incoming REDEEM (principal returned to bank)
+        Transaction bankPrincipal = new Transaction(Type.REDEEM, date, desc, principal);
+        bankPrincipal.setToAccountId(to.getId());
+        bankPrincipal.setPrincipalPaise(principal);
+        bankPrincipal.setGroupTransactionId(groupId);
+        bankPrincipal.setNotes(notes);
+        bankPrincipal.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+
+        // 3. Bank-side: GAIN or LOSE (only if gain/loss is non-zero)
+        Transaction gainLossTxn = null;
+        if (gainLoss > 0) {
+            gainLossTxn = new Transaction(Type.GAIN, date, desc, gainLoss);
+            gainLossTxn.setToAccountId(to.getId());
+        } else if (gainLoss < 0) {
+            gainLossTxn = new Transaction(Type.LOSE, date, desc, -gainLoss);
+            gainLossTxn.setFromAccountId(to.getId());
+        }
+        if (gainLossTxn != null) {
+            gainLossTxn.setGroupTransactionId(groupId);
+            gainLossTxn.setNotes(notes);
+            gainLossTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+            if (rdeCatCb.getValue()    != null) gainLossTxn.setCategoryId(rdeCatCb.getValue().getId());
+            if (rdeSubCatCb.getValue() != null) gainLossTxn.setSubCategoryId(rdeSubCatCb.getValue().getId());
+        }
+
+        // If editing, delete the old group or old single REDEEM (no save yet)
+        if (existing != null) {
+            String oldGroup = existing.getGroupTransactionId();
+            if (oldGroup != null) {
+                ds.deleteTransactionGroupInternal(oldGroup);
+            } else {
+                ds.deleteTransactionByIdInternal(existing.getId());
+            }
+        }
+
+        // Persist all new transactions atomically
+        ds.addTransactionInternal(invTxn);
+        ds.addTransactionInternal(bankPrincipal);
+        if (gainLossTxn != null) ds.addTransactionInternal(gainLossTxn);
+        ds.saveTransactionsNow();
+
+        if (gainLossTxn != null) ds.learnFromTransaction(gainLossTxn);
+        return invTxn; // representative for table selection restore
     }
 
     // ── Persist ───────────────────────────────────────────────────────────────
 
     private Transaction persistTransaction(Transaction t) {
         if (existing != null) {
-            t.setSourceIndicator(existing.getSourceIndicator());
+            // Editing an auto-categorized transaction means the user has reviewed it —
+            // downgrade to IMPORTED so the "?" badge clears.
+            Transaction.SourceIndicator indicator = existing.getSourceIndicator();
+            if (indicator == Transaction.SourceIndicator.AUTO_CATEGORIZED)
+                indicator = Transaction.SourceIndicator.IMPORTED;
+            t.setSourceIndicator(indicator);
             t.setImportHash(existing.getImportHash());
             ds.updateTransactionInPlace(existing.getId(), t);
         } else {
@@ -828,8 +885,10 @@ public class TransactionDialog extends Dialog<Transaction> {
         sharedAmt.setText(String.format("%.2f", Math.abs(t.getAmountPaise()) / 100.0));
         if (t.getNotes()       != null) sharedNotes.setText(t.getNotes());
 
-        // Set type — triggers panel swap via valueProperty listener
-        typeCb.setValue(t.getType());
+        // GAIN/LOSE are internal types — display them as REDEEM for editing
+        Type displayType = (t.getType() == Type.GAIN || t.getType() == Type.LOSE)
+                ? Type.REDEEM : t.getType();
+        typeCb.setValue(displayType);
 
         // Type-specific fields
         switch (t.getType()) {
@@ -868,16 +927,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 setText(refFamilyFld, t.getFamilyMember());
                 setText(refRefFld,    t.getReferenceNumber());
             }
-            case REDEEM -> {
-                if (t.getFromAccountId() != null)
-                    ds.getInvestmentAccounts().stream()
-                            .filter(ia -> ia.getId().equals(t.getFromAccountId()))
-                            .findFirst().ifPresent(rdeFromCb::setValue);
-                setAccount(rdeToCb, t.getToAccountId());
-                if (t.getPrincipalPaise() > 0)
-                    rdePrincipalFld.setText(String.format("%.2f", t.getPrincipalPaise() / 100.0));
-                prefillCat(rdeCatCb, rdeSubCatCb, t);
-            }
+            case REDEEM, GAIN, LOSE -> prefillRedeemForm(t);
             case LOAN_PAYMENT -> {
                 setAccount(lnFromCb, t.getFromAccountId());
                 if (t.getToAccountId() != null)
@@ -947,6 +997,70 @@ public class TransactionDialog extends Dialog<Transaction> {
                         default -> {}
                     }
                 });
+    }
+
+    /**
+     * Fills the Redeem panel fields. Handles both the old single-transaction format and
+     * the new grouped format (three linked transactions sharing a groupTransactionId).
+     * Also called when editing a GAIN or LOSE transaction (which belong to a REDEEM group).
+     */
+    private void prefillRedeemForm(Transaction t) {
+        if (t.getGroupTransactionId() != null) {
+            // New grouped format: load all siblings and reconstruct the form
+            List<Transaction> group = ds.getTransactions().stream()
+                    .filter(tx -> t.getGroupTransactionId().equals(tx.getGroupTransactionId()))
+                    .collect(Collectors.toList());
+
+            Transaction invTxn = group.stream()
+                    .filter(tx -> tx.getType() == Type.REDEEM && tx.getFromAccountId() != null)
+                    .findFirst().orElse(null);
+            Transaction bankTxn = group.stream()
+                    .filter(tx -> tx.getType() == Type.REDEEM
+                               && tx.getToAccountId() != null && tx.getFromAccountId() == null)
+                    .findFirst().orElse(null);
+            Transaction gainLossTxn = group.stream()
+                    .filter(tx -> tx.getType() == Type.GAIN || tx.getType() == Type.LOSE)
+                    .findFirst().orElse(null);
+
+            // Investment account
+            if (invTxn != null && invTxn.getFromAccountId() != null)
+                ds.getInvestmentAccounts().stream()
+                        .filter(ia -> ia.getId().equals(invTxn.getFromAccountId()))
+                        .findFirst().ifPresent(rdeFromCb::setValue);
+
+            // Bank account (from the bank-side REDEEM or the GAIN/LOSE transaction)
+            String bankId = bankTxn != null ? bankTxn.getToAccountId()
+                    : gainLossTxn != null && gainLossTxn.getType() == Type.GAIN
+                            ? gainLossTxn.getToAccountId()
+                    : gainLossTxn != null ? gainLossTxn.getFromAccountId()
+                    : null;
+            if (bankId != null) setAccount(rdeToCb, bankId);
+
+            // Principal and total
+            long principal = invTxn != null ? invTxn.getAmountPaise() : 0;
+            if (principal > 0)
+                rdePrincipalFld.setText(String.format("%.2f", principal / 100.0));
+            long total = principal + (gainLossTxn == null ? 0
+                    : gainLossTxn.getType() == Type.GAIN
+                            ?  gainLossTxn.getAmountPaise()
+                            : -gainLossTxn.getAmountPaise());
+            sharedAmt.setText(String.format("%.2f", total / 100.0));
+
+            // Category from the GAIN/LOSE transaction
+            if (gainLossTxn != null) prefillCat(rdeCatCb, rdeSubCatCb, gainLossTxn);
+
+        } else {
+            // Old single-transaction format (backward compatibility)
+            if (t.getFromAccountId() != null)
+                ds.getInvestmentAccounts().stream()
+                        .filter(ia -> ia.getId().equals(t.getFromAccountId()))
+                        .findFirst().ifPresent(rdeFromCb::setValue);
+            setAccount(rdeToCb, t.getToAccountId());
+            if (t.getPrincipalPaise() > 0)
+                rdePrincipalFld.setText(String.format("%.2f", t.getPrincipalPaise() / 100.0));
+            // sharedAmt already set from t.getAmountPaise() = total for old format
+            prefillCat(rdeCatCb, rdeSubCatCb, t);
+        }
     }
 
     // ── Context account pre-population on type change ─────────────────────────

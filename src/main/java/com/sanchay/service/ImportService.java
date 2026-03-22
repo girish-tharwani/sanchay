@@ -178,6 +178,7 @@ public class ImportService {
         Set<String> existingHashes = store.getTransactions().stream()
                 .filter(t -> t.getImportHash() != null)
                 .filter(t -> t.getSourceIndicator() == SourceIndicator.IMPORTED
+                          || t.getSourceIndicator() == SourceIndicator.AUTO_CATEGORIZED
                           || t.getSourceIndicator() == SourceIndicator.RECONCILED)
                 .map(Transaction::getImportHash)
                 .collect(Collectors.toSet());
@@ -263,13 +264,31 @@ public class ImportService {
             List<Transaction> matches  = candidateMatches.get(i);
 
             if (matches.isEmpty()) {
-                store.suggestCategoryForDescription(imported.getDescription(), imported.getType())
-                     .ifPresent(rule -> {
-                         imported.setCategoryId(rule.getCategoryId());
-                         imported.setSubCategoryId(rule.getSubCategoryId());
-                     });
-                toAdd.add(imported);
-                result.newCount++;
+                // No individual match — try group match (e.g. REDEEM group summing to CSV amount)
+                List<List<Transaction>> groupMatches = findGroupMatches(
+                        imported, store.getTransactions(), account.getId());
+                if (groupMatches.size() == 1) {
+                    reconcileGroup(imported, groupMatches.get(0), store);
+                    result.reconciledCount++;
+                } else if (groupMatches.size() > 1) {
+                    // Multiple groups match — ambiguous; show first member of each group
+                    List<Transaction> reps = groupMatches.stream()
+                            .map(g -> g.get(0)).collect(Collectors.toList());
+                    result.ambiguous.add(new AmbiguousMatch(imported, reps));
+                } else {
+                    boolean categorized = store.suggestCategoryForDescription(
+                            imported.getDescription(), imported.getType())
+                            .map(rule -> {
+                                imported.setCategoryId(rule.getCategoryId());
+                                imported.setSubCategoryId(rule.getSubCategoryId());
+                                return true;
+                            }).orElse(false);
+                    imported.setSourceIndicator(categorized
+                            ? SourceIndicator.AUTO_CATEGORIZED
+                            : SourceIndicator.IMPORTED);
+                    toAdd.add(imported);
+                    result.newCount++;
+                }
             } else if (matches.size() == 1
                     && !contestedManualIds.contains(matches.get(0).getId())
                     && matches.get(0).getAmountPaise() == imported.getAmountPaise()) {
@@ -346,6 +365,70 @@ public class ImportService {
                 .filter(t -> Math.abs(ChronoUnit.DAYS.between(
                                     t.getDate(), imported.getDate())) <= 1)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Finds MANUAL transaction groups for this account whose combined amount for this
+     * account equals the imported amount (within ±1 paise) and whose date is within ±1 day.
+     * Used to reconcile a single bank CSV row against a REDEEM group
+     * (e.g. a +₹2100 entry matching a REDEEM ₹2000 + GAIN ₹100 group).
+     */
+    public static List<List<Transaction>> findGroupMatches(Transaction imported,
+                                                           List<Transaction> existing,
+                                                           String accountId) {
+        boolean importedIsCredit = accountId.equals(imported.getToAccountId());
+
+        // Collect MANUAL transactions for this account that have a groupTransactionId
+        Map<String, List<Transaction>> byGroup = new LinkedHashMap<>();
+        for (Transaction t : existing) {
+            if (t.getSourceIndicator() != SourceIndicator.MANUAL) continue;
+            if (t.getGroupTransactionId() == null) continue;
+            boolean forAccount = accountId.equals(t.getFromAccountId())
+                              || accountId.equals(t.getToAccountId());
+            if (!forAccount) continue;
+            byGroup.computeIfAbsent(t.getGroupTransactionId(), k -> new ArrayList<>()).add(t);
+        }
+
+        List<List<Transaction>> result = new ArrayList<>();
+        for (List<Transaction> group : byGroup.values()) {
+            // Sum only the legs that belong to this account in the correct direction
+            long sum = 0;
+            for (Transaction t : group) {
+                if (importedIsCredit && accountId.equals(t.getToAccountId()))
+                    sum += t.getAmountPaise();
+                else if (!importedIsCredit && accountId.equals(t.getFromAccountId()))
+                    sum += t.getAmountPaise();
+            }
+            if (Math.abs(sum - imported.getAmountPaise()) >= 100) continue;
+            // All members share the same date; check against first member
+            long dateDiff = Math.abs(ChronoUnit.DAYS.between(group.get(0).getDate(), imported.getDate()));
+            if (dateDiff > 1) continue;
+            result.add(group);
+        }
+        return result;
+    }
+
+    /**
+     * Reconciles a single imported CSV row against a group of linked manual transactions.
+     * Marks all group members as RECONCILED and sets the importHash on each.
+     * The bank description is appended to notes on the first group member only.
+     */
+    public static void reconcileGroup(Transaction imported, List<Transaction> group,
+                                      DataStore store) {
+        boolean first = true;
+        for (Transaction manual : group) {
+            manual.setImportHash(imported.getImportHash());
+            if (first && !imported.getDescription().equalsIgnoreCase(manual.getDescription())) {
+                String bankNote = "Bank: " + imported.getDescription();
+                String existing = manual.getNotes();
+                if (existing == null || !existing.contains(bankNote))
+                    manual.setNotes(existing == null || existing.isBlank()
+                            ? bankNote : existing + " | " + bankNote);
+                first = false;
+            }
+            manual.setSourceIndicator(SourceIndicator.RECONCILED);
+        }
+        store.saveTransactionsNow();
     }
 
     // ── Row parsing ───────────────────────────────────────────────────────────
