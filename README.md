@@ -53,14 +53,14 @@ All application data is stored as plain **JSON files** in a single user-designat
 
 **File layout:**
 ```
-%APPDATA%\PersonalFinance\
+%APPDATA%\sanchay\
   app-config.json       # Pointer to data folder; written on first run
 
 <data-folder>/
   accounts.json         # All account definitions
   transactions.json     # All recorded transactions
   recurring.json        # Recurring transaction schedules
-  categories.json       # Expense and income categories (including sub-categories)
+  categories.json       # Expense and income categories (incchanluding sub-categories)
   members.json          # Family members (name, relationship, earning flag)
   settings.json         # App preferences and metadata
   import_mappings.json  # CSV column-mapping per account (one record per account)
@@ -77,7 +77,7 @@ All application data is stored as plain **JSON files** in a single user-designat
 
 ### 2.3 App Configuration File
 
-A lightweight configuration file at `%APPDATA%\PersonalFinance\app-config.json` stores only the pointer to the user's chosen data folder. This is separate from `settings.json` which lives inside the data folder.
+A lightweight configuration file at `%APPDATA%\sanchay\app-config.json` stores only the pointer to the user's chosen data folder. This is separate from `settings.json` which lives inside the data folder.
 
 ```json
 {
@@ -810,7 +810,7 @@ Every time the application launches, it follows this decision tree before showin
 
 ```
 1. Resolve config file path:
-       %APPDATA%\PersonalFinance\app-config.json
+       %APPDATA%\sanchay\app-config.json
 
 2. Does app-config.json exist?
        NO  → Show First-Run Wizard (§3.0)

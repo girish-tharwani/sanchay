@@ -1,5 +1,6 @@
 package com.financeapp.ui.settings;
 
+import com.financeapp.service.AppConfig;
 import com.financeapp.service.DataStore;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -181,7 +182,7 @@ public class SettingsScreen {
     private VBox buildAboutSection() {
         VBox box = new VBox(6);
         addInfo(box, "Application",    "Personal Finance Manager");
-        addInfo(box, "Version",        "0.15");
+        addInfo(box, "Version",        AppConfig.getAppVersion());
         addInfo(box, "Data Schema",    "v4");
         addInfo(box, "Platform",       "Windows 11+ / JavaFX");
         return box;

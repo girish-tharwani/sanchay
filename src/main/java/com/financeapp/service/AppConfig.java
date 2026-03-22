@@ -11,7 +11,7 @@ import java.nio.file.*;
  * Manages the two-tier configuration model (spec §2.2, §2.3).
  *
  * Tier 1 — app-config.json at:
- *   %APPDATA%\PersonalFinance\app-config.json
+ *   %APPDATA%\sanchay\app-config.json
  *
  * This file stores only the pointer to the user's chosen data folder.
  * All financial data lives in that data folder (Tier 2), managed by
@@ -19,9 +19,26 @@ import java.nio.file.*;
  */
 public class AppConfig {
 
-    private static final String APP_DIR_NAME  = "PersonalFinance";
+    private static final String APP_DIR_NAME  = "sanchay";
     private static final String CONFIG_FILE   = "app-config.json";
-    private static final String APP_VERSION   = "0.7.0";
+
+    /** Loaded once from version.properties (Maven-filtered from pom.xml). */
+    private static final String APP_VERSION = loadVersion();
+
+    private static String loadVersion() {
+        try (InputStream in = AppConfig.class.getResourceAsStream("/version.properties")) {
+            if (in != null) {
+                java.util.Properties props = new java.util.Properties();
+                props.load(in);
+                String v = props.getProperty("app.version");
+                if (v != null && !v.isBlank()) return v;
+            }
+        } catch (Exception ignored) {}
+        return "unknown";
+    }
+
+    /** Returns the application version read from pom.xml via version.properties. */
+    public static String getAppVersion() { return APP_VERSION; }
 
     /** In-memory model of app-config.json */
     public static class Config {
@@ -33,7 +50,7 @@ public class AppConfig {
 
     // ── Resolve paths ─────────────────────────────────────────────────────────
 
-    /** Returns path to %APPDATA%\PersonalFinance\ */
+    /** Returns path to %APPDATA%\sanchay\ */
     public static Path getAppConfigDir() {
         String appData = System.getenv("APPDATA");
         if (appData == null || appData.isBlank()) {
@@ -43,7 +60,7 @@ public class AppConfig {
         return Paths.get(appData, APP_DIR_NAME);
     }
 
-    /** Returns path to %APPDATA%\PersonalFinance\app-config.json */
+    /** Returns path to %APPDATA%\sanchay\app-config.json */
     public static Path getConfigFilePath() {
         return getAppConfigDir().resolve(CONFIG_FILE);
     }
@@ -71,7 +88,7 @@ public class AppConfig {
 
     /**
      * Writes app-config.json with the given data folder path.
-     * Creates the %APPDATA%\PersonalFinance\ directory if needed.
+     * Creates the %APPDATA%\sanchay\ directory if needed.
      */
     public static void write(String dataFolderPath) throws IOException {
         Path dir = getAppConfigDir();

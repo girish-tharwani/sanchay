@@ -14,7 +14,7 @@ import javafx.stage.Stage;
  *
  * Startup decision tree:
  *
- *   1. Read %APPDATA%\PersonalFinance\app-config.json
+ *   1. Read %APPDATA%\sanchay\app-config.json
  *   2. Config missing → First-Run Wizard
  *      Config present but folder missing → First-Run Wizard (recovery mode)
  *      Config present and folder valid → proceed

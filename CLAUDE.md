@@ -35,7 +35,7 @@ com.financeapp/
 ```
 
 ## Data model
-All data lives in a user-chosen folder (path stored in `%APPDATA%\PersonalFinance\app-config.json`):
+All data lives in a user-chosen folder (path stored in `%APPDATA%\sanchay\app-config.json`):
 
 | File | Contents |
 |------|----------|
