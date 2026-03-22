@@ -137,15 +137,33 @@ public final class DescriptionNormalizer {
     }
 
     /**
+     * Geographic and rail-noise words that appear as location/context suffixes in
+     * Indian bank and CC statement descriptions (e.g. "NETFLIX DI SI MUMBAI IN").
+     * These must not be used as matching tokens because they are shared by unrelated
+     * merchants and produce false-positive category suggestions.
+     */
+    private static final java.util.Set<String> MATCH_STOP_WORDS = java.util.Set.of(
+        "mumbai", "delhi", "pune", "india", "bangalore", "bengaluru",
+        "chennai", "kolkata", "hyderabad", "noida", "gurgaon", "gurugram",
+        "thane", "nagpur", "surat", "jaipur", "lucknow", "ahmedabad",
+        "kochi", "indore", "bhopal", "patna", "vadodara", "online",
+        "retail", "india", "pvtlt", "pvtl", "limit"
+    );
+
+    /**
      * Returns true if two normalized descriptions match (exact or fuzzy word overlap).
-     * Only words of 5+ characters are compared to avoid false positives.
+     * Only words of 5+ characters are compared, and geographic/noise stop-words are
+     * excluded to prevent city-name collisions (e.g. "mumbai" matching Netflix to a
+     * Mumbai hotel rule).
      */
     public static boolean matches(String needle, String haystack) {
         if (needle.equals(haystack)) return true;
         java.util.Set<String> nw = java.util.Arrays.stream(needle.split(" "))
-                .filter(w -> w.length() >= 5).collect(java.util.stream.Collectors.toSet());
+                .filter(w -> w.length() >= 5 && !MATCH_STOP_WORDS.contains(w))
+                .collect(java.util.stream.Collectors.toSet());
         java.util.Set<String> hw = java.util.Arrays.stream(haystack.split(" "))
-                .filter(w -> w.length() >= 5).collect(java.util.stream.Collectors.toSet());
-        return nw.stream().anyMatch(hw::contains);
+                .filter(w -> w.length() >= 5 && !MATCH_STOP_WORDS.contains(w))
+                .collect(java.util.stream.Collectors.toSet());
+        return !nw.isEmpty() && nw.stream().anyMatch(hw::contains);
     }
 }

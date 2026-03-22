@@ -376,8 +376,15 @@ public class AccountsScreen {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setPrefHeight(400);
 
-        TableColumn<Transaction, String> dateCol = col("Date", 90,
-                t -> t.getDate().format(dateFmt()));
+        TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("Date");
+        dateCol.setPrefWidth(90);
+        dateCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleObjectProperty<>(cd.getValue().getDate()));
+        dateCol.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(LocalDate d, boolean empty) {
+                super.updateItem(d, empty);
+                setText(empty || d == null ? null : d.format(dateFmt()));
+            }
+        });
         dateCol.setSortType(TableColumn.SortType.DESCENDING);
         TableColumn<Transaction, String> descCol = col("Description", 180,
                 Transaction::getDescription);
@@ -394,11 +401,20 @@ public class AccountsScreen {
                 t -> ds.getCategoryName(t.getCategoryId()));
         TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
                 t -> ds.getCategoryName(t.getSubCategoryId()));
-        TableColumn<Transaction, String> amtCol = new TableColumn<>("Amount");
+        TableColumn<Transaction, Long> amtCol = new TableColumn<>("Amount");
         amtCol.setPrefWidth(90);
         amtCol.setCellValueFactory(cd ->
-            new javafx.beans.property.SimpleStringProperty(
-                cd.getValue().getSignedAmountInr(acc.getId())));
+            new javafx.beans.property.SimpleObjectProperty<>(
+                cd.getValue().getSignedAmountPaise(acc.getId())));
+        amtCol.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Long paise, boolean empty) {
+                super.updateItem(paise, empty);
+                if (empty || paise == null) { setText(null); return; }
+                setText(paise < 0
+                    ? "(" + String.format("₹%,.2f", -paise / 100.0) + ")"
+                    :        String.format("₹%,.2f",  paise / 100.0));
+            }
+        });
 
         // Define applyFilter first so the Actions column can reference it
         Runnable applyFilter = () -> {

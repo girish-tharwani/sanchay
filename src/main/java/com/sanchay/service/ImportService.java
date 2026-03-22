@@ -337,27 +337,33 @@ public class ImportService {
     // ── Manual-match finder ───────────────────────────────────────────────────
 
     /**
-     * Finds MANUAL transactions for the same account, same amount, within ±1 day
+     * Finds unreconciled transactions for the same account, same amount, within ±1 day
      * of the imported date.
      *
-     * Only MANUAL transactions are eligible — RECONCILED transactions were already
-     * matched in a previous (or current) import run and must not be re-matched.
-     * Allowing RECONCILED transactions as candidates causes false ambiguous-match
-     * results when multiple CSV rows share the same date and amount: the first row
-     * reconciles the Expense, and subsequent rows find both the now-RECONCILED
-     * Expense and the real manual candidate, producing a spurious 2-candidate result.
-     * IMPORTED transactions are also excluded — they have no user-entered data to preserve.
+     * MANUAL, IMPORTED, and AUTO_CATEGORIZED transactions are all eligible candidates.
+     * IMPORTED/AUTO_CATEGORIZED are included so that a transaction imported from one
+     * account's CSV (e.g. a bank EXPENSE later edited to CC_PAYMENT) can be reconciled
+     * when the other account's CSV (e.g. the CC statement) is imported.  The account-
+     * direction filter below prevents cross-account false positives: a bank-side entry
+     * (fromAccountId=bankId) will never be selected as a candidate for a CC-side credit
+     * lookup (toAccountId=ccId).
+     *
+     * RECONCILED transactions are excluded — they were already matched in a prior import
+     * run and must not be re-matched (allowing them produces spurious ambiguous-match
+     * results when multiple CSV rows share the same date and amount).
      */
     public static List<Transaction> findManualMatches(Transaction imported,
                                                        List<Transaction> existing,
                                                        String accountId) {
         // Determine direction of the imported transaction relative to this account.
-        // Debit  = money leaving  (fromAccountId = accountId) → only match manual debits.
-        // Credit = money arriving (toAccountId   = accountId) → only match manual credits.
+        // Debit  = money leaving  (fromAccountId = accountId) → only match debits.
+        // Credit = money arriving (toAccountId   = accountId) → only match credits.
         boolean importedIsDebit = accountId.equals(imported.getFromAccountId());
 
         return existing.stream()
-                .filter(t -> t.getSourceIndicator() == SourceIndicator.MANUAL)
+                .filter(t -> t.getSourceIndicator() == SourceIndicator.MANUAL
+                          || t.getSourceIndicator() == SourceIndicator.IMPORTED
+                          || t.getSourceIndicator() == SourceIndicator.AUTO_CATEGORIZED)
                 .filter(t -> importedIsDebit
                         ? accountId.equals(t.getFromAccountId())
                         : accountId.equals(t.getToAccountId()))

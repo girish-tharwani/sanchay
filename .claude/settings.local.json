@@ -11,7 +11,8 @@
       "Bash(find src/main/java/com/sanchay -name \"*.java\" -exec sed -i 's/com\\\\.financeapp/com.sanchay/g' {} +)",
       "Bash(find src/main/java/com/sanchay -name \"*.java\" -exec sed -i 's|com/financeapp/|com/sanchay/|g' {} +)",
       "Bash(./mvnw compile:*)",
-      "Bash(bash build.sh)"
+      "Bash(bash build.sh)",
+      "Bash(git -C D:/Projects/sanchay diff --stat HEAD)"
     ]
   }
 }

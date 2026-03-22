@@ -220,14 +220,14 @@ public class TransactionDialog extends Dialog<Transaction> {
         makeAutoComplete(expCatCb,    expCatMaster);
         makeAutoComplete(expSubCatCb, expSubCatMaster);
 
-        expAcctCb  = accountCombo(false);
+        expAcctCb  = accountCombo(true);  // bank + CC
         expModeCb  = payModeCombo();
         expFamilyFld = tf("optional");
         expRefFld    = tf("optional");
 
         GridPane g = panelGrid();
         int r = 0;
-        row(g, r++, "Paid From*",    expAcctCb);
+        row(g, r++, "From Account*",  expAcctCb);
         row(g, r++, "Category",      expCatCb);
         row(g, r++, "Sub-category",  expSubCatCb);
         row(g, r++, "Payment Mode",  expModeCb);
@@ -250,7 +250,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         GridPane g = panelGrid();
         int r = 0;
-        row(g, r++, "Into Account*",  incAcctCb);
+        row(g, r++, "To Account*",    incAcctCb);
         row(g, r++, "Category",       incCatCb);
         row(g, r++, "Sub-category",   incSubCatCb);
         row(g, r++, "Source",         incSrcFld);
@@ -266,30 +266,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         makeAutoComplete(trfCatCb,    trfCatMaster);
         makeAutoComplete(trfSubCatCb, trfSubCatMaster);
 
-        // From: bank + investment accounts
-        trfFromCb = new ComboBox<>();
-        trfFromCb.setMaxWidth(Double.MAX_VALUE);
-        trfFromCb.setPromptText("Select account");
-        ds.getBankAccounts().forEach(trfFromCb.getItems()::add);
-        ds.getInvestmentAccounts().forEach(trfFromCb.getItems()::add);
-        styleAccountCombo(trfFromCb);
-
-        // To: bank + loan accounts (bank-only when From is investment)
-        trfToCb = new ComboBox<>();
-        trfToCb.setMaxWidth(Double.MAX_VALUE);
-        trfToCb.setPromptText("Select account");
-        ds.getBankAccounts().forEach(trfToCb.getItems()::add);
-        ds.getActiveLoanAccounts().forEach(trfToCb.getItems()::add);
-        styleAccountCombo(trfToCb);
-
-        trfFromCb.valueProperty().addListener((obs, old, sel) -> {
-            Account prev = trfToCb.getValue();
-            trfToCb.getItems().clear();
-            ds.getBankAccounts().forEach(trfToCb.getItems()::add);
-            if (!(sel instanceof InvestmentAccount))
-                ds.getActiveLoanAccounts().forEach(trfToCb.getItems()::add);
-            if (prev != null && trfToCb.getItems().contains(prev)) trfToCb.setValue(prev);
-        });
+        trfFromCb = accountCombo(false); // bank only
+        trfToCb   = accountCombo(false); // bank only
 
         GridPane g = panelGrid();
         int r = 0;
@@ -315,7 +293,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         GridPane g = panelGrid();
         int r = 0;
-        row(g, r++, "Refunded Into*",  refAcctCb);
+        row(g, r++, "To Account*",     refAcctCb);
         row(g, r++, "Category",        refCatCb);
         row(g, r++, "Sub-category",    refSubCatCb);
         row(g, r++, "Payment Mode",    refModeCb);
@@ -349,7 +327,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         GridPane g = panelGrid();
         int r = 0;
         row(g, r++, "From Account*",    invFromCb);
-        row(g, r++, "To Inv. Account*", invDestCb);
+        row(g, r++, "To Account*",      invDestCb);
         GridPane.setColumnSpan(invDynamicBox, 2);
         g.add(invDynamicBox, 0, r);
         return g;
@@ -363,8 +341,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         ccCardCb.getItems().removeIf(a -> !(a instanceof CreditCardAccount));
 
         GridPane g = panelGrid();
-        row(g, 0, "From Bank Acc*",  ccBankCb);
-        row(g, 1, "To Credit Card*", ccCardCb);
+        row(g, 0, "From Account*", ccBankCb);
+        row(g, 1, "To Account*",   ccCardCb);
         return g;
     }
 
@@ -376,8 +354,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         makeAutoComplete(lnCatCb,    lnCatMaster);
         makeAutoComplete(lnSubCatCb, lnSubCatMaster);
 
-        lnFromCb = accountCombo(false);
-        lnFromCb.getItems().removeIf(a -> !(a instanceof BankAccount));
+        lnFromCb = accountCombo(true); // bank + CC
 
         lnToCb = new ComboBox<>();
         lnToCb.setMaxWidth(Double.MAX_VALUE);
@@ -396,8 +373,8 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         GridPane g = panelGrid();
         int r = 0;
-        row(g, r++, "From Bank Acc*", lnFromCb);
-        row(g, r++, "Loan Account*",  lnToCb);
+        row(g, r++, "From Account*", lnFromCb);
+        row(g, r++, "To Account*",   lnToCb);
         row(g, r++, "Category",       lnCatCb);
         row(g, r++, "Sub-category",   lnSubCatCb);
         row(g, r++, "Payment Mode",   lnModeCb);
@@ -439,8 +416,8 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         GridPane g = panelGrid();
         int r = 0;
-        row(g, r++, "From Inv. Account*", rdeFromCb);
-        row(g, r++, "To Bank Account*",   rdeToCb);
+        row(g, r++, "From Account*", rdeFromCb);
+        row(g, r++, "To Account*",   rdeToCb);
         row(g, r++, "Principal (₹)*",     rdePrincipalFld);
         row(g, r++, "Gain / Loss",        rdeGainLossLbl);
         row(g, r++, "Category",           rdeCatCb);
@@ -641,7 +618,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         LocalDate date = requireDate();
         String    desc = requireText(sharedDesc, "Description");
         long      amt  = parsePaise(sharedAmt);
-        Account   acct = requireAccount(expAcctCb, "Paid From account");
+        Account   acct = requireAccount(expAcctCb, "From Account");
 
         Transaction t = new Transaction(Type.EXPENSE, date, desc, amt);
         t.setFromAccountId(acct.getId());
@@ -658,7 +635,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         LocalDate date = requireDate();
         String    desc = requireText(sharedDesc, "Description");
         long      amt  = parsePaise(sharedAmt);
-        Account   acct = requireAccount(incAcctCb, "Into Account");
+        Account   acct = requireAccount(incAcctCb, "To Account");
 
         Transaction t = new Transaction(Type.INCOME, date, desc, amt);
         t.setToAccountId(acct.getId());
@@ -674,7 +651,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         LocalDate   date = requireDate();
         String      desc = requireText(sharedDesc, "Description");
         long        amt  = parsePaise(sharedAmt);
-        Account     from = requireAccount(lnFromCb, "From Bank Account");
+        Account     from = requireAccount(lnFromCb, "From Account");
         LoanAccount to   = lnToCb.getValue();
         if (to == null) throw new IllegalArgumentException("Please select a loan account.");
 
@@ -776,7 +753,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         LocalDate date = requireDate();
         String    desc = requireText(sharedDesc, "Description");
         long      amt  = parsePaise(sharedAmt);
-        Account   acct = requireAccount(refAcctCb, "Refunded Into account");
+        Account   acct = requireAccount(refAcctCb, "To Account");
 
         Transaction t = new Transaction(Type.REFUND, date, desc, amt);
         t.setToAccountId(acct.getId());
@@ -812,13 +789,20 @@ public class TransactionDialog extends Dialog<Transaction> {
         invTxn.setNotes(notes);
         invTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
 
-        // 2. Bank-side: incoming REDEEM (principal returned to bank)
+        // 2. Bank-side: incoming REDEEM (principal returned to bank).
+        // If we're editing an imported transaction, carry its hash over so it stays reconciled.
+        boolean existingWasImported = existing != null && existing.getImportHash() != null;
         Transaction bankPrincipal = new Transaction(Type.REDEEM, date, desc, principal);
         bankPrincipal.setToAccountId(to.getId());
         bankPrincipal.setPrincipalPaise(principal);
         bankPrincipal.setGroupTransactionId(groupId);
         bankPrincipal.setNotes(notes);
-        bankPrincipal.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+        if (existingWasImported) {
+            bankPrincipal.setImportHash(existing.getImportHash());
+            bankPrincipal.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
+        } else {
+            bankPrincipal.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+        }
 
         // 3. Bank-side: GAIN or LOSE (only if gain/loss is non-zero)
         Transaction gainLossTxn = null;
@@ -832,7 +816,12 @@ public class TransactionDialog extends Dialog<Transaction> {
         if (gainLossTxn != null) {
             gainLossTxn.setGroupTransactionId(groupId);
             gainLossTxn.setNotes(notes);
-            gainLossTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+            if (existingWasImported) {
+                gainLossTxn.setImportHash(existing.getImportHash());
+                gainLossTxn.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
+            } else {
+                gainLossTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
+            }
             if (rdeCatCb.getValue()    != null) gainLossTxn.setCategoryId(rdeCatCb.getValue().getId());
             if (rdeSubCatCb.getValue() != null) gainLossTxn.setSubCategoryId(rdeSubCatCb.getValue().getId());
         }

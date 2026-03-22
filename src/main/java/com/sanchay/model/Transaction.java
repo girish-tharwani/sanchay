@@ -68,15 +68,21 @@ public class Transaction {
         return String.format("₹%,.2f", amountPaise / 100.0);
     }
 
-    public String getSignedAmountInr(String viewingAccountId) {
-        boolean isDebit;
+    private boolean isDebitFor(String viewingAccountId) {
         if (type == Type.TRANSFER || type == Type.CC_PAYMENT || type == Type.INVESTMENT
                 || type == Type.REDEEM || type == Type.LOAN_PAYMENT || type == Type.LOSE) {
-            isDebit = viewingAccountId != null && viewingAccountId.equals(fromAccountId);
-        } else {
-            isDebit = (type == Type.EXPENSE); // INCOME, REFUND, GAIN → always credit
+            return viewingAccountId != null && viewingAccountId.equals(fromAccountId);
         }
-        return isDebit ? "(" + getAmountInr() + ")" : getAmountInr();
+        return type == Type.EXPENSE; // INCOME, REFUND, GAIN → always credit
+    }
+
+    public String getSignedAmountInr(String viewingAccountId) {
+        return isDebitFor(viewingAccountId) ? "(" + getAmountInr() + ")" : getAmountInr();
+    }
+
+    /** Signed amount in paise: negative for debits, positive for credits. */
+    public long getSignedAmountPaise(String viewingAccountId) {
+        return isDebitFor(viewingAccountId) ? -amountPaise : amountPaise;
     }
 
     public String getTypedSignedAmountInr() {
