@@ -1,3 +1,9 @@
+## v0.1.3 — 2026-03-22
+
+### Fixed
+- Left-border accent on imported/reconciled rows was not rendering; switched from `-fx-border-color` (painted over by Modena theme) to `PseudoClass` + CSS background-insets layering
+- Amber border on imported/auto-categorized rows did not clear after manual edit; editing an IMPORTED transaction now downgrades its source indicator to MANUAL
+
 ## v0.1.2 — 2026-03-22
 
 ### Fixed

@@ -850,11 +850,12 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private Transaction persistTransaction(Transaction t) {
         if (existing != null) {
-            // Editing an auto-categorized transaction means the user has reviewed it —
-            // downgrade to IMPORTED so the "?" badge clears.
+            // Any manual edit clears the imported/auto-categorized badge.
+            // RECONCILED is preserved so the green strip stays on reconciled entries.
             Transaction.SourceIndicator indicator = existing.getSourceIndicator();
-            if (indicator == Transaction.SourceIndicator.AUTO_CATEGORIZED)
-                indicator = Transaction.SourceIndicator.IMPORTED;
+            if (indicator == Transaction.SourceIndicator.AUTO_CATEGORIZED
+                    || indicator == Transaction.SourceIndicator.IMPORTED)
+                indicator = Transaction.SourceIndicator.MANUAL;
             t.setSourceIndicator(indicator);
             t.setImportHash(existing.getImportHash());
             ds.updateTransactionInPlace(existing.getId(), t);

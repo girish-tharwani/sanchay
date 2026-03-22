@@ -177,6 +177,28 @@
     -fx-fill: white;
 }
 
+/* Left accent strip: 3px coloured bar on the left edge of imported/reconciled rows.
+   Two background layers: accent colour full-width, then white with 3px left inset. */
+.table-row-cell:row-imported {
+    -fx-background-color: #E65100, white;
+    -fx-background-insets: 0, 0 0 0 3;
+    -fx-background-radius: 0;
+}
+.table-row-cell:row-reconciled {
+    -fx-background-color: #2E7D32, white;
+    -fx-background-insets: 0, 0 0 0 3;
+    -fx-background-radius: 0;
+}
+/* Keep accent strip visible even when row is selected */
+.table-row-cell:row-imported:selected {
+    -fx-background-color: #E65100, -brand-mid;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+.table-row-cell:row-reconciled:selected {
+    -fx-background-color: #2E7D32, -brand-mid;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+
 /* hover highlight removed — was distracting during scrolling */
 
 /* ── Floating add button (FAB) ───────────────────────────────────────────── */

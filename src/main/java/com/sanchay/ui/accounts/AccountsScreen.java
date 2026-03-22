@@ -17,11 +17,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.scene.input.KeyCode;
 import javafx.stage.FileChooser;
 
 /** Accounts module. */
 public class AccountsScreen {
+
+    private static final PseudoClass PC_IMPORTED   = PseudoClass.getPseudoClass("row-imported");
+    private static final PseudoClass PC_RECONCILED = PseudoClass.getPseudoClass("row-reconciled");
+
 
     private final MainWindow mainWindow;
 
@@ -462,7 +467,20 @@ public class AccountsScreen {
 
         // Double-click or Enter to edit / re-classify
         table.setRowFactory(tv -> {
-            TableRow<Transaction> row = new TableRow<>();
+            TableRow<Transaction> row = new TableRow<>() {
+                @Override
+                protected void updateItem(Transaction t, boolean empty) {
+                    super.updateItem(t, empty);
+                    pseudoClassStateChanged(PC_IMPORTED,   false);
+                    pseudoClassStateChanged(PC_RECONCILED, false);
+                    if (t == null || empty) return;
+                    switch (t.getSourceIndicator()) {
+                        case IMPORTED, AUTO_CATEGORIZED -> pseudoClassStateChanged(PC_IMPORTED,   true);
+                        case RECONCILED                 -> pseudoClassStateChanged(PC_RECONCILED, true);
+                        default -> {}
+                    }
+                }
+            };
             row.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2 && !row.isEmpty()) {
                     new TransactionDialog(row.getItem()).showAndWait().ifPresent(saved -> {
