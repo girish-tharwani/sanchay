@@ -1,0 +1,445 @@
+/* ── Root variables ─────────────────────────────────────────────────────── */
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #F5F6FA;
+
+    /* Brand colours */
+    -brand-dark:    #1F4E79;
+    -brand-mid:     #2E75B6;
+    -brand-light:   #83bff3;
+    -brand-accent:  #1ABC9C;
+
+    /* Surfaces */
+    -surface-white: #FFFFFF;
+    -surface-card:  #FFFFFF;
+    -surface-hover: #EBF3FB;
+
+    /* Text */
+    -text-primary:   #1A1A2E;
+    -text-secondary: #595959;
+    -text-muted:     #9E9E9E;
+    -text-on-dark:   #FFFFFF;
+
+    /* Status colours — used only in badges/icons, NOT for card amounts (v0.5) */
+    -color-income:  #27AE60;
+    -color-expense: #E74C3C;
+    -color-transfer:#2E75B6;
+    -color-invest:  #8E44AD;
+}
+
+/* ── Top bar ────────────────────────────────────────────────────────────── */
+.top-bar {
+    -fx-background-color: -brand-dark;
+    -fx-min-height: 48px;
+    -fx-max-height: 48px;
+    -fx-padding: 0 20px;
+}
+
+.top-bar-title {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.top-bar .combo-box {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(255,255,255,0.3);
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-min-width: 130px;
+}
+
+.top-bar .combo-box .list-cell {
+    -fx-text-fill: white;
+}
+
+/*
+ * v0.6 — When the FY dropdown popup opens, list items must use dark text
+ * against the popup's light background. The white style above applies only
+ * to the closed-state selected cell inside the dark top bar.
+ */
+.top-bar .combo-box-popup .list-cell {
+    -fx-text-fill: #1A1A2E;
+    -fx-background-color: transparent;
+}
+
+.top-bar .combo-box-popup .list-cell:hover {
+    -fx-background-color: #EBF3FB;
+    -fx-text-fill: #1A1A2E;
+}
+
+.top-bar .combo-box-popup .list-cell:selected {
+    -fx-background-color: -brand-mid;
+    -fx-text-fill: white;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+.sidebar {
+    -fx-background-color: #162D4A;
+    -fx-min-width: 180px;
+    -fx-max-width: 180px;
+    -fx-padding: 12px 0;
+}
+
+.sidebar-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #B0C4D8;
+    -fx-font-size: 13px;
+    -fx-padding: 10px 20px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-width: 180px;
+    -fx-max-width: 180px;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-text-fill: white;
+}
+
+.sidebar-item-active {
+    -fx-background-color: -brand-mid;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.sidebar-item-active:hover {
+    -fx-background-color: -brand-mid;
+}
+
+/* ── Main panel ─────────────────────────────────────────────────────────── */
+.main-panel {
+    -fx-background-color: #F5F6FA;
+    -fx-padding: 24px;
+}
+
+.screen-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.card {
+    -fx-background-color: -surface-card;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E0E6ED;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 16px;
+}
+
+.card-title {
+    -fx-font-size: 12px;
+    -fx-text-fill: -text-secondary;
+    -fx-font-weight: normal;
+}
+
+/*
+ * v0.5 — All summary card amount values use ONE uniform colour (-text-primary).
+ * The old card-value-green / card-value-red / card-value-blue classes are
+ * intentionally removed so no tile is singled out with a different colour.
+ * Status colouring (e.g. negative net worth) is applied programmatically in
+ * DashboardScreen only when a value crosses a meaningful threshold.
+ */
+.card-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1F4E79;
+}
+
+/* Kept only for inline credit-card breakdown rows where colour carries meaning */
+.amount-negative { -fx-text-fill: -color-expense; }
+.amount-positive { -fx-text-fill: -color-income;  }
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #E0E6ED;
+    -fx-border-radius: 8px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #F0F4F8;
+}
+
+.table-view .column-header .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 12px;
+}
+
+/*
+ * v0.5 — Row selection: medium-blue background + white text.
+ * The old combination (light-blue bg + white text) had very poor contrast.
+ * New rule: -brand-mid background is dark enough to pair with white.
+ */
+.table-row-cell:selected {
+    -fx-background-color: -brand-mid;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: white;
+}
+
+/* hover highlight removed — was distracting during scrolling */
+
+/* ── Floating add button (FAB) ───────────────────────────────────────────── */
+.fab {
+    -fx-background-color: -brand-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-min-width: 52px;
+    -fx-min-height: 52px;
+    -fx-max-width: 52px;
+    -fx-max-height: 52px;
+    -fx-background-radius: 26px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 10, 0, 0, 3);
+}
+
+.fab:hover {
+    -fx-background-color: derive(-brand-accent, -10%);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-primary {
+    -fx-background-color: -brand-mid;
+    -fx-text-fill: white;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-padding: 7px 16px;
+    -fx-font-weight: bold;
+}
+
+.btn-primary:hover {
+    -fx-background-color: derive(-brand-mid, -10%);
+}
+
+.btn-secondary {
+    -fx-background-color: #E8EEF5;
+    -fx-text-fill: -brand-dark;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-padding: 7px 16px;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #D6E4F0;
+}
+
+.btn-danger {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-padding: 7px 16px;
+    -fx-font-weight: bold;
+}
+
+.btn-danger:hover {
+    -fx-background-color: derive(#E74C3C, -10%);
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tab-pane .tab-header-area {
+    -fx-padding: 0;
+}
+
+.tab-pane .tab {
+    -fx-background-color: #E8EEF5;
+    -fx-padding: 6px 18px;
+    -fx-background-radius: 6px 6px 0 0;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: white;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: -text-secondary;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -brand-mid;
+    -fx-font-weight: bold;
+}
+
+/* ── Tags / badges ──────────────────────────────────────────────────────── */
+/*
+ * v0.5 — Badges have a fixed -fx-min-width of 90px so every badge occupies
+ * the same horizontal space in pending-item rows.  This aligns the description
+ * text that follows, regardless of how long the badge label is.
+ * "CC Payment" is the longest label at ~72px; 90px gives comfortable padding.
+ */
+.badge-expense    {
+    -fx-background-color: #FDECEA; -fx-text-fill: -color-expense;
+    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
+    -fx-min-width: 90px; -fx-alignment: CENTER;
+}
+.badge-income     {
+    -fx-background-color: #E8F8F0; -fx-text-fill: -color-income;
+    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
+    -fx-min-width: 90px; -fx-alignment: CENTER;
+}
+.badge-transfer   {
+    -fx-background-color: #EBF3FB; -fx-text-fill: -color-transfer;
+    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
+    -fx-min-width: 90px; -fx-alignment: CENTER;
+}
+.badge-investment {
+    -fx-background-color: #F3E8FD; -fx-text-fill: -color-invest;
+    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
+    -fx-min-width: 90px; -fx-alignment: CENTER;
+}
+.badge-cc-payment {
+    -fx-background-color: #FFF3E0; -fx-text-fill: #E65100;
+    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
+    -fx-min-width: 90px; -fx-alignment: CENTER;
+}
+
+/* ── Form fields ────────────────────────────────────────────────────────── */
+.form-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.text-field, .text-area, .combo-box, .date-picker {
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-border-color: #D0D9E3;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 10px;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
+    -fx-border-color: -brand-mid;
+}
+
+/* ── DatePicker text field and popup calendar ────────────────────────────── */
+
+/* The editable text field inside the DatePicker control */
+.date-picker .text-field {
+    -fx-text-fill: -text-primary;
+    -fx-background-color: white;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* Popup container */
+.date-picker-popup {
+    -fx-background-color: white;
+    -fx-border-color: #D0D9E3;
+    -fx-border-radius: 6px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
+}
+
+/* Month/year header bar */
+.date-picker-popup > * > .month-year-pane {
+    -fx-background-color: -brand-dark;
+    -fx-padding: 6px 8px;
+}
+
+.date-picker-popup > * > .month-year-pane .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+/* Navigation arrow buttons */
+.date-picker-popup > * > .month-year-pane .button {
+    -fx-background-color: transparent;
+}
+
+.date-picker-popup > * > .month-year-pane .button:hover {
+    -fx-background-color: rgba(255,255,255,0.15);
+}
+
+.date-picker-popup > * > .month-year-pane .left-arrow,
+.date-picker-popup > * > .month-year-pane .right-arrow {
+    -fx-background-color: white;
+}
+
+/* Day-of-week header row */
+.date-picker-popup .day-name-cell {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/* Individual day cells */
+.date-picker-popup .day-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -text-primary;
+}
+
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: -surface-hover;
+    -fx-background-radius: 50%;
+}
+
+/* Today's date — outline ring */
+.date-picker-popup .day-cell.today {
+    -fx-border-color: -brand-mid;
+    -fx-border-radius: 50%;
+    -fx-background-radius: 50%;
+}
+
+/* Selected date */
+.date-picker-popup .day-cell:selected {
+    -fx-background-color: -brand-mid;
+    -fx-text-fill: white;
+    -fx-background-radius: 50%;
+}
+
+/* Days outside the current month (greyed out) */
+.date-picker-popup .day-cell.outside-month {
+    -fx-text-fill: -text-muted;
+}
+
+/* Week-number column if shown */
+.date-picker-popup .week-number-cell {
+    -fx-text-fill: -text-muted;
+    -fx-font-size: 10px;
+}
+
+/* ── Pending widget ─────────────────────────────────────────────────────── */
+/*
+ * v0.5 — Background changed from #FFFBEA (loud warm yellow) to a subtle
+ * light-grey (#F5F6FA is the main bg; #EBEEF2 gives just enough separation).
+ * Border changed from amber to a quiet mid-grey.
+ */
+.pending-item {
+    -fx-background-color: #EBEEF2;
+    -fx-border-color: #C8D0DA;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 14px;
+    -fx-border-width: 1px;
+}
+
+/* ── Dialog ──────────────────────────────────────────────────────────────── */
+.dialog-pane {
+    -fx-background-color: #F5F6FA;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: -brand-dark;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane .label,
+.dialog-pane GridPane .label {
+    -fx-text-fill: #1A1A2E;
+}

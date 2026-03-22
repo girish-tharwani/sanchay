@@ -1,0 +1,128 @@
+package com.financeapp.model;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+/**
+ * A recurring transaction schedule (EMI, SIP, rent, salary, CC bill, etc.).
+ * Amount is stored in paise; zero means the amount is variable (e.g. CC payment reminders).
+ */
+public class RecurringTransaction {
+
+    public enum Frequency { MONTHLY, QUARTERLY, ANNUALLY, ALTERNATE_YEAR }
+    public enum Status    { ACTIVE, PAUSED, COMPLETED }
+
+    private String id;
+    private String description;
+    private Transaction.Type transactionType;
+    private Frequency frequency;
+    private int dueDayOfMonth;          // 1–28
+    private LocalDate startDate;
+    private LocalDate endDate;          // null = open-ended
+    private long amountPaise;           // 0 for CC_PAYMENT reminders (variable)
+    private String categoryId;
+    private String subCategoryId;
+    private String fromAccountId;
+    private String toAccountId;
+    private String notes;
+    private Status status;
+    /** True if auto-created by the system (RD, loan, or credit card account setup). */
+    private boolean autoCreated;
+    /** Last date on which this recurring was confirmed and posted. */
+    private LocalDate lastRecordedDate;
+
+    public RecurringTransaction(String description, Transaction.Type type,
+                                Frequency frequency, int dueDayOfMonth,
+                                LocalDate startDate, long amountPaise) {
+        this.id = UUID.randomUUID().toString();
+        this.description = description;
+        this.transactionType = type;
+        this.frequency = frequency;
+        this.dueDayOfMonth = dueDayOfMonth;
+        this.startDate = startDate;
+        this.amountPaise = amountPaise;
+        this.status = Status.ACTIVE;
+    }
+
+    /** Returns true if this schedule has an occurrence due today or overdue. */
+    public boolean hasPendingOccurrence() {
+        if (status != Status.ACTIVE) return false;
+        LocalDate today = LocalDate.now();
+        LocalDate nextDue = getNextDueDate();
+        return nextDue != null && !nextDue.isAfter(today);
+    }
+
+    /** Calculates the next due date based on last recorded date or start date. */
+    public LocalDate getNextDueDate() {
+        LocalDate base = (lastRecordedDate != null)
+                ? advanceByFrequency(lastRecordedDate)
+                : startDate;
+        if (base == null) return null;
+        if (endDate != null && base.isAfter(endDate)) return null;
+        int day = Math.min(dueDayOfMonth, base.lengthOfMonth());
+        return base.withDayOfMonth(day);
+    }
+
+    private LocalDate advanceByFrequency(LocalDate from) {
+        return switch (frequency) {
+            case MONTHLY        -> from.plusMonths(1);
+            case QUARTERLY      -> from.plusMonths(3);
+            case ANNUALLY       -> from.plusYears(1);
+            case ALTERNATE_YEAR -> from.plusYears(2);
+        };
+    }
+
+    /** Called when the user records or skips an occurrence. */
+    public void markRecorded(LocalDate onDate) {
+        this.lastRecordedDate = onDate;
+        if (persistence_saveHook != null) persistence_saveHook.run();
+    }
+
+    // Hook so markRecorded() can trigger a save without a direct DataStore reference.
+    // Set by DataStore after construction if needed; null-safe.
+    private transient Runnable persistence_saveHook;
+    public void setPersistenceSaveHook(Runnable hook) { this.persistence_saveHook = hook; }
+
+    // ── Getters ───────────────────────────────────────────────────────────────
+
+    public String getId()                   { return id; }
+    public String getDescription()          { return description; }
+    public Transaction.Type getTransactionType() { return transactionType; }
+    public Frequency getFrequency()         { return frequency; }
+    public int getDueDayOfMonth()           { return dueDayOfMonth; }
+    public LocalDate getStartDate()         { return startDate; }
+    public LocalDate getEndDate()           { return endDate; }
+    public long getAmountPaise()            { return amountPaise; }
+    public String getCategoryId()           { return categoryId; }
+    public String getSubCategoryId()        { return subCategoryId; }
+    public String getFromAccountId()        { return fromAccountId; }
+    public String getToAccountId()          { return toAccountId; }
+    public String getNotes()                { return notes; }
+    public Status getStatus()               { return status; }
+    public boolean isAutoCreated()          { return autoCreated; }
+    public LocalDate getLastRecordedDate()  { return lastRecordedDate; }
+
+    public String getAmountInr() {
+        return amountPaise > 0
+                ? String.format("₹%,.2f", amountPaise / 100.0)
+                : "Variable";
+    }
+
+    // ── Setters ───────────────────────────────────────────────────────────────
+
+    public void setDescription(String d)            { this.description = d; }
+    public void setTransactionType(Transaction.Type t) { this.transactionType = t; }
+    public void setFrequency(Frequency f)           { this.frequency = f; }
+    public void setDueDayOfMonth(int d)             { this.dueDayOfMonth = d; }
+    public void setStartDate(LocalDate d)           { this.startDate = d; }
+    public void setEndDate(LocalDate d)             { this.endDate = d; }
+    public void setAmountPaise(long p)              { this.amountPaise = p; }
+    public void setCategoryId(String c)             { this.categoryId = c; }
+    public void setSubCategoryId(String s)          { this.subCategoryId = s; }
+    public void setFromAccountId(String id)         { this.fromAccountId = id; }
+    public void setToAccountId(String id)           { this.toAccountId = id; }
+    public void setNotes(String n)                  { this.notes = n; }
+    public void setStatus(Status s)                 { this.status = s; }
+    public void setAutoCreated(boolean b)           { this.autoCreated = b; }
+    public void setLastRecordedDate(LocalDate d)    { this.lastRecordedDate = d; }
+}
