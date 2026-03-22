@@ -1,3 +1,10 @@
+## v0.1.7 — 2026-03-22
+
+### Fixed
+- Recurring schedule matching now also matches compound description words (e.g. "Homeloan" vs "Home Loan") via substring token overlap, reducing false negatives in import reconciliation
+- `Loan Payment` type badge in Recurring screen now renders with correct coloured styling (was plain text)
+- Date picker calendar popup month/year header now correctly shows dark blue background with white text (CSS variables are now literal hex values to ensure they resolve in the popup's scene)
+
 ## v0.1.6 — 2026-03-22
 
 ### Added

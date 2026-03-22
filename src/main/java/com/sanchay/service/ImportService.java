@@ -452,8 +452,30 @@ public class ImportService {
         Set<String> tokA = tokenize(a);
         Set<String> tokB = tokenize(b);
         if (tokA.isEmpty() || tokB.isEmpty()) return 0.0;
-        long common = tokA.stream().filter(tokB::contains).count();
-        return (double) common / Math.min(tokA.size(), tokB.size());
+
+        // Use the smaller set as the reference so the score is normalised correctly.
+        Set<String> smaller = tokA.size() <= tokB.size() ? tokA : tokB;
+        Set<String> larger  = tokA.size() <= tokB.size() ? tokB : tokA;
+
+        long hits = smaller.stream().filter(t -> isHit(t, larger)).count();
+        return (double) hits / smaller.size();
+    }
+
+    /**
+     * A token counts as a hit when:
+     *   1. It exactly exists in the other set, OR
+     *   2. It (length ≥ 4) appears as a substring inside any token of the other set, OR
+     *   3. Any token of the other set (length ≥ 4) appears as a substring inside it.
+     * The length-4 guard prevents short tokens like "emi" from spuriously matching
+     * inside unrelated longer words (e.g. "pr-emi-um").
+     */
+    private static boolean isHit(String t, Set<String> others) {
+        for (String o : others) {
+            if (t.equals(o)) return true;
+            if (t.length() >= 4 && o.contains(t)) return true;
+            if (o.length() >= 4 && t.contains(o)) return true;
+        }
+        return false;
     }
 
     private static Set<String> tokenize(String s) {

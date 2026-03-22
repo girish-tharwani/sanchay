@@ -310,6 +310,11 @@
     -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
     -fx-min-width: 90px; -fx-alignment: CENTER;
 }
+.badge-loan-payment {
+    -fx-background-color: #E8F4FD; -fx-text-fill: #1A5276;
+    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
+    -fx-min-width: 90px; -fx-alignment: CENTER;
+}
 
 /* ── Form fields ────────────────────────────────────────────────────────── */
 .form-label {
@@ -348,9 +353,10 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
 }
 
-/* Month/year header bar */
+/* Month/year header bar — use literal colours; CSS variables from .root are not
+   guaranteed to resolve in the DatePicker popup's separate JavaFX scene. */
 .date-picker-popup > * > .month-year-pane {
-    -fx-background-color: -brand-dark;
+    -fx-background-color: #1F4E79;
     -fx-padding: 6px 8px;
 }
 
@@ -375,7 +381,7 @@
 
 /* Day-of-week header row */
 .date-picker-popup .day-name-cell {
-    -fx-text-fill: -text-secondary;
+    -fx-text-fill: #595959;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
@@ -383,36 +389,36 @@
 /* Individual day cells */
 .date-picker-popup .day-cell {
     -fx-background-color: transparent;
-    -fx-text-fill: -text-primary;
+    -fx-text-fill: #1A1A2E;
 }
 
 .date-picker-popup .day-cell:hover {
-    -fx-background-color: -surface-hover;
+    -fx-background-color: #EBF3FB;
     -fx-background-radius: 50%;
 }
 
 /* Today's date — outline ring */
 .date-picker-popup .day-cell.today {
-    -fx-border-color: -brand-mid;
+    -fx-border-color: #2E75B6;
     -fx-border-radius: 50%;
     -fx-background-radius: 50%;
 }
 
 /* Selected date */
 .date-picker-popup .day-cell:selected {
-    -fx-background-color: -brand-mid;
+    -fx-background-color: #2E75B6;
     -fx-text-fill: white;
     -fx-background-radius: 50%;
 }
 
 /* Days outside the current month (greyed out) */
 .date-picker-popup .day-cell.outside-month {
-    -fx-text-fill: -text-muted;
+    -fx-text-fill: #9E9E9E;
 }
 
 /* Week-number column if shown */
 .date-picker-popup .week-number-cell {
-    -fx-text-fill: -text-muted;
+    -fx-text-fill: #9E9E9E;
     -fx-font-size: 10px;
 }
 
