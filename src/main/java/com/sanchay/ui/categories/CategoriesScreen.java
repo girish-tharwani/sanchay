@@ -53,7 +53,7 @@ public class CategoriesScreen {
                 "Manage expense and income categories and sub-categories. "
                         + "Deactivated categories are hidden from transaction entry but preserved in history.");
         subtitle.setWrapText(true);
-        subtitle.setStyle("-fx-text-fill: #595959; -fx-font-size: 12px;");
+        subtitle.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
 
         VBox expSection = new VBox(8);
         VBox incSection = new VBox(8);
@@ -64,7 +64,7 @@ public class CategoriesScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
     }
 
     // ── Category group (Expense or Income) ────────────────────────────────────
@@ -73,15 +73,16 @@ public class CategoriesScreen {
         section.getChildren().clear();
         DataStore ds = DataStore.getInstance();
 
-        HBox headerRow = new HBox(12);
+        HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
-        Label h = new Label(heading);
-        h.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
+                javafx.scene.paint.Color.web("#3db89a"));
+        Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
+        h.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
         Button addBtn = new Button("+ Add");
-        addBtn.getStyleClass().add("btn-primary");
-        addBtn.setStyle("-fx-font-size: 11px; -fx-padding: 4 12;");
+        addBtn.getStyleClass().add("btn-gold");
         addBtn.setOnAction(e -> {
             TextInputDialog td = new TextInputDialog();
             td.setTitle("Add Category");
@@ -99,11 +100,11 @@ public class CategoriesScreen {
                 buildCategoryGroup(section, type, heading);
             });
         });
-        headerRow.getChildren().addAll(h, sp, addBtn);
+        headerRow.getChildren().addAll(dot, h, sp, addBtn);
         section.getChildren().add(headerRow);
 
         VBox card = new VBox(0);
-        card.getStyleClass().add("card");
+        card.getStyleClass().add("table-card");
         card.setPadding(new Insets(0));
 
         List<Category> parentCats = ds.getCategories().stream()
@@ -182,8 +183,7 @@ public class CategoriesScreen {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button showTxnBtn = new Button("☰");
-        showTxnBtn.getStyleClass().add("btn-secondary");
-        showTxnBtn.setStyle("-fx-font-size: 13px; -fx-padding: 4 10;");
+        showTxnBtn.getStyleClass().add("btn-icon");
         showTxnBtn.setTooltip(new Tooltip("Transactions"));
         showTxnBtn.setOnAction(e -> showTransactionsForCategory(cat));
 
@@ -251,8 +251,7 @@ public class CategoriesScreen {
                 deleteItem);
 
         Button menuBtn = new Button("⋮");
-        menuBtn.setStyle("-fx-background-color: transparent; -fx-font-size: 16px; "
-                + "-fx-padding: 2 8; -fx-cursor: hand; -fx-text-fill: #595959;");
+        menuBtn.getStyleClass().add("btn-icon");
         menuBtn.setOnAction(e -> menu.show(menuBtn, Side.BOTTOM, 0, 0));
 
         row.getChildren().addAll(expandBtn, nameLbl, statusLbl, subCountLbl, spacer,
@@ -393,13 +392,14 @@ public class CategoriesScreen {
         dlg.setTitle("Transactions — " + cat.getName());
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(700);
+        UiUtils.applyStylesheet(dlg);
         dlg.getDialogPane().setPrefHeight(500);
 
         VBox content = new VBox(12);
         content.setPadding(new Insets(16));
 
         Label countLbl = new Label(txns.size() + " transaction" + (txns.size() == 1 ? "" : "s") + " in '" + cat.getName() + "'");
-        countLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #1F4E79;");
+        countLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
 
         if (txns.isEmpty()) {
             Label none = new Label("No transactions found for this category.");
@@ -410,17 +410,26 @@ public class CategoriesScreen {
             table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
             table.setPrefHeight(380);
 
-            TableColumn<Transaction, String> dateCol = new TableColumn<>("Date");
+            TableColumn<Transaction, String> dateCol = new TableColumn<>("DATE");
             dateCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(c.getValue().getDate().format(DATE_FMT)));
             dateCol.setPrefWidth(100);
 
-            TableColumn<Transaction, String> descCol = new TableColumn<>("Description");
+            TableColumn<Transaction, String> descCol = new TableColumn<>("DESCRIPTION");
             descCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(c.getValue().getDescription()));
             descCol.setPrefWidth(200);
+            descCol.setCellFactory(tc -> {
+                TableCell<Transaction, String> cell = new TableCell<>() {
+                    @Override protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty); setText(empty || item == null ? null : item);
+                    }
+                };
+                cell.getStyleClass().add("cell-desc");
+                return cell;
+            });
 
-            TableColumn<Transaction, Void> typeCol = new TableColumn<>("Type");
+            TableColumn<Transaction, Void> typeCol = new TableColumn<>("TYPE");
             typeCol.setPrefWidth(90);
             typeCol.setCellFactory(tc -> new TableCell<>() {
                 @Override protected void updateItem(Void item, boolean empty) {
@@ -430,23 +439,32 @@ public class CategoriesScreen {
                 }
             });
 
-            TableColumn<Transaction, String> accountCol = new TableColumn<>("Account");
+            TableColumn<Transaction, String> accountCol = new TableColumn<>("ACCOUNT");
             accountCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
                             ds.getAccountName(c.getValue().getFromAccountId())));
             accountCol.setPrefWidth(130);
 
-            TableColumn<Transaction, String> subCatCol = new TableColumn<>("Sub-category");
+            TableColumn<Transaction, String> subCatCol = new TableColumn<>("SUB-CATEGORY");
             subCatCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
                             ds.getCategoryName(c.getValue().getSubCategoryId())));
             subCatCol.setPrefWidth(120);
 
-            TableColumn<Transaction, String> amtCol = new TableColumn<>("Amount");
+            TableColumn<Transaction, String> amtCol = new TableColumn<>("AMOUNT");
             amtCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
                         c.getValue().getTypedSignedAmountInr()));
             amtCol.setPrefWidth(100);
+            amtCol.setCellFactory(tc -> {
+                TableCell<Transaction, String> cell = new TableCell<>() {
+                    @Override protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty); setText(empty || item == null ? null : item);
+                    }
+                };
+                cell.getStyleClass().add("cell-amt");
+                return cell;
+            });
 
             final List<String> finalCatIds = catIds;
             Runnable refreshTable = () -> {
@@ -490,7 +508,7 @@ public class CategoriesScreen {
 
         ScrollPane sp = new ScrollPane(content);
         sp.setFitToWidth(true);
-        sp.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        sp.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
         dlg.getDialogPane().setContent(sp);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.showAndWait();
@@ -607,6 +625,7 @@ public class CategoriesScreen {
         dlg.setHeaderText("Reassign " + usageCount + " transaction"
                 + (usageCount == 1 ? "" : "s") + " from '" + source.getName() + "' to:");
         dlg.getDialogPane().setPrefWidth(440);
+        UiUtils.applyStylesheet(dlg);
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
@@ -716,6 +735,7 @@ public class CategoriesScreen {
         dlg.setTitle("Move Sub-category");
         dlg.setHeaderText("Move '" + sub.getName() + "' to a different parent category:");
         dlg.getDialogPane().setPrefWidth(400);
+        UiUtils.applyStylesheet(dlg);
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);

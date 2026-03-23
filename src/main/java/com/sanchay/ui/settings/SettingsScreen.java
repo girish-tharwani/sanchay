@@ -44,19 +44,25 @@ public class SettingsScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
     }
 
     // ── Section wrapper ───────────────────────────────────────────────────────
 
     private VBox buildSection(String heading, Node body) {
-        VBox section = new VBox(12);
-        Label h = new Label(heading);
-        h.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        VBox section = new VBox(8);
+        HBox labelRow = new HBox(8);
+        labelRow.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
+                javafx.scene.paint.Color.web("#3db89a"));
+        Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
+        h.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0; -fx-letter-spacing: 0.5;");
+        labelRow.getChildren().addAll(dot, h);
         VBox card = new VBox(12);
-        card.getStyleClass().add("card");
+        card.getStyleClass().add("table-card");
+        card.setPadding(new Insets(16));
         card.getChildren().add(body);
-        section.getChildren().addAll(h, card);
+        section.getChildren().addAll(labelRow, card);
         return section;
     }
 
@@ -130,7 +136,9 @@ public class SettingsScreen {
         lbl.setWrapText(true);
         HBox.setHgrow(lbl, Priority.ALWAYS);
         Button backupBtn = new Button("Backup Now");
-        backupBtn.getStyleClass().add("btn-primary");
+        backupBtn.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); "
+                + "-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: 600; "
+                + "-fx-background-radius: 8px; -fx-padding: 7 18; -fx-cursor: hand;");
         backupBtn.setOnAction(e -> doBackup());
         row.getChildren().addAll(lbl, backupBtn);
         return row;

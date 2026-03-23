@@ -55,7 +55,7 @@ public class FirstRunWizard {
 
     private Scene buildScene() {
         VBox root = new VBox(0);
-        root.setStyle("-fx-background-color: #1F4E79;");
+        root.setStyle("-fx-background-color: #0f3d4a;");
 
         // ── Header band ───────────────────────────────────────────────────────
         VBox header = new VBox(8);
@@ -72,7 +72,7 @@ public class FirstRunWizard {
 
         // ── Body card ─────────────────────────────────────────────────────────
         VBox body = new VBox(20);
-        body.setStyle("-fx-background-color: #F5F6FA;");
+        body.setStyle("-fx-background-color: white;");
         body.setPadding(new Insets(36, 48, 36, 48));
         VBox.setVgrow(body, Priority.ALWAYS);
 
@@ -88,7 +88,7 @@ public class FirstRunWizard {
             body.getChildren().add(warn);
         } else {
             Label welcome = new Label("Welcome! Let's get you set up.");
-            welcome.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1F4E79;");
+            welcome.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f3d4a;");
             body.getChildren().add(welcome);
         }
 
@@ -105,7 +105,7 @@ public class FirstRunWizard {
 
         // Folder picker row
         Label folderLabel = new Label("Data folder:");
-        folderLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #1F4E79;");
+        folderLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #0f3d4a;");
 
         TextField pathField = new TextField();
         pathField.setPromptText("No folder selected…");
@@ -125,9 +125,9 @@ public class FirstRunWizard {
 
         // Get Started button
         Button startBtn = new Button("Get Started");
-        startBtn.setStyle("-fx-background-color: #1ABC9C; -fx-text-fill: white; "
-                + "-fx-font-size: 14px; -fx-font-weight: bold; "
-                + "-fx-padding: 10 32; -fx-background-radius: 6; -fx-cursor: hand;");
+        startBtn.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); "
+                + "-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; "
+                + "-fx-padding: 10 32; -fx-background-radius: 8; -fx-cursor: hand;");
         startBtn.setDisable(true);
 
         // Footer note

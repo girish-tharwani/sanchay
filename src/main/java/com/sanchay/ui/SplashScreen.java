@@ -68,8 +68,8 @@ public class SplashScreen {
         root.setPrefSize(480, 300);
 
         LinearGradient bg = new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#1F4E79")),
-                new Stop(1, Color.web("#0E6655")));
+                new Stop(0, Color.web("#0f3d4a")),
+                new Stop(1, Color.web("#1a6b5a")));
         root.setBackground(new Background(new BackgroundFill(bg, CornerRadii.EMPTY, Insets.EMPTY)));
 
         root.getChildren().addAll(buildDecorLayer(), buildContent());
@@ -84,9 +84,9 @@ public class SplashScreen {
         pane.setMouseTransparent(true);
 
         addCircle(pane, 110, Color.web("#FFFFFF", 0.05), 430,  -30);   // top-right large
-        addCircle(pane,  80, Color.web("#1ABC9C", 0.12), -20,  280);   // bottom-left medium
+        addCircle(pane,  80, Color.web("#3db89a", 0.12), -20,  280);   // bottom-left medium
         addCircle(pane,  45, Color.web("#FFFFFF", 0.07),  55,   28);   // top-left small
-        addCircle(pane,  65, Color.web("#1ABC9C", 0.09), 450,  290);   // bottom-right medium
+        addCircle(pane,  65, Color.web("#3db89a", 0.09), 450,  290);   // bottom-right medium
         addCircle(pane,  30, Color.web("#F0B429", 0.10), 420,  210);   // gold accent right
         addCircle(pane,  20, Color.web("#FFFFFF", 0.08), 160,  270);   // bottom-centre small
 

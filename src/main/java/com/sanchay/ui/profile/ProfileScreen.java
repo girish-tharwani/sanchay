@@ -9,6 +9,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -40,19 +42,25 @@ public class ProfileScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
     }
 
     // ── Section wrapper ───────────────────────────────────────────────────────
 
     private VBox buildSection(String heading, Node body) {
-        VBox section = new VBox(12);
-        Label h = new Label(heading);
-        h.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        VBox section = new VBox(8);
+        HBox labelRow = new HBox(8);
+        labelRow.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
+                javafx.scene.paint.Color.web("#3db89a"));
+        Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
+        h.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0; -fx-letter-spacing: 0.5;");
+        labelRow.getChildren().addAll(dot, h);
         VBox card = new VBox(12);
-        card.getStyleClass().add("card");
+        card.getStyleClass().add("table-card");
+        card.setPadding(new Insets(16));
         card.getChildren().add(body);
-        section.getChildren().addAll(h, card);
+        section.getChildren().addAll(labelRow, card);
         return section;
     }
 
@@ -88,12 +96,31 @@ public class ProfileScreen {
         table.setPlaceholder(new Label("No family members added yet."));
         table.getItems().addAll(members);
 
-        TableColumn<FamilyMember, String> nameCol = new TableColumn<>("Name");
-        nameCol.setMinWidth(160);
+        TableColumn<FamilyMember, String> nameCol = new TableColumn<>("NAME");
+        nameCol.setMinWidth(200);
         nameCol.setCellValueFactory(d ->
                 new javafx.beans.property.SimpleStringProperty(d.getValue().getName()));
+        nameCol.setCellFactory(col -> new TableCell<>() {
+            { getStyleClass().add("cell-desc"); }
+            @Override protected void updateItem(String name, boolean empty) {
+                super.updateItem(name, empty);
+                if (empty || name == null) { setGraphic(null); return; }
+                // Avatar circle with initials
+                String initials = getInitials(name);
+                Circle bg = new Circle(16, avatarColor(name));
+                Label initLbl = new Label(initials);
+                initLbl.setStyle("-fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: 700;");
+                javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane(bg, initLbl);
+                Label nameLbl = new Label(name);
+                nameLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+                HBox cell = new HBox(10, avatar, nameLbl);
+                cell.setAlignment(Pos.CENTER_LEFT);
+                setGraphic(cell);
+                setText(null);
+            }
+        });
 
-        TableColumn<FamilyMember, String> dobCol = new TableColumn<>("Date of Birth");
+        TableColumn<FamilyMember, String> dobCol = new TableColumn<>("DATE OF BIRTH");
         dobCol.setMinWidth(110);
         dobCol.setCellValueFactory(d -> {
             LocalDate dob = d.getValue().getDateOfBirth();
@@ -101,14 +128,14 @@ public class ProfileScreen {
             return new javafx.beans.property.SimpleStringProperty(text);
         });
 
-        TableColumn<FamilyMember, String> relCol = new TableColumn<>("Relationship");
+        TableColumn<FamilyMember, String> relCol = new TableColumn<>("RELATIONSHIP");
         relCol.setMinWidth(120);
         relCol.setCellValueFactory(d ->
                 new javafx.beans.property.SimpleStringProperty(
                         formatRelationship(d.getValue().getRelationship())));
 
         // Earning? checkbox column — toggles earning flag and handles schedule lifecycle
-        TableColumn<FamilyMember, Void> earningChkCol = new TableColumn<>("Earning?");
+        TableColumn<FamilyMember, Void> earningChkCol = new TableColumn<>("EARNING?");
         earningChkCol.setMinWidth(72);
         earningChkCol.setMaxWidth(72);
         earningChkCol.setCellFactory(tc -> new TableCell<>() {
@@ -150,7 +177,7 @@ public class ProfileScreen {
             }
         });
 
-        TableColumn<FamilyMember, String> earnCol = new TableColumn<>("Monthly In-hand");
+        TableColumn<FamilyMember, String> earnCol = new TableColumn<>("MONTHLY IN-HAND");
         earnCol.setMinWidth(130);
         earnCol.setCellValueFactory(d -> {
             FamilyMember m = d.getValue();
@@ -164,6 +191,15 @@ public class ProfileScreen {
                 text = paise > 0 ? String.format("₹%,.0f", paise / 100.0) : "—";
             }
             return new javafx.beans.property.SimpleStringProperty(text);
+        });
+        earnCol.setCellFactory(tc -> {
+            TableCell<FamilyMember, String> cell = new TableCell<>() {
+                @Override protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty); setText(empty || item == null ? null : item);
+                }
+            };
+            cell.getStyleClass().add("cell-amt");
+            return cell;
         });
 
         // Double-click row to edit
@@ -242,7 +278,7 @@ public class ProfileScreen {
 
         // ── Add button ────────────────────────────────────────────────────────
         Button addBtn = new Button("+ Add Member");
-        addBtn.getStyleClass().add("btn-secondary");
+        addBtn.getStyleClass().add("btn-gold");
         addBtn.setOnAction(e -> {
             openMemberForm(null);
             refreshFamilyList(box);
@@ -258,6 +294,7 @@ public class ProfileScreen {
         dlg.setTitle(isNew ? "Add Family Member" : "Edit Family Member");
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
 
         GridPane g = new GridPane();
         g.setHgap(12);
@@ -401,7 +438,7 @@ public class ProfileScreen {
 
     private void formRow(GridPane g, int rowIdx, String labelText, Node control) {
         Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        lbl.getStyleClass().add("form-label");
         lbl.setMinWidth(115);
         g.add(lbl,     0, rowIdx);
         g.add(control, 1, rowIdx);
@@ -412,5 +449,22 @@ public class ProfileScreen {
         Alert a = new Alert(Alert.AlertType.WARNING);
         a.setTitle(title); a.setHeaderText(null); a.setContentText(msg);
         a.showAndWait();
+    }
+
+    // ── Avatar helpers ────────────────────────────────────────────────────────
+
+    private static String getInitials(String name) {
+        if (name == null || name.isBlank()) return "?";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+        return (String.valueOf(parts[0].charAt(0)) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    private static Color avatarColor(String name) {
+        // Deterministic color from name hash — pick from a teal/brand palette
+        String[] colors = { "#2a8a7a", "#3db89a", "#0f3d4a", "#4a7a88", "#1a6b5a",
+                             "#5b7fa6", "#7b5ea7", "#a0522d", "#2e8b57", "#4169a1" };
+        int idx = Math.abs(name.hashCode()) % colors.length;
+        return Color.web(colors[idx]);
     }
 }

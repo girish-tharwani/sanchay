@@ -50,7 +50,6 @@ public class MainWindow {
 
     public void show(Stage stage) {
         root = new BorderPane();
-        root.setTop(buildTopBar());
         root.setLeft(buildSidebar());
         root.setCenter(buildMainPanelWrapper());
 
@@ -68,23 +67,39 @@ public class MainWindow {
         navigateTo("Dashboard");
     }
 
-    private HBox buildTopBar() {
-        HBox bar = new HBox();
-        bar.getStyleClass().add("top-bar");
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(0, 20, 0, 20));
-
-        Label title = new Label("💰 Sanchay");
-        title.getStyleClass().add("top-bar-title");
-
-        bar.getChildren().add(title);
-        return bar;
-    }
-
     private VBox buildSidebar() {
         VBox sidebar = new VBox();
         sidebar.getStyleClass().add("sidebar");
 
+        // ── Brand / logo section ─────────────────────────────────────────────
+        StackPane logoCircle = new StackPane();
+        logoCircle.setStyle(
+                "-fx-background-color: #f0a500; -fx-background-radius: 18;" +
+                "-fx-min-width: 36; -fx-min-height: 36;" +
+                "-fx-max-width: 36; -fx-max-height: 36;" +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 6, 0, 0, 2);");
+        Label rupee = new Label("₹");
+        rupee.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+        logoCircle.getChildren().add(rupee);
+
+        VBox brandText = new VBox(1);
+        Label appName = new Label("Sanchay");
+        appName.setStyle("-fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold;");
+        Label tagline = new Label("Personal Finance");
+        tagline.setStyle("-fx-text-fill: rgba(255,255,255,0.60); -fx-font-size: 10px;");
+        brandText.getChildren().addAll(appName, tagline);
+
+        HBox logoSection = new HBox(10, logoCircle, brandText);
+        logoSection.setAlignment(Pos.CENTER_LEFT);
+        logoSection.setPadding(new Insets(20, 16, 18, 16));
+
+        // ── Divider ──────────────────────────────────────────────────────────
+        Region divider = new Region();
+        divider.setStyle("-fx-background-color: rgba(255,255,255,0.12); -fx-pref-height: 1; -fx-max-height: 1;");
+        divider.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(divider, new Insets(0, 0, 6, 0));
+
+        // ── Nav items ────────────────────────────────────────────────────────
         VBox topItems = new VBox(2);
         topItems.getChildren().addAll(
                 buildNavButton("Dashboard",  "🏠  Dashboard"),
@@ -97,6 +112,12 @@ public class MainWindow {
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
+        // ── Bottom items ─────────────────────────────────────────────────────
+        Region divider2 = new Region();
+        divider2.setStyle("-fx-background-color: rgba(255,255,255,0.12); -fx-pref-height: 1; -fx-max-height: 1;");
+        divider2.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(divider2, new Insets(6, 0, 6, 0));
+
         Button profileBtn  = buildNavButton("Profile",  "👤  Profile");
         Button settingsBtn = buildNavButton("Settings", "⚙️  Settings");
 
@@ -106,7 +127,11 @@ public class MainWindow {
         helpBtn.setOnAction(e -> new HelpDialog(root.getScene().getWindow()).show());
         VBox.setMargin(helpBtn, new Insets(0, 0, 12, 0));
 
-        sidebar.getChildren().addAll(topItems, spacer, profileBtn, settingsBtn, helpBtn);
+        sidebar.getChildren().addAll(
+                logoSection, divider,
+                topItems,
+                spacer,
+                divider2, profileBtn, settingsBtn, helpBtn);
         return sidebar;
     }
 
@@ -155,6 +180,7 @@ public class MainWindow {
             }
             case "Reports" -> {
                 if (reportsScreen == null) reportsScreen = new ReportsScreen();
+                else reportsScreen.refresh();
                 yield reportsScreen.getView();
             }
             case "Categories" -> {
@@ -218,12 +244,20 @@ public class MainWindow {
     public void recordRecurring(RecurringTransaction r, Runnable onComplete) {
         Dialog<Boolean> dlg = new Dialog<>();
         dlg.setTitle("Record — " + r.getDescription());
-        dlg.setHeaderText("Confirm details for this occurrence:");
+        dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(420);
+        UiUtils.applyStylesheet(dlg);
+
+        Label subtitle = new Label("Confirm the details for this occurrence:");
+        subtitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0; -fx-padding: 0 0 4 0;");
+        subtitle.setWrapText(true);
 
         GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(12);
-        g.setPadding(new Insets(16));
+        g.setHgap(12); g.setVgap(10);
+        g.setPadding(new Insets(12, 14, 12, 14));
+        g.setStyle(
+                "-fx-background-color: #f8fbfc; -fx-background-radius: 8; "
+                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 8; -fx-border-width: 1;");
         ColumnConstraints c1 = new ColumnConstraints(140);
         ColumnConstraints c2 = new ColumnConstraints();
         c2.setHgrow(Priority.ALWAYS);
@@ -269,7 +303,9 @@ public class MainWindow {
             addDialogField(g, "Paid From:", accountCb, row++);
         }
 
-        dlg.getDialogPane().setContent(g);
+        VBox dialogContent = new VBox(12, subtitle, g);
+        dialogContent.setPadding(new Insets(16));
+        dlg.getDialogPane().setContent(dialogContent);
         ButtonType recordBtn = new ButtonType("Record", ButtonBar.ButtonData.OK_DONE);
         dlg.getDialogPane().getButtonTypes().addAll(recordBtn, ButtonType.CANCEL);
 
@@ -329,16 +365,16 @@ public class MainWindow {
 
     private void addDialogLabel(GridPane g, String labelText, String value, int row) {
         Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        lbl.getStyleClass().add("form-label");
         Label val = new Label(value);
-        val.setStyle("-fx-text-fill: #595959;");
+        val.setStyle("-fx-text-fill: #0f3d4a; -fx-font-size: 12px;");
         g.add(lbl, 0, row);
         g.add(val, 1, row);
     }
 
     private void addDialogField(GridPane g, String labelText, javafx.scene.Node field, int row) {
         Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        lbl.getStyleClass().add("form-label");
         g.add(lbl, 0, row);
         g.add(field, 1, row);
     }

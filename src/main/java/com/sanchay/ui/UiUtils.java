@@ -5,6 +5,8 @@ import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.layout.HBox;
@@ -20,6 +22,22 @@ import java.util.List;
 public final class UiUtils {
     private UiUtils() {}
 
+    private static final String CSS_PATH = "/com/sanchay/css/app.css";
+
+    /**
+     * Applies the app stylesheet to a dialog's DialogPane.
+     * Must be called on every Dialog because JavaFX dialogs open in a separate
+     * scene that does not inherit the main window's stylesheets.
+     */
+    public static void applyStylesheet(Dialog<?> dialog) {
+        applyStylesheet(dialog.getDialogPane());
+    }
+
+    public static void applyStylesheet(DialogPane pane) {
+        String css = UiUtils.class.getResource(CSS_PATH).toExternalForm();
+        pane.getStylesheets().add(css);
+    }
+
     /**
      * Builds a numbered step row used in setup guides.
      * Shared by DashboardScreen (welcome banner) and HelpDialog (get started section).
@@ -32,12 +50,12 @@ public final class UiUtils {
         num.setMinSize(28, 28);
         num.setPrefSize(28, 28);
         num.setAlignment(Pos.CENTER);
-        num.setStyle("-fx-background-color: #1F4E79; -fx-text-fill: white; "
+        num.setStyle("-fx-background-color: #0f3d4a; -fx-text-fill: white; "
                 + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 14;");
 
         VBox text = new VBox(3);
         Label titleLbl = new Label(stepTitle);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #1F4E79;");
+        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
         Label detailLbl = new Label(detail);
         detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
         detailLbl.setWrapText(true);
@@ -104,11 +122,11 @@ public final class UiUtils {
         Node content = skin.getPopupContent();
         Node monthPane = content.lookup(".month-year-pane");
         if (monthPane == null) return;
-        monthPane.setStyle("-fx-background-color: #E8EEF5;");
+        monthPane.setStyle("-fx-background-color: #d8f0ec;");
         monthPane.lookupAll(".label").forEach(n ->
-                n.setStyle("-fx-text-fill: #1F4E79; -fx-font-weight: bold;"));
+                n.setStyle("-fx-text-fill: #0f3d4a; -fx-font-weight: bold;"));
         monthPane.lookupAll(".left-arrow, .right-arrow").forEach(n ->
-                n.setStyle("-fx-background-color: #1F4E79;"));
+                n.setStyle("-fx-background-color: #0f3d4a;"));
     }
 
     /**
@@ -150,6 +168,6 @@ public final class UiUtils {
         // Force dark text on the editor regardless of which scene the picker is in.
         // Dialogs have a separate scene that doesn't inherit the main scene's CSS,
         // so this inline style is the only reliable way to ensure visibility.
-        dp.getEditor().setStyle("-fx-text-fill: #1A1A2E;");
+        dp.getEditor().setStyle("-fx-text-fill: #0f3d4a;");
     }
 }

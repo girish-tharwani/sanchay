@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.input.KeyCode;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 
 /** Accounts module. */
@@ -65,43 +67,50 @@ public class AccountsScreen {
         DataStore ds = DataStore.getInstance();
         content.getChildren().addAll(
                 title,
-                buildGroup("🏦  Bank Accounts",
+                buildGroup("Bank Accounts",   "#3db89a",
                         showClosedBank.isSelected() ? ds.getAllBankAccounts()       : ds.getBankAccounts(),
                         "bank", showClosedBank),
-                buildGroup("💳  Credit Cards",
+                buildGroup("Credit Cards",    "#a78bfa",
                         showClosedCC.isSelected()   ? ds.getAllCreditCardAccounts() : ds.getCreditCardAccounts(),
                         "cc", showClosedCC),
-                buildGroup("🏠  Loan Accounts",
+                buildGroup("Loan Accounts",   "#f87171",
                         showClosedLoan.isSelected()  ? ds.getAllLoanAccounts()       : ds.getActiveLoanAccounts(),
                         "loan", showClosedLoan),
-                buildGroup("📈  Investments",
+                buildGroup("Investments",     "#f0a500",
                         showClosedInvestment.isSelected() ? ds.getAllInvestmentAccounts() : ds.getInvestmentAccounts(),
                         "investment", showClosedInvestment)
         );
 
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
 
         view.getChildren().setAll(scroll);
     }
 
-    private <T extends Account> VBox buildGroup(String heading, List<T> accounts, String type, CheckBox showClosedCb) {
+    private <T extends Account> VBox buildGroup(String heading, String dotColor, List<T> accounts, String type, CheckBox showClosedCb) {
         VBox group = new VBox(10);
 
-        HBox header = new HBox(12);
+        HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
-        Label h = new Label(heading);
-        h.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+
+        // Colored dot
+        Circle dot = new Circle(4);
+        dot.setFill(Color.web(dotColor));
+
+        Label h = new Label(heading.toUpperCase());
+        h.getStyleClass().add("filter-label");
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        showClosedCb.setStyle("-fx-font-size: 11px; -fx-text-fill: #9E9E9E;");
+
+        showClosedCb.setStyle("-fx-font-size: 11px; -fx-text-fill: #7aa4b0;");
         showClosedCb.setOnAction(e -> buildList());
+
         Button addBtn = new Button("+ Add");
-        addBtn.getStyleClass().add("btn-primary");
-        addBtn.setStyle("-fx-font-size: 11px; -fx-padding: 4 12;");
+        addBtn.getStyleClass().add("btn-gold");
         addBtn.setOnAction(e -> { openAddAccountDialog(type); buildList(); });
-        header.getChildren().addAll(h, spacer, showClosedCb, addBtn);
+        header.getChildren().addAll(dot, h, spacer, showClosedCb, addBtn);
         group.getChildren().add(header);
 
         if (accounts.isEmpty()) {
@@ -129,7 +138,7 @@ public class AccountsScreen {
         info.setMaxWidth(200);
         Label name = new Label(acc.getName());
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;"
-                + (active ? "" : " -fx-text-fill: #9E9E9E;"));
+                + (active ? " -fx-text-fill: #0f3d4a;" : " -fx-text-fill: #9E9E9E;"));
         name.setMaxWidth(200);
         Label sub  = new Label(acc.getAccountType());
         sub.setStyle("-fx-text-fill: #9E9E9E; -fx-font-size: 11px;");
@@ -153,15 +162,13 @@ public class AccountsScreen {
         }
         balanceBox.setAlignment(Pos.CENTER_RIGHT);
 
-        Button detailsBtn = new Button("ⓘ");
-        detailsBtn.getStyleClass().add("btn-secondary");
-        detailsBtn.setStyle("-fx-font-size: 13px; -fx-padding: 4 10;");
+        Button detailsBtn = new Button("ℹ");
+        detailsBtn.getStyleClass().add("btn-icon");
         detailsBtn.setTooltip(new Tooltip("Details"));
         detailsBtn.setOnAction(e -> showAccountDetails(acc));
 
-        Button txnBtn = new Button("☰");
-        txnBtn.getStyleClass().add("btn-secondary");
-        txnBtn.setStyle("-fx-font-size: 13px; -fx-padding: 4 10;");
+        Button txnBtn = new Button("≡");
+        txnBtn.getStyleClass().add("btn-icon");
         txnBtn.setTooltip(new Tooltip("Transactions"));
         txnBtn.setOnAction(e -> showAccountTransactions(acc));
 
@@ -179,13 +186,13 @@ public class AccountsScreen {
             long bal = computeRunningBalance(ba);
             label = "Balance";
             value = String.format("₹%,.2f", bal / 100.0);
-            valueColour = bal >= 0 ? "#1B5E20" : "#B71C1C";
+            valueColour = bal >= 0 ? "#0f3d4a" : "#c0392b";
         } else if (acc instanceof CreditCardAccount cc) {
             long out = ds.getCreditCardOutstandingPaise(cc.getId());
             long avail = cc.getCreditLimitPaise() - out;
             label = "Outstanding / Available";
             value = String.format("₹%,.0f  /  ₹%,.0f", out / 100.0, avail / 100.0);
-            valueColour = out > 0 ? "#B71C1C" : "#1B5E20";
+            valueColour = out > 0 ? "#c0392b" : "#0f3d4a";
         } else if (acc instanceof LoanAccount la) {
             long paid = ds.getTransactions().stream()
                     .filter(t -> (t.getType() == Transaction.Type.TRANSFER
@@ -195,7 +202,7 @@ public class AccountsScreen {
             long outstanding = Math.max(0, la.getOutstandingPrincipalPaise() - paid);
             label = "Outstanding";
             value = String.format("₹%,.2f", outstanding / 100.0);
-            valueColour = outstanding > 0 ? "#B71C1C" : "#1B5E20";
+            valueColour = outstanding > 0 ? "#c0392b" : "#0f3d4a";
         } else if (acc instanceof InvestmentAccount ia) {
             label = "Invested";
             long invested = ia.getInvestedAmountPaise()
@@ -208,15 +215,15 @@ public class AccountsScreen {
                                   && ia.getId().equals(t.getFromAccountId()))
                         .mapToLong(Transaction::getAmountPaise).sum();
             value = String.format("₹%,.2f", Math.max(0, invested) / 100.0);
-            valueColour = "#4A148C";
+            valueColour = "#2a8a7a";
         } else {
             return new VBox();
         }
 
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #9E9E9E;");
+        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #7aa4b0;");
         Label val = new Label(value);
-        val.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + valueColour + ";");
+        val.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: " + valueColour + ";");
         VBox box = new VBox(2, lbl, val);
         box.setAlignment(Pos.CENTER_RIGHT);
         return box;
@@ -314,7 +321,7 @@ public class AccountsScreen {
 
         ScrollPane scroll = new ScrollPane(panel);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
 
         view.getChildren().setAll(scroll);
     }
@@ -374,24 +381,25 @@ public class AccountsScreen {
         UiUtils.styleOnShow(fromPicker);
         UiUtils.styleOnShow(toPicker);
 
-        Label fromLbl = new Label("From:");
-        fromLbl.getStyleClass().add("form-label");
-        Label toLbl = new Label("To:");
-        toLbl.getStyleClass().add("form-label");
-        Label searchLbl = new Label("Search:");
-        searchLbl.getStyleClass().add("form-label");
+        Label fromLbl = new Label("FROM");
+        fromLbl.getStyleClass().add("filter-label");
+        Label toLbl = new Label("TO");
+        toLbl.getStyleClass().add("filter-label");
 
         CheckBox pendingOnly = new CheckBox("Show pending review only");
-        pendingOnly.setStyle("-fx-text-fill: #856404; -fx-font-size: 12px; -fx-font-weight: bold;");
+        pendingOnly.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+
+        Region filterSep = new Region();
+        filterSep.setStyle("-fx-background-color: rgba(42,138,122,0.18); -fx-pref-width: 1; -fx-min-width: 1; -fx-max-width: 1; -fx-pref-height: 22;");
 
         HBox filterRow = new HBox(10);
+        filterRow.getStyleClass().add("filter-bar");
         filterRow.setAlignment(Pos.CENTER_LEFT);
-        filterRow.setStyle("-fx-background-color: transparent;");
-        filterRow.setPadding(new Insets(4, 0, 8, 0));
         filterRow.getChildren().addAll(
                 fromLbl, fromPicker,
                 toLbl, toPicker,
-                searchLbl, search,
+                filterSep,
+                search,
                 pendingOnly
         );
 
@@ -400,7 +408,7 @@ public class AccountsScreen {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setPrefHeight(400);
 
-        TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("Date");
+        TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("DATE");
         dateCol.setPrefWidth(90);
         dateCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleObjectProperty<>(cd.getValue().getDate()));
         dateCol.setCellFactory(tc -> new TableCell<>() {
@@ -411,8 +419,8 @@ public class AccountsScreen {
         });
         dateCol.setSortType(TableColumn.SortType.DESCENDING);
         TableColumn<Transaction, String> descCol = col("Description", 180,
-                Transaction::getDescription);
-        TableColumn<Transaction, Void> typeCol = new TableColumn<>("Type");
+                Transaction::getDescription, "cell-desc");
+        TableColumn<Transaction, Void> typeCol = new TableColumn<>("TYPE");
         typeCol.setPrefWidth(88);
         typeCol.setCellFactory(tc -> new TableCell<>() {
             @Override protected void updateItem(Void item, boolean empty) {
@@ -431,12 +439,13 @@ public class AccountsScreen {
                 t -> ds.getCategoryName(t.getCategoryId()));
         TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
                 t -> ds.getCategoryName(t.getSubCategoryId()));
-        TableColumn<Transaction, Long> amtCol = new TableColumn<>("Amount");
+        TableColumn<Transaction, Long> amtCol = new TableColumn<>("AMOUNT");
         amtCol.setPrefWidth(90);
         amtCol.setCellValueFactory(cd ->
             new javafx.beans.property.SimpleObjectProperty<>(
                 cd.getValue().getSignedAmountPaise(acc.getId())));
         amtCol.setCellFactory(tc -> new TableCell<>() {
+            { getStyleClass().add("cell-amt"); }
             @Override protected void updateItem(Long paise, boolean empty) {
                 super.updateItem(paise, empty);
                 if (empty || paise == null) { setText(null); return; }
@@ -643,23 +652,33 @@ public class AccountsScreen {
         table.getSortOrder().add(dateCol);
 
         Button exportBtn = new Button("Export CSV");
-        exportBtn.getStyleClass().add("btn-secondary");
+        exportBtn.getStyleClass().add("btn-gold");
         exportBtn.setOnAction(e -> exportCsv(acc, table.getItems()));
 
-        HBox actionRow = new HBox(8);
-        // Import CSV only makes sense for bank and credit card accounts
+        HBox footerRow = new HBox(8);
+        footerRow.getStyleClass().add("table-footer");
+        footerRow.setAlignment(Pos.CENTER_LEFT);
+        Label hintLbl = UiUtils.hintLabel("Double-click a row to edit");
+        Region footerSpacer = new Region();
+        HBox.setHgrow(footerSpacer, Priority.ALWAYS);
+        footerRow.getChildren().addAll(hintLbl, footerSpacer);
         if (acc instanceof BankAccount || acc instanceof CreditCardAccount) {
             Button importBtn = new Button("Import CSV");
-            importBtn.getStyleClass().add("btn-secondary");
+            importBtn.getStyleClass().add("btn-gold");
             importBtn.setOnAction(e -> doImportCsv(acc, applyFilter));
-            actionRow.getChildren().add(importBtn);
+            footerRow.getChildren().add(importBtn);
         }
-        actionRow.getChildren().add(exportBtn);
-        panel.getChildren().addAll(filterRow, table, UiUtils.hintLabel("Double-click a row to edit"), actionRow);
+        footerRow.getChildren().add(exportBtn);
+
+        VBox tableCard = new VBox();
+        tableCard.getStyleClass().add("table-card");
+        tableCard.getChildren().addAll(table, footerRow);
+
+        panel.getChildren().addAll(filterRow, tableCard);
 
         ScrollPane scroll = new ScrollPane(panel);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
 
         view.getChildren().setAll(scroll);
     }
@@ -708,7 +727,7 @@ public class AccountsScreen {
     private VBox ccStat(String label, String value, String colour) {
         VBox b = new VBox(2);
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #9E9E9E;");
+        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #7aa4b0;");
         Label val = new Label(value);
         val.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + colour + ";");
         b.getChildren().addAll(lbl, val);
@@ -1374,6 +1393,7 @@ public class AccountsScreen {
         dlg.setTitle(title);
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(500);
+        UiUtils.applyStylesheet(dlg);
         return dlg;
     }
 
@@ -1418,11 +1438,28 @@ public class AccountsScreen {
 
     private <T> TableColumn<T, String> col(String title, int prefWidth,
                                            java.util.function.Function<T, String> extractor) {
-        TableColumn<T, String> c = new TableColumn<>(title);
+        TableColumn<T, String> c = new TableColumn<>(title.toUpperCase());
         c.setCellValueFactory(cd ->
                 new javafx.beans.property.SimpleStringProperty(
                         extractor.apply(cd.getValue())));
         if (prefWidth > 0) c.setPrefWidth(prefWidth);
+        return c;
+    }
+
+    private <T> TableColumn<T, String> col(String title, int prefWidth,
+                                           java.util.function.Function<T, String> extractor,
+                                           String cellStyleClass) {
+        TableColumn<T, String> c = col(title, prefWidth, extractor);
+        c.setCellFactory(tc -> {
+            TableCell<T, String> cell = new TableCell<>() {
+                @Override protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : item);
+                }
+            };
+            cell.getStyleClass().add(cellStyleClass);
+            return cell;
+        });
         return c;
     }
 

@@ -103,6 +103,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         setHeaderText(null);
         getDialogPane().setPrefWidth(560);
         getDialogPane().getStyleClass().add("dialog-pane");
+        UiUtils.applyStylesheet(this);
 
         // Shared fields
         sharedDate  = new DatePicker(LocalDate.now());
@@ -408,7 +409,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         rdePrincipalFld = tf("Original invested amount being returned");
         rdeGainLossLbl  = new Label("—");
-        rdeGainLossLbl.setStyle("-fx-text-fill: #595959;");
+        rdeGainLossLbl.setStyle("-fx-text-fill: #7aa4b0;");
 
         // Live gain/loss computation
         rdePrincipalFld.textProperty().addListener((obs, old, val) -> updateRedeemGainLoss());
@@ -438,7 +439,7 @@ public class TransactionDialog extends Dialog<Transaction> {
             rdeGainLossLbl.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold;");
         } catch (NumberFormatException e) {
             rdeGainLossLbl.setText("—");
-            rdeGainLossLbl.setStyle("-fx-text-fill: #595959;");
+            rdeGainLossLbl.setStyle("-fx-text-fill: #7aa4b0;");
         }
     }
 
