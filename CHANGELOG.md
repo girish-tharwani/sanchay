@@ -1,4 +1,4 @@
-## v0.1.11 — 2026-03-23
+## v0.2.0 — 2026-03-23
 
 ### Changed
 - Full UI redesign: teal (#0f3d4a / #2a8a7a) and gold (#f0a500) design system applied across all screens
