@@ -1,3 +1,13 @@
+## v0.1.10 — 2026-03-23
+
+### Fixed
+- Recurring record dialog now displays transaction type in title case (e.g. "Expense", "CC Payment") instead of raw enum name
+- Transactions screen filter bar (date pickers, search field) restyled as flat controls with no box border, matching the rest of the app
+- Reports screen month, FY, and card dropdowns restyled to match flat filter-bar style
+- TabPane on Reports screen restyled with flat underline indicator — transparent background, brand-blue underline on active tab
+- AmbiguousMatchDialog: title shortened, header changed to "Manual selection required", candidate row background extended to cover radio button for correct left-edge alignment
+- RecurringMatchDialog: header shortened to "Select the matching schedule", candidate row background extended to cover radio button for correct left-edge alignment
+
 ## v0.1.9 — 2026-03-22
 
 ### Fixed
