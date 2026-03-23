@@ -24,9 +24,8 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
      * @param candidates two or more manual transactions that could be the same
      */
     public AmbiguousMatchDialog(Transaction imported, List<Transaction> candidates) {
-        setTitle("Ambiguous Match — Manual Selection Required");
-        setHeaderText("The imported transaction below matches multiple existing entries.\n"
-                + "Select the one to reconcile with, or add as a new transaction.");
+        setTitle("Ambiguous Match");
+        setHeaderText("Manual selection required");
         getDialogPane().setPrefWidth(600);
 
         DataStore ds = DataStore.getInstance();
@@ -42,7 +41,6 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         VBox candidateBox = new VBox(8);
 
         for (Transaction c : candidates) {
-            VBox cCard = card("#F9FBF2");
             RadioButton rb = new RadioButton();
             rb.setToggleGroup(tg);
             rb.setUserData(c);
@@ -53,12 +51,16 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
                     : subCatName.isBlank() ? catName
                     : catName + " > " + subCatName;
 
+            VBox cCard = new VBox(4);
             label(cCard, c.getDate() + "   " + c.getAmountInr() + "   " + c.getDescription(),
                     "-fx-text-fill: #1A1A2E;");
             if (!catLabel.isBlank())
                 label(cCard, catLabel, "-fx-font-size: 11px; -fx-text-fill: #595959;");
 
             HBox rbRow = new HBox(8, rb, cCard);
+            rbRow.setStyle("-fx-background-color: #F9FBF2; "
+                    + "-fx-background-radius: 6; -fx-padding: 8;");
+            rbRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             HBox.setHgrow(cCard, Priority.ALWAYS);
             candidateBox.getChildren().add(rbRow);
         }
