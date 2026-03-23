@@ -358,6 +358,7 @@ public class AccountsScreen {
         // ── Filters ────────────────────────────────────────────────────────────
         TextField search = new TextField();
         search.setPromptText("Search description or notes…");
+        search.getStyleClass().add("filter-field");
         HBox.setHgrow(search, Priority.ALWAYS);
         search.setMaxWidth(Double.MAX_VALUE);
 
@@ -366,6 +367,8 @@ public class AccountsScreen {
         DatePicker toPicker   = new DatePicker(ds.getActiveFYEnd());
         fromPicker.setPrefWidth(130);
         toPicker.setPrefWidth(130);
+        fromPicker.getStyleClass().add("filter-field");
+        toPicker.getStyleClass().add("filter-field");
         UiUtils.applySmartDateConverter(fromPicker);
         UiUtils.applySmartDateConverter(toPicker);
         UiUtils.styleOnShow(fromPicker);
@@ -383,8 +386,8 @@ public class AccountsScreen {
 
         HBox filterRow = new HBox(10);
         filterRow.setAlignment(Pos.CENTER_LEFT);
-        filterRow.getStyleClass().add("card");
-        filterRow.setPadding(new Insets(10, 14, 10, 14));
+        filterRow.setStyle("-fx-background-color: transparent;");
+        filterRow.setPadding(new Insets(4, 0, 8, 0));
         filterRow.getChildren().addAll(
                 fromLbl, fromPicker,
                 toLbl, toPicker,

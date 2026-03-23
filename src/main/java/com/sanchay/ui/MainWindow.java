@@ -232,7 +232,7 @@ public class MainWindow {
         int row = 0;
 
         addDialogLabel(g, "Transaction:", r.getDescription(), row++);
-        addDialogLabel(g, "Type:",        r.getTransactionType().name().replace("_", " "), row++);
+        addDialogLabel(g, "Type:",        AccountsScreen.typeBadge(r.getTransactionType()).getText(), row++);
 
         DatePicker datePicker = new DatePicker(LocalDate.now());
         datePicker.setMaxWidth(Double.MAX_VALUE);

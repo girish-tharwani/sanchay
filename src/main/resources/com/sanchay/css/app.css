@@ -335,6 +335,19 @@
     -fx-border-color: -brand-mid;
 }
 
+/* Flat style for filter-bar controls — no box border, blends with panel background */
+.filter-field, .filter-field .text-field {
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-background-color: white;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 0;
+}
+.filter-field:focused {
+    -fx-border-color: -brand-mid;
+    -fx-border-width: 1px;
+}
+
 /* ── DatePicker text field and popup calendar ────────────────────────────── */
 
 /* The editable text field inside the DatePicker control */
