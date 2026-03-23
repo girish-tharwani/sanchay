@@ -92,7 +92,7 @@ public class ProfileScreen {
         // ── Table ─────────────────────────────────────────────────────────────
         TableView<FamilyMember> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPrefHeight(Math.max(120, members.size() * 40 + 35));
+        table.setPrefHeight(Math.max(120, members.size() * 40 + 50));
         table.setPlaceholder(new Label("No family members added yet."));
         table.getItems().addAll(members);
 
@@ -223,7 +223,8 @@ public class ProfileScreen {
                 removeBtn.setStyle(
                         "-fx-background-color: #F5DADA; -fx-text-fill: #A93226; "
                         + "-fx-font-size: 12px; -fx-font-weight: bold; "
-                        + "-fx-padding: 1 6; -fx-background-radius: 3; -fx-cursor: hand;");
+                        + "-fx-min-width: 22; -fx-max-width: 22; -fx-min-height: 22; -fx-max-height: 22; "
+                        + "-fx-padding: 0; -fx-background-radius: 3; -fx-cursor: hand; -fx-alignment: CENTER;");
                 removeBtn.setTooltip(new Tooltip("Remove member"));
             }
             @Override protected void updateItem(Void item, boolean empty) {
@@ -256,7 +257,8 @@ public class ProfileScreen {
             {
                 btn.setStyle("-fx-background-color: #E8F5E9; -fx-text-fill: #1B5E20; "
                         + "-fx-font-size: 12px; -fx-font-weight: bold; "
-                        + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
+                        + "-fx-min-width: 22; -fx-max-width: 22; -fx-min-height: 22; -fx-max-height: 22; "
+                        + "-fx-padding: 0; -fx-background-radius: 3; -fx-cursor: hand; -fx-alignment: CENTER;");
                 btn.setTooltip(new Tooltip("Configure earnings"));
                 btn.setOnAction(e -> {
                     FamilyMember m = getTableRow().getItem();

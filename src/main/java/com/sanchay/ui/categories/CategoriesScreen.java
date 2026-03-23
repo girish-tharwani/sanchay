@@ -84,21 +84,17 @@ public class CategoriesScreen {
         Button addBtn = new Button("+ Add");
         addBtn.getStyleClass().add("btn-gold");
         addBtn.setOnAction(e -> {
-            TextInputDialog td = new TextInputDialog();
-            td.setTitle("Add Category");
-            td.setHeaderText(null);
-            td.setContentText("Category name:");
-            td.showAndWait().ifPresent(name -> {
-                String trimmed = name.trim();
-                if (trimmed.isEmpty()) { alert("Add Failed", "Name cannot be blank."); return; }
-                boolean exists = ds.getCategories().stream()
-                        .anyMatch(c -> c.getType() == type
-                                && c.getParentId() == null
-                                && c.getName().equalsIgnoreCase(trimmed));
-                if (exists) { alert("Add Failed", "A category with that name already exists."); return; }
-                ds.addCategory(new Category(trimmed, type, null));
-                buildCategoryGroup(section, type, heading);
-            });
+            String input = styledInput("Add Category", "Category name*", null, "");
+            if (input == null) return;
+            String trimmed = input.trim();
+            if (trimmed.isEmpty()) { alert("Add Failed", "Name cannot be blank."); return; }
+            boolean exists = ds.getCategories().stream()
+                    .anyMatch(c -> c.getType() == type
+                            && c.getParentId() == null
+                            && c.getName().equalsIgnoreCase(trimmed));
+            if (exists) { alert("Add Failed", "A category with that name already exists."); return; }
+            ds.addCategory(new Category(trimmed, type, null));
+            buildCategoryGroup(section, type, heading);
         });
         headerRow.getChildren().addAll(dot, h, sp, addBtn);
         section.getChildren().add(headerRow);
@@ -193,33 +189,26 @@ public class CategoriesScreen {
 
         MenuItem addSubItem = new MenuItem("Add Sub-category");
         addSubItem.setOnAction(e -> {
-            TextInputDialog td = new TextInputDialog();
-            td.setTitle("Add Sub-category");
-            td.setHeaderText("Parent: " + cat.getName());
-            td.setContentText("Sub-category name:");
-            td.showAndWait().ifPresent(n -> {
-                String t = n.trim();
-                if (t.isEmpty()) { alert("Add Failed", "Name cannot be blank."); return; }
-                boolean exists = ds.getCategories().stream()
-                        .anyMatch(c -> cat.getId().equals(c.getParentId()) && c.getName().equalsIgnoreCase(t));
-                if (exists) { alert("Add Failed", "A sub-category with that name already exists."); return; }
-                ds.addCategory(new Category(t, type, cat.getId()));
-                buildCategoryGroup(groupSection, type, heading);
-            });
+            String input = styledInput("Add Sub-category", "Sub-category name*", "Parent: " + cat.getName(), "");
+            if (input == null) return;
+            String t = input.trim();
+            if (t.isEmpty()) { alert("Add Failed", "Name cannot be blank."); return; }
+            boolean exists = ds.getCategories().stream()
+                    .anyMatch(c -> cat.getId().equals(c.getParentId()) && c.getName().equalsIgnoreCase(t));
+            if (exists) { alert("Add Failed", "A sub-category with that name already exists."); return; }
+            ds.addCategory(new Category(t, type, cat.getId()));
+            buildCategoryGroup(groupSection, type, heading);
         });
 
         MenuItem renameItem = new MenuItem("Rename");
         renameItem.setOnAction(e -> {
-            TextInputDialog td = new TextInputDialog(cat.getName());
-            td.setTitle("Rename Category"); td.setHeaderText(null);
-            td.setContentText("New name:");
-            td.showAndWait().ifPresent(n -> {
-                String t = n.trim();
-                if (t.isEmpty()) { alert("Rename Failed", "Name cannot be blank."); return; }
-                cat.setName(t);
-                ds.saveCategoriesNow();
-                buildCategoryGroup(groupSection, type, heading);
-            });
+            String input = styledInput("Rename Category", "New name*", null, cat.getName());
+            if (input == null) return;
+            String t = input.trim();
+            if (t.isEmpty()) { alert("Rename Failed", "Name cannot be blank."); return; }
+            cat.setName(t);
+            ds.saveCategoriesNow();
+            buildCategoryGroup(groupSection, type, heading);
         });
 
         MenuItem reassignItem = new MenuItem("Reassign Transactions →");
@@ -299,8 +288,7 @@ public class CategoriesScreen {
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
             Button showTxnBtn = new Button("☰");
-            showTxnBtn.getStyleClass().add("btn-secondary");
-            showTxnBtn.setStyle("-fx-font-size: 13px; -fx-padding: 3 10;");
+            showTxnBtn.getStyleClass().add("btn-icon");
             showTxnBtn.setTooltip(new Tooltip("Transactions"));
             showTxnBtn.setOnAction(e -> showTransactionsForCategory(sub));
 
@@ -309,16 +297,13 @@ public class CategoriesScreen {
 
             MenuItem renameItem = new MenuItem("Rename");
             renameItem.setOnAction(e -> {
-                TextInputDialog td = new TextInputDialog(sub.getName());
-                td.setTitle("Rename Sub-category"); td.setHeaderText(null);
-                td.setContentText("New name:");
-                td.showAndWait().ifPresent(n -> {
-                    String t = n.trim();
-                    if (t.isEmpty()) { alert("Rename Failed", "Name cannot be blank."); return; }
-                    sub.setName(t);
-                    ds.saveCategoriesNow();
-                    buildCategoryGroup(groupSection, type, heading);
-                });
+                String input = styledInput("Rename Sub-category", "New name*", null, sub.getName());
+                if (input == null) return;
+                String t = input.trim();
+                if (t.isEmpty()) { alert("Rename Failed", "Name cannot be blank."); return; }
+                sub.setName(t);
+                ds.saveCategoriesNow();
+                buildCategoryGroup(groupSection, type, heading);
             });
 
             MenuItem moveItem = new MenuItem("Move to Category →");
@@ -802,5 +787,50 @@ public class CategoriesScreen {
         Alert a = new Alert(Alert.AlertType.WARNING);
         a.setTitle(title); a.setHeaderText(null); a.setContentText(msg);
         a.showAndWait();
+    }
+
+    /**
+     * Shows a styled single-field input dialog.
+     * subtitle — optional context line shown above the field (e.g. "Parent: Food")
+     * Returns trimmed text, or null if the user cancelled.
+     */
+    private String styledInput(String title, String labelText, String subtitle, String initialValue) {
+        Dialog<String> dlg = new Dialog<>();
+        dlg.setTitle(title);
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(16));
+
+        if (subtitle != null && !subtitle.isBlank()) {
+            Label sub = new Label(subtitle);
+            sub.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+            content.getChildren().add(sub);
+        }
+
+        GridPane g = new GridPane();
+        g.setHgap(12);
+        g.setVgap(10);
+        ColumnConstraints c1 = new ColumnConstraints(120);
+        ColumnConstraints c2 = new ColumnConstraints();
+        c2.setHgrow(Priority.ALWAYS);
+        g.getColumnConstraints().addAll(c1, c2);
+
+        Label lbl = new Label(labelText);
+        lbl.getStyleClass().add("form-label");
+        TextField tf = new TextField(initialValue == null ? "" : initialValue);
+        tf.setMaxWidth(Double.MAX_VALUE);
+        g.add(lbl, 0, 0);
+        g.add(tf, 1, 0);
+
+        content.getChildren().add(g);
+        dlg.getDialogPane().setContent(content);
+
+        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        dlg.setResultConverter(bt -> bt == saveBtn ? tf.getText().trim() : null);
+        return dlg.showAndWait().orElse(null);
     }
 }

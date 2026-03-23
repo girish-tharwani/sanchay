@@ -98,10 +98,7 @@ public class DashboardScreen {
         Region headSpacer = new Region();
         HBox.setHgrow(headSpacer, Priority.ALWAYS);
         Button dismiss = new Button("Got it — I'll start now");
-        dismiss.setStyle(
-                "-fx-background-color: linear-gradient(to bottom, #2a8a7a, #1a5c6e); " +
-                "-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold; " +
-                "-fx-padding: 6 16; -fx-background-radius: 8; -fx-cursor: hand;");
+        dismiss.getStyleClass().add("btn-gold");
         dismiss.setOnAction(e -> {
             bannerDismissed = true;
             if (card.getParent() instanceof VBox p) p.getChildren().remove(card);
@@ -264,19 +261,24 @@ public class DashboardScreen {
         Label amount = new Label(r.getAmountInr());
         amount.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
 
-        Button record = new Button("Record");
+        Button record = new Button("✓");
         record.setStyle(
-                "-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); " +
-                "-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: 600; " +
-                "-fx-padding: 6 16; -fx-background-radius: 8; -fx-cursor: hand;");
+                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
+                "-fx-font-size: 12px; " +
+                "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
+                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
+                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
+        record.setTooltip(new Tooltip("Record"));
         record.setOnAction(e -> mainWindow.recordRecurring(r, () -> buildPendingItems(container)));
 
-        Button skip = new Button("Skip");
+        Button skip = new Button("≫");
         skip.setStyle(
-                "-fx-background-color: #f4f7f8; " +
-                "-fx-border-color: rgba(42,138,122,0.35); -fx-border-width: 1; -fx-border-radius: 8; " +
-                "-fx-text-fill: #7aa4b0; -fx-font-size: 12px; " +
-                "-fx-padding: 6 12; -fx-background-radius: 8; -fx-cursor: hand;");
+                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
+                "-fx-font-size: 12px; " +
+                "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
+                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
+                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
+        skip.setTooltip(new Tooltip("Skip"));
         skip.setOnAction(e -> mainWindow.skipRecurring(r, () -> buildPendingItems(container)));
 
         item.getChildren().addAll(typeBadge, details, amount, record, skip);

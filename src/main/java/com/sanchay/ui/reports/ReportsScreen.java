@@ -110,7 +110,7 @@ public class ReportsScreen {
         Region ctrlSpacer = new Region();
         HBox.setHgrow(ctrlSpacer, Priority.ALWAYS);
         Button downloadBtn = new Button("⬇ Download CSV");
-        downloadBtn.getStyleClass().add("btn-teal");
+        downloadBtn.getStyleClass().add("btn-gold");
 
         controls.getChildren().addAll(monthLabel, monthPicker, fyLabel, fyPicker, showSubCat, ctrlSpacer, downloadBtn);
         root.getChildren().add(controls);

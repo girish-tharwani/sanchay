@@ -62,7 +62,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         setHeaderText(null);
         getDialogPane().setPrefWidth(780);
         UiUtils.applyStylesheet(this);
-        getDialogPane().setPrefHeight(600);
+        getDialogPane().setPrefHeight(650);
 
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);

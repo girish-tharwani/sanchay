@@ -114,7 +114,7 @@ public class FirstRunWizard {
         HBox.setHgrow(pathField, Priority.ALWAYS);
 
         Button browseBtn = new Button("Browse…");
-        browseBtn.getStyleClass().add("btn-primary");
+        browseBtn.getStyleClass().add("btn-gold");
 
         HBox pickerRow = new HBox(10, pathField, browseBtn);
         pickerRow.setAlignment(Pos.CENTER_LEFT);
@@ -125,9 +125,7 @@ public class FirstRunWizard {
 
         // Get Started button
         Button startBtn = new Button("Get Started");
-        startBtn.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); "
-                + "-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; "
-                + "-fx-padding: 10 32; -fx-background-radius: 8; -fx-cursor: hand;");
+        startBtn.getStyleClass().add("btn-gold");
         startBtn.setDisable(true);
 
         // Footer note

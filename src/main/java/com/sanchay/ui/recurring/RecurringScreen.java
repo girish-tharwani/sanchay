@@ -73,7 +73,7 @@ public class RecurringScreen {
         content.getChildren().add(allHeader);
 
         allSchedulesTable = new TableView<>();
-        allSchedulesTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        allSchedulesTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         allSchedulesTable.setPrefHeight(300);
         allSchedulesTable.getItems().addAll(ds.getRecurring());
 
@@ -81,7 +81,8 @@ public class RecurringScreen {
                 RecurringTransaction::getDescription, "cell-desc");
 
         TableColumn<RecurringTransaction, Void> typeCol = new TableColumn<>("TYPE");
-        typeCol.setMinWidth(100);
+        typeCol.setPrefWidth(100);
+        typeCol.setMinWidth(80);
         typeCol.setCellFactory(tc -> new TableCell<>() {
             @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -113,7 +114,7 @@ public class RecurringScreen {
         actionsCol.setMaxWidth(96);
         actionsCol.setCellFactory(tc -> new TableCell<>() {
             private final Button pauseBtn  = new Button();
-            private final Button deleteBtn = new Button("✕");
+            private final Button deleteBtn = new Button("x");
             {
                 pauseBtn.getStyleClass().add("btn-icon");
                 pauseBtn.setTooltip(new Tooltip("Pause / Resume"));
@@ -121,7 +122,7 @@ public class RecurringScreen {
                         "-fx-background-color: #fef2f2; -fx-text-fill: #c0392b; " +
                         "-fx-border-color: #fecaca; -fx-border-radius: 6; " +
                         "-fx-background-radius: 6; -fx-border-width: 1; " +
-                        "-fx-min-width: 26; -fx-max-width: 26; -fx-min-height: 26; -fx-max-height: 26; " +
+                        "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
                         "-fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 0;");
                 deleteBtn.setTooltip(new Tooltip("Delete schedule"));
             }
@@ -239,10 +240,11 @@ public class RecurringScreen {
         // Small icon buttons: teal ✓ for Record, light ✕ for Skip
         Button recordBtn = new Button("✓");
         recordBtn.setStyle(
-                "-fx-background-color: #2a8a7a; -fx-text-fill: white; " +
-                "-fx-font-size: 13px; -fx-font-weight: bold; " +
+                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
+                "-fx-font-size: 12px; " +
                 "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
-                "-fx-background-radius: 7; -fx-cursor: hand; -fx-padding: 0;");
+                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
+                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
         recordBtn.setTooltip(new Tooltip("Record"));
         recordBtn.setOnAction(e ->
                 mainWindow.recordRecurring(r, () -> {
@@ -250,7 +252,7 @@ public class RecurringScreen {
                     allSchedulesTable.refresh();
                 }));
 
-        Button skipBtn = new Button("✕");
+        Button skipBtn = new Button("≫");
         skipBtn.setStyle(
                 "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
                 "-fx-font-size: 12px; " +
@@ -643,17 +645,13 @@ public class RecurringScreen {
         formRow(g, row++, "From Account",    accountCb);
         g.add(toAccountSection, 0, row++, 2, 1);
         g.add(invDynamicBox,    0, row++, 2, 1);
-        // ── Divider ───────────────────────────────────────────────────────────
-        Separator divider = new Separator();
-        divider.setStyle("-fx-border-color: rgba(42,138,122,0.15);");
-        g.add(divider, 0, row++, 2, 1);
         formRow(g, row++, "Category",        catCb);
         formRow(g, row++, "Sub-category",    subCatCb);
         g.add(autoRecordBox,    0, row,   2, 1);
 
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(460);
+        sp.setPrefHeight(580);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         dlg.getDialogPane().setContent(sp);
 
@@ -829,7 +827,8 @@ public class RecurringScreen {
     private <T> TableColumn<T, String> col(String title, double width,
                                            java.util.function.Function<T, String> extractor) {
         TableColumn<T, String> c = new TableColumn<>(title.toUpperCase());
-        c.setMinWidth(width);
+        c.setPrefWidth(width);
+        c.setMinWidth(Math.min(width, 60));
         c.setCellValueFactory(d ->
                 new javafx.beans.property.SimpleStringProperty(extractor.apply(d.getValue())));
         return c;

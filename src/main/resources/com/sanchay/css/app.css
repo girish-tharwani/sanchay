@@ -171,20 +171,20 @@
 /* Left accent strip for imported / reconciled rows */
 .table-row-cell:row-imported {
     -fx-background-color: #E65100, white;
-    -fx-background-insets: 0, 0 0 1 3;
+    -fx-background-insets: 0, 0 0 0 3;
 }
 .table-row-cell:row-reconciled {
     -fx-background-color: #2E7D32, white;
-    -fx-background-insets: 0, 0 0 1 3;
+    -fx-background-insets: 0, 0 0 0 3;
 }
 /* Keep accent strip visible when row is selected */
 .table-row-cell:row-imported:selected {
     -fx-background-color: #E65100, -brand-mid;
-    -fx-background-insets: 0, 0 0 1 3;
+    -fx-background-insets: 0, 0 0 0 3;
 }
 .table-row-cell:row-reconciled:selected {
     -fx-background-color: #2E7D32, -brand-mid;
-    -fx-background-insets: 0, 0 0 1 3;
+    -fx-background-insets: 0, 0 0 0 3;
 }
 
 /* ── Floating add button (FAB) ───────────────────────────────────────────── */
@@ -293,8 +293,11 @@
 /* ── Tags / badges ──────────────────────────────────────────────────────── */
 /* Common badge base — pill shape, fixed width for alignment */
 .badge-expense, .badge-income, .badge-transfer, .badge-investment,
-.badge-cc-payment, .badge-loan-payment {
+.badge-cc-payment, .badge-loan-payment,
+.badge-refund, .badge-redeem, .badge-gain, .badge-lose {
     -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1;
     -fx-padding: 3px 10px;
     -fx-font-size: 11px;
     -fx-font-weight: 700;
@@ -302,12 +305,23 @@
     -fx-alignment: CENTER;
 }
 
-.badge-expense    { -fx-background-color: #FDECEA; -fx-text-fill: -color-expense; }
-.badge-income     { -fx-background-color: #E8F8F0; -fx-text-fill: -color-income; }
-.badge-transfer   { -fx-background-color: #EBF3FB; -fx-text-fill: -color-transfer; }
-.badge-investment { -fx-background-color: #F3E8FD; -fx-text-fill: -color-invest; }
-.badge-cc-payment { -fx-background-color: #FFF3E0; -fx-text-fill: #E65100; }
-.badge-loan-payment { -fx-background-color: #E8F4FD; -fx-text-fill: #1A5276; }
+/* Compact variant — used in transaction table cells */
+.badge-sm {
+    -fx-font-size: 9.5px;
+    -fx-padding: 2px 7px;
+    -fx-min-width: 76px;
+}
+
+.badge-expense      { -fx-background-color: #fef2f2; -fx-text-fill: #c0392b; -fx-border-color: #fecaca; }
+.badge-income       { -fx-background-color: #f0fdf4; -fx-text-fill: #16a34a; -fx-border-color: #bbf7d0; }
+.badge-transfer     { -fx-background-color: #f5f3ff; -fx-text-fill: #7c3aed; -fx-border-color: #e9d5ff; }
+.badge-investment   { -fx-background-color: #fefce8; -fx-text-fill: #b45309; -fx-border-color: #fde68a; }
+.badge-cc-payment   { -fx-background-color: #fdf4ff; -fx-text-fill: #9333ea; -fx-border-color: #e9d5ff; }
+.badge-loan-payment { -fx-background-color: #eff6ff; -fx-text-fill: #2563eb; -fx-border-color: #bfdbfe; }
+.badge-refund       { -fx-background-color: #ecfdf5; -fx-text-fill: #0d9488; -fx-border-color: #99f6e4; }
+.badge-redeem       { -fx-background-color: #fff7ed; -fx-text-fill: #c2410c; -fx-border-color: #fed7aa; }
+.badge-gain         { -fx-background-color: #f0fdf4; -fx-text-fill: #15803d; -fx-border-color: #86efac; }
+.badge-lose         { -fx-background-color: #fff1f2; -fx-text-fill: #be123c; -fx-border-color: #fecdd3; }
 
 /* ── Form fields ────────────────────────────────────────────────────────── */
 .form-label {

@@ -74,11 +74,11 @@ public final class UiUtils {
             case TRANSFER     -> "badge-transfer";
             case INVESTMENT   -> "badge-investment";
             case CC_PAYMENT   -> "badge-cc-payment";
-            case REFUND       -> "badge-income";
-            case REDEEM       -> "badge-investment";
-            case LOAN_PAYMENT -> "badge-cc-payment";
-            case GAIN         -> "badge-income";
-            case LOSE         -> "badge-expense";
+            case REFUND       -> "badge-refund";
+            case REDEEM       -> "badge-redeem";
+            case LOAN_PAYMENT -> "badge-loan-payment";
+            case GAIN         -> "badge-gain";
+            case LOSE         -> "badge-lose";
         };
     }
 

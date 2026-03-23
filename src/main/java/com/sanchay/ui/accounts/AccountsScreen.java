@@ -162,7 +162,7 @@ public class AccountsScreen {
         }
         balanceBox.setAlignment(Pos.CENTER_RIGHT);
 
-        Button detailsBtn = new Button("ℹ");
+        Button detailsBtn = new Button("ⓘ");
         detailsBtn.getStyleClass().add("btn-icon");
         detailsBtn.setTooltip(new Tooltip("Details"));
         detailsBtn.setOnAction(e -> showAccountDetails(acc));
@@ -313,8 +313,8 @@ public class AccountsScreen {
         if (acc.getNotes() != null && !acc.getNotes().isBlank())
             addField(fields, "Notes", acc.getNotes());
 
-        Button editBtn = new Button("✏️  Edit Account Details");
-        editBtn.getStyleClass().add("btn-primary");
+        Button editBtn = new Button("Edit");
+        editBtn.getStyleClass().add("btn-gold");
         editBtn.setOnAction(e -> { openEditAccountDialog(acc); showAccountDetails(acc); });
 
         panel.getChildren().addAll(header, fields, editBtn);
@@ -549,28 +549,16 @@ public class AccountsScreen {
                 deleteBtn.setStyle(
                         "-fx-background-color: #F5DADA; -fx-text-fill: #A93226; "
                         + "-fx-font-size: 10px; -fx-font-weight: bold; "
-                        + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
+                        + "-fx-min-width: 22; -fx-max-width: 22; -fx-min-height: 22; -fx-max-height: 22; "
+                        + "-fx-padding: 0; -fx-background-radius: 3; -fx-cursor: hand; -fx-alignment: CENTER;");
                 deleteBtn.setTooltip(new Tooltip("Delete transaction"));
                 deleteBtn.setOnMouseClicked(e -> {
                     Transaction t = getTableRow().getItem();
                     if (t == null) return;
-                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                    confirm.setTitle("Delete Transaction");
-                    boolean isGrouped = t.getGroupTransactionId() != null;
-                    confirm.setHeaderText(isGrouped
-                            ? "Delete linked redemption group?"
-                            : "Delete this transaction?");
-                    confirm.setContentText(
-                            t.getDescription() + "\n"
-                            + t.getAmountInr() + "  ·  "
-                            + t.getDate().format(dateFmt())
-                            + (isGrouped ? "\n\nThis will also delete the related principal and gain/loss entries." : ""));
-                    confirm.showAndWait()
-                            .filter(b -> b == ButtonType.OK)
-                            .ifPresent(b -> {
-                                DataStore.getInstance().deleteTransaction(t.getId());
-                                applyFilter.run();
-                            });
+                    if (showDeleteTxnConfirm(t)) {
+                        DataStore.getInstance().deleteTransaction(t.getId());
+                        applyFilter.run();
+                    }
                 });
             }
 
@@ -867,15 +855,7 @@ public class AccountsScreen {
 
         refreshTable.run();
 
-        info("Import Complete",
-                "✓ " + result.newCount                 + " new transaction(s) added\n"
-              + "✓ " + result.reconciledCount           + " reconciled with existing manual entries\n"
-              + (result.recurringReconciledCount > 0
-                  ? "✓ " + result.recurringReconciledCount + " recorded against recurring schedule\n"
-                  : "")
-              + "⊘ " + result.skippedCount              + " skipped (already imported)"
-              + (result.ambiguous.isEmpty() ? "" :
-                  "\n⚠ " + result.ambiguous.size() + " ambiguous match(es) resolved manually"));
+        showImportCompleteDialog(result);
     }
 
     private void exportCsv(Account acc, List<Transaction> txs) {
@@ -1383,7 +1363,7 @@ public class AccountsScreen {
     private ScrollPane scrolled(GridPane g) {
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(380);
+        sp.setPrefHeight(560);
         sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         return sp;
     }
@@ -1472,24 +1452,148 @@ public class AccountsScreen {
     }
 
     public static Label typeBadge(Transaction.Type type) {
-        String text; String bg; String fg;
-        switch (type) {
-            case EXPENSE      -> { text = "Expense";      bg = "#FFE8E8"; fg = "#B71C1C"; }
-            case INCOME       -> { text = "Income";       bg = "#E8F5E9"; fg = "#1B5E20"; }
-            case TRANSFER     -> { text = "Transfer";     bg = "#E3F2FD"; fg = "#0D47A1"; }
-            case INVESTMENT   -> { text = "Investment";   bg = "#F3E5F5"; fg = "#4A148C"; }
-            case CC_PAYMENT   -> { text = "CC Payment";   bg = "#E0F2F1"; fg = "#004D40"; }
-            case REFUND       -> { text = "Refund";       bg = "#E8F5E9"; fg = "#1B5E20"; }
-            case REDEEM       -> { text = "Redeem";       bg = "#FFF8E1"; fg = "#E65100"; }
-            case LOAN_PAYMENT -> { text = "Loan Payment"; bg = "#FFF3E0"; fg = "#E65100"; }
-            case GAIN         -> { text = "Gain";         bg = "#E8F5E9"; fg = "#1B5E20"; }
-            case LOSE         -> { text = "Loss";         bg = "#FFE8E8"; fg = "#B71C1C"; }
-            default           -> { text = type.name();    bg = "#EEEEEE"; fg = "#333333"; }
-        }
-        Label lbl = new Label(text);
-        lbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: " + fg + "; "
-                + "-fx-background-radius: 4; -fx-padding: 2 7 2 7; "
-                + "-fx-font-size: 10px; -fx-font-weight: bold;");
+        Label lbl = new Label(UiUtils.badgeText(type));
+        lbl.getStyleClass().addAll(UiUtils.badgeStyle(type), "badge-sm");
         return lbl;
+    }
+
+    // ── Styled Delete Transaction dialog ──────────────────────────────────────
+
+    private boolean showDeleteTxnConfirm(Transaction t) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Delete Transaction");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(400);
+        UiUtils.applyStylesheet(dlg);
+
+        boolean isGrouped = t.getGroupTransactionId() != null;
+
+        VBox body = new VBox(14);
+        body.setPadding(new Insets(16));
+
+        HBox warnRow = new HBox(12);
+        warnRow.setAlignment(Pos.CENTER_LEFT);
+        Label warnIcon = new Label("⚠");
+        warnIcon.setStyle("-fx-font-size: 22px; -fx-text-fill: #c0392b;");
+        VBox warnText = new VBox(4);
+        Label headline = new Label(isGrouped ? "Delete linked redemption group?" : "Delete this transaction?");
+        headline.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        String subMsg = "This action cannot be undone."
+                + (isGrouped ? " This will also delete the related principal and gain/loss entries." : "");
+        Label subLbl = new Label(subMsg);
+        subLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        subLbl.setWrapText(true);
+        subLbl.setMaxWidth(310);
+        warnText.getChildren().addAll(headline, subLbl);
+        warnRow.getChildren().addAll(warnIcon, warnText);
+
+        VBox txnBlock = new VBox(5);
+        txnBlock.setStyle(
+                "-fx-background-color: #fef2f2; -fx-border-color: #fecaca; "
+                + "-fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 1; "
+                + "-fx-padding: 12 14;");
+        Label desc = new Label(t.getDescription());
+        desc.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+        desc.setWrapText(true);
+        HBox meta = new HBox(8);
+        meta.setAlignment(Pos.CENTER_LEFT);
+        Label amt = new Label(t.getAmountInr());
+        amt.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #c0392b;");
+        Label sep = new Label("·");
+        sep.setStyle("-fx-text-fill: #7aa4b0;");
+        Label date = new Label(t.getDate().format(dateFmt()));
+        date.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        meta.getChildren().addAll(amt, sep, date);
+        txnBlock.getChildren().addAll(desc, meta);
+
+        body.getChildren().addAll(warnRow, txnBlock);
+        dlg.getDialogPane().setContent(body);
+
+        ButtonType deleteBtn = new ButtonType("Delete", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, deleteBtn);
+        Platform.runLater(() -> {
+            Button btn = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
+            if (btn != null)
+                btn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white; "
+                        + "-fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 7 20;");
+        });
+
+        return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
+    }
+
+    // ── Styled Import Complete dialog ─────────────────────────────────────────
+
+    private void showImportCompleteDialog(ImportService.ImportResult result) {
+        Dialog<Void> dlg = new Dialog<>();
+        dlg.setTitle("Import Complete");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(420);
+        UiUtils.applyStylesheet(dlg);
+
+        VBox body = new VBox(0);
+        body.setPadding(new Insets(16));
+
+        HBox titleRow = new HBox(14);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        titleRow.setStyle("-fx-padding: 0 0 14 0;");
+        Label iconLbl = new Label("✓");
+        iconLbl.setStyle(
+                "-fx-background-color: linear-gradient(135deg, #2a8a7a, #3db89a); "
+                + "-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; "
+                + "-fx-min-width: 40; -fx-max-width: 40; -fx-min-height: 40; -fx-max-height: 40; "
+                + "-fx-background-radius: 20; -fx-alignment: CENTER; -fx-padding: 0;");
+        Label titleLbl = new Label("Import Complete");
+        titleLbl.setStyle("-fx-font-size: 15px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        titleRow.getChildren().addAll(iconLbl, titleLbl);
+
+        VBox lines = new VBox(0);
+        lines.setStyle(
+                "-fx-background-color: #f8fbfc; -fx-border-color: rgba(42,138,122,0.15); "
+                + "-fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 1;");
+        lines.getChildren().addAll(
+                importLine(result.newCount, "new transaction(s) added", true),
+                importLine(result.reconciledCount, "reconciled with existing manual entries", true),
+                importLine(result.recurringReconciledCount, "recorded against recurring schedule", true),
+                importLine(result.skippedCount, "skipped (already imported)", false));
+
+        body.getChildren().addAll(titleRow, lines);
+
+        if (!result.ambiguous.isEmpty()) {
+            Label warn = new Label("⚠  " + result.ambiguous.size() + " ambiguous match(es) resolved manually");
+            warn.setStyle("-fx-text-fill: #856404; -fx-font-size: 12px; -fx-padding: 10 0 0 0;");
+            body.getChildren().add(warn);
+        }
+
+        dlg.getDialogPane().setContent(body);
+        ButtonType ok = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().add(ok);
+        dlg.showAndWait();
+    }
+
+    private HBox importLine(int count, String desc, boolean successStyle) {
+        HBox line = new HBox(10);
+        line.setAlignment(Pos.CENTER_LEFT);
+        line.setPadding(new Insets(8, 14, 8, 14));
+        line.setStyle("-fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent; "
+                + "-fx-border-width: 1;");
+        String checkBg  = (successStyle && count > 0) ? "#f0fdf4" : "#f8fbfc";
+        String checkFg  = (successStyle && count > 0) ? "#16a34a" : "#7aa4b0";
+        String checkBdr = (successStyle && count > 0) ? "#bbf7d0" : "rgba(42,138,122,0.15)";
+        String symbol   = successStyle ? "✓" : "⊘";
+        Label check = new Label(symbol);
+        check.setStyle("-fx-background-color: " + checkBg + "; -fx-text-fill: " + checkFg + "; "
+                + "-fx-border-color: " + checkBdr + "; "
+                + "-fx-border-radius: 10; -fx-background-radius: 10; "
+                + "-fx-font-size: 10px; -fx-font-weight: bold; "
+                + "-fx-min-width: 20; -fx-max-width: 20; -fx-min-height: 20; -fx-max-height: 20; "
+                + "-fx-padding: 0; -fx-alignment: CENTER;");
+        Label cnt = new Label(String.valueOf(count));
+        cnt.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; "
+                + "-fx-text-fill: " + (count > 0 ? "#0f3d4a" : "#7aa4b0") + "; "
+                + "-fx-min-width: 28; -fx-alignment: CENTER_RIGHT;");
+        Label txt = new Label(desc);
+        txt.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a7a88;");
+        line.getChildren().addAll(check, cnt, txt);
+        return line;
     }
 }

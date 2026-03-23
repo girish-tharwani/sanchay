@@ -1,3 +1,14 @@
+## v0.2.1 — 2026-03-23
+
+### Changed
+- Transaction type badges now use distinct CSS classes and a refreshed color palette with border outlines; compact `badge-sm` variant used in table cells
+- Delete transaction and import-complete confirmations replaced with styled dialogs (previously plain system alerts)
+- Categories add/rename dialogs replaced with styled single-field input dialog (previously `TextInputDialog`)
+- Recurring Record/Skip icon buttons unified in style across Dashboard and Recurring screens (muted fill, border outline)
+- All primary action buttons (Browse, Backup Now, Get Started, Download CSV, Dismiss banner) migrated to `btn-gold` style class
+- Row accent strip (imported/reconciled) background insets fixed — bottom gap removed
+- Recurring and Accounts table columns switched to `prefWidth` / unconstrained resize policy for better horizontal layout
+
 ## v0.2.0 — 2026-03-23
 
 ### Changed

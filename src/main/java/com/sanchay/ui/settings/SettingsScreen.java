@@ -82,7 +82,7 @@ public class SettingsScreen {
         pathField.setEditable(false);
         pathField.setPrefWidth(360);
         Button browseBtn = new Button("Change…");
-        browseBtn.getStyleClass().add("btn-secondary");
+        browseBtn.getStyleClass().add("btn-gold");
         browseBtn.setOnAction(e -> {
             DirectoryChooser dc = new DirectoryChooser();
             dc.setTitle("Select Data Folder");
@@ -136,9 +136,7 @@ public class SettingsScreen {
         lbl.setWrapText(true);
         HBox.setHgrow(lbl, Priority.ALWAYS);
         Button backupBtn = new Button("Backup Now");
-        backupBtn.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); "
-                + "-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: 600; "
-                + "-fx-background-radius: 8px; -fx-padding: 7 18; -fx-cursor: hand;");
+        backupBtn.getStyleClass().add("btn-gold");
         backupBtn.setOnAction(e -> doBackup());
         row.getChildren().addAll(lbl, backupBtn);
         return row;
