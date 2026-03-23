@@ -2,6 +2,7 @@ package com.sanchay.ui.accounts;
 
 import com.sanchay.model.Account;
 import com.sanchay.model.ImportMapping;
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -53,6 +54,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         this.headers   = headers;
         this.prefilled = prefilled;
 
+        UiUtils.applyStylesheet(this);
         setTitle("Import CSV — " + account.getName());
         setHeaderText("Map CSV columns to transaction fields."
                 + (prefilled != null ? "  (Pre-filled from saved mapping — please confirm.)" : ""));
@@ -111,11 +113,27 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
     // ─────────────────────────────────────────────────────────────────────────
 
     private VBox buildContent() {
-        // Detected headers label
-        Label detectedLbl = new Label("Detected columns:  "
-                + String.join("  ·  ", headers));
-        detectedLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #595959;");
-        detectedLbl.setWrapText(true);
+        // ── Detected columns as pills ─────────────────────────────────────────
+        Label detectedLbl = new Label("DETECTED COLUMNS");
+        detectedLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+
+        javafx.scene.layout.FlowPane pillBox = new javafx.scene.layout.FlowPane(6, 6);
+        for (String h : headers) {
+            Label pill = new Label(h);
+            pill.setStyle(
+                    "-fx-font-size: 11px; -fx-text-fill: #2a8a7a; "
+                    + "-fx-background-color: #e8f0f2; "
+                    + "-fx-background-radius: 12; -fx-padding: 3 10; "
+                    + "-fx-border-color: rgba(42,138,122,0.30); "
+                    + "-fx-border-radius: 12; -fx-border-width: 1;");
+            pillBox.getChildren().add(pill);
+        }
+
+        VBox detectedBox = new VBox(6, detectedLbl, pillBox);
+        detectedBox.setStyle(
+                "-fx-background-color: #f8fbfc; -fx-background-radius: 8; "
+                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 8; -fx-border-width: 1; "
+                + "-fx-padding: 10 12;");
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
@@ -138,9 +156,9 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         // Amount type toggle
         singleRb = new RadioButton("Single amount column");
-        singleRb.setStyle("-fx-text-fill: #1A1A2E;");
+        singleRb.setStyle("-fx-text-fill: #0f3d4a;");
         splitRb  = new RadioButton("Separate Debit / Credit columns");
-        splitRb.setStyle("-fx-text-fill: #1A1A2E;");
+        splitRb.setStyle("-fx-text-fill: #0f3d4a;");
         ToggleGroup tg = new ToggleGroup();
         singleRb.setToggleGroup(tg); splitRb.setToggleGroup(tg);
         singleRb.setSelected(prefilled == null || !prefilled.isAmountSplit());
@@ -149,34 +167,58 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         HBox amtTypeRow = new HBox(16, singleRb, splitRb);
         amtTypeRow.setAlignment(Pos.CENTER_LEFT);
         Label amtTypeLbl = new Label("Amount type *");
-        amtTypeLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        amtTypeLbl.getStyleClass().add("form-label");
         g.add(amtTypeLbl, 0, row);
         g.add(amtTypeRow, 1, row++);
 
         // Single amount row
         amtCb = colCombo(true);
+        amtCb.setMaxWidth(Double.MAX_VALUE);
         singleRow = new HBox(amtCb);
+        HBox.setHgrow(amtCb, Priority.ALWAYS);
         if (prefilled != null && !prefilled.isAmountSplit() && prefilled.getColumnAmount() != null)
             amtCb.setValue(prefilled.getColumnAmount());
         addRow(g, row++, "Amount column *", singleRow);
 
-        // Debit row
+        // ── Split amount sub-section ──────────────────────────────────────────
         debitCb = colCombo(false);
-        debitRow = new HBox(debitCb);
+        debitCb.setMaxWidth(Double.MAX_VALUE);
+        creditCb = colCombo(false);
+        creditCb.setMaxWidth(Double.MAX_VALUE);
         if (prefilled != null && prefilled.isAmountSplit() && prefilled.getColumnDebit() != null)
             debitCb.setValue(prefilled.getColumnDebit());
-        addRow(g, row++, "Debit column", debitRow);
-
-        // Credit row
-        creditCb = colCombo(false);
-        creditRow = new HBox(creditCb);
         if (prefilled != null && prefilled.isAmountSplit() && prefilled.getColumnCredit() != null)
             creditCb.setValue(prefilled.getColumnCredit());
-        addRow(g, row++, "Credit column", creditRow);
+
+        GridPane splitGrid = new GridPane();
+        splitGrid.setHgap(12); splitGrid.setVgap(8);
+        ColumnConstraints sg1 = new ColumnConstraints(130);
+        ColumnConstraints sg2 = new ColumnConstraints(); sg2.setHgrow(Priority.ALWAYS);
+        splitGrid.getColumnConstraints().addAll(sg1, sg2);
+        addRow(splitGrid, 0, "Debit column", debitCb);
+        addRow(splitGrid, 1, "Credit column", creditCb);
+
+        Label splitTitle = new Label("AMOUNT COLUMNS");
+        splitTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+        debitRow = new HBox();  // reuse field — content irrelevant, used only for visibility toggle
+        creditRow = new HBox(); // same
+        VBox splitSection = new VBox(8, splitTitle, splitGrid);
+        splitSection.setStyle(
+                "-fx-background-color: #f8fbfc; -fx-background-radius: 8; "
+                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 8; -fx-border-width: 1; "
+                + "-fx-padding: 10 12;");
+
+        g.add(splitSection, 0, row++, 2, 1);
 
         // Toggle visibility
         updateAmountRows(singleRb.isSelected());
-        singleRb.selectedProperty().addListener((o, p, n) -> updateAmountRows(n));
+        singleRb.selectedProperty().addListener((o, p, n) -> {
+            singleRow.setVisible(n);  singleRow.setManaged(n);
+            splitSection.setVisible(!n); splitSection.setManaged(!n);
+        });
+        // Override default updateAmountRows for the split section
+        splitSection.setVisible(!singleRb.isSelected());
+        splitSection.setManaged(!singleRb.isSelected());
 
         // Date format
         fmtCb = new ComboBox<>();
@@ -190,9 +232,9 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         addRow(g, row++, "Date format *", fmtCb);
 
         Label fmtHint = new Label("Common formats: dd/MM/yyyy · yyyy-MM-dd · dd-MMM-yyyy");
-        fmtHint.setStyle("-fx-font-size: 10px; -fx-text-fill: #9E9E9E;");
+        fmtHint.setStyle("-fx-font-size: 10px; -fx-text-fill: #7aa4b0; -fx-padding: 0 0 0 2;");
 
-        VBox content = new VBox(10, detectedLbl, g, fmtHint);
+        VBox content = new VBox(12, detectedBox, g, fmtHint);
         content.setPadding(new Insets(4, 8, 4, 8));
         return content;
     }
@@ -207,14 +249,13 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
     private void addRow(GridPane g, int row, String label, javafx.scene.Node control) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        lbl.getStyleClass().add("form-label");
         g.add(lbl, 0, row);
         g.add(control, 1, row);
     }
 
     private void updateAmountRows(boolean single) {
-        singleRow.setVisible(single);  singleRow.setManaged(single);
-        debitRow.setVisible(!single);  debitRow.setManaged(!single);
-        creditRow.setVisible(!single); creditRow.setManaged(!single);
+        singleRow.setVisible(single); singleRow.setManaged(single);
+        // debitRow/creditRow visibility is managed inline via splitSection in buildContent()
     }
 }

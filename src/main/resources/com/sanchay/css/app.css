@@ -1,124 +1,86 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sanchay — app.css   (UI Overhaul — teal/gold design system)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 /* ── Root variables ─────────────────────────────────────────────────────── */
 .root {
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
     -fx-font-size: 13px;
-    -fx-background-color: #F5F6FA;
+    -fx-background-color: #eef4f5;
 
-    /* Brand colours */
-    -brand-dark:    #1F4E79;
-    -brand-mid:     #2E75B6;
-    -brand-light:   #83bff3;
-    -brand-accent:  #1ABC9C;
+    /* Brand colours — teal palette */
+    -brand-dark:         #0f3d4a;
+    -brand-mid:          #2a8a7a;
+    -brand-light:        #3db89a;
+    -brand-accent:       #f0a500;
+    -brand-accent-light: #ffc93c;
 
     /* Surfaces */
     -surface-white: #FFFFFF;
     -surface-card:  #FFFFFF;
-    -surface-hover: #EBF3FB;
+    -surface-hover: #f5fbfa;
 
     /* Text */
-    -text-primary:   #1A1A2E;
-    -text-secondary: #595959;
-    -text-muted:     #9E9E9E;
+    -text-primary:   #0f3d4a;
+    -text-secondary: #4a7a88;
+    -text-muted:     #7aa4b0;
     -text-on-dark:   #FFFFFF;
 
-    /* Status colours — used only in badges/icons, NOT for card amounts */
-    -color-income:  #27AE60;
-    -color-expense: #E74C3C;
-    -color-transfer:#2E75B6;
-    -color-invest:  #8E44AD;
-}
-
-/* ── Top bar ────────────────────────────────────────────────────────────── */
-.top-bar {
-    -fx-background-color: -brand-dark;
-    -fx-min-height: 48px;
-    -fx-max-height: 48px;
-    -fx-padding: 0 20px;
-}
-
-.top-bar-title {
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-}
-
-.top-bar .combo-box {
-    -fx-background-color: rgba(255,255,255,0.15);
-    -fx-text-fill: white;
-    -fx-border-color: rgba(255,255,255,0.3);
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-    -fx-min-width: 130px;
-}
-
-.top-bar .combo-box .list-cell {
-    -fx-text-fill: white;
-}
-
-/*
- * When the FY dropdown popup opens, list items must use dark text
- * against the popup's light background. The white style above applies only
- * to the closed-state selected cell inside the dark top bar.
- */
-.top-bar .combo-box-popup .list-cell {
-    -fx-text-fill: #1A1A2E;
-    -fx-background-color: transparent;
-}
-
-.top-bar .combo-box-popup .list-cell:hover {
-    -fx-background-color: #EBF3FB;
-    -fx-text-fill: #1A1A2E;
-}
-
-.top-bar .combo-box-popup .list-cell:selected {
-    -fx-background-color: -brand-mid;
-    -fx-text-fill: white;
+    /* Status colours — used only in badges/icons */
+    -color-income:   #27AE60;
+    -color-expense:  #E74C3C;
+    -color-transfer: #2E75B6;
+    -color-invest:   #8E44AD;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 .sidebar {
-    -fx-background-color: #162D4A;
-    -fx-min-width: 180px;
-    -fx-max-width: 180px;
-    -fx-padding: 12px 0;
+    -fx-background-color: linear-gradient(to bottom, #0f3d4a 0%, #1a5c6e 55%, #2a8a7a 100%);
+    -fx-min-width: 220px;
+    -fx-max-width: 220px;
+    -fx-padding: 0;
 }
 
 .sidebar-item {
     -fx-background-color: transparent;
-    -fx-text-fill: #B0C4D8;
-    -fx-font-size: 13px;
-    -fx-padding: 10px 20px;
+    -fx-text-fill: rgba(255,255,255,0.72);
+    -fx-font-size: 13.5px;
+    -fx-padding: 11px 20px;
     -fx-cursor: hand;
     -fx-alignment: CENTER_LEFT;
-    -fx-min-width: 180px;
-    -fx-max-width: 180px;
-    -fx-border-color: transparent;
+    -fx-min-width: 220px;
+    -fx-max-width: 220px;
+    /* Reserve 3 px on left for the active gold border — prevents layout shift */
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 0 3px;
     -fx-background-radius: 0;
 }
 
 .sidebar-item:hover {
-    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-background-color: rgba(255,255,255,0.10);
     -fx-text-fill: white;
 }
 
 .sidebar-item-active {
-    -fx-background-color: -brand-mid;
+    -fx-background-color: rgba(255,255,255,0.13);
     -fx-text-fill: white;
     -fx-font-weight: bold;
+    -fx-border-color: transparent transparent transparent #f0a500;
+    -fx-border-width: 0 0 0 3px;
 }
 
 .sidebar-item-active:hover {
-    -fx-background-color: -brand-mid;
+    -fx-background-color: rgba(255,255,255,0.16);
 }
 
 /* ── Main panel ─────────────────────────────────────────────────────────── */
 .main-panel {
-    -fx-background-color: #F5F6FA;
+    -fx-background-color: #eef4f5;
     -fx-padding: 24px;
 }
 
 .screen-title {
-    -fx-font-size: 20px;
+    -fx-font-size: 22px;
     -fx-font-weight: bold;
     -fx-text-fill: -brand-dark;
 }
@@ -126,80 +88,104 @@
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .card {
     -fx-background-color: -surface-card;
-    -fx-background-radius: 8px;
-    -fx-border-color: #E0E6ED;
-    -fx-border-radius: 8px;
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-radius: 12px;
     -fx-border-width: 1px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
     -fx-padding: 16px;
 }
 
 .card-title {
-    -fx-font-size: 12px;
+    -fx-font-size: 11px;
     -fx-text-fill: -text-secondary;
-    -fx-font-weight: normal;
+    -fx-font-weight: 700;
+    -fx-padding: 0 0 2px 0;
 }
 
-/* All summary card amount values use a uniform colour. */
+/* Summary card amount values — uniform teal-dark colour */
 .card-value {
-    -fx-font-size: 22px;
+    -fx-font-size: 20px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1F4E79;
+    -fx-text-fill: -brand-dark;
 }
 
-/* Kept only for inline credit-card breakdown rows where colour carries meaning */
+/* Kept only for inline CC-breakdown rows where colour carries meaning */
 .amount-negative { -fx-text-fill: -color-expense; }
 .amount-positive { -fx-text-fill: -color-income;  }
 
 /* ── Table ──────────────────────────────────────────────────────────────── */
 .table-view {
-    -fx-background-color: transparent;
-    -fx-border-color: #E0E6ED;
-    -fx-border-radius: 8px;
+    -fx-background-color: white;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
 }
 
+/* Header area — white background, single teal bottom border */
 .table-view .column-header-background {
-    -fx-background-color: #F0F4F8;
+    -fx-background-color: white;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.22) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-size: 36px;
 }
 
 .table-view .column-header .label {
-    -fx-font-weight: bold;
-    -fx-text-fill: -text-secondary;
-    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -brand-mid;
+    -fx-font-size: 11px;
+    -fx-padding: 0 8px;
+    -fx-alignment: CENTER;
 }
 
-/* Row selection: medium-blue background + white text for good contrast. */
-.table-row-cell:selected {
-    -fx-background-color: -brand-mid;
+/* Data cell alignment — CENTER default; overridden per column type */
+.table-cell                { -fx-alignment: CENTER; }
+.table-cell.cell-desc      { -fx-alignment: CENTER-LEFT; }
+.table-cell.cell-amt       { -fx-alignment: CENTER-RIGHT; }
+
+/* All rows — white with 1px teal bottom divider; no alternating colours */
+.table-row-cell,
+.table-row-cell:odd,
+.table-row-cell:even {
+    -fx-background-color: rgba(42,138,122,0.08), white;
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-cell-size: 42px;
+}
+
+/* Row selection — teal fill, white text */
+.table-row-cell:selected,
+.table-row-cell:odd:selected,
+.table-row-cell:even:selected {
+    -fx-background-color: rgba(42,138,122,0.08), -brand-mid;
+    -fx-background-insets: 0, 0 0 1 0;
 }
 
 .table-row-cell:selected .text {
     -fx-fill: white;
 }
 
-/* Left accent strip: 3px coloured bar on the left edge of imported/reconciled rows.
-   Two background layers: accent colour full-width, then white with 3px left inset. */
+/* Left accent strip for imported / reconciled rows */
 .table-row-cell:row-imported {
     -fx-background-color: #E65100, white;
-    -fx-background-insets: 0, 0 0 0 3;
-    -fx-background-radius: 0;
+    -fx-background-insets: 0, 0 0 1 3;
 }
 .table-row-cell:row-reconciled {
     -fx-background-color: #2E7D32, white;
-    -fx-background-insets: 0, 0 0 0 3;
-    -fx-background-radius: 0;
+    -fx-background-insets: 0, 0 0 1 3;
 }
-/* Keep accent strip visible even when row is selected */
+/* Keep accent strip visible when row is selected */
 .table-row-cell:row-imported:selected {
     -fx-background-color: #E65100, -brand-mid;
-    -fx-background-insets: 0, 0 0 0 3;
+    -fx-background-insets: 0, 0 0 1 3;
 }
 .table-row-cell:row-reconciled:selected {
     -fx-background-color: #2E7D32, -brand-mid;
-    -fx-background-insets: 0, 0 0 0 3;
+    -fx-background-insets: 0, 0 0 1 3;
 }
-
-/* hover highlight removed — was distracting during scrolling */
 
 /* ── Floating add button (FAB) ───────────────────────────────────────────── */
 .fab {
@@ -213,148 +199,54 @@
     -fx-max-height: 52px;
     -fx-background-radius: 26px;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 10, 0, 0, 3);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 10, 0, 0, 3);
 }
 
 .fab:hover {
-    -fx-background-color: derive(-brand-accent, -10%);
+    -fx-background-color: #e09400;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn-primary {
-    -fx-background-color: -brand-mid;
+    -fx-background-color: linear-gradient(to bottom, #2a8a7a, #1a5c6e);
     -fx-text-fill: white;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 8px;
     -fx-cursor: hand;
-    -fx-padding: 7px 16px;
+    -fx-padding: 7px 18px;
     -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.18), 6, 0, 0, 2);
 }
 
 .btn-primary:hover {
-    -fx-background-color: derive(-brand-mid, -10%);
+    -fx-background-color: linear-gradient(to bottom, #3db89a, #2a8a7a);
 }
 
 .btn-secondary {
-    -fx-background-color: #E8EEF5;
+    -fx-background-color: #f0f8f7;
     -fx-text-fill: -brand-dark;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
     -fx-cursor: hand;
-    -fx-padding: 7px 16px;
+    -fx-padding: 7px 18px;
 }
 
 .btn-secondary:hover {
-    -fx-background-color: #D6E4F0;
+    -fx-background-color: #ddf0ec;
 }
 
 .btn-danger {
     -fx-background-color: #E74C3C;
     -fx-text-fill: white;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 8px;
     -fx-cursor: hand;
-    -fx-padding: 7px 16px;
+    -fx-padding: 7px 18px;
     -fx-font-weight: bold;
 }
 
 .btn-danger:hover {
     -fx-background-color: derive(#E74C3C, -10%);
-}
-
-/* ── Tabs ────────────────────────────────────────────────────────────────── */
-.tab-pane .tab-header-area {
-    -fx-padding: 0;
-}
-
-.tab-pane .tab {
-    -fx-background-color: #E8EEF5;
-    -fx-padding: 6px 18px;
-    -fx-background-radius: 6px 6px 0 0;
-}
-
-.tab-pane .tab:selected {
-    -fx-background-color: white;
-}
-
-.tab-pane .tab .tab-label {
-    -fx-text-fill: -text-secondary;
-}
-
-.tab-pane .tab:selected .tab-label {
-    -fx-text-fill: -brand-mid;
-    -fx-font-weight: bold;
-}
-
-/* ── Tags / badges ──────────────────────────────────────────────────────── */
-/* Badges have a fixed min-width for consistent alignment in pending-item rows. */
-.badge-expense    {
-    -fx-background-color: #FDECEA; -fx-text-fill: -color-expense;
-    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
-    -fx-min-width: 90px; -fx-alignment: CENTER;
-}
-.badge-income     {
-    -fx-background-color: #E8F8F0; -fx-text-fill: -color-income;
-    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
-    -fx-min-width: 90px; -fx-alignment: CENTER;
-}
-.badge-transfer   {
-    -fx-background-color: #EBF3FB; -fx-text-fill: -color-transfer;
-    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
-    -fx-min-width: 90px; -fx-alignment: CENTER;
-}
-.badge-investment {
-    -fx-background-color: #F3E8FD; -fx-text-fill: -color-invest;
-    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
-    -fx-min-width: 90px; -fx-alignment: CENTER;
-}
-.badge-cc-payment {
-    -fx-background-color: #FFF3E0; -fx-text-fill: #E65100;
-    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
-    -fx-min-width: 90px; -fx-alignment: CENTER;
-}
-.badge-loan-payment {
-    -fx-background-color: #E8F4FD; -fx-text-fill: #1A5276;
-    -fx-background-radius: 4px; -fx-padding: 2px 8px; -fx-font-size: 11px;
-    -fx-min-width: 90px; -fx-alignment: CENTER;
-}
-
-/* ── Form fields ────────────────────────────────────────────────────────── */
-.form-label {
-    -fx-text-fill: -text-secondary;
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
-}
-
-.text-field, .text-area, .combo-box, .date-picker {
-    -fx-background-radius: 6px;
-    -fx-border-radius: 6px;
-    -fx-border-color: #D0D9E3;
-    -fx-border-width: 1px;
-    -fx-padding: 6px 10px;
-}
-
-.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
-    -fx-border-color: -brand-mid;
-}
-
-/* Flat style for filter-bar controls — no box border, blends with panel background */
-.filter-field, .filter-field .text-field {
-    -fx-border-color: transparent;
-    -fx-border-width: 1px;
-    -fx-background-color: white;
-    -fx-background-radius: 4px;
-    -fx-background-insets: 0;
-}
-.filter-field:focused {
-    -fx-border-color: -brand-mid;
-    -fx-border-width: 1px;
-}
-/* ComboBox-specific: flatten the arrow button area */
-.filter-field.combo-box .arrow-button {
-    -fx-background-color: transparent;
-    -fx-background-insets: 0;
-    -fx-border-color: transparent;
-}
-.filter-field.combo-box .arrow-button .arrow {
-    -fx-background-color: -text-secondary;
 }
 
 /* ── TabPane — flat underline style ─────────────────────────────────────── */
@@ -364,7 +256,7 @@
 }
 .tab-pane .tab-header-area .tab-header-background {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent #D0D9E3 transparent;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.25) transparent;
     -fx-border-width: 0 0 1px 0;
 }
 .tab-pane .tab {
@@ -398,37 +290,93 @@
     -fx-padding: 0;
 }
 
-/* ── DatePicker text field and popup calendar ────────────────────────────── */
+/* ── Tags / badges ──────────────────────────────────────────────────────── */
+/* Common badge base — pill shape, fixed width for alignment */
+.badge-expense, .badge-income, .badge-transfer, .badge-investment,
+.badge-cc-payment, .badge-loan-payment {
+    -fx-background-radius: 20px;
+    -fx-padding: 3px 10px;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-min-width: 100px;
+    -fx-alignment: CENTER;
+}
 
-/* The editable text field inside the DatePicker control */
+.badge-expense    { -fx-background-color: #FDECEA; -fx-text-fill: -color-expense; }
+.badge-income     { -fx-background-color: #E8F8F0; -fx-text-fill: -color-income; }
+.badge-transfer   { -fx-background-color: #EBF3FB; -fx-text-fill: -color-transfer; }
+.badge-investment { -fx-background-color: #F3E8FD; -fx-text-fill: -color-invest; }
+.badge-cc-payment { -fx-background-color: #FFF3E0; -fx-text-fill: #E65100; }
+.badge-loan-payment { -fx-background-color: #E8F4FD; -fx-text-fill: #1A5276; }
+
+/* ── Form fields ────────────────────────────────────────────────────────── */
+.form-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 600;
+}
+
+.text-field, .text-area, .combo-box, .date-picker {
+    -fx-background-color: #f0f6f7;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-width: 1px;
+    -fx-padding: 6px 10px;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
+    -fx-background-color: white;
+    -fx-border-color: -brand-mid;
+}
+
+/* Flat style for filter-bar controls */
+.filter-field, .filter-field .text-field {
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-background-color: white;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 0;
+}
+.filter-field:focused {
+    -fx-border-color: -brand-mid;
+    -fx-border-width: 1px;
+}
+.filter-field.combo-box .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+}
+.filter-field.combo-box .arrow-button .arrow {
+    -fx-background-color: -text-secondary;
+}
+
+/* ── DatePicker inner text field ─────────────────────────────────────────── */
 .date-picker .text-field {
     -fx-text-fill: -text-primary;
-    -fx-background-color: white;
+    -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 0;
 }
 
-/* Popup container */
+/* ── DatePicker popup calendar ───────────────────────────────────────────── */
 .date-picker-popup {
     -fx-background-color: white;
-    -fx-border-color: #D0D9E3;
-    -fx-border-radius: 6px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 10, 0, 0, 3);
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.14), 12, 0, 0, 3);
 }
 
-/* Month/year header bar — light background + dark text so the month/year label
-   is always visible even if background CSS does not resolve in the popup scene. */
 .date-picker-popup > * > .month-year-pane {
-    -fx-background-color: #E8EEF5;
+    -fx-background-color: #d8f0ec;
     -fx-padding: 6px 8px;
 }
 
 .date-picker-popup > * > .month-year-pane .label {
-    -fx-text-fill: #1F4E79;
+    -fx-text-fill: #0f3d4a;
     -fx-font-weight: bold;
 }
 
-/* Navigation arrow buttons */
 .date-picker-popup > * > .month-year-pane .button {
     -fx-background-color: transparent;
 }
@@ -439,83 +387,202 @@
 
 .date-picker-popup > * > .month-year-pane .left-arrow,
 .date-picker-popup > * > .month-year-pane .right-arrow {
-    -fx-background-color: #1F4E79;
+    -fx-background-color: #0f3d4a;
 }
 
-/* Day-of-week header row */
 .date-picker-popup .day-name-cell {
-    -fx-text-fill: #595959;
+    -fx-text-fill: -text-secondary;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
 }
 
-/* Individual day cells */
 .date-picker-popup .day-cell {
     -fx-background-color: transparent;
-    -fx-text-fill: #1A1A2E;
+    -fx-text-fill: -text-primary;
 }
 
 .date-picker-popup .day-cell:hover {
-    -fx-background-color: #EBF3FB;
+    -fx-background-color: #d8f0ec;
     -fx-background-radius: 50%;
 }
 
-/* Today's date — outline ring */
 .date-picker-popup .day-cell.today {
-    -fx-border-color: #2E75B6;
+    -fx-border-color: -brand-mid;
     -fx-border-radius: 50%;
     -fx-background-radius: 50%;
 }
 
-/* Selected date */
 .date-picker-popup .day-cell:selected {
-    -fx-background-color: #2E75B6;
+    -fx-background-color: -brand-mid;
     -fx-text-fill: white;
     -fx-background-radius: 50%;
 }
 
-/* Days outside the current month (greyed out) */
 .date-picker-popup .day-cell.outside-month {
-    -fx-text-fill: #9E9E9E;
+    -fx-text-fill: -text-muted;
 }
 
-/* Week-number column if shown */
 .date-picker-popup .week-number-cell {
-    -fx-text-fill: #9E9E9E;
+    -fx-text-fill: -text-muted;
     -fx-font-size: 10px;
 }
 
-/* ── Pending widget ─────────────────────────────────────────────────────── */
-/* Subtle light-grey background for pending items. */
+/* ── Pending / recent-txn row — divider-only style ──────────────────────── */
+/* No background; items are separated by a subtle bottom border */
 .pending-item {
-    -fx-background-color: #EBEEF2;
-    -fx-border-color: #C8D0DA;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-padding: 10px 14px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 11px 0;
+}
+
+/* ── Small icon button (ℹ ☰ etc.) ───────────────────────────────────────── */
+.btn-icon {
+    -fx-background-color: #f0f6f7;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
     -fx-border-width: 1px;
+    -fx-min-width: 30px;
+    -fx-max-width: 30px;
+    -fx-min-height: 30px;
+    -fx-max-height: 30px;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-text-fill: -text-muted;
+    -fx-padding: 0;
+}
+.btn-icon:hover {
+    -fx-background-color: #ddf0ec;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Gold-tinted button for group "+ Add" actions ───────────────────────── */
+.btn-gold {
+    -fx-background-color: rgba(240,165,0,0.12);
+    -fx-border-color: rgba(240,165,0,0.40);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-text-fill: #b37800;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 5px 14px;
+}
+.btn-gold:hover {
+    -fx-background-color: rgba(240,165,0,0.22);
+}
+
+/* ── Teal-tinted button (Download CSV etc.) ──────────────────────────────── */
+.btn-teal {
+    -fx-background-color: rgba(42,138,122,0.10);
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-text-fill: #2a8a7a;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 6px 14px;
+}
+.btn-teal:hover {
+    -fx-background-color: rgba(42,138,122,0.18);
+}
+
+/* ── Filter bar card ─────────────────────────────────────────────────────── */
+.filter-bar {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+    -fx-padding: 12px 16px;
+}
+
+/* ── Filter label (uppercase, muted) ─────────────────────────────────────── */
+.filter-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-muted;
+}
+
+/* ── Table card wrapper ──────────────────────────────────────────────────── */
+.table-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14px;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 14px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+}
+
+/* ── Table footer bar ────────────────────────────────────────────────────── */
+.table-footer {
+    -fx-background-color: #f8fbfc;
+    -fx-border-color: rgba(42,138,122,0.15) transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 10px 16px;
 }
 
 /* ── Dialog ──────────────────────────────────────────────────────────────── */
 .dialog-pane {
-    -fx-background-color: #F5F6FA;
+    -fx-background-color: white;
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-background-radius: 14px;
 }
 
 .dialog-pane .header-panel {
-    -fx-background-color: -brand-dark;
+    -fx-background-color: #f5fbfa;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-width: 0 0 1px 0;
 }
 
 .dialog-pane .header-panel .label {
-    -fx-text-fill: white;
+    -fx-text-fill: -brand-dark;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
 
 .dialog-pane .label,
 .dialog-pane GridPane .label {
-    -fx-text-fill: #1A1A2E;
+    -fx-text-fill: -text-primary;
 }
 
 .dialog-pane .check-box {
-    -fx-text-fill: #1A1A2E;
+    -fx-text-fill: -text-primary;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: #f5fbfa;
+    -fx-border-color: rgba(42,138,122,0.18) transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 10px 14px;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-background-color: #f0f6f7;
+    -fx-text-fill: #2a8a7a;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 18px;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button-bar .button:default {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a);
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-font-weight: 600;
+}
+
+.dialog-pane .button-bar .button:default:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #3db89a, #2a8a7a);
 }

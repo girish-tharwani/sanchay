@@ -33,10 +33,18 @@ import java.util.stream.Collectors;
 public class ReportsScreen {
 
     private StackPane view;
+    private Runnable summaryRefresh;
+    private Runnable ccRefresh;
 
     public ReportsScreen() { buildView(); }
 
     public Node getView() { return view; }
+
+    /** Re-queries DataStore and redraws both tabs. Called by MainWindow on every navigation. */
+    public void refresh() {
+        if (summaryRefresh != null) summaryRefresh.run();
+        if (ccRefresh      != null) ccRefresh.run();
+    }
 
     private void buildView() {
         TabPane tabPane = new TabPane();
@@ -74,8 +82,8 @@ public class ReportsScreen {
         HBox controls = new HBox(12);
         controls.setAlignment(Pos.CENTER_LEFT);
 
-        Label monthLabel = new Label("Month:");
-        monthLabel.getStyleClass().add("form-label");
+        Label monthLabel = new Label("MONTH");
+        monthLabel.getStyleClass().add("filter-label");
         ComboBox<String> monthPicker = new ComboBox<>();
         monthPicker.getStyleClass().add("filter-field");
         List<LocalDate> summaryMonths = new ArrayList<>();
@@ -88,8 +96,8 @@ public class ReportsScreen {
         }
         monthPicker.setValue(monthPicker.getItems().get(0));
 
-        Label fyLabel = new Label("FY:");
-        fyLabel.getStyleClass().add("form-label");
+        Label fyLabel = new Label("FY");
+        fyLabel.getStyleClass().add("filter-label");
         ComboBox<String> fyPicker = new ComboBox<>();
         fyPicker.getStyleClass().add("filter-field");
         fyPicker.getItems().addAll(buildFYOptions());
@@ -97,12 +105,14 @@ public class ReportsScreen {
         fyPicker.setPrefWidth(140);
 
         CheckBox showSubCat = new CheckBox("Show sub-categories");
-        showSubCat.setStyle("-fx-text-fill: #595959; -fx-font-size: 12px;");
+        showSubCat.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
 
+        Region ctrlSpacer = new Region();
+        HBox.setHgrow(ctrlSpacer, Priority.ALWAYS);
         Button downloadBtn = new Button("⬇ Download CSV");
-        downloadBtn.getStyleClass().add("btn-secondary");
+        downloadBtn.getStyleClass().add("btn-teal");
 
-        controls.getChildren().addAll(monthLabel, monthPicker, fyLabel, fyPicker, showSubCat, downloadBtn);
+        controls.getChildren().addAll(monthLabel, monthPicker, fyLabel, fyPicker, showSubCat, ctrlSpacer, downloadBtn);
         root.getChildren().add(controls);
 
         // ── Dynamic content ───────────────────────────────────────────────────
@@ -112,7 +122,7 @@ public class ReportsScreen {
         // ── Mutual-exclusion + refresh ────────────────────────────────────────
         boolean[] updating = {false};
 
-        Runnable refresh = () -> {
+        summaryRefresh = () -> {
             String fyVal = fyPicker.getValue();
             int mIdx = monthPicker.getSelectionModel().getSelectedIndex();
 
@@ -151,7 +161,7 @@ public class ReportsScreen {
                 monthPicker.getSelectionModel().clearSelection();
                 updating[0] = false;
             }
-            refresh.run();
+            summaryRefresh.run();
         });
 
         monthPicker.setOnAction(e -> {
@@ -161,10 +171,10 @@ public class ReportsScreen {
                 fyPicker.getSelectionModel().clearSelection();
                 updating[0] = false;
             }
-            refresh.run();
+            summaryRefresh.run();
         });
 
-        showSubCat.selectedProperty().addListener((obs, o, n) -> refresh.run());
+        showSubCat.selectedProperty().addListener((obs, o, n) -> summaryRefresh.run());
 
         // Download button re-derives data from current picker state on demand
         downloadBtn.setOnAction(e -> {
@@ -189,11 +199,11 @@ public class ReportsScreen {
             exportExpByCatCsv(data, total, label, showSubCat.isSelected(), downloadBtn);
         });
 
-        refresh.run();   // initial render
+        summaryRefresh.run();   // initial render
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
-        sp.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        sp.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
         return sp;
     }
 
@@ -242,9 +252,9 @@ public class ReportsScreen {
                                             long grandTotal, String label) {
         VBox section = new VBox(10);
         Label heading = new Label("Expenses by Category — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
         Label totalLbl = new Label("Total: " + String.format("₹%,.2f", grandTotal / 100.0));
-        totalLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #595959;");
+        totalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
 
         VBox bars = new VBox(6);
         bars.getStyleClass().add("card");
@@ -279,10 +289,10 @@ public class ReportsScreen {
                     catHeader.setPadding(new Insets(6, 0, 2, 0));
                     Label catLbl = new Label(catName);
                     catLbl.setMinWidth(160);
-                    catLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #1A1A2E;");
+                    catLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #0f3d4a;");
                     Label catTotalLbl = new Label(
                             String.format("%.1f%%  ₹%,.0f", catPct, catTotal / 100.0));
-                    catTotalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
+                    catTotalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
                     catHeader.getChildren().addAll(catLbl, catTotalLbl);
                     bars.getChildren().add(catHeader);
 
@@ -314,15 +324,18 @@ public class ReportsScreen {
         nameLbl.setStyle("-fx-font-size: 12px;");
         StackPane bar = new StackPane();
         bar.setMinHeight(18); bar.setMaxHeight(18);
-        Rectangle bg   = new Rectangle(300, 18, Color.web("#F0F4F8"));
-        bg.setArcWidth(6); bg.setArcHeight(6);
-        Rectangle fill = new Rectangle(Math.max(4, pct * 3), 18, Color.web(colour));
-        fill.setArcWidth(6); fill.setArcHeight(6);
+        Rectangle bg   = new Rectangle(300, 10, Color.web("#eef4f5"));
+        bg.setArcWidth(4); bg.setArcHeight(4);
+        Rectangle fill = new Rectangle(Math.max(4, pct * 3), 10, Color.web(colour));
+        fill.setArcWidth(4); fill.setArcHeight(4);
         StackPane.setAlignment(fill, Pos.CENTER_LEFT);
         bar.getChildren().addAll(bg, fill);
-        Label pctLbl = new Label(String.format("%.1f%%  ₹%,.0f", pct, amountPaise / 100.0));
-        pctLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
-        barRow.getChildren().addAll(nameLbl, bar, pctLbl);
+        bar.setMinHeight(10); bar.setMaxHeight(10);
+        Label pctLbl = new Label(String.format("%.1f%%", pct));
+        pctLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #7aa4b0; -fx-min-width: 40;");
+        Label amtLbl = new Label(String.format("₹%,.0f", amountPaise / 100.0));
+        amtLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a; -fx-min-width: 80; -fx-alignment: CENTER_RIGHT;");
+        barRow.getChildren().addAll(nameLbl, bar, pctLbl, amtLbl);
         return barRow;
     }
 
@@ -379,7 +392,7 @@ public class ReportsScreen {
     private VBox buildSummaryExpenseTable(LocalDate from, LocalDate to, String label) {
         VBox section = new VBox(10);
         Label heading = new Label("All Expense Transactions — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
 
         List<Transaction> txs = DataStore.getInstance().getTransactions().stream()
                 .filter(t -> t.getType() == Transaction.Type.EXPENSE
@@ -390,15 +403,18 @@ public class ReportsScreen {
         TableView<Transaction> table = new TableView<>(FXCollections.observableArrayList(txs));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setPrefHeight(250);
-        TableColumn<Transaction, String> amtCol1 = rCol("Amount", 110, t -> t.getTypedSignedAmountInr());
+        TableColumn<Transaction, String> amtCol1 = rCol("Amount", 110, t -> t.getTypedSignedAmountInr(), "cell-amt");
         table.getColumns().addAll(
                 rCol("Date",        80,  t -> t.getDate().format(DateTimeFormatter.ofPattern("dd MMM"))),
-                rCol("Description", 0,   t -> t.getDescription()),
+                rCol("Description", 0,   t -> t.getDescription(), "cell-desc"),
                 rCol("Account",     140, t -> DataStore.getInstance().getAccountName(t.getFromAccountId())),
                 rCol("Category",    130, t -> DataStore.getInstance().getCategoryName(t.getCategoryId())),
                 amtCol1
         );
-        section.getChildren().addAll(heading, table);
+        VBox tableCard = new VBox();
+        tableCard.getStyleClass().add("table-card");
+        tableCard.getChildren().add(table);
+        section.getChildren().addAll(heading, tableCard);
         return section;
     }
 
@@ -410,24 +426,23 @@ public class ReportsScreen {
         VBox root = new VBox(20);
         root.setPadding(new Insets(16, 0, 24, 0));
 
-        DataStore ds = DataStore.getInstance();
-        List<CreditCardAccount> cards = ds.getCreditCardAccounts();
         LocalDate now = LocalDate.now();
 
         // ── Controls ─────────────────────────────────────────────────────────
         HBox controls = new HBox(12);
         controls.setAlignment(Pos.CENTER_LEFT);
 
-        Label cardLabel = new Label("Card:");
-        cardLabel.getStyleClass().add("form-label");
+        Label cardLabel = new Label("CARD");
+        cardLabel.getStyleClass().add("filter-label");
         ComboBox<String> cardPicker = new ComboBox<>();
         cardPicker.getStyleClass().add("filter-field");
         cardPicker.getItems().add("All Cards");
-        cards.forEach(cc -> cardPicker.getItems().add(cc.getName()));
+        DataStore.getInstance().getCreditCardAccounts()
+                .forEach(cc -> cardPicker.getItems().add(cc.getName()));
         cardPicker.setValue("All Cards");
 
-        Label monthLabel = new Label("Month:");
-        monthLabel.getStyleClass().add("form-label");
+        Label monthLabel = new Label("MONTH");
+        monthLabel.getStyleClass().add("filter-label");
         ComboBox<String> monthPicker = new ComboBox<>();
         monthPicker.getStyleClass().add("filter-field");
         List<LocalDate> ccMonths = new ArrayList<>();
@@ -439,8 +454,8 @@ public class ReportsScreen {
         }
         monthPicker.setValue(monthPicker.getItems().get(0));
 
-        Label fyLabel = new Label("FY:");
-        fyLabel.getStyleClass().add("form-label");
+        Label fyLabel = new Label("FY");
+        fyLabel.getStyleClass().add("filter-label");
         ComboBox<String> fyPicker = new ComboBox<>();
         fyPicker.getStyleClass().add("filter-field");
         fyPicker.getItems().addAll(buildFYOptions());
@@ -457,7 +472,7 @@ public class ReportsScreen {
         // ── Mutual-exclusion + refresh ────────────────────────────────────────
         boolean[] updating = {false};
 
-        Runnable refresh = () -> {
+        ccRefresh = () -> {
             String fyVal = fyPicker.getValue();
             int mIdx = monthPicker.getSelectionModel().getSelectedIndex();
 
@@ -478,15 +493,16 @@ public class ReportsScreen {
             }
 
             String selectedCard = cardPicker.getValue();
+            List<CreditCardAccount> allCards = DataStore.getInstance().getCreditCardAccounts();
             List<CreditCardAccount> filtered = "All Cards".equals(selectedCard)
-                    ? cards
-                    : cards.stream().filter(cc -> cc.getName().equals(selectedCard))
-                           .collect(Collectors.toList());
+                    ? allCards
+                    : allCards.stream().filter(cc -> cc.getName().equals(selectedCard))
+                              .collect(Collectors.toList());
 
             dynamicContent.getChildren().setAll(
-                    buildCCSummaryCards(filtered, from, to, label, ds),
-                    buildCCCategoryBars(filtered, from, to, label, ds),
-                    buildCCTransactionTable(filtered, from, to, label, ds)
+                    buildCCSummaryCards(filtered, from, to, label, DataStore.getInstance()),
+                    buildCCCategoryBars(filtered, from, to, label, DataStore.getInstance()),
+                    buildCCTransactionTable(filtered, from, to, label, DataStore.getInstance())
             );
         };
 
@@ -498,7 +514,7 @@ public class ReportsScreen {
                 monthPicker.getSelectionModel().clearSelection();
                 updating[0] = false;
             }
-            refresh.run();
+            ccRefresh.run();
         });
 
         monthPicker.setOnAction(e -> {
@@ -508,15 +524,15 @@ public class ReportsScreen {
                 fyPicker.getSelectionModel().clearSelection();
                 updating[0] = false;
             }
-            refresh.run();
+            ccRefresh.run();
         });
 
-        cardPicker.setOnAction(e -> refresh.run());
-        refresh.run();
+        cardPicker.setOnAction(e -> ccRefresh.run());
+        ccRefresh.run();
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
-        sp.setStyle("-fx-background-color: #F5F6FA; -fx-background: #F5F6FA;");
+        sp.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
         return sp;
     }
 
@@ -531,15 +547,15 @@ public class ReportsScreen {
                               && cc.getId().equals(t.getFromAccountId())
                               && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
                     .mapToLong(Transaction::getAmountPaise).sum();
-            VBox card = new VBox(8); card.getStyleClass().add("card");
+            VBox card = new VBox(10); card.getStyleClass().add("card");
             Label name = new Label(cc.getName());
-            name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+            name.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #0f3d4a;");
             HBox stats = new HBox(16);
             stats.getChildren().addAll(
-                    ccStat(periodLabel,   "₹" + fmt(periodSpend),  "#E74C3C"),
-                    ccStat("Outstanding", "₹" + fmt(outstanding),  "#E74C3C"),
-                    ccStat("Available",   "₹" + fmt(available),    "#27AE60"),
-                    ccStat("Issuer",      cc.getBankIssuer(),       "#595959")
+                    ccStat(periodLabel,   "₹" + fmt(periodSpend),  periodSpend > 0 ? "#c0392b" : "#0f3d4a"),
+                    ccStat("Outstanding", "₹" + fmt(outstanding),  outstanding > 0 ? "#c0392b" : "#0f3d4a"),
+                    ccStat("Available",   "₹" + fmt(available),    "#2a8a7a"),
+                    ccStat("Issuer",      cc.getBankIssuer(),       "#0f3d4a")
             );
             card.getChildren().addAll(name, stats);
             HBox.setHgrow(card, Priority.ALWAYS);
@@ -568,7 +584,7 @@ public class ReportsScreen {
                                          String label, DataStore ds) {
         VBox section = new VBox(10);
         Label heading = new Label("Credit Card Transactions — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
 
         Set<String> cardIds = cards.stream().map(CreditCardAccount::getId).collect(Collectors.toSet());
         List<Transaction> txs = ds.getTransactions().stream()
@@ -584,13 +600,16 @@ public class ReportsScreen {
         TableColumn<Transaction, String> amtCol2 = rCol("Amount", 110, t -> t.getTypedSignedAmountInr());
         table.getColumns().addAll(
                 rCol("Date",        90,  t -> t.getDate().format(DateTimeFormatter.ofPattern("dd MMM"))),
-                rCol("Description", 0,   t -> t.getDescription()),
+                rCol("Description", 0,   t -> t.getDescription(), "cell-desc"),
                 rCol("Card",        140, t -> ds.getAccountName(
                         t.getType() == Transaction.Type.CC_PAYMENT ? t.getToAccountId() : t.getFromAccountId())),
                 rCol("Category",    130, t -> ds.getCategoryName(t.getCategoryId())),
                 amtCol2
         );
-        section.getChildren().addAll(heading, table);
+        VBox tableCard = new VBox();
+        tableCard.getStyleClass().add("table-card");
+        tableCard.getChildren().add(table);
+        section.getChildren().addAll(heading, tableCard);
         return section;
     }
 
@@ -605,12 +624,12 @@ public class ReportsScreen {
                                        boolean showTotal) {
         VBox section = new VBox(10);
         Label heading = new Label(headingText);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1F4E79;");
+        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
         section.getChildren().add(heading);
 
         if (showTotal) {
             Label totalLbl = new Label("Total: " + String.format("₹%,.2f", total / 100.0));
-            totalLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #595959;");
+            totalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
             section.getChildren().add(totalLbl);
         }
 
@@ -662,18 +681,35 @@ public class ReportsScreen {
 
     private TableColumn<Transaction, String> rCol(String title, int width,
             java.util.function.Function<Transaction, String> fn) {
-        TableColumn<Transaction, String> col = new TableColumn<>(title);
+        TableColumn<Transaction, String> col = new TableColumn<>(title.toUpperCase());
         if (width > 0) col.setPrefWidth(width);
         col.setCellValueFactory(cd ->
                 new javafx.beans.property.SimpleStringProperty(fn.apply(cd.getValue())));
         return col;
     }
 
+    private TableColumn<Transaction, String> rCol(String title, int width,
+            java.util.function.Function<Transaction, String> fn, String cellStyleClass) {
+        TableColumn<Transaction, String> col = rCol(title, width, fn);
+        col.setCellFactory(tc -> {
+            TableCell<Transaction, String> cell = new TableCell<>() {
+                @Override protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : item);
+                }
+            };
+            cell.getStyleClass().add(cellStyleClass);
+            return cell;
+        });
+        return col;
+    }
+
     private VBox ccStat(String label, String value, String color) {
-        VBox box = new VBox(2);
-        Label lbl = new Label(label); lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #9E9E9E;");
-        Label val = new Label(value); val.setStyle(
-                "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+        VBox box = new VBox(3);
+        Label lbl = new Label(label.toUpperCase());
+        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #7aa4b0;");
+        Label val = new Label(value);
+        val.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
         box.getChildren().addAll(lbl, val);
         return box;
     }

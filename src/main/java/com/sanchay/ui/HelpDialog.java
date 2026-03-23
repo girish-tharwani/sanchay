@@ -20,6 +20,7 @@ public class HelpDialog {
         dlg.initOwner(owner);
         dlg.setTitle("Help — Sanchay");
         dlg.getDialogPane().setPrefWidth(560);
+        UiUtils.applyStylesheet(dlg);
         dlg.getDialogPane().setPrefHeight(480);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
@@ -49,7 +50,7 @@ public class HelpDialog {
         row.setStyle("-fx-border-color: #E0E0E0; -fx-border-width: 1 0 0 0;");
 
         Button aboutBtn = new Button("About Sanchay…");
-        aboutBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #1F4E79; "
+        aboutBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0f3d4a; "
                 + "-fx-font-size: 12px; -fx-cursor: hand; -fx-underline: true; -fx-padding: 4 0;");
         aboutBtn.setOnAction(e -> {
             SplashScreen about = new SplashScreen();
@@ -67,7 +68,7 @@ public class HelpDialog {
         VBox section = new VBox(16);
 
         Label heading = new Label("🚀  Getting started");
-        heading.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #1F4E79;");
+        heading.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0f3d4a;");
 
         Label intro = new Label(
                 "Before you start recording transactions, complete these three steps in order:");

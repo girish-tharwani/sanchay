@@ -2,6 +2,7 @@ package com.sanchay.ui.profile;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -60,6 +61,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         setTitle("Earnings — " + member.getName());
         setHeaderText(null);
         getDialogPane().setPrefWidth(780);
+        UiUtils.applyStylesheet(this);
         getDialogPane().setPrefHeight(600);
 
         TabPane tabs = new TabPane();
@@ -282,7 +284,7 @@ public class EarningsDialog extends Dialog<Boolean> {
 
         Label calcTitle = new Label("Salary Breakdown (Monthly)");
         calcTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; "
-                + "-fx-text-fill: #1F4E79; -fx-padding: 8 0 4 0;");
+                + "-fx-text-fill: #0f3d4a; -fx-padding: 8 0 4 0;");
 
         // ── Side-by-side layout ───────────────────────────────────────────────
         ScrollPane leftScroll = new ScrollPane(g);
@@ -602,6 +604,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         dlg.setTitle("Add PF Account");
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(360);
+        UiUtils.applyStylesheet(dlg);
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
