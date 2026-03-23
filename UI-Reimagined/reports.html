@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanchay – Reports</title>
+<style>
+  :root{--teal-dark:#0f3d4a;--teal-bright:#2a8a7a;--teal-light:#3db89a;--gold:#f0a500;--sidebar-w:220px;--bg-main:#eef4f5;--bg-card:#fff;--bg-card-hover:#f5fbfa;--text-primary:#0f3d4a;--text-secondary:#4a7a88;--text-muted:#7aa4b0;--border:rgba(42,138,122,0.15);--border-strong:rgba(42,138,122,0.3);--shadow:0 2px 12px rgba(15,61,74,0.08);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg-main);min-height:100vh;display:flex;overflow:hidden;}
+
+  /* ── Sidebar ── */
+  .sidebar{width:var(--sidebar-w);min-height:100vh;background:linear-gradient(180deg,#0f3d4a 0%,#1a5c6e 60%,#1e6b5a 100%);display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:10;}
+  .sidebar::before{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(61,184,154,0.18) 0%,transparent 70%);bottom:80px;right:-60px;pointer-events:none;}
+  .sidebar::after{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(240,165,0,0.12) 0%,transparent 70%);top:40px;left:-30px;pointer-events:none;}
+  .sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px;position:relative;z-index:1;}
+  .logo-icon{width:36px;height:36px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--teal-dark);box-shadow:0 4px 16px rgba(240,165,0,0.4);flex-shrink:0;}
+  .logo-text{font-size:19px;font-weight:600;color:#fff;letter-spacing:0.3px;}
+  .nav{padding:14px 0;flex:1;position:relative;z-index:1;}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 20px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,0.6);cursor:pointer;border-left:3px solid transparent;}
+  .nav-item:hover{color:#fff;background:rgba(255,255,255,0.06);}
+  .nav-item.active{color:#fff;background:rgba(255,255,255,0.1);border-left-color:var(--gold);}
+  .nav-icon{font-size:15px;width:18px;text-align:center;}
+  .nav-bottom{padding:12px 0;border-top:1px solid rgba(255,255,255,0.08);position:relative;z-index:1;}
+
+  /* ── Main ── */
+  .main{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg-main);background-image:radial-gradient(ellipse at 90% 0%,rgba(61,184,154,0.08) 0%,transparent 50%),radial-gradient(ellipse at 10% 100%,rgba(42,138,122,0.05) 0%,transparent 40%);}
+  .fab{position:fixed;bottom:28px;right:28px;width:48px;height:48px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:300;color:var(--teal-dark);cursor:pointer;box-shadow:0 4px 20px rgba(240,165,0,0.5);z-index:100;}
+
+  .page-title{font-size:24px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px;margin-bottom:18px;}
+
+  /* ── Tabs ── */
+  .tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;}
+  .tab{padding:9px 20px;font-size:13.5px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
+  .tab:hover{color:var(--text-secondary);}
+  .tab.active{color:var(--teal-bright);border-bottom-color:var(--teal-bright);font-weight:700;}
+
+  /* ── Filter row ── */
+  .filter-row{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+  .filter-group{display:flex;align-items:center;gap:7px;}
+  .filter-label{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;}
+  .select-wrap{position:relative;}
+  .filter-select{background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;padding:6px 26px 6px 10px;color:var(--text-primary);font-size:13px;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;appearance:none;cursor:pointer;min-width:100px;}
+  .select-wrap::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;}
+  .checkbox-group{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);}
+  .cb{width:16px;height:16px;border:1.5px solid var(--border-strong);border-radius:4px;background:#fff;cursor:pointer;}
+  .cb.checked{background:var(--teal-bright);border-color:var(--teal-bright);}
+  .btn-download{padding:6px 14px;background:rgba(42,138,122,0.1);border:1px solid var(--border-strong);border-radius:8px;color:var(--teal-bright);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;margin-left:auto;}
+
+  /* ── Panel cards ── */
+  .section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px;}
+  .section-heading{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;}
+  .section-total{font-size:12px;color:var(--text-muted);margin-bottom:16px;}
+
+  /* ── Category bar chart ── */
+  .cat-chart-row{display:flex;align-items:center;gap:0;margin-bottom:10px;}
+  .cat-chart-row:last-child{margin-bottom:0;}
+  .cat-info{width:200px;flex-shrink:0;}
+  .cat-name{font-size:13px;font-weight:600;color:var(--text-primary);}
+  .cat-name.sub{font-size:12px;font-weight:400;color:var(--text-secondary);padding-left:14px;}
+  .bar-track{flex:1;background:#eef4f5;border-radius:4px;height:10px;margin:0 14px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;}
+  .cat-pct{width:50px;text-align:right;font-size:12px;color:var(--text-muted);}
+  .cat-amt{width:80px;text-align:right;font-size:13px;font-weight:600;color:var(--text-primary);}
+
+  /* ── CC summary cards ── */
+  .cc-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+  .cc-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);}
+  .cc-name{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:10px;}
+  .cc-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .cc-meta-item{}
+  .cc-meta-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted);margin-bottom:3px;}
+  .cc-meta-val{font-size:14px;font-weight:700;color:var(--text-primary);}
+  .cc-meta-val.spent{color:#c0392b;}
+  .cc-meta-val.outstanding{color:#c0392b;}
+  .cc-meta-val.available{color:var(--teal-bright);}
+
+  /* ── Transactions table ── */
+  .table-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);background:#f8fbfc;border-bottom:1px solid var(--border);}
+  td{padding:11px 14px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--bg-card-hover);}
+  td.amount{text-align:right;font-weight:600;color:var(--text-primary);}
+  th.right{text-align:right;}
+
+  /* Tab panels */
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">₹</div><span class="logo-text">Sanchay</span></div>
+  <nav class="nav">
+    <div class="nav-item"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">🏦</span> Accounts</div>
+    <div class="nav-item"><span class="nav-icon">↻</span> Recurring</div>
+    <div class="nav-item active"><span class="nav-icon">📊</span> Reports</div>
+    <div class="nav-item"><span class="nav-icon">⊟</span> Categories</div>
+  </nav>
+  <div class="nav-bottom">
+    <div class="nav-item"><span class="nav-icon">👤</span> Profile</div>
+    <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+    <div class="nav-item"><span class="nav-icon">?</span> Help</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-title">Reports</div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('monthly')">Monthly Expense Summary</div>
+    <div class="tab" onclick="showTab('cc')">Credit Card Report</div>
+  </div>
+
+  <!-- ══ TAB 1: Monthly Expense Summary ══ -->
+  <div class="tab-panel active" id="tab-monthly">
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">Month:</span>
+        <div class="select-wrap"><select class="filter-select"><option>(All)</option></select></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FY:</span>
+        <div class="select-wrap"><select class="filter-select"><option>FY 2025-26</option></select></div>
+      </div>
+      <div class="checkbox-group">
+        <div class="cb checked"></div>
+        Show sub-categories
+      </div>
+      <button class="btn-download">⬇ Download CSV</button>
+    </div>
+
+    <!-- Category chart -->
+    <div class="section-card">
+      <div class="section-heading">Expenses by Category — FY 2025-26</div>
+      <div class="section-total">Total: ₹88,566.56</div>
+
+      <!-- Largest unlabelled bar (top) -->
+      <div class="cat-chart-row">
+        <div class="cat-info"><span class="cat-name" style="color:var(--text-muted)"></span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:84.7%;background:#e05555;"></div></div>
+        <div class="cat-pct">84.7%</div>
+        <div class="cat-amt">₹75,060</div>
+      </div>
+
+      <div class="cat-chart-row" style="margin-top:8px">
+        <div class="cat-info"><span class="cat-name">Education</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:11.3%;background:#f0a500;"></div></div>
+        <div class="cat-pct">11.3%</div>
+        <div class="cat-amt">₹10,000</div>
+      </div>
+      <div class="cat-chart-row">
+        <div class="cat-info"><span class="cat-name sub">↳ Miscellaneous</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:11.3%;background:#ffc93c;"></div></div>
+        <div class="cat-pct">11.3%</div>
+        <div class="cat-amt">₹10,000</div>
+      </div>
+
+      <div class="cat-chart-row" style="margin-top:6px">
+        <div class="cat-info"><span class="cat-name">Food/Dining</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:2.7%;background:#f0a500;"></div></div>
+        <div class="cat-pct">2.7%</div>
+        <div class="cat-amt">₹2,404</div>
+      </div>
+      <div class="cat-chart-row">
+        <div class="cat-info"><span class="cat-name sub">↳ Restaurants</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:2.7%;background:#ffc93c;"></div></div>
+        <div class="cat-pct">2.7%</div>
+        <div class="cat-amt">₹2,404</div>
+      </div>
+
+      <div class="cat-chart-row" style="margin-top:6px">
+        <div class="cat-info"><span class="cat-name">Travel/Vacation</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.2%;background:#7c3aed;"></div></div>
+        <div class="cat-pct">1.2%</div>
+        <div class="cat-amt">₹1,058</div>
+      </div>
+      <div class="cat-chart-row">
+        <div class="cat-info"><span class="cat-name sub">↳ Food</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.2%;background:#a78bfa;"></div></div>
+        <div class="cat-pct">1.2%</div>
+        <div class="cat-amt">₹1,058</div>
+      </div>
+
+      <div class="cat-chart-row" style="margin-top:6px">
+        <div class="cat-info"><span class="cat-name">Miscellaneous</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:0.1%;background:#2a8a7a;"></div></div>
+        <div class="cat-pct">0.1%</div>
+        <div class="cat-amt">₹45</div>
+      </div>
+      <div class="cat-chart-row">
+        <div class="cat-info"><span class="cat-name sub">↳ Auto/Cab</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:0.1%;background:#3db89a;"></div></div>
+        <div class="cat-pct">0.1%</div>
+        <div class="cat-amt">₹45</div>
+      </div>
+    </div>
+
+    <!-- All transactions -->
+    <div class="section-heading" style="margin-bottom:10px">All Expense Transactions — FY 2025-26</div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Description</th><th>Account</th><th>Category</th><th class="right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>05 Feb</td><td>test2</td><td>ICICI Main</td><td>Food/Dining</td><td class="amount">(₹1,000.00)</td></tr>
+          <tr><td>04 Feb</td><td>Test1</td><td>ICICI Main</td><td>Food/Dining</td><td class="amount">(₹1,000.00)</td></tr>
+          <tr><td>04 Feb</td><td>UPI/AKASH NADK/bharatpe.9v0u0/Pay to Bha/AXIS BA</td><td>ICICI Main</td><td>Miscellaneous</td><td class="amount">(₹45.00)</td></tr>
+          <tr><td>01 Feb</td><td>BIL/INFT/FB17512642/INFT//</td><td>ICICI Main</td><td></td><td class="amount">(₹30,000.00)</td></tr>
+          <tr><td>01 Feb</td><td>BIL/NEFT/IN12603221140673/MR ANSH TH/IDFC BANK L</td><td>ICICI Main</td><td>Education</td><td class="amount">(₹10,000.00)</td></tr>
+          <tr><td>15 Jan</td><td>MUMBAI TRAVEL RETAIL PR MUMBAI IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹1,990.00)</td></tr>
+          <tr><td>15 Jan</td><td>GO GREEN FOODS HOSPITA MUMBAI IN</td><td>Amazon Pay</td><td>Travel/Vacation</td><td class="amount">(₹1,058.00)</td></tr>
+          <tr><td>14 Jan</td><td>ITC MARATHA FOS MUMBAI IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹8,673.00)</td></tr>
+          <tr><td>10 Jan</td><td>AYDI RESTAURANTS INDIA PUNE IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹3,240.00)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-monthly -->
+
+  <!-- ══ TAB 2: Credit Card Report ══ -->
+  <div class="tab-panel" id="tab-cc">
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">Card:</span>
+        <div class="select-wrap"><select class="filter-select"><option>All Cards</option><option>Amazon Pay</option><option>Platinum</option></select></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Month:</span>
+        <div class="select-wrap"><select class="filter-select"><option>(All)</option></select></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">FY:</span>
+        <div class="select-wrap"><select class="filter-select"><option>FY 2025-26</option></select></div>
+      </div>
+    </div>
+
+    <!-- CC summary cards -->
+    <div class="cc-cards">
+      <div class="cc-card">
+        <div class="cc-name">Amazon Pay</div>
+        <div class="cc-meta">
+          <div class="cc-meta-item"><div class="cc-meta-label">FY 2025-26</div><div class="cc-meta-val spent">₹46,522</div></div>
+          <div class="cc-meta-item"><div class="cc-meta-label">Outstanding</div><div class="cc-meta-val outstanding">₹28,758</div></div>
+          <div class="cc-meta-item"><div class="cc-meta-label">Available</div><div class="cc-meta-val available">₹2,91,242</div></div>
+          <div class="cc-meta-item"><div class="cc-meta-label">Issuer</div><div class="cc-meta-val">ICICI</div></div>
+        </div>
+      </div>
+      <div class="cc-card">
+        <div class="cc-name">Platinum</div>
+        <div class="cc-meta">
+          <div class="cc-meta-item"><div class="cc-meta-label">FY 2025-26</div><div class="cc-meta-val">₹0</div></div>
+          <div class="cc-meta-item"><div class="cc-meta-label">Outstanding</div><div class="cc-meta-val">₹0</div></div>
+          <div class="cc-meta-item"><div class="cc-meta-label">Available</div><div class="cc-meta-val available">₹3,20,000</div></div>
+          <div class="cc-meta-item"><div class="cc-meta-label">Issuer</div><div class="cc-meta-val">ICICI</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CC spending by category -->
+    <div class="section-card">
+      <div class="section-heading">CC Spending by Category — FY 2025-26</div>
+      <div style="margin-top:14px">
+        <div class="cat-chart-row">
+          <div class="cat-info"><span class="cat-name" style="color:var(--text-muted)"></span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:96.9%;background:#e05555;"></div></div>
+          <div class="cat-pct">96.9%</div>
+          <div class="cat-amt">₹45,060</div>
+        </div>
+        <div class="cat-chart-row" style="margin-top:8px">
+          <div class="cat-info"><span class="cat-name">Travel/Vacation</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.3%;background:#f0a500;"></div></div>
+          <div class="cat-pct">2.3%</div>
+          <div class="cat-amt">₹1,058</div>
+        </div>
+        <div class="cat-chart-row" style="margin-top:4px">
+          <div class="cat-info"><span class="cat-name">Food/Dining</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:0.9%;background:#ffc93c;"></div></div>
+          <div class="cat-pct">0.9%</div>
+          <div class="cat-amt">₹404</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CC transactions -->
+    <div class="section-heading" style="margin-bottom:10px">Credit Card Transactions — FY 2025-26</div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Description</th><th>Card</th><th>Category</th><th class="right">Amount</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>15 Jan</td><td>MUMBAI TRAVEL RETAIL PR MUMBAI IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹1,990.00)</td></tr>
+          <tr><td>15 Jan</td><td>GO GREEN FOODS HOSPITA MUMBAI IN</td><td>Amazon Pay</td><td>Travel/Vacation</td><td class="amount">(₹1,058.00)</td></tr>
+          <tr><td>14 Jan</td><td>ITC MARATHA FOS MUMBAI IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹8,673.00)</td></tr>
+          <tr><td>10 Jan</td><td>AYDI RESTAURANTS INDIA PUNE IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹3,240.00)</td></tr>
+          <tr><td>10 Jan</td><td>REGAL PUNE IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹2,799.00)</td></tr>
+          <tr><td>10 Jan</td><td>UNIQLO INDIA PVT LTD 5 PUNE IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹2,490.00)</td></tr>
+          <tr><td>10 Jan</td><td>ZAINABALIS THE SPORTS MUMBAI IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹1,869.00)</td></tr>
+          <tr><td>10 Jan</td><td>NETFLIX DI SI MUMBAI IN</td><td>Amazon Pay</td><td></td><td class="amount">(₹649.00)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-cc -->
+
+</main>
+
+<div class="fab">+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

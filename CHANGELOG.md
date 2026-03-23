@@ -1,3 +1,15 @@
+## v0.1.11 — 2026-03-23
+
+### Changed
+- Full UI redesign: teal (#0f3d4a / #2a8a7a) and gold (#f0a500) design system applied across all screens
+- All dialogs now receive the app stylesheet (were previously unstyled system dialogs)
+- Tables: white rows with teal row dividers, uppercase teal column headers, CENTER alignment for headers and data rows; Description columns left-aligned, Amount columns right-aligned
+- Account cards: account name now in brand teal; icon buttons updated to match wireframe (ℹ / ≡)
+- Sidebar, Dashboard, Accounts, Recurring, Reports, Categories, Profile, Settings screens restyled
+- FirstRunWizard and SplashScreen updated to new colour palette
+- Import CSV dialog: detected columns shown as pill chips; amount columns in a styled sub-section
+- AmbiguousMatchDialog and RecurringMatchDialog: full structural redesign with section labels and card-style match rows
+
 ## v0.1.10 — 2026-03-23
 
 ### Fixed
