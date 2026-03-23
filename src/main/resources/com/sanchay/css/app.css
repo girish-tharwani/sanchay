@@ -347,6 +347,56 @@
     -fx-border-color: -brand-mid;
     -fx-border-width: 1px;
 }
+/* ComboBox-specific: flatten the arrow button area */
+.filter-field.combo-box .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+}
+.filter-field.combo-box .arrow-button .arrow {
+    -fx-background-color: -text-secondary;
+}
+
+/* ── TabPane — flat underline style ─────────────────────────────────────── */
+.tab-pane .tab-header-area {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #D0D9E3 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 8px 18px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.tab-pane .tab .tab-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 13px;
+    -fx-font-weight: normal;
+}
+.tab-pane .tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -brand-mid transparent;
+    -fx-border-width: 0 0 2px 0;
+}
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -brand-mid;
+    -fx-font-weight: bold;
+}
+.tab-pane .tab:hover .tab-label {
+    -fx-text-fill: -brand-dark;
+}
+.tab-pane > .tab-content-area {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
 
 /* ── DatePicker text field and popup calendar ────────────────────────────── */
 

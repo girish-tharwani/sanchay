@@ -33,8 +33,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
      */
     public RecurringMatchDialog(Transaction imported, List<RecurringTransaction> candidates) {
         setTitle("Recurring Schedule Match");
-        setHeaderText("The imported transaction below matches a pending recurring schedule.\n"
-                + "Select the schedule it belongs to, or add it as a new transaction.");
+        setHeaderText("Select the matching schedule");
         getDialogPane().setPrefWidth(620);
 
         DataStore ds = DataStore.getInstance();
@@ -52,7 +51,6 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         VBox candidateBox = new VBox(8);
 
         for (RecurringTransaction r : candidates) {
-            VBox rCard = card("#F2FBF4");
             RadioButton rb = new RadioButton();
             rb.setToggleGroup(tg);
             rb.setUserData(r);
@@ -66,6 +64,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
             String nextDue = r.getNextDueDate() != null
                     ? r.getNextDueDate().toString() : "—";
 
+            VBox rCard = new VBox(4);
             label(rCard,
                     r.getDescription() + "   " + r.getAmountInr()
                             + "   " + r.getFrequency().name().replace('_', ' '),
@@ -76,6 +75,9 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
                 label(rCard, catLabel, "-fx-font-size: 11px; -fx-text-fill: #595959;");
 
             HBox rbRow = new HBox(8, rb, rCard);
+            rbRow.setStyle("-fx-background-color: #F2FBF4; "
+                    + "-fx-background-radius: 6; -fx-padding: 8;");
+            rbRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             HBox.setHgrow(rCard, Priority.ALWAYS);
             candidateBox.getChildren().add(rbRow);
         }

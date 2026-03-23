@@ -77,6 +77,7 @@ public class ReportsScreen {
         Label monthLabel = new Label("Month:");
         monthLabel.getStyleClass().add("form-label");
         ComboBox<String> monthPicker = new ComboBox<>();
+        monthPicker.getStyleClass().add("filter-field");
         List<LocalDate> summaryMonths = new ArrayList<>();
         LocalDate now = LocalDate.now();
         for (int i = 0; i < 12; i++) {
@@ -90,6 +91,7 @@ public class ReportsScreen {
         Label fyLabel = new Label("FY:");
         fyLabel.getStyleClass().add("form-label");
         ComboBox<String> fyPicker = new ComboBox<>();
+        fyPicker.getStyleClass().add("filter-field");
         fyPicker.getItems().addAll(buildFYOptions());
         fyPicker.setPromptText("Select FY…");
         fyPicker.setPrefWidth(140);
@@ -419,6 +421,7 @@ public class ReportsScreen {
         Label cardLabel = new Label("Card:");
         cardLabel.getStyleClass().add("form-label");
         ComboBox<String> cardPicker = new ComboBox<>();
+        cardPicker.getStyleClass().add("filter-field");
         cardPicker.getItems().add("All Cards");
         cards.forEach(cc -> cardPicker.getItems().add(cc.getName()));
         cardPicker.setValue("All Cards");
@@ -426,6 +429,7 @@ public class ReportsScreen {
         Label monthLabel = new Label("Month:");
         monthLabel.getStyleClass().add("form-label");
         ComboBox<String> monthPicker = new ComboBox<>();
+        monthPicker.getStyleClass().add("filter-field");
         List<LocalDate> ccMonths = new ArrayList<>();
         for (int i = 0; i < 12; i++) {
             LocalDate m = now.minusMonths(i);
@@ -438,6 +442,7 @@ public class ReportsScreen {
         Label fyLabel = new Label("FY:");
         fyLabel.getStyleClass().add("form-label");
         ComboBox<String> fyPicker = new ComboBox<>();
+        fyPicker.getStyleClass().add("filter-field");
         fyPicker.getItems().addAll(buildFYOptions());
         fyPicker.setPromptText("Select FY…");
         fyPicker.setPrefWidth(140);
