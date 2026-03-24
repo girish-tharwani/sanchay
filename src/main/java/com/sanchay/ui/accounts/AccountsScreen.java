@@ -57,6 +57,7 @@ public class AccountsScreen {
 
     private void buildList() {
         mainWindow.setPostTransactionCallback(null);
+        mainWindow.setTransactionContextAccount(null);
         VBox content = new VBox(24);
         content.getStyleClass().add("main-panel");
         content.setPadding(new Insets(24));
@@ -501,6 +502,7 @@ public class AccountsScreen {
         pendingOnly.selectedProperty().addListener((obs, o, n) -> applyFilter.run());
         applyFilter.run();
         mainWindow.setPostTransactionCallback(applyFilter);
+        mainWindow.setTransactionContextAccount(acc);
 
         // Double-click or Enter to edit / re-classify
         table.setRowFactory(tv -> {

@@ -661,7 +661,7 @@ public class RecurringScreen {
         dlg.setResultConverter(bt -> {
             if (bt != saveBtn) return null;
             String desc = descFld.getText().trim();
-            if (desc.isEmpty()) { alert("Validation", "Description is required."); return null; }
+            if (desc.isEmpty()) { alert("Validation Error", "Description is required."); return null; }
 
             Transaction.Type type               = typeCb.getValue();
             RecurringTransaction.Frequency freq = freqCb.getValue();
@@ -670,27 +670,32 @@ public class RecurringScreen {
 
             // Validate to-account for types that require one
             if (type == Transaction.Type.TRANSFER && transferToCb.getValue() == null) {
-                alert("Validation", "Select a destination account for the transfer."); return null;
+                alert("Validation Error", "Select a destination account for the transfer."); return null;
+            }
+            if (type == Transaction.Type.TRANSFER
+                    && accountCb.getValue() != null && transferToCb.getValue() != null
+                    && accountCb.getValue().getId().equals(transferToCb.getValue().getId())) {
+                alert("Validation Error", "From and To accounts must differ."); return null;
             }
             if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() == null) {
-                alert("Validation", "Select a destination investment account."); return null;
+                alert("Validation Error", "Select a destination investment account."); return null;
             }
             if (type == Transaction.Type.CC_PAYMENT && ccpCardCb.getValue() == null) {
-                alert("Validation", "Select a credit card for the payment."); return null;
+                alert("Validation Error", "Select a credit card for the payment."); return null;
             }
             if (type == Transaction.Type.LOAN_PAYMENT && loanToCb.getValue() == null) {
-                alert("Validation", "Select a loan account for the payment."); return null;
+                alert("Validation Error", "Select a loan account for the payment."); return null;
             }
 
             long paise = 0;
             String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
             if (!amtRaw.isEmpty()) {
                 try { paise = Math.round(Double.parseDouble(amtRaw) * 100); }
-                catch (NumberFormatException e) { alert("Validation", "Invalid amount."); return null; }
+                catch (NumberFormatException e) { alert("Validation Error", "Invalid amount."); return null; }
             }
 
             if (autoRecordCb.isSelected() && paise == 0) {
-                alert("Validation", "Auto-record requires a fixed amount. Enter an amount or uncheck auto-record.");
+                alert("Validation Error", "Auto-record requires a fixed amount. Enter an amount or uncheck auto-record.");
                 return null;
             }
 

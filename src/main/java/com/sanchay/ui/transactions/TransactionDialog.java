@@ -154,7 +154,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         typeCb.valueProperty().addListener((obs, old, type) -> {
             typeSection.getChildren().setAll(panels.get(type));
-            if (contextAccountId != null && (old == Type.EXPENSE || old == Type.INCOME))
+            if (contextAccountId != null)
                 applyContextAccount(type);
         });
 
@@ -1075,24 +1075,95 @@ public class TransactionDialog extends Dialog<Transaction> {
                 .findFirst().orElse(null);
         if (acct == null) return;
         switch (newType) {
+            case EXPENSE -> {
+                // Bank and CC are both valid expense accounts
+                if (acct instanceof BankAccount || acct instanceof CreditCardAccount)
+                    setAccount(expAcctCb, contextAccountId);
+            }
+            case INCOME -> {
+                // Income lands in a bank account
+                if (acct instanceof BankAccount)
+                    setAccount(incAcctCb, contextAccountId);
+            }
             case TRANSFER -> {
-                if (contextIsSource) setAccount(trfFromCb, contextAccountId);
-                else                 setAccount(trfToCb,   contextAccountId);
+                // Bank → bank; use contextIsSource to decide direction
+                if (acct instanceof BankAccount) {
+                    if (contextIsSource) setAccount(trfFromCb, contextAccountId);
+                    else                 setAccount(trfToCb,   contextAccountId);
+                }
             }
             case INVESTMENT -> {
-                if (acct instanceof BankAccount) setAccount(invFromCb, contextAccountId);
+                // Bank funds the investment; investment account is the destination
+                if (acct instanceof BankAccount)
+                    setAccount(invFromCb, contextAccountId);
+                else if (acct instanceof InvestmentAccount)
+                    invDestCb.getItems().stream()
+                            .filter(a -> a.getId().equals(contextAccountId))
+                            .findFirst().ifPresent(invDestCb::setValue);
             }
             case CC_PAYMENT -> {
-                if (contextIsSource && acct instanceof BankAccount)
+                // Bank pays the CC; CC is the destination
+                if (acct instanceof BankAccount)
                     setAccount(ccBankCb, contextAccountId);
-                else if (!contextIsSource && acct instanceof CreditCardAccount)
+                else if (acct instanceof CreditCardAccount)
                     setAccount(ccCardCb, contextAccountId);
             }
-            case REFUND -> setAccount(refAcctCb, contextAccountId);
+            case REFUND -> {
+                // Refund returns to the account that was originally charged (bank or CC)
+                if (acct instanceof BankAccount || acct instanceof CreditCardAccount)
+                    setAccount(refAcctCb, contextAccountId);
+            }
             case REDEEM -> {
-                if (!contextIsSource) setAccount(rdeToCb, contextAccountId);
+                // Investment is redeemed from; bank receives the proceeds
+                if (acct instanceof InvestmentAccount)
+                    rdeFromCb.getItems().stream()
+                            .filter(a -> a.getId().equals(contextAccountId))
+                            .findFirst().ifPresent(rdeFromCb::setValue);
+                else if (acct instanceof BankAccount)
+                    setAccount(rdeToCb, contextAccountId);
+            }
+            case LOAN_PAYMENT -> {
+                // Payment comes from bank or CC; loan account is the destination
+                if (acct instanceof LoanAccount)
+                    lnToCb.getItems().stream()
+                            .filter(a -> a.getId().equals(contextAccountId))
+                            .findFirst().ifPresent(lnToCb::setValue);
+                else if (acct instanceof BankAccount || acct instanceof CreditCardAccount)
+                    setAccount(lnFromCb, contextAccountId);
             }
             default -> {}
+        }
+    }
+
+    /**
+     * Pre-populate account fields when a new transaction is opened from within
+     * an account's transaction view.  Sets the context account so that
+     * subsequent type-changes continue to track the correct account.
+     */
+    public void setContextAccount(Account acc) {
+        if (acc == null) return;
+        contextAccountId = acc.getId();
+
+        if (acc instanceof LoanAccount) {
+            contextIsSource = false;
+            typeCb.setValue(Type.LOAN_PAYMENT);
+            lnToCb.getItems().stream()
+                    .filter(a -> a.getId().equals(acc.getId()))
+                    .findFirst().ifPresent(lnToCb::setValue);
+        } else if (acc instanceof InvestmentAccount) {
+            contextIsSource = false;
+            typeCb.setValue(Type.INVESTMENT);
+            invDestCb.getItems().stream()
+                    .filter(a -> a.getId().equals(acc.getId()))
+                    .findFirst().ifPresent(invDestCb::setValue);
+        } else if (acc instanceof CreditCardAccount) {
+            // CC is the "to" side for CC_PAYMENT; for EXPENSE it is also the charge account
+            contextIsSource = false;
+            setAccount(expAcctCb, acc.getId());
+        } else {
+            // BankAccount — source/from for most transaction types
+            contextIsSource = true;
+            setAccount(expAcctCb, acc.getId());
         }
     }
 

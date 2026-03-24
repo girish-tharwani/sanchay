@@ -10,6 +10,7 @@ import com.sanchay.ui.recurring.RecurringScreen;
 import com.sanchay.ui.reports.ReportsScreen;
 import com.sanchay.ui.settings.SettingsScreen;
 import com.sanchay.ui.transactions.TransactionDialog;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -42,6 +43,11 @@ public class MainWindow {
     // refreshes the table in place rather than rebuilding the whole screen.
     private Runnable postTransactionCallback = null;
     public void setPostTransactionCallback(Runnable cb) { this.postTransactionCallback = cb; }
+
+    // Set by AccountsScreen when viewing a specific account's transactions,
+    // so the FAB pre-populates that account in the new-transaction dialog.
+    private Account transactionContextAccount = null;
+    public void setTransactionContextAccount(Account acc) { this.transactionContextAccount = acc; }
     private boolean isFirstRun;
 
     public MainWindow(boolean isFirstRun) {
@@ -228,6 +234,7 @@ public class MainWindow {
 
     private void openNewTransactionDialog() {
         TransactionDialog dlg = new TransactionDialog();
+        if (transactionContextAccount != null) dlg.setContextAccount(transactionContextAccount);
         dlg.showAndWait().ifPresent(t -> {
             if (postTransactionCallback != null) postTransactionCallback.run();
             else refreshCurrentScreen();
@@ -238,7 +245,7 @@ public class MainWindow {
 
     /**
      * Record confirmation dialog — invoked from both DashboardScreen and RecurringScreen.
-     * Contains: Transaction Date (defaults today), Amount (pre-filled), Paid From Account.
+     * Contains: Transaction Date (defaults today), Amount (pre-filled), From Account Account.
      * After recording, onComplete is called so the caller can refresh its pending list.
      */
     public void recordRecurring(RecurringTransaction r, Runnable onComplete) {
@@ -282,25 +289,46 @@ public class MainWindow {
         amtFld.setMaxWidth(Double.MAX_VALUE);
         addDialogField(g, "Amount (₹):", amtFld, row++);
 
-        ComboBox<Account> accountCb = new ComboBox<>();
         DataStore ds = DataStore.getInstance();
-        boolean showAccount = r.getTransactionType() == Transaction.Type.EXPENSE
-                || r.getTransactionType() == Transaction.Type.CC_PAYMENT
-                || r.getTransactionType() == Transaction.Type.TRANSFER
-                || r.getTransactionType() == Transaction.Type.INVESTMENT;
-        if (showAccount) {
+        Transaction.Type rType = r.getTransactionType();
+
+        // From Account — shown for all types that debit an account
+        ComboBox<Account> fromAccountCb = new ComboBox<>();
+        boolean showFromAccount = rType == Transaction.Type.EXPENSE
+                || rType == Transaction.Type.CC_PAYMENT
+                || rType == Transaction.Type.TRANSFER
+                || rType == Transaction.Type.LOAN_PAYMENT
+                || rType == Transaction.Type.INVESTMENT;
+        if (showFromAccount) {
             ds.getAccounts().stream()
                     .filter(a -> a.isActive() && !(a instanceof CreditCardAccount))
-                    .forEach(accountCb.getItems()::add);
-            if (r.getFromAccountId() != null) {
-                accountCb.getItems().stream()
+                    .forEach(fromAccountCb.getItems()::add);
+            if (r.getFromAccountId() != null)
+                fromAccountCb.getItems().stream()
                         .filter(a -> a.getId().equals(r.getFromAccountId()))
-                        .findFirst().ifPresent(accountCb::setValue);
-            }
-            if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
-                accountCb.setValue(accountCb.getItems().get(0));
-            accountCb.setMaxWidth(Double.MAX_VALUE);
-            addDialogField(g, "Paid From:", accountCb, row++);
+                        .findFirst().ifPresent(fromAccountCb::setValue);
+            if (fromAccountCb.getValue() == null && !fromAccountCb.getItems().isEmpty())
+                fromAccountCb.setValue(fromAccountCb.getItems().get(0));
+            fromAccountCb.setMaxWidth(Double.MAX_VALUE);
+            addDialogField(g, "From Account:", fromAccountCb, row++);
+        }
+
+        // To Account — shown for Income and Transfer
+        ComboBox<Account> toAccountCb = new ComboBox<>();
+        boolean showToAccount = rType == Transaction.Type.INCOME
+                || rType == Transaction.Type.TRANSFER;
+        if (showToAccount) {
+            ds.getAccounts().stream()
+                    .filter(a -> a.isActive() && a instanceof BankAccount)
+                    .forEach(toAccountCb.getItems()::add);
+            if (r.getToAccountId() != null)
+                toAccountCb.getItems().stream()
+                        .filter(a -> a.getId().equals(r.getToAccountId()))
+                        .findFirst().ifPresent(toAccountCb::setValue);
+            if (toAccountCb.getValue() == null && !toAccountCb.getItems().isEmpty())
+                toAccountCb.setValue(toAccountCb.getItems().get(0));
+            toAccountCb.setMaxWidth(Double.MAX_VALUE);
+            addDialogField(g, "To Account:", toAccountCb, row++);
         }
 
         VBox dialogContent = new VBox(12, subtitle, g);
@@ -309,35 +337,54 @@ public class MainWindow {
         ButtonType recordBtn = new ButtonType("Record", ButtonBar.ButtonData.OK_DONE);
         dlg.getDialogPane().getButtonTypes().addAll(recordBtn, ButtonType.CANCEL);
 
+        // Validate before allowing the dialog to close so it stays open on error
+        Platform.runLater(() -> {
+            javafx.scene.control.Button btn =
+                    (javafx.scene.control.Button) dlg.getDialogPane().lookupButton(recordBtn);
+            if (btn == null) return;
+            btn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+                String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
+                boolean amtOk = true;
+                try { if (Double.parseDouble(amtRaw) <= 0) amtOk = false; }
+                catch (NumberFormatException ignored) { amtOk = false; }
+                if (!amtOk) {
+                    showStyledError("Enter a valid positive amount.");
+                    ev.consume();
+                    return;
+                }
+                if (showFromAccount && showToAccount
+                        && fromAccountCb.getValue() != null && toAccountCb.getValue() != null
+                        && fromAccountCb.getValue().getId().equals(toAccountCb.getValue().getId())) {
+                    showStyledError("From and To accounts must differ.");
+                    ev.consume();
+                }
+            });
+        });
+
         dlg.setResultConverter(bt -> bt == recordBtn);
         dlg.showAndWait().ifPresent(confirmed -> {
             if (!confirmed) return;
             String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
-            try {
-                double v = Double.parseDouble(amtRaw);
-                if (v <= 0) throw new NumberFormatException();
-                long paise = Math.round(v * 100);
-                LocalDate txDate = datePicker.getValue() != null ? datePicker.getValue() : LocalDate.now();
-
-                Transaction t = new Transaction(r.getTransactionType(), txDate, r.getDescription(), paise);
-                if (showAccount && accountCb.getValue() != null)
-                    t.setFromAccountId(accountCb.getValue().getId());
-                else
-                    t.setFromAccountId(r.getFromAccountId());
+            long paise = Math.round(Double.parseDouble(amtRaw) * 100);
+            LocalDate txDate = datePicker.getValue() != null ? datePicker.getValue() : LocalDate.now();
+            Transaction t = new Transaction(rType, txDate, r.getDescription(), paise);
+            if (showFromAccount && fromAccountCb.getValue() != null)
+                t.setFromAccountId(fromAccountCb.getValue().getId());
+            else
+                t.setFromAccountId(r.getFromAccountId());
+            if (showToAccount && toAccountCb.getValue() != null)
+                t.setToAccountId(toAccountCb.getValue().getId());
+            else
                 t.setToAccountId(r.getToAccountId());
-                t.setCategoryId(r.getCategoryId());
-                t.setSubCategoryId(r.getSubCategoryId());
-                t.setFromRecurring(true);
-                t.setRecurringId(r.getId());
-                ds.addTransaction(t);
-                r.markRecorded(txDate);
-                ds.saveRecurringNow();
-                if (onComplete != null) onComplete.run();
-                refreshDashboard();
-            } catch (NumberFormatException ex) {
-                Alert err = new Alert(Alert.AlertType.ERROR, "Enter a valid positive amount.");
-                err.showAndWait();
-            }
+            t.setCategoryId(r.getCategoryId());
+            t.setSubCategoryId(r.getSubCategoryId());
+            t.setFromRecurring(true);
+            t.setRecurringId(r.getId());
+            ds.addTransaction(t);
+            r.markRecorded(txDate);
+            ds.saveRecurringNow();
+            if (onComplete != null) onComplete.run();
+            refreshDashboard();
         });
     }
 
@@ -347,13 +394,44 @@ public class MainWindow {
     }
 
     public void skipRecurring(RecurringTransaction r, Runnable onComplete) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Skip Occurrence");
-        confirm.setHeaderText("Skip '" + r.getDescription() + "'?");
-        confirm.setContentText(
-                "Use this when the transaction was already recorded separately.\n"
-                        + "The schedule will advance to the next due date.");
-        confirm.showAndWait().filter(b -> b == ButtonType.OK).ifPresent(b -> {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Skip Occurrence");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(400);
+        UiUtils.applyStylesheet(dlg);
+
+        VBox body = new VBox(14);
+        body.setPadding(new Insets(16));
+
+        HBox iconRow = new HBox(14);
+        iconRow.setAlignment(Pos.CENTER_LEFT);
+        Label iconLbl = new Label("↷");
+        iconLbl.setStyle(
+                "-fx-background-color: rgba(240,165,0,0.12); "
+                + "-fx-border-color: rgba(240,165,0,0.30); "
+                + "-fx-border-radius: 50; -fx-background-radius: 50; "
+                + "-fx-text-fill: #d4900a; -fx-font-size: 20px; "
+                + "-fx-min-width: 42; -fx-min-height: 42; "
+                + "-fx-max-width: 42; -fx-max-height: 42; -fx-alignment: center;");
+        VBox textBlock = new VBox(4);
+        Label headline = new Label("Skip \u2018" + r.getDescription() + "\u2019?");
+        headline.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        headline.setWrapText(true);
+        Label subLbl = new Label(
+                "Use this when the transaction was already recorded separately. "
+                + "The schedule will advance to the next due date.");
+        subLbl.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #7aa4b0;");
+        subLbl.setWrapText(true);
+        subLbl.setMaxWidth(300);
+        textBlock.getChildren().addAll(headline, subLbl);
+        iconRow.getChildren().addAll(iconLbl, textBlock);
+        body.getChildren().add(iconRow);
+
+        dlg.getDialogPane().setContent(body);
+        ButtonType skipBtn = new ButtonType("Skip", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, skipBtn);
+
+        dlg.showAndWait().filter(b -> b == skipBtn).ifPresent(b -> {
             r.markRecorded(LocalDate.now());
             DataStore.getInstance().saveRecurringNow();
             if (onComplete != null) onComplete.run();
@@ -362,6 +440,38 @@ public class MainWindow {
     }
 
     // ── Dialog helpers ────────────────────────────────────────────────────────
+
+    private void showStyledError(String message) {
+        Dialog<Void> dlg = new Dialog<>();
+        dlg.setTitle("Validation Error");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
+
+        VBox body = new VBox(10);
+        body.setPadding(new Insets(16));
+
+        HBox iconRow = new HBox(14);
+        iconRow.setAlignment(Pos.CENTER_LEFT);
+        Label iconLbl = new Label("⚠");
+        iconLbl.setStyle(
+                "-fx-background-color: rgba(192,57,43,0.10); "
+                + "-fx-border-color: rgba(192,57,43,0.25); "
+                + "-fx-border-radius: 50; -fx-background-radius: 50; "
+                + "-fx-text-fill: #c0392b; -fx-font-size: 18px; "
+                + "-fx-min-width: 42; -fx-min-height: 42; "
+                + "-fx-max-width: 42; -fx-max-height: 42; -fx-alignment: center;");
+        Label msgLbl = new Label(message);
+        msgLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
+        msgLbl.setWrapText(true);
+        msgLbl.setMaxWidth(280);
+        iconRow.getChildren().addAll(iconLbl, msgLbl);
+        body.getChildren().add(iconRow);
+
+        dlg.getDialogPane().setContent(body);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dlg.showAndWait();
+    }
 
     private void addDialogLabel(GridPane g, String labelText, String value, int row) {
         Label lbl = new Label(labelText);
