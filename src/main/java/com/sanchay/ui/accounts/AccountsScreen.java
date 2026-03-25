@@ -192,7 +192,7 @@ public class AccountsScreen {
             long out = ds.getCreditCardOutstandingPaise(cc.getId());
             long avail = cc.getCreditLimitPaise() - out;
             label = "Outstanding / Available";
-            value = String.format("₹%,.0f  /  ₹%,.0f", out / 100.0, avail / 100.0);
+            value = String.format("₹%,.2f  /  ₹%,.2f", out / 100.0, avail / 100.0);
             valueColour = out > 0 ? "#c0392b" : "#0f3d4a";
         } else if (acc instanceof LoanAccount la) {
             long paid = ds.getTransactions().stream()
@@ -212,7 +212,7 @@ public class AccountsScreen {
                                   && ia.getId().equals(t.getToAccountId()))
                         .mapToLong(Transaction::getAmountPaise).sum()
                     - ds.getTransactions().stream()
-                        .filter(t -> t.getType() == Transaction.Type.TRANSFER
+                        .filter(t -> t.getType() == Transaction.Type.REDEEM
                                   && ia.getId().equals(t.getFromAccountId()))
                         .mapToLong(Transaction::getAmountPaise).sum();
             value = String.format("₹%,.2f", Math.max(0, invested) / 100.0);
@@ -352,9 +352,9 @@ public class AccountsScreen {
             ccSummary.setPadding(new Insets(12, 16, 12, 16));
             ccSummary.setAlignment(Pos.CENTER_LEFT);
             ccSummary.getChildren().addAll(
-                    ccStat("Credit Limit",  "₹" + String.format("%,.0f", cc.getCreditLimitPaise() / 100.0), "#595959"),
-                    ccStat("Outstanding",   "₹" + String.format("%,.0f", outstanding / 100.0), "#E74C3C"),
-                    ccStat("Available",     "₹" + String.format("%,.0f", available / 100.0), "#27AE60"),
+                    ccStat("Credit Limit",  "₹" + String.format("%,.2f", cc.getCreditLimitPaise() / 100.0), "#595959"),
+                    ccStat("Outstanding",   "₹" + String.format("%,.2f", outstanding / 100.0), "#E74C3C"),
+                    ccStat("Available",     "₹" + String.format("%,.2f", available / 100.0), "#27AE60"),
                     ccStat("Billing Date",  cc.getBillingCycleDate() + " of month", "#595959"),
                     ccStat("Payment Due",   cc.getPaymentDueDays() + " days after billing", "#595959")
             );
@@ -873,17 +873,18 @@ public class AccountsScreen {
                 DataStore ds = DataStore.getInstance();
                 for (Transaction t : txs) {
                     // Export signed amounts so re-importing preserves EXPENSE vs INCOME.
-                    // INCOME / transfer arriving here → positive; everything else → negative.
+                    // INCOME / transfer arriving here → positive; EXPENSE → negative; REST as per funds direction
                     long signedPaise;
                     if (t.getType() == Transaction.Type.INCOME) {
+                        // INCOME
                         signedPaise = t.getAmountPaise();
-                    } else if (t.getType() == Transaction.Type.TRANSFER
-                            || t.getType() == Transaction.Type.LOAN_PAYMENT) {
+                    } else if(t.getType() == Transaction.Type.EXPENSE) {
+                        // EXPENSE
+                        signedPaise = -t.getAmountPaise();
+                    } else {
+                        // All other TXN Types
                         signedPaise = acc.getId().equals(t.getFromAccountId())
                                 ? -t.getAmountPaise() : t.getAmountPaise();
-                    } else {
-                        // EXPENSE, INVESTMENT, CC_PAYMENT
-                        signedPaise = -t.getAmountPaise();
                     }
                     pw.println(String.join(",",
                             t.getDate().format(dateFmt()),

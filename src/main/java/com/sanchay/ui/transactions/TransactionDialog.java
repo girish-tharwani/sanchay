@@ -777,8 +777,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         InvestmentAccount from      = rdeFromCb.getValue();
         if (from == null) throw new IllegalArgumentException("From Investment Account is required.");
         Account           to        = requireAccount(rdeToCb, "To Bank Account");
-        if (principal > total)
-            throw new IllegalArgumentException("Principal cannot exceed total redemption amount.");
+        //if (principal > total)
+        //    throw new IllegalArgumentException("Principal cannot exceed total redemption amount.");
 
         String  notes    = nullIfBlank(sharedNotes.getText());
         String  groupId  = UUID.randomUUID().toString();
