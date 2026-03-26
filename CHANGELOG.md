@@ -1,3 +1,21 @@
+## v0.2.2 — 2026-03-25
+
+### Added
+- FAB (floating `+` button) now pre-populates the context account when opened from an account's transaction view
+- `TransactionDialog.setContextAccount()` — handles all transaction types (Expense, Income, Transfer, Investment, CC Payment, Refund, Redeem, Loan Payment) when pre-populating from account context
+
+### Changed
+- Recurring Record dialog split "Paid From" into separate "From Account" and "To Account" fields — correctly handles Income, Transfer, and Loan Payment types
+- Skip Recurring confirmation replaced with styled dialog (was plain system alert)
+- Recurring Record inline validation (amount, same-account check) now uses styled error dialog
+- RecurringScreen Transfer validation: added same-account check; alert titles unified to "Validation Error"
+- CC card amounts display two decimal places (`%,.2f`)
+- CSV export signing: EXPENSE always exported negative; all other types use from/to account direction
+
+### Fixed
+- Investment account balance now correctly deducts Redeem transactions (was incorrectly deducting Transfer)
+- Redeem dialog: removed principal-cannot-exceed-total validation (blocks legitimate loss-making redemptions)
+
 ## v0.2.1 — 2026-03-23
 
 ### Changed
