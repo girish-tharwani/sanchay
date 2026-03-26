@@ -62,6 +62,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         setHeaderText(null);
         getDialogPane().setPrefWidth(780);
         UiUtils.applyStylesheet(this);
+        UiUtils.setDialogHeader(this, "₹", "Earnings — " + member.getName());
         getDialogPane().setPrefHeight(650);
 
         TabPane tabs = new TabPane();
@@ -605,6 +606,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(360);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "+", "Add PF Account");
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);

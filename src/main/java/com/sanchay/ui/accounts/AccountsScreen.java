@@ -35,6 +35,9 @@ public class AccountsScreen {
     // view is initialised ONCE; never reassigned so that the reference held by MainWindow stays valid
     private final StackPane view;
 
+    // Remembered across the session so repeated exports start in the same folder
+    private static String lastExportDir = null;
+
     // "Show Closed" checkbox per group — state persists across buildList() rebuilds
     private final CheckBox showClosedBank       = new CheckBox("Show Closed");
     private final CheckBox showClosedCC         = new CheckBox("Show Closed");
@@ -360,6 +363,46 @@ public class AccountsScreen {
             );
             panel.getChildren().addAll(header, ccSummary);
         } else {
+            DataStore ds2 = DataStore.getInstance();
+            String statLabel; String statValue; String statColour;
+            if (acc instanceof BankAccount ba) {
+                long bal = ba.getOpeningBalancePaise();
+                for (Transaction t : ds2.getTransactions()) {
+                    if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
+                    if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
+                }
+                statLabel  = "Balance";
+                statValue  = "₹" + String.format("%,.2f", bal / 100.0);
+                statColour = "#0f3d4a";
+            } else if (acc instanceof LoanAccount la) {
+                long paid = ds2.getTransactions().stream()
+                        .filter(t -> (t.getType() == Transaction.Type.TRANSFER
+                                   || t.getType() == Transaction.Type.LOAN_PAYMENT)
+                                  && la.getId().equals(t.getToAccountId()))
+                        .mapToLong(Transaction::getAmountPaise).sum();
+                long outstanding = Math.max(0, la.getOutstandingPrincipalPaise() - paid);
+                statLabel  = "Outstanding";
+                statValue  = "₹" + String.format("%,.2f", outstanding / 100.0);
+                statColour = outstanding > 0 ? "#C62828" : "#0f3d4a";
+            } else if (acc instanceof InvestmentAccount ia) {
+                long invested = ia.getInvestedAmountPaise();
+                for (Transaction t : ds2.getTransactions()) {
+                    if (t.getType() == Transaction.Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
+                        invested += t.getAmountPaise();
+                    if (t.getType() == Transaction.Type.REDEEM && ia.getId().equals(t.getFromAccountId()))
+                        invested -= t.getPrincipalPaise() > 0 ? t.getPrincipalPaise() : t.getAmountPaise();
+                }
+                statLabel  = "Invested";
+                statValue  = "₹" + String.format("%,.2f", Math.max(0, invested) / 100.0);
+                statColour = "#0f3d4a";
+            } else {
+                statLabel = statValue = statColour = null;
+            }
+            if (statLabel != null) {
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                header.getChildren().addAll(spacer, ccStat(statLabel, statValue, statColour));
+            }
             panel.getChildren().add(header);
         }
 
@@ -406,7 +449,7 @@ public class AccountsScreen {
 
         // ── Transaction table ──────────────────────────────────────────────────
         TableView<Transaction> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         table.setPrefHeight(400);
 
         TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("DATE");
@@ -469,7 +512,8 @@ public class AccountsScreen {
                             || t.getDescription().toLowerCase().contains(q)
                             || (t.getNotes() != null && t.getNotes().toLowerCase().contains(q)))
                     .filter(t -> !pendingOnly.isSelected()
-                            || t.getSourceIndicator() == Transaction.SourceIndicator.AUTO_CATEGORIZED)
+                            || t.getSourceIndicator() == Transaction.SourceIndicator.AUTO_CATEGORIZED
+                            || t.getSourceIndicator() == Transaction.SourceIndicator.IMPORTED)
                     .collect(Collectors.toList());
 
             if (table.getSortOrder().contains(dateCol)) {
@@ -865,8 +909,13 @@ public class AccountsScreen {
         fc.setTitle("Save Transactions as CSV");
         fc.setInitialFileName(acc.getName().replaceAll("\\s+", "_") + "_transactions.csv");
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        if (lastExportDir != null) {
+            File dir = new File(lastExportDir);
+            if (dir.isDirectory()) fc.setInitialDirectory(dir);
+        }
         File file = fc.showSaveDialog(null);
         if (file == null) return;
+        lastExportDir = file.getParent();
         try {
             try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
                 pw.println("Date,Description,Type,Category,Sub-category,Amount");
@@ -1377,6 +1426,7 @@ public class AccountsScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(500);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, title.startsWith("Edit") ? "✎" : "+", title);
         return dlg;
     }
 
@@ -1468,6 +1518,7 @@ public class AccountsScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(400);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "⚠", "Delete Transaction");
 
         boolean isGrouped = t.getGroupTransactionId() != null;
 
@@ -1532,6 +1583,7 @@ public class AccountsScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(420);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "✓", "Import Complete");
 
         VBox body = new VBox(0);
         body.setPadding(new Insets(16));

@@ -56,8 +56,10 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         UiUtils.applyStylesheet(this);
         setTitle("Import CSV — " + account.getName());
-        setHeaderText("Map CSV columns to transaction fields."
-                + (prefilled != null ? "  (Pre-filled from saved mapping — please confirm.)" : ""));
+        setHeaderText(null);
+        UiUtils.setDialogHeader(this, "⇌", "Import CSV — " + account.getName(),
+                "Map CSV columns to transaction fields."
+                + (prefilled != null ? "  Pre-filled from saved mapping — please confirm." : ""));
         getDialogPane().setPrefWidth(520);
 
         getDialogPane().setContent(buildContent());

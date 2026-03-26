@@ -6,6 +6,7 @@ import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -25,6 +26,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private final DataStore ds = DataStore.getInstance();
     private Transaction existing;
+    private Transaction pendingResult;
 
     // ── Shared fields (always visible) ───────────────────────────────────────
     private ComboBox<Type> typeCb;
@@ -95,6 +97,7 @@ public class TransactionDialog extends Dialog<Transaction> {
     // ── Context account (edit-mode type changes) ──────────────────────────────
     private String  contextAccountId; // account in context when editing Expense/Income
     private boolean contextIsSource;  // true = "from" account (Expense), false = "to" (Income)
+    private boolean rdeShowingExpenseCats = false;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -104,6 +107,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         getDialogPane().setPrefWidth(560);
         getDialogPane().getStyleClass().add("dialog-pane");
         UiUtils.applyStylesheet(this);
+        UiUtils.setDialogHeader(this, "+", "New Transaction");
 
         // Shared fields
         sharedDate  = new DatePicker(LocalDate.now());
@@ -172,13 +176,17 @@ public class TransactionDialog extends Dialog<Transaction> {
         ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
         getDialogPane().getButtonTypes().addAll(saveBtn, cancelBtn);
 
-        setResultConverter(bt -> {
-            if (bt != saveBtn) return null;
-            try { return save(); }
-            catch (Exception ex) { showError("Validation Error", ex.getMessage()); return null; }
-        });
+        setResultConverter(bt -> bt == saveBtn ? pendingResult : null);
 
-        Platform.runLater(this::focusFirstEmpty);
+        Platform.runLater(() -> {
+            javafx.scene.control.Button btn =
+                    (javafx.scene.control.Button) getDialogPane().lookupButton(saveBtn);
+            if (btn != null) btn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+                try { pendingResult = save(); }
+                catch (Exception ex) { showError(ex.getMessage()); ev.consume(); }
+            });
+            focusFirstEmpty();
+        });
     }
 
     /** Edit / re-classify constructor. */
@@ -186,6 +194,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         this();
         this.existing = existing;
         setTitle("Edit Transaction");
+        UiUtils.setDialogHeader(this, "✎", "Edit Transaction");
         prefillFromTransaction(existing);
         Platform.runLater(this::focusFirstEmpty);
     }
@@ -437,10 +446,22 @@ public class TransactionDialog extends Dialog<Transaction> {
             String color = gainLoss >= 0 ? "#2E7D32" : "#C62828";
             rdeGainLossLbl.setText(sign + String.format("₹%,.2f", gainLoss / 100.0));
             rdeGainLossLbl.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold;");
+            switchRedeemCatList(gainLoss < 0);
         } catch (NumberFormatException e) {
             rdeGainLossLbl.setText("—");
             rdeGainLossLbl.setStyle("-fx-text-fill: #7aa4b0;");
         }
+    }
+
+    private void switchRedeemCatList(boolean toLoss) {
+        if (toLoss == rdeShowingExpenseCats) return;
+        rdeShowingExpenseCats = toLoss;
+        rdeCatMaster.clear();
+        rdeCatMaster.addAll(toLoss ? ds.getExpenseCategories() : ds.getIncomeCategories());
+        rdeCatCb.setValue(null);
+        rdeCatCb.getEditor().clear();
+        rdeCatCb.getItems().setAll(rdeCatMaster);
+        rdeCatCb.setPromptText(toLoss ? "Select loss category (optional)" : "Select gain category (optional)");
     }
 
     // ── Category combo factories ──────────────────────────────────────────────
@@ -502,32 +523,7 @@ public class TransactionDialog extends Dialog<Transaction> {
     // ── Autocomplete ──────────────────────────────────────────────────────────
 
     private void makeAutoComplete(ComboBox<Category> combo, List<Category> masterList) {
-        combo.setEditable(true);
-        combo.setConverter(new StringConverter<>() {
-            @Override public String toString(Category c)   { return c == null ? "" : c.getName(); }
-            @Override public Category fromString(String s) {
-                if (s == null || s.isBlank()) return null;
-                return masterList.stream()
-                        .filter(c -> c.getName().equalsIgnoreCase(s.trim()))
-                        .findFirst().orElse(null);
-            }
-        });
-        combo.getEditor().textProperty().addListener((obs, old, text) -> {
-            Category selected = combo.getValue();
-            if (selected != null && selected.getName().equals(text)) {
-                if (combo.getItems().size() < masterList.size())
-                    combo.getItems().setAll(masterList);
-                return;
-            }
-            String lower = text == null ? "" : text.toLowerCase();
-            List<Category> filtered = lower.isEmpty()
-                    ? new ArrayList<>(masterList)
-                    : masterList.stream()
-                            .filter(c -> c.getName().toLowerCase().contains(lower))
-                            .collect(Collectors.toList());
-            combo.getItems().setAll(filtered);
-            if (!filtered.isEmpty() && !lower.isEmpty()) combo.show();
-        });
+        UiUtils.wireAutoComplete(combo, masterList);
     }
 
     // ── Auto-suggest (unified, routes by current type) ────────────────────────
@@ -1050,8 +1046,11 @@ public class TransactionDialog extends Dialog<Transaction> {
                             : -gainLossTxn.getAmountPaise());
             sharedAmt.setText(String.format("%.2f", total / 100.0));
 
-            // Category from the GAIN/LOSE transaction
-            if (gainLossTxn != null) prefillCat(rdeCatCb, rdeSubCatCb, gainLossTxn);
+            // Category from the GAIN/LOSE transaction — switch list to expense if LOSE
+            if (gainLossTxn != null) {
+                switchRedeemCatList(gainLossTxn.getType() == Type.LOSE);
+                prefillCat(rdeCatCb, rdeSubCatCb, gainLossTxn);
+            }
 
         } else {
             // Old single-transaction format (backward compatibility)
@@ -1402,11 +1401,36 @@ public class TransactionDialog extends Dialog<Transaction> {
         if (sharedNotes.getText().isBlank()) sharedNotes.requestFocus();
     }
 
-    private void showError(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
+    private void showError(String msg) {
+        Dialog<Void> dlg = new Dialog<>();
+        dlg.setTitle("Validation Error");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "⚠", "Validation Error");
+
+        VBox body = new VBox(10);
+        body.setPadding(new Insets(16));
+
+        HBox iconRow = new HBox(14);
+        iconRow.setAlignment(Pos.CENTER_LEFT);
+        Label iconLbl = new Label("⚠");
+        iconLbl.setStyle(
+                "-fx-background-color: rgba(192,57,43,0.10); "
+                + "-fx-border-color: rgba(192,57,43,0.25); "
+                + "-fx-border-radius: 50; -fx-background-radius: 50; "
+                + "-fx-text-fill: #c0392b; -fx-font-size: 18px; "
+                + "-fx-min-width: 42; -fx-min-height: 42; "
+                + "-fx-max-width: 42; -fx-max-height: 42; -fx-alignment: center;");
+        Label msgLbl = new Label(msg);
+        msgLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
+        msgLbl.setWrapText(true);
+        msgLbl.setMaxWidth(280);
+        iconRow.getChildren().addAll(iconLbl, msgLbl);
+        body.getChildren().add(iconRow);
+
+        dlg.getDialogPane().setContent(body);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dlg.showAndWait();
     }
 }

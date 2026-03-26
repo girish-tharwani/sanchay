@@ -14,6 +14,7 @@ import javafx.util.StringConverter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Recurring Transactions screen. */
@@ -279,6 +280,7 @@ public class RecurringScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(520);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, isNew ? "+" : "✎", isNew ? "New Recurring Schedule" : "Edit Recurring Schedule");
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
@@ -530,15 +532,14 @@ public class RecurringScreen {
         invDestCb.setOnAction(e -> refreshInvFields.run());
 
         // ── Category / Sub-category ───────────────────────────────────────────
+        List<Category> catMaster = new ArrayList<>(ds.getExpenseCategories());
+        List<Category> subMaster = new ArrayList<>();
+
         ComboBox<Category> catCb = new ComboBox<>();
         catCb.setMaxWidth(Double.MAX_VALUE);
         catCb.setPromptText("Select category (optional)");
-        ds.getExpenseCategories().forEach(catCb.getItems()::add);
-        if (!isNew && existing.getCategoryId() != null) {
-            ds.getCategories().stream()
-                    .filter(c -> c.getId().equals(existing.getCategoryId()))
-                    .findFirst().ifPresent(catCb::setValue);
-        }
+        catCb.getItems().setAll(catMaster);
+        UiUtils.wireAutoComplete(catCb, catMaster);
 
         ComboBox<Category> subCatCb = new ComboBox<>();
         subCatCb.setMaxWidth(Double.MAX_VALUE);
@@ -558,28 +559,19 @@ public class RecurringScreen {
                 setText(empty || item == null ? null : "  └ " + item.getName());
             }
         });
+        UiUtils.wireAutoComplete(subCatCb, subMaster);
 
-        if (catCb.getValue() != null) {
-            List<Category> subs = ds.getSubCategories(catCb.getValue().getId());
-            if (!subs.isEmpty()) {
-                subCatCb.getItems().addAll(subs);
-                subCatCb.setVisible(true);
-                subCatCb.setManaged(true);
-                if (!isNew && existing.getSubCategoryId() != null) {
-                    subs.stream().filter(s -> s.getId().equals(existing.getSubCategoryId()))
-                            .findFirst().ifPresent(subCatCb::setValue);
-                }
-            }
-        }
-
-        catCb.setOnAction(e -> {
-            Category sel = catCb.getValue();
+        // When category changes, reload sub-categories and update the sub master list
+        catCb.valueProperty().addListener((obs, old, sel) -> {
             subCatCb.getItems().clear();
             subCatCb.setValue(null);
+            subCatCb.getEditor().clear();
+            subMaster.clear();
             if (sel != null) {
                 List<Category> subs = ds.getSubCategories(sel.getId());
                 if (!subs.isEmpty()) {
-                    subCatCb.getItems().addAll(subs);
+                    subMaster.addAll(subs);
+                    subCatCb.getItems().setAll(subs);
                     subCatCb.setVisible(true);
                     subCatCb.setManaged(true);
                 } else {
@@ -591,6 +583,18 @@ public class RecurringScreen {
                 subCatCb.setManaged(false);
             }
         });
+
+        // Prefill when editing existing schedule
+        if (!isNew && existing.getCategoryId() != null) {
+            ds.getCategories().stream()
+                    .filter(c -> c.getId().equals(existing.getCategoryId()))
+                    .findFirst().ifPresent(catCb::setValue);
+            if (existing.getSubCategoryId() != null) {
+                subMaster.stream()
+                        .filter(s -> s.getId().equals(existing.getSubCategoryId()))
+                        .findFirst().ifPresent(subCatCb::setValue);
+            }
+        }
 
         // ── Auto-record ───────────────────────────────────────────────────────
         CheckBox autoRecordCb = new CheckBox("Auto-record after");

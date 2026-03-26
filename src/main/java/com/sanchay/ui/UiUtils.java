@@ -1,9 +1,12 @@
 package com.sanchay.ui;
 
+import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
@@ -12,12 +15,16 @@ import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class UiUtils {
     private UiUtils() {}
@@ -43,27 +50,69 @@ public final class UiUtils {
      * Shared by DashboardScreen (welcome banner) and HelpDialog (get started section).
      */
     public static HBox buildStep(String number, String stepTitle, String detail) {
-        HBox row = new HBox(14);
+        Label detailLbl = new Label(detail);
+        detailLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a7a88;");
+        detailLbl.setWrapText(true);
+        return buildStep(number, stepTitle, detailLbl);
+    }
+
+    /** Overload accepting a pre-built description Node (e.g. a TextFlow with nav-hint chips). */
+    public static HBox buildStep(String number, String stepTitle, Node detailNode) {
+        HBox row = new HBox(16);
         row.setAlignment(Pos.TOP_LEFT);
 
         Label num = new Label(number);
-        num.setMinSize(28, 28);
-        num.setPrefSize(28, 28);
+        num.setMinSize(30, 30);
+        num.setPrefSize(30, 30);
+        num.setMaxSize(30, 30);
         num.setAlignment(Pos.CENTER);
-        num.setStyle("-fx-background-color: #0f3d4a; -fx-text-fill: white; "
-                + "-fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 14;");
+        num.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); "
+                + "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; "
+                + "-fx-background-radius: 15; "
+                + "-fx-effect: dropshadow(gaussian, rgba(42,138,122,0.35), 8, 0, 0, 2);");
 
-        VBox text = new VBox(3);
+        VBox text = new VBox(5);
         Label titleLbl = new Label(stepTitle);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
-        Label detailLbl = new Label(detail);
-        detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #595959;");
-        detailLbl.setWrapText(true);
-        text.getChildren().addAll(titleLbl, detailLbl);
+        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
+        text.getChildren().addAll(titleLbl, detailNode);
         HBox.setHgrow(text, Priority.ALWAYS);
 
         row.getChildren().addAll(num, text);
         return row;
+    }
+
+    /**
+     * Returns a styled navigation hint chip for inline use in step descriptions.
+     * E.g. navHint("Profile"), navHint("+ Add Member").
+     */
+    public static Label navHint(String label) {
+        Label lbl = new Label(label);
+        lbl.setStyle("-fx-background-color: #f0f6f7; "
+                + "-fx-border-color: rgba(42,138,122,0.30); "
+                + "-fx-border-radius: 5; -fx-background-radius: 5; "
+                + "-fx-padding: 1 7 1 7; "
+                + "-fx-font-size: 11.5px; -fx-font-weight: 600; "
+                + "-fx-text-fill: #2a8a7a;");
+        return lbl;
+    }
+
+    /**
+     * Builds a TextFlow description mixing plain text strings and nav-hint chips.
+     * Pass alternating Strings (plain text) and Labels (from navHint()) as parts.
+     */
+    public static TextFlow stepDescFlow(Object... parts) {
+        TextFlow tf = new TextFlow();
+        tf.setLineSpacing(3);
+        for (Object part : parts) {
+            if (part instanceof String s) {
+                Text t = new Text(s);
+                t.setStyle("-fx-fill: #4a7a88; -fx-font-size: 13px;");
+                tf.getChildren().add(t);
+            } else if (part instanceof Node n) {
+                tf.getChildren().add(n);
+            }
+        }
+        return tf;
     }
 
     /** Returns the CSS style class for a transaction type badge. */
@@ -96,6 +145,94 @@ public final class UiUtils {
             case GAIN         -> "Gain";
             case LOSE         -> "Loss";
         };
+    }
+
+    /**
+     * Sets a consistent branded header on any Dialog: teal icon box + bold title
+     * on a #f8fbfc background with a bottom border — matching the design wireframe.
+     * Call this immediately after applyStylesheet().
+     */
+    public static void setDialogHeader(Dialog<?> dlg, String icon, String title) {
+        setDialogHeader(dlg, icon, title, null);
+    }
+
+    public static void setDialogHeader(Dialog<?> dlg, String icon, String title, String subtitle) {
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(14, 20, 14, 20));
+        header.setStyle("-fx-background-color: #f8fbfc; "
+                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-width: 0 0 1 0;");
+
+        Label iconLbl = new Label(icon);
+        iconLbl.setStyle("-fx-background-color: rgba(42,138,122,0.12); "
+                + "-fx-border-color: rgba(42,138,122,0.30); "
+                + "-fx-border-radius: 8; -fx-background-radius: 8; "
+                + "-fx-min-width: 28; -fx-min-height: 28; -fx-max-width: 28; -fx-max-height: 28; "
+                + "-fx-alignment: center; -fx-font-size: 13px; -fx-font-weight: bold; "
+                + "-fx-text-fill: #2a8a7a;");
+
+        Label titleLbl = new Label(title);
+        titleLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+
+        if (subtitle != null && !subtitle.isBlank()) {
+            Label subLbl = new Label(subtitle);
+            subLbl.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #7aa4b0;");
+            subLbl.setWrapText(true);
+            VBox titleBlock = new VBox(2, titleLbl, subLbl);
+            HBox.setHgrow(titleBlock, Priority.ALWAYS);
+            header.getChildren().addAll(iconLbl, titleBlock);
+        } else {
+            header.getChildren().addAll(iconLbl, titleLbl);
+        }
+
+        dlg.getDialogPane().setHeader(header);
+    }
+
+    /**
+     * Wires filter-as-you-type autocomplete on an editable Category ComboBox.
+     * When exactly one match exists and the typed text is a prefix of that match,
+     * the editor is completed inline with the suffix selected (so further typing
+     * replaces it), giving unambiguous single-match autocomplete.
+     */
+    public static void wireAutoComplete(ComboBox<Category> combo, List<Category> masterList) {
+        combo.setEditable(true);
+        combo.setConverter(new StringConverter<>() {
+            @Override public String toString(Category c)   { return c == null ? "" : c.getName(); }
+            @Override public Category fromString(String s) {
+                if (s == null || s.isBlank()) return null;
+                return masterList.stream()
+                        .filter(c -> c.getName().equalsIgnoreCase(s.trim()))
+                        .findFirst().orElse(null);
+            }
+        });
+        boolean[] suppress = {false};
+        combo.getEditor().textProperty().addListener((obs, old, text) -> {
+            if (suppress[0]) return;
+            Category selected = combo.getValue();
+            if (selected != null && selected.getName().equals(text)) {
+                if (combo.getItems().size() < masterList.size())
+                    combo.getItems().setAll(masterList);
+                return;
+            }
+            String lower = text == null ? "" : text.toLowerCase();
+            List<Category> filtered = lower.isEmpty()
+                    ? new ArrayList<>(masterList)
+                    : masterList.stream()
+                            .filter(c -> c.getName().toLowerCase().contains(lower))
+                            .collect(Collectors.toList());
+            combo.getItems().setAll(filtered);
+            if (!lower.isEmpty() && filtered.size() == 1
+                    && filtered.get(0).getName().toLowerCase().startsWith(lower)) {
+                // Unambiguous prefix match — complete inline, select the suffix
+                String full = filtered.get(0).getName();
+                suppress[0] = true;
+                combo.getEditor().setText(full);
+                combo.getEditor().selectRange(text.length(), full.length());
+                suppress[0] = false;
+            } else if (!filtered.isEmpty() && !lower.isEmpty()) {
+                combo.show();
+            }
+        });
     }
 
     /** Small italic hint label for placement below editable tables. */

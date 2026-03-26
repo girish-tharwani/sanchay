@@ -1,3 +1,30 @@
+## v0.2.3 — 2026-03-26
+
+### Added
+- All dialogs now have a branded header: teal icon box + bold title on `#f8fbfc` background with bottom border, matching the design wireframe
+- `UiUtils.setDialogHeader()` — shared helper used across all dialogs for consistent header styling
+- Getting Started dialog (Help menu) fully redesigned: custom header, step rows with dividers, inline nav-hint chips (`[Profile]`, `[+ Add Member]`, etc.) in step descriptions, "About Sanchay…" link in footer
+- Dashboard welcome banner step descriptions updated with nav-hint chips
+- `UiUtils.navHint()` and `UiUtils.stepDescFlow()` helpers for building rich step descriptions
+- Step number badges updated to teal gradient circle with drop shadow
+- Category/sub-category search (filter-as-you-type + unambiguous inline autocomplete) added to Recurring Schedule dialog, matching Transaction dialog behaviour
+- `UiUtils.wireAutoComplete()` — shared autocomplete helper used by both Transaction and Recurring dialogs
+
+### Changed
+- Transaction dialog: validation errors now keep the dialog open (event filter pattern); error styling matches recurring dialog (styled dialog, not plain Alert)
+- Redeem transaction: category/sub-category list switches between Income (gain) and Expense (loss) categories live as amounts are typed; editing an existing LOSE transaction pre-selects Expense categories
+- Accounts → Transactions view: Bank, Loan, and Investment accounts now show their key amount (Balance / Outstanding / Invested) right-aligned in the header bar — no extra card
+- Recurring Record dialog: split into separate From Account and To Account fields; validation uses styled inline error
+- Pending review filter now includes both `IMPORTED` ("i" badge) and `AUTO_CATEGORIZED` ("?" badge) transactions
+- Transactions table resize policy changed to unconstrained (matches All Schedules table behaviour)
+- Export CSV remembers the last selected folder within the session
+- Type badge in Record Recurring dialog now renders with full badge styling (was plain text)
+
+### Fixed
+- Investment account balance correctly deducts Redeem transactions (was deducting Transfer)
+- Redeem: removed principal-cannot-exceed-total validation (blocked loss-making redemptions)
+- CC card amounts now display two decimal places
+
 ## v0.2.2 — 2026-03-25
 
 ### Added

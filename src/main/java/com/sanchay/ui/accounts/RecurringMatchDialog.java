@@ -40,6 +40,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         setHeaderText(null);
         getDialogPane().setPrefWidth(520);
         UiUtils.applyStylesheet(this);
+        UiUtils.setDialogHeader(this, "↺", "Recurring Schedule Match");
 
         DataStore ds = DataStore.getInstance();
 

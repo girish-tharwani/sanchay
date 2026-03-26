@@ -297,6 +297,7 @@ public class ProfileScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(380);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, isNew ? "+" : "✎", isNew ? "Add Family Member" : "Edit Family Member");
 
         GridPane g = new GridPane();
         g.setHgap(12);

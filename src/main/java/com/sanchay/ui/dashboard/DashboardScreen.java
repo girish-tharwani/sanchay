@@ -113,16 +113,31 @@ public class DashboardScreen {
         VBox steps = new VBox(10);
         steps.getChildren().addAll(
                 UiUtils.buildStep("1", "Add family members",
-                        "Go to Profile → + Add Member. Add everyone in your household."),
+                        UiUtils.stepDescFlow(
+                                "Go to ", UiUtils.navHint("Profile"), navArrow(),
+                                UiUtils.navHint("+ Add Member"),
+                                ". Add everyone in your household.")),
                 UiUtils.buildStep("2", "Add your bank accounts",
-                        "Go to Accounts → Bank Accounts → + Add. Add the accounts where "
-                        + "salaries and income are deposited."),
+                        UiUtils.stepDescFlow(
+                                "Go to ", UiUtils.navHint("Accounts"), navArrow(),
+                                UiUtils.navHint("Bank Accounts"), navArrow(),
+                                UiUtils.navHint("+ Add"),
+                                ". Add accounts where salaries and income are deposited.")),
                 UiUtils.buildStep("3", "Complete earnings details",
-                        "Return to Profile and click the ₹ button next to each earning member.")
+                        UiUtils.stepDescFlow(
+                                "Return to ", UiUtils.navHint("Profile"),
+                                " and click the ", UiUtils.navHint("₹"),
+                                " button next to each earning member."))
         );
 
         card.getChildren().addAll(heading, intro, steps);
         return card;
+    }
+
+    private javafx.scene.text.Text navArrow() {
+        javafx.scene.text.Text t = new javafx.scene.text.Text(" → ");
+        t.setStyle("-fx-fill: #7aa4b0; -fx-font-size: 11px;");
+        return t;
     }
 
     // ── Summary stat cards ────────────────────────────────────────────────────

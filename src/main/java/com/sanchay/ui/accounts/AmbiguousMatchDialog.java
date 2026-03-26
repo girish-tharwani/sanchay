@@ -32,6 +32,7 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         setHeaderText(null);
         getDialogPane().setPrefWidth(560);
         UiUtils.applyStylesheet(this);
+        UiUtils.setDialogHeader(this, "?", "Ambiguous Match");
 
         DataStore ds = DataStore.getInstance();
 

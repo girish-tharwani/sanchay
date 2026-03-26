@@ -254,6 +254,7 @@ public class MainWindow {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(420);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "↺", "Record — " + r.getDescription());
 
         Label subtitle = new Label("Confirm the details for this occurrence:");
         subtitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0; -fx-padding: 0 0 4 0;");
@@ -273,7 +274,7 @@ public class MainWindow {
         int row = 0;
 
         addDialogLabel(g, "Transaction:", r.getDescription(), row++);
-        addDialogLabel(g, "Type:",        AccountsScreen.typeBadge(r.getTransactionType()).getText(), row++);
+        addDialogField(g, "Type:",        AccountsScreen.typeBadge(r.getTransactionType()), row++);
 
         DatePicker datePicker = new DatePicker(LocalDate.now());
         datePicker.setMaxWidth(Double.MAX_VALUE);
@@ -399,6 +400,7 @@ public class MainWindow {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(400);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "↷", "Skip Occurrence");
 
         VBox body = new VBox(14);
         body.setPadding(new Insets(16));
@@ -447,6 +449,7 @@ public class MainWindow {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(380);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "⚠", "Validation Error");
 
         VBox body = new VBox(10);
         body.setPadding(new Insets(16));

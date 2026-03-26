@@ -378,6 +378,7 @@ public class CategoriesScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(700);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "#", "Transactions — " + cat.getName());
         dlg.getDialogPane().setPrefHeight(500);
 
         VBox content = new VBox(12);
@@ -607,10 +608,12 @@ public class CategoriesScreen {
 
         Dialog<Boolean> dlg = new Dialog<>();
         dlg.setTitle("Reassign Transactions");
-        dlg.setHeaderText("Reassign " + usageCount + " transaction"
-                + (usageCount == 1 ? "" : "s") + " from '" + source.getName() + "' to:");
+        dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(440);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "→", "Reassign Transactions",
+                "Reassign " + usageCount + " transaction"
+                + (usageCount == 1 ? "" : "s") + " from '" + source.getName() + "' to:");
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
@@ -718,9 +721,11 @@ public class CategoriesScreen {
 
         Dialog<Boolean> dlg = new Dialog<>();
         dlg.setTitle("Move Sub-category");
-        dlg.setHeaderText("Move '" + sub.getName() + "' to a different parent category:");
+        dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(400);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "→", "Move Sub-category",
+                "Move '" + sub.getName() + "' to a different parent category:");
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
@@ -800,6 +805,7 @@ public class CategoriesScreen {
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(380);
         UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, title.startsWith("Edit") || title.startsWith("Rename") ? "✎" : "+", title);
 
         VBox content = new VBox(10);
         content.setPadding(new Insets(16));
