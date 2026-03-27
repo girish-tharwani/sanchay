@@ -261,6 +261,7 @@ public class DataStore {
     /** For internal load use only — does not trigger save. */
     public void addImportMappingInternal(ImportMapping m) { importMappings.add(m); }
 
+    // ── RuleLearner — candidate for extraction to service/RuleLearner.java ───────────────────────
     // ── Category rules (learn + suggest) ─────────────────────────────────────
 
     /** For internal load use only — does not trigger save. */
@@ -686,6 +687,7 @@ public class DataStore {
                 .collect(Collectors.toList());
     }
 
+    // ── RecurringScheduler — candidate for extraction to service/RecurringScheduler.java ─────────
     public List<RecurringTransaction> getPendingRecurring() {
         return recurring.stream()
                 .filter(RecurringTransaction::hasPendingOccurrence)
@@ -735,6 +737,7 @@ public class DataStore {
                 .count();
     }
 
+    // ── BalanceCalculator — candidate for extraction to service/BalanceCalculator.java ──────────
     // ── Balance calculations ──────────────────────────────────────────────────
 
     public long getTotalBankBalancePaise() {

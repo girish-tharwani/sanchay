@@ -228,9 +228,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         expCatMaster.addAll(ds.getExpenseCategories());
         expCatCb    = makeCatCb(expCatMaster, "Select category");
         expSubCatCb = makeSubCatCb(expSubCatMaster);
-        wireCatSubCat(expCatCb, expSubCatCb, expSubCatMaster);
-        UiUtils.wireAutoComplete(expCatCb,    expCatMaster);
-        UiUtils.wireAutoComplete(expSubCatCb, expSubCatMaster);
+        wireCategory(expCatCb, expCatMaster, expSubCatCb, expSubCatMaster);
 
         expAcctCb  = accountCombo(true);  // bank + CC
         expModeCb  = payModeCombo();
@@ -252,9 +250,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         incCatMaster.addAll(ds.getIncomeCategories());
         incCatCb    = makeCatCb(incCatMaster, "Select category");
         incSubCatCb = makeSubCatCb(incSubCatMaster);
-        wireCatSubCat(incCatCb, incSubCatCb, incSubCatMaster);
-        UiUtils.wireAutoComplete(incCatCb,    incCatMaster);
-        UiUtils.wireAutoComplete(incSubCatCb, incSubCatMaster);
+        wireCategory(incCatCb, incCatMaster, incSubCatCb, incSubCatMaster);
 
         incAcctCb    = accountCombo(false);
         incSrcFld    = tf("e.g. Barclays");
@@ -274,9 +270,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         trfCatMaster.addAll(ds.getExpenseCategories());
         trfCatCb    = makeCatCb(trfCatMaster, "Select category (optional)");
         trfSubCatCb = makeSubCatCb(trfSubCatMaster);
-        wireCatSubCat(trfCatCb, trfSubCatCb, trfSubCatMaster);
-        UiUtils.wireAutoComplete(trfCatCb,    trfCatMaster);
-        UiUtils.wireAutoComplete(trfSubCatCb, trfSubCatMaster);
+        wireCategory(trfCatCb, trfCatMaster, trfSubCatCb, trfSubCatMaster);
 
         trfFromCb = accountCombo(false); // bank only
         trfToCb   = accountCombo(false); // bank only
@@ -294,9 +288,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         refCatMaster.addAll(ds.getExpenseCategories());
         refCatCb    = makeCatCb(refCatMaster, "Select original expense category");
         refSubCatCb = makeSubCatCb(refSubCatMaster);
-        wireCatSubCat(refCatCb, refSubCatCb, refSubCatMaster);
-        UiUtils.wireAutoComplete(refCatCb,    refCatMaster);
-        UiUtils.wireAutoComplete(refSubCatCb, refSubCatMaster);
+        wireCategory(refCatCb, refCatMaster, refSubCatCb, refSubCatMaster);
 
         refAcctCb    = accountCombo(true);  // bank + CC (where refund lands)
         refModeCb    = payModeCombo();
@@ -362,9 +354,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         lnCatMaster.addAll(ds.getExpenseCategories());
         lnCatCb    = makeCatCb(lnCatMaster, "Select category (optional)");
         lnSubCatCb = makeSubCatCb(lnSubCatMaster);
-        wireCatSubCat(lnCatCb, lnSubCatCb, lnSubCatMaster);
-        UiUtils.wireAutoComplete(lnCatCb,    lnCatMaster);
-        UiUtils.wireAutoComplete(lnSubCatCb, lnSubCatMaster);
+        wireCategory(lnCatCb, lnCatMaster, lnSubCatCb, lnSubCatMaster);
 
         lnFromCb = accountCombo(true); // bank + CC
 
@@ -398,9 +388,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         rdeCatMaster.addAll(ds.getIncomeCategories());
         rdeCatCb    = makeCatCb(rdeCatMaster, "Select gain category (optional)");
         rdeSubCatCb = makeSubCatCb(rdeSubCatMaster);
-        wireCatSubCat(rdeCatCb, rdeSubCatCb, rdeSubCatMaster);
-        UiUtils.wireAutoComplete(rdeCatCb,    rdeCatMaster);
-        UiUtils.wireAutoComplete(rdeSubCatCb, rdeSubCatMaster);
+        wireCategory(rdeCatCb, rdeCatMaster, rdeSubCatCb, rdeSubCatMaster);
 
         rdeFromCb = new ComboBox<>();
         rdeFromCb.setMaxWidth(Double.MAX_VALUE);
@@ -495,6 +483,13 @@ public class TransactionDialog extends Dialog<Transaction> {
             }
         });
         return cb;
+    }
+
+    private void wireCategory(ComboBox<Category> catCb, List<Category> catMaster,
+                              ComboBox<Category> subCatCb, List<Category> subMaster) {
+        wireCatSubCat(catCb, subCatCb, subMaster);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subMaster);
     }
 
     private void wireCatSubCat(ComboBox<Category> catCb, ComboBox<Category> subCatCb,

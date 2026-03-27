@@ -77,7 +77,9 @@ public class PersistenceService {
                 if (s.dateFormat != null)
                     store.setDateFormatInternal(s.dateFormat);
             }
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + SETTINGS + ": " + e.getMessage());
+        }
     }
 
     private void loadCategories(DataStore store) {
@@ -102,7 +104,9 @@ public class PersistenceService {
             Type listType = new TypeToken<List<FamilyMember>>(){}.getType();
             List<FamilyMember> list = GSON.fromJson(readFile(p), listType);
             if (list != null) list.forEach(store::addFamilyMemberInternal);
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + MEMBERS + ": " + e.getMessage());
+        }
     }
 
     private void loadAccounts(DataStore store) {
@@ -184,7 +188,9 @@ public class PersistenceService {
             Type listType = new TypeToken<List<Transaction>>(){}.getType();
             List<Transaction> list = GSON.fromJson(readFile(p), listType);
             if (list != null) list.forEach(store::addTransactionInternal);
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + TRANSACTIONS + ": " + e.getMessage());
+        }
     }
 
     private void loadRecurring(DataStore store) {
@@ -194,7 +200,9 @@ public class PersistenceService {
             Type listType = new TypeToken<List<RecurringTransaction>>(){}.getType();
             List<RecurringTransaction> list = GSON.fromJson(readFile(p), listType);
             if (list != null) list.forEach(store::addRecurringInternal);
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + RECURRING + ": " + e.getMessage());
+        }
     }
 
     private void loadImportMappings(DataStore store) {
@@ -204,7 +212,9 @@ public class PersistenceService {
             Type listType = new TypeToken<List<ImportMapping>>(){}.getType();
             List<ImportMapping> list = GSON.fromJson(readFile(p), listType);
             if (list != null) list.forEach(store::addImportMappingInternal);
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + IMPORT_MAPPINGS + ": " + e.getMessage());
+        }
     }
 
     private void loadCategoryRules(DataStore store) {
@@ -214,7 +224,9 @@ public class PersistenceService {
             Type listType = new TypeToken<List<CategoryRule>>(){}.getType();
             List<CategoryRule> list = GSON.fromJson(readFile(p), listType);
             if (list != null) list.forEach(store::addCategoryRuleInternal);
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + CATEGORY_RULES + ": " + e.getMessage());
+        }
     }
 
     private void loadTypeRules(DataStore store) {
@@ -224,7 +236,9 @@ public class PersistenceService {
             Type listType = new TypeToken<List<TypeRule>>(){}.getType();
             List<TypeRule> list = GSON.fromJson(readFile(p), listType);
             if (list != null) list.forEach(store::addTypeRuleInternal);
-        } catch (Exception e) { /* ignore malformed */ }
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + TYPE_RULES + ": " + e.getMessage());
+        }
     }
 
     // ── Save ──────────────────────────────────────────────────────────────────
