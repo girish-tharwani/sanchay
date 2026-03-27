@@ -614,6 +614,27 @@
     -fx-font-style: italic;
 }
 
+.text-error {
+    -fx-text-fill: -color-error;
+    -fx-font-size: 11px;
+}
+
+/* Read-only / locked ComboBox — overrides JavaFX disabled dimming */
+.combo-locked {
+    -fx-opacity: 1.0;
+}
+.combo-locked .combo-box-base {
+    -fx-background-color: derive(#f0f6f7, -8%);
+    -fx-border-color: rgba(42,138,122,0.15);
+}
+.combo-locked .combo-box-base > .list-cell {
+    -fx-text-fill: -text-secondary;
+    -fx-background-color: transparent;
+}
+.combo-locked .combo-box-base > .arrow-button {
+    -fx-opacity: 0.4;
+}
+
 /* "No items" placeholder — same as hint but used on standalone labels */
 .text-empty {
     -fx-text-fill: -text-hint;

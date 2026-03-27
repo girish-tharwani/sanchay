@@ -1,3 +1,18 @@
+## v0.2.9 — 2026-03-27
+
+### Added
+- RD (Recurring Deposit) recording: investment transaction to an RD account now shows a dropdown of RD reference numbers from linked recurring schedules; error shown immediately if no schedules exist
+- Recording a recurring RD schedule instance now copies the RD reference number to the transaction automatically
+- Record button added to every row in the All Schedules table (allows recording any occurrence in advance)
+- `.text-error` and `.combo-locked` CSS utility classes added
+
+### Changed
+- Add/Edit Recurring dialog: validation errors now keep the dialog open for correction
+- Add/Edit Recurring dialog: RD Reference No is now required when To Account is Recurring Deposit; Due Day of Month spinner is now editable (type directly)
+- Add/Edit Recurring dialog: `+ Add` button moved from page header to the All Schedules section header row
+- Edit Transaction dialog: RD Reference No is read-only (locked) when editing an existing RD investment transaction
+- Interest Rate and Maturity Date removed from transaction dialog for Recurring Deposit type (belong on the schedule)
+
 ## v0.2.8 — 2026-03-27
 
 ### Added

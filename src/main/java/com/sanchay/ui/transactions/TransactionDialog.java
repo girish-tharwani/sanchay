@@ -86,7 +86,8 @@ public class TransactionDialog extends Dialog<Transaction> {
     private TextField invSchemeFld, invUnitsFld;
     private TextField invFdRefFld,  invFdRateFld, invFdMaturityAmtFld;
     private DatePicker invFdMaturityPicker;
-    private TextField invRdRefFld,  invRdRateFld;
+    private ComboBox<String> invRdRefCb;
+    private TextField invRdRateFld;
     private DatePicker invRdMaturityPicker;
     private VBox      invDynamicBox;
 
@@ -708,12 +709,15 @@ public class TransactionDialog extends Dialog<Transaction> {
                 t.setNotes(sb.toString().stripTrailing());
             }
             case RECURRING_DEPOSIT -> {
+                List<String> rdRefs = ds.getRdRefsForAccount(dest.getId());
+                if (rdRefs.isEmpty())
+                    throw new IllegalArgumentException(
+                            "No RD schedules found for this account. Please create a recurring schedule first.");
+                String rdRef = invRdRefCb != null ? invRdRefCb.getValue() : null;
+                if (rdRef == null || rdRef.isBlank())
+                    throw new IllegalArgumentException("Please select an RD reference number.");
                 StringBuilder sb = new StringBuilder();
-                appendNote(sb, "RD Ref",        invRdRefFld);
-                appendNote(sb, "Interest Rate",  invRdRateFld);
-                if (invRdMaturityPicker != null && invRdMaturityPicker.getValue() != null)
-                    sb.append("Maturity Date: ").append(
-                            invRdMaturityPicker.getValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append("\n");
+                appendNote(sb, "RD Ref", rdRef);
                 if (userNotes != null) sb.append("Notes: ").append(userNotes);
                 t.setNotes(sb.toString().stripTrailing());
             }
@@ -979,9 +983,12 @@ public class TransactionDialog extends Dialog<Transaction> {
                             sharedNotes.setText(userNotes != null ? userNotes : "");
                         }
                         case RECURRING_DEPOSIT -> {
-                            setText(invRdRefFld,  parseNote(t.getNotes(), "RD Ref"));
-                            setText(invRdRateFld,  parseNote(t.getNotes(), "Interest Rate"));
-                            setDateFromNote(invRdMaturityPicker, parseNote(t.getNotes(), "Maturity Date"));
+                            if (invRdRefCb != null) {
+                                String rdRef = parseNote(t.getNotes(), "RD Ref");
+                                if (rdRef != null) invRdRefCb.setValue(rdRef);
+                                invRdRefCb.setDisable(true);
+                                invRdRefCb.getStyleClass().add("combo-locked");
+                            }
                             String userNotes = parseNote(t.getNotes(), "Notes");
                             sharedNotes.setText(userNotes != null ? userNotes : "");
                         }
@@ -1164,7 +1171,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         invSchemeFld = invUnitsFld = null;
         invFdRefFld  = invFdRateFld = invFdMaturityAmtFld = null;
         invFdMaturityPicker = null;
-        invRdRefFld  = invRdRateFld = null;
+        invRdRefCb  = null;
+        invRdRateFld = null;
         invRdMaturityPicker = null;
         if (itype == null) return;
 
@@ -1188,13 +1196,23 @@ public class TransactionDialog extends Dialog<Transaction> {
                 dynRow(g, 3, "Maturity Amount",     invFdMaturityAmtFld);
             }
             case RECURRING_DEPOSIT -> {
-                invRdRefFld         = tf("optional");
-                invRdRateFld        = tf("e.g. 6.5");
-                invRdMaturityPicker = new DatePicker();
-                UiUtils.styleOnShow(invRdMaturityPicker);
-                dynRow(g, 0, "RD Reference No",    invRdRefFld);
-                dynRow(g, 1, "Interest Rate (%)",   invRdRateFld);
-                dynRow(g, 2, "Maturity Date",       invRdMaturityPicker);
+                InvestmentAccount rdAcc = invDestCb.getValue();
+                List<String> rdRefs = rdAcc != null
+                        ? ds.getRdRefsForAccount(rdAcc.getId())
+                        : java.util.Collections.emptyList();
+                if (rdRefs.isEmpty()) {
+                    Label err = new Label("No RD schedules found for this account.\nCreate a recurring schedule first.");
+                    err.getStyleClass().add("text-error");
+                    err.setWrapText(true);
+                    g.add(err, 1, 0);
+                } else {
+                    invRdRefCb = new ComboBox<>();
+                    invRdRefCb.getItems().addAll(rdRefs);
+                    invRdRefCb.setEditable(false);
+                    invRdRefCb.setMaxWidth(Double.MAX_VALUE);
+                    invRdRefCb.setPromptText("Select RD reference");
+                    dynRow(g, 0, "RD Reference No*", invRdRefCb);
+                }
             }
             default -> { /* PROVIDENT_FUND — no extra fields */ }
         }
@@ -1342,6 +1360,11 @@ public class TransactionDialog extends Dialog<Transaction> {
     private void appendNote(StringBuilder sb, String key, TextField tf) {
         if (tf != null && !tf.getText().isBlank())
             sb.append(key).append(": ").append(tf.getText().trim()).append("\n");
+    }
+
+    private void appendNote(StringBuilder sb, String key, String val) {
+        if (val != null && !val.isBlank())
+            sb.append(key).append(": ").append(val.trim()).append("\n");
     }
 
     private String parseNote(String notes, String key) {

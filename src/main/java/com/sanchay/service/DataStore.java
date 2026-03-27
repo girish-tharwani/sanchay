@@ -76,6 +76,27 @@ public class DataStore {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns distinct RD reference numbers from recurring schedules whose
+     * toAccountId matches the given account, sorted alphabetically.
+     */
+    public List<String> getRdRefsForAccount(String accountId) {
+        return recurring.stream()
+                .filter(r -> accountId.equals(r.getToAccountId()))
+                .map(r -> {
+                    String notes = r.getNotes();
+                    if (notes == null) return null;
+                    for (String line : notes.split("\n"))
+                        if (line.startsWith("RD Ref: "))
+                            return line.substring("RD Ref: ".length()).trim();
+                    return null;
+                })
+                .filter(ref -> ref != null && !ref.isBlank())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
     /** Distinct non-blank recurring schedule descriptions, sorted alphabetically. */
     public List<String> getDistinctScheduleDescriptions() {
         return recurring.stream()

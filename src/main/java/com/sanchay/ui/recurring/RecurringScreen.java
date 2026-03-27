@@ -52,12 +52,7 @@ public class RecurringScreen {
         Label sub = new Label("Manage repeating schedules — EMIs, SIPs, rent, salary, and more.");
         sub.getStyleClass().add("text-hint");
         titleBlock.getChildren().addAll(title, sub);
-        Region hSpacer = new Region();
-        HBox.setHgrow(hSpacer, Priority.ALWAYS);
-        Button addBtn = new Button("+ Add");
-        addBtn.getStyleClass().add("btn-gold");
-        addBtn.setOnAction(e -> { AddEditRecurringDialog.show(null); buildView(); });
-        pageHeader.getChildren().addAll(titleBlock, hSpacer, addBtn);
+        pageHeader.getChildren().add(titleBlock);
 
         content.getChildren().add(pageHeader);
 
@@ -68,6 +63,12 @@ public class RecurringScreen {
 
         // ── All schedules table ────────────────────────────────────────────────
         HBox allHeader = sectionLabel("All Schedules", "#3db89a");
+        Region allHeaderSpacer = new Region();
+        HBox.setHgrow(allHeaderSpacer, Priority.ALWAYS);
+        Button addBtn = new Button("+ Add");
+        addBtn.getStyleClass().add("btn-gold");
+        addBtn.setOnAction(e -> { AddEditRecurringDialog.show(null); buildView(); });
+        allHeader.getChildren().addAll(allHeaderSpacer, addBtn);
         VBox.setMargin(allHeader, new Insets(6, 0, 0, 0));
         content.getChildren().add(allHeader);
 
@@ -107,14 +108,17 @@ public class RecurringScreen {
         TableColumn<RecurringTransaction, String> subCatCol = col("Sub-category", 120,
                 r -> ds.getCategoryName(r.getSubCategoryId()));
 
-        // Actions column: pause/resume + delete
+        // Actions column: record + pause/resume + delete
         TableColumn<RecurringTransaction, Void> actionsCol = new TableColumn<>("");
-        actionsCol.setMinWidth(96);
-        actionsCol.setMaxWidth(96);
+        actionsCol.setMinWidth(128);
+        actionsCol.setMaxWidth(128);
         actionsCol.setCellFactory(tc -> new TableCell<>() {
+            private final Button recordBtn = new Button("✓");
             private final Button pauseBtn  = new Button();
             private final Button deleteBtn = new Button("x");
             {
+                recordBtn.getStyleClass().add("btn-action-sm");
+                recordBtn.setTooltip(new Tooltip("Record occurrence"));
                 pauseBtn.getStyleClass().add("btn-icon");
                 pauseBtn.setTooltip(new Tooltip("Pause / Resume"));
                 deleteBtn.getStyleClass().add("btn-danger-sm");
@@ -124,6 +128,10 @@ public class RecurringScreen {
                 super.updateItem(item, empty);
                 if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
                 RecurringTransaction r = getTableRow().getItem();
+                recordBtn.setOnAction(e -> mainWindow.recordRecurring(r, () -> {
+                    buildPendingSection(pendingSection);
+                    allSchedulesTable.refresh();
+                }));
                 pauseBtn.setText(r.getStatus() == RecurringTransaction.Status.ACTIVE ? "‖" : "▶");
                 pauseBtn.setOnAction(e -> {
                     r.setStatus(r.getStatus() == RecurringTransaction.Status.ACTIVE
@@ -144,7 +152,7 @@ public class RecurringScreen {
                                 buildView();
                             });
                 });
-                setGraphic(new HBox(2, pauseBtn, deleteBtn));
+                setGraphic(new HBox(2, recordBtn, pauseBtn, deleteBtn));
             }
         });
 
