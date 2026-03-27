@@ -199,6 +199,22 @@
     -fx-background-insets: 0, 0 0 0 3;
 }
 
+/* ── Loan schedule rows ─────────────────────────────────────────────────── */
+/* Past EMI rows — slightly muted */
+.table-row-cell:row-past {
+    -fx-opacity: 0.7;
+}
+/* Rows where user has made a spot correction */
+.table-row-cell:row-override {
+    -fx-background-color: #FFF8E1, white;
+    -fx-background-insets: 0, 0 0 0 3;
+    -fx-font-style: italic;
+}
+.table-row-cell:row-override:selected {
+    -fx-background-color: #F9A825, -brand-mid;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+
 /* ── Floating add button (FAB) ───────────────────────────────────────────── */
 .fab {
     -fx-background-color: -brand-accent;

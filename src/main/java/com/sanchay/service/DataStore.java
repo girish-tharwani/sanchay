@@ -26,6 +26,7 @@ public class DataStore {
     private final List<ImportMapping>        importMappings = new ArrayList<>();
     private final List<CategoryRule>         categoryRules  = new ArrayList<>();
     private final List<TypeRule>             typeRules      = new ArrayList<>();
+    private final Map<String, List<AmortizationEntry>> loanSchedules = new HashMap<>();
 
     private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
@@ -111,6 +112,29 @@ public class DataStore {
     public List<ImportMapping>        getImportMappings()      { return Collections.unmodifiableList(importMappings); }
     public List<CategoryRule>         getCategoryRules()       { return Collections.unmodifiableList(categoryRules); }
     public List<TypeRule>             getTypeRules()           { return Collections.unmodifiableList(typeRules); }
+
+    // ── Loan schedule accessors ───────────────────────────────────────────────
+
+    public Map<String, List<AmortizationEntry>> getLoanSchedules() { return loanSchedules; }
+
+    public List<AmortizationEntry> getSchedule(String loanAccountId) {
+        return loanSchedules.getOrDefault(loanAccountId, Collections.emptyList());
+    }
+
+    public void saveSchedule(String loanAccountId, List<AmortizationEntry> entries) {
+        loanSchedules.put(loanAccountId, entries);
+        if (persistence != null) persistence.saveLoanSchedules(this);
+    }
+
+    /** For internal load use only — does not trigger save. */
+    public void putScheduleInternal(String loanAccountId, List<AmortizationEntry> entries) {
+        loanSchedules.put(loanAccountId, entries);
+    }
+
+    public void deleteSchedule(String loanAccountId) {
+        loanSchedules.remove(loanAccountId);
+        if (persistence != null) persistence.saveLoanSchedules(this);
+    }
     public String                     getActiveFinancialYear() { return activeFinancialYear; }
 
     /** Returns the user-selected date format string: "DD/MM/YYYY" or "YYYY-MM-DD". */
@@ -194,7 +218,14 @@ public class DataStore {
 
     public void addAccount(Account a) {
         accounts.add(a);
-        if (persistence != null) persistence.saveAccounts(this);
+        if (a instanceof LoanAccount la) {
+            List<AmortizationEntry> schedule = AmortizationService.generateSchedule(la);
+            loanSchedules.put(la.getId(), schedule);
+        }
+        if (persistence != null) {
+            persistence.saveAccounts(this);
+            if (a instanceof LoanAccount) persistence.saveLoanSchedules(this);
+        }
     }
 
     /** For internal load use only — does not trigger save. */
@@ -799,6 +830,21 @@ public class DataStore {
     // ── BalanceCalculator — candidate for extraction to service/BalanceCalculator.java ──────────
     // ── Balance calculations ──────────────────────────────────────────────────
 
+    /**
+     * Returns the current outstanding principal for a loan.
+     * Uses principalPaise on LOAN_PAYMENT transactions when set (new behaviour);
+     * falls back to the full amountPaise for TRANSFER payments and legacy data.
+     */
+    public long getLoanOutstandingPaise(LoanAccount la) {
+        long paid = transactions.stream()
+                .filter(t -> (t.getType() == Type.TRANSFER || t.getType() == Type.LOAN_PAYMENT)
+                        && la.getId().equals(t.getToAccountId()))
+                .mapToLong(t -> t.getType() == Type.LOAN_PAYMENT && t.getPrincipalPaise() > 0
+                        ? t.getPrincipalPaise() : t.getAmountPaise())
+                .sum();
+        return Math.max(0, la.getOutstandingPrincipalPaise() - paid);
+    }
+
     public long getTotalBankBalancePaise() {
         return getBankAccounts().stream().mapToLong(ba -> {
             long bal = ba.getOpeningBalancePaise();
@@ -840,11 +886,7 @@ public class DataStore {
             return Math.max(0, invested);
         }).sum();
         long totalLoanOutstanding = getActiveLoanAccounts().stream().mapToLong(la -> {
-            long paid = transactions.stream()
-                    .filter(t -> (t.getType() == Type.TRANSFER || t.getType() == Type.LOAN_PAYMENT)
-                            && la.getId().equals(t.getToAccountId()))
-                    .mapToLong(Transaction::getAmountPaise).sum();
-            return Math.max(0, la.getOutstandingPrincipalPaise() - paid);
+            return getLoanOutstandingPaise(la);
         }).sum();
         return getTotalBankBalancePaise()
                 + totalInvested

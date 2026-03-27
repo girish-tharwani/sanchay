@@ -102,8 +102,9 @@ public class AccountsScreen {
             buildList();
         });
 
-        Label chevron = new Label(collapsed ? "▶" : "▼");
+        Label chevron = new Label(collapsed ? "▸" : "▾");
         chevron.getStyleClass().add("filter-label");
+        chevron.setStyle("-fx-font-size: 16px;");
 
         // Shape.fill cannot be set via style class; data-driven colour stays inline
         Circle dot = new Circle(4);
@@ -213,12 +214,7 @@ public class AccountsScreen {
             value = String.format("₹%,.2f  /  ₹%,.2f", out / 100.0, avail / 100.0);
             valueColour = out > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof LoanAccount la) {
-            long paid = ds.getTransactions().stream()
-                    .filter(t -> (t.getType() == Transaction.Type.TRANSFER
-                              || t.getType() == Transaction.Type.LOAN_PAYMENT)
-                              && la.getId().equals(t.getToAccountId()))
-                    .mapToLong(Transaction::getAmountPaise).sum();
-            long outstanding = Math.max(0, la.getOutstandingPrincipalPaise() - paid);
+            long outstanding = ds.getLoanOutstandingPaise(la);
             label = "Outstanding";
             value = String.format("₹%,.2f", outstanding / 100.0);
             valueColour = outstanding > 0 ? "-color-error" : "-brand-dark";
@@ -302,13 +298,8 @@ public class AccountsScreen {
             addField(fields, "Tenure",          la.getTenureMonths() + " months");
             addField(fields, "EMI",             String.format("₹%,.2f", la.getEmiAmountPaise() / 100.0));
             addField(fields, "EMI Due Day",     la.getEmiDueDay() + " of month");
-            long laPaid = DataStore.getInstance().getTransactions().stream()
-                    .filter(t -> (t.getType() == Transaction.Type.TRANSFER
-                              || t.getType() == Transaction.Type.LOAN_PAYMENT)
-                              && la.getId().equals(t.getToAccountId()))
-                    .mapToLong(Transaction::getAmountPaise).sum();
-            addField(fields, "Current Outstanding Amount", String.format("₹%,.2f",
-                    Math.max(0, la.getOutstandingPrincipalPaise() - laPaid) / 100.0));
+            addField(fields, "Current Balance", String.format("₹%,.2f",
+                    DataStore.getInstance().getLoanOutstandingPaise(la) / 100.0));
             if (la.isJointAccount() && la.getCoApplicantName() != null && !la.getCoApplicantName().isBlank())
                 addField(fields, "Co-applicant", la.getCoApplicantName());
         } else if (acc instanceof InvestmentAccount ia) {
@@ -337,7 +328,15 @@ public class AccountsScreen {
         editBtn.getStyleClass().add("btn-gold");
         editBtn.setOnAction(e -> { openEditAccountDialog(acc); showAccountDetails(acc); });
 
-        panel.getChildren().addAll(header, fields, editBtn);
+        HBox actionRow = new HBox(10, editBtn);
+        if (acc instanceof LoanAccount la) {
+            Button schedBtn = new Button("View Repayment Schedule");
+            schedBtn.getStyleClass().add("btn-gold");
+            schedBtn.setOnAction(e -> new LoanScheduleDialog(la).show());
+            actionRow.getChildren().add(schedBtn);
+        }
+
+        panel.getChildren().addAll(header, fields, actionRow);
 
         ScrollPane scroll = new ScrollPane(panel);
         scroll.setFitToWidth(true);
@@ -391,12 +390,7 @@ public class AccountsScreen {
                 statValue  = "₹" + String.format("%,.2f", bal / 100.0);
                 statColour = "#0f3d4a";
             } else if (acc instanceof LoanAccount la) {
-                long paid = ds2.getTransactions().stream()
-                        .filter(t -> (t.getType() == Transaction.Type.TRANSFER
-                                   || t.getType() == Transaction.Type.LOAN_PAYMENT)
-                                  && la.getId().equals(t.getToAccountId()))
-                        .mapToLong(Transaction::getAmountPaise).sum();
-                long outstanding = Math.max(0, la.getOutstandingPrincipalPaise() - paid);
+                long outstanding = ds2.getLoanOutstandingPaise(la);
                 statLabel  = "Outstanding";
                 statValue  = "₹" + String.format("%,.2f", outstanding / 100.0);
                 statColour = outstanding > 0 ? "#C62828" : "#0f3d4a";

@@ -1,3 +1,14 @@
+## v0.2.10 — 2026-03-27
+
+### Added
+- Loan account dialog: Opening Date field added (required for amortization schedule generation)
+- Loan repayment schedule: auto-regenerates from account details and rate history when schedule file is missing, empty, or corrupt
+
+### Fixed
+- Add Loan Account: Save button threw NullPointerException due to missing opening date; loan could not be saved
+- Accounts screen: collapse chevron (▸/▾) now renders at consistent size across all account groups
+- Loan schedule dialog: Principal column now formats consistently with other amount columns (₹ with commas)
+
 ## v0.2.9 — 2026-03-27
 
 ### Added

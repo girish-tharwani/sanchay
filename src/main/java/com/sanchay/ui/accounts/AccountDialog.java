@@ -1,6 +1,7 @@
 package com.sanchay.ui.accounts;
 
 import com.sanchay.model.*;
+import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
@@ -10,6 +11,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Static factory methods for the four account CRUD dialogs.
@@ -216,6 +219,9 @@ public class AccountDialog {
         emiDay.setMaxWidth(Double.MAX_VALUE);
         TextField outFld     = tf(isNew ? "0" : String.format("%.0f", existing.getOutstandingPrincipalPaise() / 100.0), "Outstanding principal");
 
+        DatePicker openDatePicker = new DatePicker(isNew ? LocalDate.now() : existing.getOpeningDate());
+        openDatePicker.setMaxWidth(Double.MAX_VALUE);
+
         CheckBox jointCb = new CheckBox("Joint Account");
         jointCb.setSelected(!isNew && existing.isJointAccount());
         ComboBox<String> coApplicantCb = memberCombo(isNew ? null : existing.getCoApplicantName());
@@ -247,13 +253,18 @@ public class AccountDialog {
         addRow(g,  9, "Tenure (months)",            tenureFld);
         addRow(g, 10, "EMI Amount",                 emiFld);
         addRow(g, 11, "EMI Due Day",                emiDay);
-        addRow(g, 12, "Opening Outstanding Amount", outFld);
-        addRow(g, 13, "Joint Account",              jointCb);
-        addRow(g, 14, "Co-applicant",               coApplicantCb);
+        addRow(g, 12, "Opening Balance",            outFld);
+        addRow(g, 13, "Opening Date",               openDatePicker);
+        addRow(g, 14, "Joint Account",              jointCb);
+        addRow(g, 15, "Co-applicant",               coApplicantCb);
 
         dlg.getDialogPane().setContent(scrolled(g));
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        // Capture original values to detect rate/EMI changes on edit
+        final double origRate = isNew ? 0 : existing.getInterestRate();
+        final long   origEmi  = isNew ? 0 : existing.getEmiAmountPaise();
+
         dlg.setResultConverter(bt -> {
             if (bt != saveBtn) return null;
             String name = nameFld.getText().trim();
@@ -264,21 +275,53 @@ public class AccountDialog {
             acc.setDescription(descFld.getText().trim());
             acc.setLenderName(lenderFld.getText().trim());
             acc.setLoanAccountNumber(acctNoFld.getText().trim());
+            double newRate = origRate;
+            long   newEmi  = origEmi;
             try {
                 acc.setLoanAmountPaise(Math.round(Double.parseDouble(loanAmtFld.getText().replace(",", "")) * 100));
-                acc.setInterestRate(Double.parseDouble(rateFld.getText().replace(",", "")));
+                newRate = Double.parseDouble(rateFld.getText().replace(",", ""));
+                acc.setInterestRate(newRate);
                 acc.setTenureMonths(Integer.parseInt(tenureFld.getText().trim()));
-                acc.setEmiAmountPaise(Math.round(Double.parseDouble(emiFld.getText().replace(",", "")) * 100));
+                newEmi = Math.round(Double.parseDouble(emiFld.getText().replace(",", "")) * 100);
+                acc.setEmiAmountPaise(newEmi);
                 acc.setEmiDueDay(emiDay.getValue());
                 acc.setOutstandingPrincipalPaise(Math.round(Double.parseDouble(outFld.getText().replace(",", "")) * 100));
             } catch (NumberFormatException ignore) {}
+            acc.setOpeningDate(openDatePicker.getValue() != null ? openDatePicker.getValue() : LocalDate.now());
             acc.setJointAccount(jointCb.isSelected());
             acc.setCoApplicantName(jointCb.isSelected() ? coApplicantCb.getEditor().getText().trim() : null);
             LoanAccount.LoanStatus ls = parseLoanStatus(statusCb.getValue());
             acc.setLoanStatus(ls);
             acc.setStatus(ls == LoanAccount.LoanStatus.ACTIVE ? Account.Status.ACTIVE : Account.Status.CLOSED);
-            if (isNew) DataStore.getInstance().addAccount(acc);
-            else DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
+
+            if (isNew) {
+                // Seed initial rate history entry
+                acc.getRateHistory().add(new LoanRateChange(
+                        acc.getOpeningDate(),
+                        newRate, newEmi));
+                DataStore.getInstance().addAccount(acc); // also generates and saves schedule
+            } else {
+                // Check if rate or EMI changed — if so, ask for effective-from date
+                final double finalNewRate = newRate;
+                final long   finalNewEmi  = newEmi;
+                boolean rateChanged = Double.compare(origRate, finalNewRate) != 0 || origEmi != finalNewEmi;
+                if (rateChanged) {
+                    LocalDate effectiveFrom = askEffectiveFromDate(acc);
+                    if (effectiveFrom != null) {
+                        acc.getRateHistory().add(new LoanRateChange(effectiveFrom, finalNewRate, finalNewEmi));
+                        DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
+                        List<AmortizationEntry> newSchedule = AmortizationService.generateSchedule(acc);
+                        DataStore.getInstance().saveSchedule(acc.getId(), newSchedule);
+                    } else {
+                        // User cancelled effective-from — revert to original values
+                        acc.setInterestRate(origRate);
+                        acc.setEmiAmountPaise(origEmi);
+                        DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
+                    }
+                } else {
+                    DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
+                }
+            }
             Platform.runLater(dlg::close);
             return null;
         });
@@ -485,5 +528,57 @@ public class AccountDialog {
         a.setHeaderText(null);
         a.setContentText(msg);
         a.showAndWait();
+    }
+
+    /**
+     * Shows a small dialog asking the user for an "Effective From" date when
+     * interest rate or EMI changes. Returns the chosen date, or null if cancelled.
+     */
+    static LocalDate askEffectiveFromDate(LoanAccount acc) {
+        Dialog<LocalDate> dlg = new Dialog<>();
+        dlg.setTitle("Rate / EMI Change");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "✎", "Rate / EMI Change");
+
+        GridPane g = new GridPane();
+        g.setHgap(12); g.setVgap(10);
+        g.setPadding(new Insets(16));
+        ColumnConstraints c1 = new ColumnConstraints(140);
+        ColumnConstraints c2 = new ColumnConstraints();
+        c2.setHgrow(Priority.ALWAYS);
+        g.getColumnConstraints().addAll(c1, c2);
+
+        DatePicker picker = new DatePicker(LocalDate.now());
+        picker.setMaxWidth(Double.MAX_VALUE);
+        UiUtils.applySmartDateConverter(picker);
+        UiUtils.styleOnShow(picker);
+
+        Label hint = new Label("The new rate/EMI will apply from this date onwards in the schedule.");
+        hint.setWrapText(true);
+        hint.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
+
+        Label lbl = new Label("Effective From*");
+        lbl.getStyleClass().add("form-label");
+        g.add(lbl, 0, 0);
+        g.add(picker, 1, 0);
+        g.add(hint, 0, 1, 2, 1);
+
+        dlg.getDialogPane().setContent(g);
+        ButtonType saveBtn = new ButtonType("Apply", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        dlg.setResultConverter(bt -> {
+            if (bt != saveBtn) return null;
+            LocalDate d = picker.getValue();
+            if (d == null) { info("Validation", "Please select an effective from date."); return null; }
+            LocalDate minDate = acc.getOpeningDate() != null ? acc.getOpeningDate() : LocalDate.now();
+            if (d.isBefore(minDate)) {
+                info("Validation", "Effective from date cannot be before the loan opening date.");
+                return null;
+            }
+            return d;
+        });
+        return dlg.showAndWait().orElse(null);
     }
 }

@@ -1,0 +1,167 @@
+package com.sanchay.ui.accounts;
+
+import com.sanchay.model.AmortizationEntry;
+import com.sanchay.model.LoanAccount;
+import com.sanchay.service.AmortizationService;
+import com.sanchay.service.DataStore;
+import com.sanchay.ui.UiUtils;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.layout.*;
+import javafx.stage.Modality;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Modal dialog showing the full amortization schedule for a loan account.
+ * Columns: Payment Date | Opening Balance | EMI | Principal Repayment | Interest
+ * Principal Repayment is editable; on commit the schedule is recalculated forward.
+ */
+public class LoanScheduleDialog {
+
+    private final LoanAccount loan;
+
+    public LoanScheduleDialog(LoanAccount loan) {
+        this.loan = loan;
+    }
+
+    public void show() {
+        DataStore ds = DataStore.getInstance();
+
+        Dialog<Void> dlg = new Dialog<>();
+        dlg.setTitle("Repayment Schedule");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(820);
+        dlg.getDialogPane().setPrefHeight(640);
+        dlg.initModality(Modality.APPLICATION_MODAL);
+        UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "≡", "Repayment Schedule — " + loan.getName());
+
+        // ── Table ──────────────────────────────────────────────────────────────
+        TableView<AmortizationEntry> table = new TableView<>();
+        table.setEditable(true);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        TableColumn<AmortizationEntry, String> colDate = new TableColumn<>("Payment Date");
+        colDate.setCellValueFactory(r -> {
+            LocalDate d = r.getValue().getPaymentDate();
+            String formatted = d != null
+                    ? d.format(ds.getDateFormatter())
+                    : "";
+            return new SimpleStringProperty(formatted);
+        });
+        colDate.setPrefWidth(120);
+
+        TableColumn<AmortizationEntry, String> colOpening = new TableColumn<>("Opening Balance");
+        colOpening.setCellValueFactory(r ->
+                new SimpleStringProperty(String.format("%.0f", r.getValue().getOpeningBalancePaise() / 100.0)));
+                //new SimpleStringProperty(formatPaise(r.getValue().getOpeningBalancePaise())));
+        colOpening.setPrefWidth(145);
+
+        TableColumn<AmortizationEntry, String> colEmi = new TableColumn<>("EMI");
+        colEmi.setCellValueFactory(r ->
+                new SimpleStringProperty(String.format("%.0f", r.getValue().getEmiAmountPaise() / 100.0)));
+                //new SimpleStringProperty(formatPaise(r.getValue().getEmiAmountPaise())));
+        colEmi.setPrefWidth(120);
+
+        TableColumn<AmortizationEntry, String> colPrincipal = new TableColumn<>("Principal");
+        colPrincipal.setCellValueFactory(r ->
+                new SimpleStringProperty(String.format("%.0f", r.getValue().getPrincipalRepaymentPaise() / 100.0)));
+                //new SimpleStringProperty(formatPaise(r.getValue().getPrincipalRepaymentPaise())));
+        colPrincipal.setPrefWidth(130);
+        colPrincipal.setEditable(true);
+        colPrincipal.setCellFactory(TextFieldTableCell.forTableColumn());
+        colPrincipal.setOnEditCommit(event -> {
+            AmortizationEntry entry = event.getRowValue();
+            try {
+                long newPrincipal = Math.round(Double.parseDouble(event.getNewValue().replace(",", "")) * 100);
+                if (newPrincipal < 0) { table.refresh(); return; }
+
+                List<AmortizationEntry> entries = new ArrayList<>(ds.getSchedule(loan.getId()));
+                int idx = entries.indexOf(entry);
+                if (idx < 0) { table.refresh(); return; }
+
+                // Apply override on this entry
+                AmortizationEntry modified = entries.get(idx);
+                modified.setPrincipalRepaymentPaise(newPrincipal);
+                modified.setInterestPaymentPaise(modified.getEmiAmountPaise() - newPrincipal);
+                modified.setManualOverride(true);
+
+                // Recalculate subsequent entries
+                List<AmortizationEntry> updated = AmortizationService.recalculateFrom(entries, idx + 1, loan);
+                ds.saveSchedule(loan.getId(), updated);
+                table.getItems().setAll(updated);
+            } catch (NumberFormatException e) {
+                table.refresh();
+            }
+        });
+
+        TableColumn<AmortizationEntry, String> colInterest = new TableColumn<>("Interest");
+        colInterest.setCellValueFactory(r ->
+                new SimpleStringProperty(String.format("%.0f", r.getValue().getInterestPaymentPaise() / 100.0)));
+                //new SimpleStringProperty(formatPaise(r.getValue().getInterestPaymentPaise())));
+        colInterest.setPrefWidth(120);
+
+        table.getColumns().addAll(colDate, colOpening, colEmi, colPrincipal, colInterest);
+
+        // Style past rows differently from future rows
+        table.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected void updateItem(AmortizationEntry entry, boolean empty) {
+                super.updateItem(entry, empty);
+                getStyleClass().removeAll("row-past", "row-override");
+                if (!empty && entry != null) {
+                    if (entry.getPaymentDate() != null && entry.getPaymentDate().isBefore(LocalDate.now())) {
+                        getStyleClass().add("row-past");
+                    }
+                    if (entry.isManualOverride()) {
+                        getStyleClass().add("row-override");
+                    }
+                }
+            }
+        });
+
+        // Load schedule — regenerate if missing, empty, or corrupt
+        List<AmortizationEntry> schedule = ds.getSchedule(loan.getId());
+        if (schedule.isEmpty()) {
+            try {
+                schedule = AmortizationService.generateSchedule(loan);
+                ds.saveSchedule(loan.getId(), schedule);
+            } catch (Exception ex) {
+                schedule = List.of();
+                Label errLabel = new Label("Could not generate schedule: " + ex.getMessage()
+                        + "\nPlease check that the loan has a valid opening date, tenure, rate and EMI.");
+                errLabel.setStyle("-fx-text-fill: #f87171; -fx-font-size: 12px;");
+                errLabel.setWrapText(true);
+                dlg.getDialogPane().setContent(errLabel);
+                dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+                dlg.showAndWait();
+                return;
+            }
+        }
+        table.getItems().setAll(schedule);
+
+        // ── Summary label ──────────────────────────────────────────────────────
+        Label hint = new Label("Click a Principal cell to edit. Changed rows are highlighted. " +
+                "All subsequent rows are recalculated automatically.");
+        hint.setStyle("-fx-font-size: 11px; -fx-text-fill: #777;");
+        hint.setWrapText(true);
+
+        VBox content = new VBox(10, table, hint);
+        content.setPadding(new Insets(16));
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dlg.showAndWait();
+    }
+
+    private static String formatPaise(long paise) {
+        return String.format("₹%,.2f", paise / 100.0);
+    }
+}

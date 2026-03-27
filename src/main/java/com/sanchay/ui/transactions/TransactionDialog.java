@@ -2,6 +2,7 @@ package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
+import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
@@ -70,6 +71,8 @@ public class TransactionDialog extends Dialog<Transaction> {
     private TextField        incSrcFld,    incFamilyFld;
     private TextField        refFamilyFld, refRefFld;
     private TextField        lnRefFld;
+    private TextField        lnPrincipalFld;
+    private Label            lnInterestLbl;
 
     // ── Redeem-specific ───────────────────────────────────────────────────────
     private ComboBox<InvestmentAccount> rdeFromCb;
@@ -375,10 +378,50 @@ public class TransactionDialog extends Dialog<Transaction> {
         lnModeCb = payModeCombo();
         lnRefFld = tf("optional");
 
+        lnPrincipalFld = tf("Principal portion of this payment");
+        lnInterestLbl  = new Label("—");
+        lnInterestLbl.getStyleClass().add("text-hint");
+
+        // Pre-fill principal from schedule when loan account or date changes
+        Runnable prefillPrincipal = () -> {
+            LoanAccount la = lnToCb.getValue();
+            LocalDate   d  = sharedDate.getValue();
+            if (la == null || d == null) return;
+            List<AmortizationEntry> schedule = ds.getSchedule(la.getId());
+            long sched = AmortizationService.getScheduledPrincipalForDate(schedule, d);
+            if (sched > 0 && (lnPrincipalFld.getText() == null || lnPrincipalFld.getText().isBlank())) {
+                lnPrincipalFld.setText(String.format("%.0f", sched / 100.0));
+            }
+        };
+        lnToCb.valueProperty().addListener((obs, o, n) -> prefillPrincipal.run());
+        sharedDate.valueProperty().addListener((obs, o, n) -> {
+            if (typeCb.getValue() == Type.LOAN_PAYMENT) prefillPrincipal.run();
+        });
+
+        // Live interest = amount - principal
+        Runnable updateInterest = () -> {
+            try {
+                long amt  = Math.round(Double.parseDouble(sharedAmt.getText().replace(",", "")) * 100);
+                long prin = Math.round(Double.parseDouble(lnPrincipalFld.getText().replace(",", "")) * 100);
+                long interest = amt - prin;
+                lnInterestLbl.setText(interest >= 0
+                        ? String.format("₹%,.2f", interest / 100.0)
+                        : "⚠ Principal exceeds EMI amount");
+            } catch (NumberFormatException e) {
+                lnInterestLbl.setText("—");
+            }
+        };
+        lnPrincipalFld.textProperty().addListener((obs, o, n) -> updateInterest.run());
+        sharedAmt.textProperty().addListener((obs, o, n) -> {
+            if (typeCb.getValue() == Type.LOAN_PAYMENT) updateInterest.run();
+        });
+
         GridPane g = panelGrid();
         int r = 0;
-        row(g, r++, "From Account*", lnFromCb);
-        row(g, r++, "To Account*",   lnToCb);
+        row(g, r++, "From Account*",  lnFromCb);
+        row(g, r++, "To Account*",    lnToCb);
+        row(g, r++, "Principal (₹)",  lnPrincipalFld);
+        row(g, r++, "Interest (₹)",   lnInterestLbl);
         row(g, r++, "Category",       lnCatCb);
         row(g, r++, "Sub-category",   lnSubCatCb);
         row(g, r++, "Payment Mode",   lnModeCb);
@@ -654,6 +697,16 @@ public class TransactionDialog extends Dialog<Transaction> {
         applyPayMode(t, lnModeCb);
         t.setReferenceNumber(nullIfBlank(lnRefFld.getText()));
         t.setNotes(nullIfBlank(sharedNotes.getText()));
+
+        // Store principal portion for accurate outstanding calculation
+        String prinText = lnPrincipalFld != null ? lnPrincipalFld.getText() : null;
+        if (prinText != null && !prinText.isBlank()) {
+            try {
+                long prin = Math.round(Double.parseDouble(prinText.replace(",", "")) * 100);
+                if (prin > 0 && prin <= amt) t.setPrincipalPaise(prin);
+            } catch (NumberFormatException ignored) {}
+        }
+
         return persistTransaction(t);
     }
 
@@ -929,6 +982,8 @@ public class TransactionDialog extends Dialog<Transaction> {
                     ds.getActiveLoanAccounts().stream()
                             .filter(la -> la.getId().equals(t.getToAccountId()))
                             .findFirst().ifPresent(lnToCb::setValue);
+                if (t.getPrincipalPaise() > 0)
+                    setText(lnPrincipalFld, String.format("%.0f", t.getPrincipalPaise() / 100.0));
                 prefillCat(lnCatCb, lnSubCatCb, t);
                 setPayMode(lnModeCb, t.getPaymentMode());
                 setText(lnRefFld, t.getReferenceNumber());

@@ -1,6 +1,7 @@
 package com.sanchay.service;
 
 import com.sanchay.model.*;
+import com.sanchay.model.AmortizationEntry;
 import com.sanchay.model.ImportMapping;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
@@ -26,6 +27,7 @@ public class PersistenceService {
     private static final String IMPORT_MAPPINGS  = "import_mappings.json";
     private static final String CATEGORY_RULES   = "category_rules.json";
     private static final String TYPE_RULES       = "type_rules.json";
+    private static final String LOAN_SCHEDULES   = "loan_schedules.json";
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -68,6 +70,7 @@ public class PersistenceService {
         loadImportMappings(store);
         loadCategoryRules(store);
         loadTypeRules(store);
+        loadLoanSchedules(store);
     }
 
     private void loadSettings(DataStore store) {
@@ -249,6 +252,18 @@ public class PersistenceService {
         }
     }
 
+    private void loadLoanSchedules(DataStore store) {
+        Path p = dataFolder.resolve(LOAN_SCHEDULES);
+        if (!Files.exists(p)) return;
+        try {
+            Type mapType = new TypeToken<Map<String, List<AmortizationEntry>>>(){}.getType();
+            Map<String, List<AmortizationEntry>> map = GSON.fromJson(readFile(p), mapType);
+            if (map != null) map.forEach(store::putScheduleInternal);
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + LOAN_SCHEDULES + ": " + e.getMessage());
+        }
+    }
+
     // ── Save ──────────────────────────────────────────────────────────────────
 
     public void saveAccounts(DataStore store) {
@@ -302,6 +317,10 @@ public class PersistenceService {
         atomicWrite(TYPE_RULES, GSON.toJson(store.getTypeRules()));
     }
 
+    public void saveLoanSchedules(DataStore store) {
+        atomicWrite(LOAN_SCHEDULES, GSON.toJson(store.getLoanSchedules()));
+    }
+
     public void saveAll(DataStore store) {
         saveAccounts(store);
         saveTransactions(store);
@@ -311,6 +330,7 @@ public class PersistenceService {
         saveSettings(store);
         saveImportMappings(store);
         saveTypeRules(store);
+        saveLoanSchedules(store);
     }
 
     // ── Atomic write ──────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 package com.sanchay.model;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Home, Vehicle, or Personal loan account. */
 public class LoanAccount extends Account {
@@ -22,6 +24,7 @@ public class LoanAccount extends Account {
     private String coApplicantName;
     private String vehicleRegistrationNo;
     private String vehicleDescription;
+    private List<LoanRateChange> rateHistory = new ArrayList<>();
 
     public LoanAccount(String name, LoanType loanType) {
         super(name);
@@ -67,4 +70,10 @@ public class LoanAccount extends Account {
     public void setCoApplicantName(String n)                     { this.coApplicantName = n; }
     public void setVehicleRegistrationNo(String n)               { this.vehicleRegistrationNo = n; }
     public void setVehicleDescription(String d)                  { this.vehicleDescription = d; }
+
+    public List<LoanRateChange> getRateHistory() {
+        if (rateHistory == null) rateHistory = new ArrayList<>();
+        return rateHistory;
+    }
+    public void setRateHistory(List<LoanRateChange> h)           { this.rateHistory = h; }
 }
