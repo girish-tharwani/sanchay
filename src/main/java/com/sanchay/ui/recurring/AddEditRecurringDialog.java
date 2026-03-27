@@ -40,6 +40,7 @@ public class AddEditRecurringDialog {
         TextField descFld = new TextField(isNew ? "" : existing.getDescription());
         descFld.setPromptText("e.g. SBI Home Loan EMI");
         descFld.setMaxWidth(Double.MAX_VALUE);
+        UiUtils.wireDescriptionAutocomplete(descFld, DataStore.getInstance().getDistinctScheduleDescriptions());
 
         // ── Transaction type ──────────────────────────────────────────────────
         ComboBox<Transaction.Type> typeCb = new ComboBox<>();

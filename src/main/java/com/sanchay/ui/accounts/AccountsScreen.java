@@ -92,8 +92,18 @@ public class AccountsScreen {
     private <T extends Account> VBox buildGroup(String heading, String dotColor, List<T> accounts, String type, CheckBox showClosedCb) {
         VBox group = new VBox(10);
 
+        boolean collapsed = DataStore.getInstance().isGroupCollapsed(type);
+
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle("-fx-cursor: hand;");
+        header.setOnMouseClicked(e -> {
+            DataStore.getInstance().setGroupCollapsed(type, !collapsed);
+            buildList();
+        });
+
+        Label chevron = new Label(collapsed ? "▶" : "▼");
+        chevron.getStyleClass().add("filter-label");
 
         // Shape.fill cannot be set via style class; data-driven colour stays inline
         Circle dot = new Circle(4);
@@ -105,22 +115,30 @@ public class AccountsScreen {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        showClosedCb.getStyleClass().add("text-hint");
-        showClosedCb.setOnAction(e -> buildList());
-
         Button addBtn = new Button("+ Add");
         addBtn.getStyleClass().add("btn-gold");
         addBtn.setOnAction(e -> { openAddAccountDialog(type); buildList(); });
-        header.getChildren().addAll(dot, h, spacer, showClosedCb, addBtn);
+        // Consume click so addBtn doesn't also trigger the header toggle
+        addBtn.setOnMouseClicked(javafx.event.Event::consume);
+
+        if (collapsed) {
+            header.getChildren().addAll(chevron, dot, h, spacer, addBtn);
+        } else {
+            showClosedCb.getStyleClass().add("text-hint");
+            showClosedCb.setOnAction(e -> buildList());
+            header.getChildren().addAll(chevron, dot, h, spacer, showClosedCb, addBtn);
+        }
         group.getChildren().add(header);
 
-        if (accounts.isEmpty()) {
-            Label none = new Label("No accounts added yet.");
-            none.getStyleClass().add("text-empty");
-            group.getChildren().add(none);
-        } else {
-            for (T acc : accounts) {
-                group.getChildren().add(buildAccountCard(acc));
+        if (!collapsed) {
+            if (accounts.isEmpty()) {
+                Label none = new Label("No accounts added yet.");
+                none.getStyleClass().add("text-empty");
+                group.getChildren().add(none);
+            } else {
+                for (T acc : accounts) {
+                    group.getChildren().add(buildAccountCard(acc));
+                }
             }
         }
         return group;

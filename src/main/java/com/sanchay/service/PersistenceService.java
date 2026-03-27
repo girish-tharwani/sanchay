@@ -48,8 +48,12 @@ public class PersistenceService {
     }
 
     public static class AppSettings {
-        public String activeFinancialYear = "FY 2025-26";
-        public String dateFormat          = "DD/MM/YYYY";
+        public String  activeFinancialYear    = "FY 2025-26";
+        public String  dateFormat             = "DD/MM/YYYY";
+        public boolean bankGroupCollapsed       = true;
+        public boolean ccGroupCollapsed         = true;
+        public boolean loanGroupCollapsed       = true;
+        public boolean investmentGroupCollapsed = true;
     }
 
     // ── Load ──────────────────────────────────────────────────────────────────
@@ -76,6 +80,10 @@ public class PersistenceService {
                     store.setActiveFinancialYearInternal(s.activeFinancialYear);
                 if (s.dateFormat != null)
                     store.setDateFormatInternal(s.dateFormat);
+                store.setGroupCollapsedInternal("bank",       s.bankGroupCollapsed);
+                store.setGroupCollapsedInternal("cc",         s.ccGroupCollapsed);
+                store.setGroupCollapsedInternal("loan",       s.loanGroupCollapsed);
+                store.setGroupCollapsedInternal("investment", s.investmentGroupCollapsed);
             }
         } catch (Exception e) {
             System.err.println("Sanchay: failed to load " + SETTINGS + ": " + e.getMessage());
@@ -273,8 +281,12 @@ public class PersistenceService {
 
     public void saveSettings(DataStore store) {
         AppSettings s = new AppSettings();
-        s.activeFinancialYear = store.getActiveFinancialYear();
-        s.dateFormat = store.getDateFormat();
+        s.activeFinancialYear    = store.getActiveFinancialYear();
+        s.dateFormat             = store.getDateFormat();
+        s.bankGroupCollapsed       = store.isGroupCollapsed("bank");
+        s.ccGroupCollapsed         = store.isGroupCollapsed("cc");
+        s.loanGroupCollapsed       = store.isGroupCollapsed("loan");
+        s.investmentGroupCollapsed = store.isGroupCollapsed("investment");
         atomicWrite(SETTINGS, GSON.toJson(s));
     }
 

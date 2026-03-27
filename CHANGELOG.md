@@ -1,3 +1,9 @@
+## v0.2.8 — 2026-03-27
+
+### Added
+- Accounts screen: collapse/expand toggle per account group (▶/▼ chevron on header); state persists across restarts; default all-collapsed
+- Description autocomplete on New/Edit Transaction and New/Edit Schedule dialogs: soft dropdown of starts-with matches; Tab accepts the top match
+
 ## v0.2.7 — 2026-03-27
 
 ### Changed

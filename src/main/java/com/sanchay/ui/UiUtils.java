@@ -4,13 +4,19 @@ import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.control.skin.DatePickerSkin;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -280,6 +286,54 @@ public final class UiUtils {
                 suppress[0] = false;
             } else if (!filtered.isEmpty() && !lower.isEmpty()) {
                 combo.show();
+            }
+        });
+    }
+
+    /**
+     * Wires soft dropdown autocomplete on a plain TextField.
+     * As the user types, a dropdown shows all starts-with matches in order.
+     * Tab accepts the first match; clicking any item accepts it.
+     * The field text is never modified while the user is typing.
+     */
+    public static void wireDescriptionAutocomplete(TextField field, List<String> suggestions) {
+        ContextMenu popup = new ContextMenu();
+        popup.setAutoHide(true);
+        boolean[] suppress = {false};
+
+        field.textProperty().addListener((obs, old, text) -> {
+            if (suppress[0]) return;
+            if (text == null || text.isEmpty()) { popup.hide(); return; }
+            String lower = text.toLowerCase();
+            List<String> matches = suggestions.stream()
+                    .filter(s -> s.toLowerCase().startsWith(lower))
+                    .collect(Collectors.toList());
+            if (matches.isEmpty()) { popup.hide(); return; }
+            popup.getItems().clear();
+            for (String match : matches) {
+                MenuItem item = new MenuItem(match);
+                item.setOnAction(e -> {
+                    suppress[0] = true;
+                    field.setText(match);
+                    field.positionCaret(match.length());
+                    suppress[0] = false;
+                    popup.hide();
+                });
+                popup.getItems().add(item);
+            }
+            if (!popup.isShowing()) popup.show(field, Side.BOTTOM, 0, 0);
+        });
+
+        // Tab accepts the top match without moving focus
+        field.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.TAB && popup.isShowing() && !popup.getItems().isEmpty()) {
+                String match = popup.getItems().get(0).getText();
+                suppress[0] = true;
+                field.setText(match);
+                field.positionCaret(match.length());
+                suppress[0] = false;
+                popup.hide();
+                e.consume();
             }
         });
     }

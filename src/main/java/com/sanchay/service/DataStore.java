@@ -29,6 +29,8 @@ public class DataStore {
 
     private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
+    private final Map<String, Boolean> groupCollapsed = new HashMap<>(
+            Map.of("bank", true, "cc", true, "loan", true, "investment", true));
 
     /** Set by MainApp after the data folder is confirmed. May be null during wizard. */
     private PersistenceService persistence;
@@ -63,6 +65,26 @@ public class DataStore {
     public List<Account>              getAccounts()            { return Collections.unmodifiableList(accounts); }
     public List<Transaction>          getTransactions()        { return Collections.unmodifiableList(transactions); }
     public List<RecurringTransaction> getRecurring()           { return Collections.unmodifiableList(recurring); }
+
+    /** Distinct non-blank transaction descriptions, sorted alphabetically. */
+    public List<String> getDistinctTransactionDescriptions() {
+        return transactions.stream()
+                .map(Transaction::getDescription)
+                .filter(d -> d != null && !d.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
+    /** Distinct non-blank recurring schedule descriptions, sorted alphabetically. */
+    public List<String> getDistinctScheduleDescriptions() {
+        return recurring.stream()
+                .map(RecurringTransaction::getDescription)
+                .filter(d -> d != null && !d.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
     public List<Category>             getCategories()          { return Collections.unmodifiableList(categories); }
     public List<FamilyMember>         getFamilyMembers()       { return Collections.unmodifiableList(familyMembers); }
     public List<ImportMapping>        getImportMappings()      { return Collections.unmodifiableList(importMappings); }
@@ -90,6 +112,22 @@ public class DataStore {
 
     /** For internal load use only — does not trigger save. */
     public void setDateFormatInternal(String fmt) { this.dateFormat = fmt; }
+
+    // ── Account group collapse state ──────────────────────────────────────────
+
+    public boolean isGroupCollapsed(String type) {
+        return groupCollapsed.getOrDefault(type, true);
+    }
+
+    /** For internal load use only — does not trigger save. */
+    public void setGroupCollapsedInternal(String type, boolean val) {
+        groupCollapsed.put(type, val);
+    }
+
+    public void setGroupCollapsed(String type, boolean val) {
+        groupCollapsed.put(type, val);
+        if (persistence != null) persistence.saveSettings(this);
+    }
 
     // ── Financial Year helpers ────────────────────────────────────────────────
 
@@ -830,6 +868,10 @@ public class DataStore {
         typeRules.clear();
         activeFinancialYear = "FY 2025-26";
         dateFormat = "DD/MM/YYYY";
+        groupCollapsed.put("bank", true);
+        groupCollapsed.put("cc", true);
+        groupCollapsed.put("loan", true);
+        groupCollapsed.put("investment", true);
         dataFolderPath = "Not configured";
     }
 }

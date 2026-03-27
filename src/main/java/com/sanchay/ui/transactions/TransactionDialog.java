@@ -114,6 +114,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         UiUtils.styleOnShow(sharedDate);
         sharedDesc  = new TextField();
         sharedDesc.setPromptText("e.g. Electricity Bill");
+        UiUtils.wireDescriptionAutocomplete(sharedDesc, ds.getDistinctTransactionDescriptions());
         sharedAmt   = new TextField();
         sharedAmt.setPromptText("0.00");
         sharedNotes = new TextField();
