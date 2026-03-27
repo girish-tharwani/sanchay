@@ -3,6 +3,7 @@ package com.sanchay.ui.reports;
 import com.sanchay.model.CreditCardAccount;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.UiUtils;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -105,7 +106,7 @@ public class ReportsScreen {
         fyPicker.setPrefWidth(140);
 
         CheckBox showSubCat = new CheckBox("Show sub-categories");
-        showSubCat.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+        showSubCat.getStyleClass().add("text-hint");
 
         Region ctrlSpacer = new Region();
         HBox.setHgrow(ctrlSpacer, Priority.ALWAYS);
@@ -203,7 +204,7 @@ public class ReportsScreen {
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
-        sp.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        sp.getStyleClass().add("scroll-page-bg");
         return sp;
     }
 
@@ -252,9 +253,9 @@ public class ReportsScreen {
                                             long grandTotal, String label) {
         VBox section = new VBox(10);
         Label heading = new Label("Expenses by Category — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
+        heading.getStyleClass().add("text-section-title");
         Label totalLbl = new Label("Total: " + String.format("₹%,.2f", grandTotal / 100.0));
-        totalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        totalLbl.getStyleClass().add("section-group-label");
 
         VBox bars = new VBox(6);
         bars.getStyleClass().add("card");
@@ -276,7 +277,7 @@ public class ReportsScreen {
                 Map<String, Long> subMap = catEntry.getValue();
                 long catTotal       = subMap.values().stream().mapToLong(Long::longValue).sum();
                 double catPct       = grandTotal > 0 ? catTotal * 100.0 / grandTotal : 0;
-                String colour       = BAR_COLOURS[ci++ % BAR_COLOURS.length];
+                String colour       = UiUtils.CHART_PALETTE[ci++ % UiUtils.CHART_PALETTE.length];
                 boolean noSubCats   = subMap.size() == 1 && subMap.containsKey("");
 
                 if (noSubCats) {
@@ -289,10 +290,10 @@ public class ReportsScreen {
                     catHeader.setPadding(new Insets(6, 0, 2, 0));
                     Label catLbl = new Label(catName);
                     catLbl.setMinWidth(160);
-                    catLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #0f3d4a;");
+                    catLbl.getStyleClass().add("text-section-title");
                     Label catTotalLbl = new Label(
                             String.format("%.1f%%  ₹%,.0f", catPct, catTotal / 100.0));
-                    catTotalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+                    catTotalLbl.getStyleClass().add("text-hint");
                     catHeader.getChildren().addAll(catLbl, catTotalLbl);
                     bars.getChildren().add(catHeader);
 
@@ -321,7 +322,7 @@ public class ReportsScreen {
         if (indent > 0) barRow.setPadding(new Insets(0, 0, 0, indent));
         Label nameLbl = new Label(indent > 0 ? "└ " + name : name);
         nameLbl.setMinWidth(Math.max(140, 160 - indent));
-        nameLbl.setStyle("-fx-font-size: 12px;");
+        nameLbl.getStyleClass().add("text-body-muted");
         StackPane bar = new StackPane();
         bar.setMinHeight(18); bar.setMaxHeight(18);
         Rectangle bg   = new Rectangle(300, 10, Color.web("#eef4f5"));
@@ -332,9 +333,11 @@ public class ReportsScreen {
         bar.getChildren().addAll(bg, fill);
         bar.setMinHeight(10); bar.setMaxHeight(10);
         Label pctLbl = new Label(String.format("%.1f%%", pct));
-        pctLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #7aa4b0; -fx-min-width: 40;");
+        pctLbl.getStyleClass().add("text-hint");
+        pctLbl.setMinWidth(40);
         Label amtLbl = new Label(String.format("₹%,.0f", amountPaise / 100.0));
-        amtLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a; -fx-min-width: 80; -fx-alignment: CENTER_RIGHT;");
+        amtLbl.getStyleClass().add("text-form-value");
+        amtLbl.setMinWidth(80);
         barRow.getChildren().addAll(nameLbl, bar, pctLbl, amtLbl);
         return barRow;
     }
@@ -392,7 +395,7 @@ public class ReportsScreen {
     private VBox buildSummaryExpenseTable(LocalDate from, LocalDate to, String label) {
         VBox section = new VBox(10);
         Label heading = new Label("All Expense Transactions — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
+        heading.getStyleClass().add("text-section-title");
 
         List<Transaction> txs = DataStore.getInstance().getTransactions().stream()
                 .filter(t -> t.getType() == Transaction.Type.EXPENSE
@@ -532,7 +535,7 @@ public class ReportsScreen {
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
-        sp.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        sp.getStyleClass().add("scroll-page-bg");
         return sp;
     }
 
@@ -549,13 +552,14 @@ public class ReportsScreen {
                     .mapToLong(Transaction::getAmountPaise).sum();
             VBox card = new VBox(10); card.getStyleClass().add("card");
             Label name = new Label(cc.getName());
-            name.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #0f3d4a;");
+            // Inline required: 15px is a one-off size not covered by utility classes
+            name.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: -brand-dark;");
             HBox stats = new HBox(16);
             stats.getChildren().addAll(
-                    ccStat(periodLabel,   "₹" + fmt(periodSpend),  periodSpend > 0 ? "#c0392b" : "#0f3d4a"),
-                    ccStat("Outstanding", "₹" + fmt(outstanding),  outstanding > 0 ? "#c0392b" : "#0f3d4a"),
-                    ccStat("Available",   "₹" + fmt(available),    "#2a8a7a"),
-                    ccStat("Issuer",      cc.getBankIssuer(),       "#0f3d4a")
+                    ccStat(periodLabel,   "₹" + fmt(periodSpend),  periodSpend > 0 ? "-color-error" : "-brand-dark"),
+                    ccStat("Outstanding", "₹" + fmt(outstanding),  outstanding > 0 ? "-color-error" : "-brand-dark"),
+                    ccStat("Available",   "₹" + fmt(available),    "-brand-mid"),
+                    ccStat("Issuer",      cc.getBankIssuer(),       "-brand-dark")
             );
             card.getChildren().addAll(name, stats);
             HBox.setHgrow(card, Priority.ALWAYS);
@@ -584,7 +588,7 @@ public class ReportsScreen {
                                          String label, DataStore ds) {
         VBox section = new VBox(10);
         Label heading = new Label("Credit Card Transactions — " + label);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
+        heading.getStyleClass().add("text-section-title");
 
         Set<String> cardIds = cards.stream().map(CreditCardAccount::getId).collect(Collectors.toSet());
         List<Transaction> txs = ds.getTransactions().stream()
@@ -615,21 +619,17 @@ public class ReportsScreen {
 
     // ── Shared flat bar chart builder (used by CC tab and flat mode of summary tab) ──
 
-    private static final String[] BAR_COLOURS = {
-            "#E74C3C","#E67E22","#F39C12","#8E44AD","#2E75B6",
-            "#1ABC9C","#27AE60","#2980B9","#C0392B","#16A085"};
-
     private VBox buildCategoryBarChart(String headingText, String emptyMessage,
                                        Map<String, Long> byCategory, long total,
                                        boolean showTotal) {
         VBox section = new VBox(10);
         Label heading = new Label(headingText);
-        heading.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
+        heading.getStyleClass().add("text-section-title");
         section.getChildren().add(heading);
 
         if (showTotal) {
             Label totalLbl = new Label("Total: " + String.format("₹%,.2f", total / 100.0));
-            totalLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+            totalLbl.getStyleClass().add("section-group-label");
             section.getChildren().add(totalLbl);
         }
 
@@ -647,7 +647,7 @@ public class ReportsScreen {
                 double pct = total > 0 ? (e.getValue() * 100.0 / total) : 0;
                 bars.getChildren().add(
                         buildBarRow(e.getKey(), e.getValue(), pct,
-                                BAR_COLOURS[ci++ % BAR_COLOURS.length], 0));
+                                UiUtils.CHART_PALETTE[ci++ % UiUtils.CHART_PALETTE.length], 0));
             }
         }
         section.getChildren().add(bars);
@@ -707,8 +707,9 @@ public class ReportsScreen {
     private VBox ccStat(String label, String value, String color) {
         VBox box = new VBox(3);
         Label lbl = new Label(label.toUpperCase());
-        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #7aa4b0;");
+        lbl.getStyleClass().add("card-title");
         Label val = new Label(value);
+        // Inline required: positive/negative/neutral colour is runtime data
         val.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
         box.getChildren().addAll(lbl, val);
         return box;

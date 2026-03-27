@@ -42,7 +42,7 @@ public class ProfileScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        view.getStyleClass().add("scroll-page-bg");
     }
 
     // ── Section wrapper ───────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ public class ProfileScreen {
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
                 javafx.scene.paint.Color.web("#3db89a"));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
-        h.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0; -fx-letter-spacing: 0.5;");
+        h.getStyleClass().add("section-group-label");
         labelRow.getChildren().addAll(dot, h);
         VBox card = new VBox(12);
         card.getStyleClass().add("table-card");
@@ -74,7 +74,7 @@ public class ProfileScreen {
                 "Family members can be tagged to transactions for household attribution. "
                 + "Names are available in the 'Tag to family member' field when recording transactions.");
         desc.setWrapText(true);
-        desc.setStyle("-fx-text-fill: #595959; -fx-font-size: 12px;");
+        desc.getStyleClass().add("text-body-muted");
         box.getChildren().add(desc);
 
         refreshFamilyList(box);
@@ -109,10 +109,10 @@ public class ProfileScreen {
                 String initials = getInitials(name);
                 Circle bg = new Circle(16, avatarColor(name));
                 Label initLbl = new Label(initials);
-                initLbl.setStyle("-fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: 700;");
+                initLbl.getStyleClass().add("avatar-initial");
                 javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane(bg, initLbl);
                 Label nameLbl = new Label(name);
-                nameLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+                nameLbl.getStyleClass().add("text-step-title");
                 HBox cell = new HBox(10, avatar, nameLbl);
                 cell.setAlignment(Pos.CENTER_LEFT);
                 setGraphic(cell);
@@ -220,11 +220,8 @@ public class ProfileScreen {
         actionsCol.setCellFactory(tc -> new TableCell<>() {
             private final Button removeBtn = new Button("×");
             {
-                removeBtn.setStyle(
-                        "-fx-background-color: #F5DADA; -fx-text-fill: #A93226; "
-                        + "-fx-font-size: 12px; -fx-font-weight: bold; "
-                        + "-fx-min-width: 22; -fx-max-width: 22; -fx-min-height: 22; -fx-max-height: 22; "
-                        + "-fx-padding: 0; -fx-background-radius: 3; -fx-cursor: hand; -fx-alignment: CENTER;");
+                removeBtn.getStyleClass().add("btn-row-remove");
+                removeBtn.setMinSize(22, 22); removeBtn.setMaxSize(22, 22);
                 removeBtn.setTooltip(new Tooltip("Remove member"));
             }
             @Override protected void updateItem(Void item, boolean empty) {
@@ -255,10 +252,7 @@ public class ProfileScreen {
         earningsCol.setCellFactory(tc -> new TableCell<>() {
             private final Button btn = new Button("₹");
             {
-                btn.setStyle("-fx-background-color: #E8F5E9; -fx-text-fill: #1B5E20; "
-                        + "-fx-font-size: 12px; -fx-font-weight: bold; "
-                        + "-fx-min-width: 22; -fx-max-width: 22; -fx-min-height: 22; -fx-max-height: 22; "
-                        + "-fx-padding: 0; -fx-background-radius: 3; -fx-cursor: hand; -fx-alignment: CENTER;");
+                btn.getStyleClass().add("btn-row-add");
                 btn.setTooltip(new Tooltip("Configure earnings"));
                 btn.setOnAction(e -> {
                     FamilyMember m = getTableRow().getItem();
@@ -464,7 +458,7 @@ public class ProfileScreen {
     }
 
     private static Color avatarColor(String name) {
-        // Deterministic color from name hash — pick from a teal/brand palette
+        // Shape.fill cannot be set via style class; deterministic colour from name hash stays inline
         String[] colors = { "#2a8a7a", "#3db89a", "#0f3d4a", "#4a7a88", "#1a6b5a",
                              "#5b7fa6", "#7b5ea7", "#a0522d", "#2e8b57", "#4169a1" };
         int idx = Math.abs(name.hashCode()) % colors.length;

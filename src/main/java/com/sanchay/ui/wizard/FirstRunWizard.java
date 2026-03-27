@@ -55,7 +55,7 @@ public class FirstRunWizard {
 
     private Scene buildScene() {
         VBox root = new VBox(0);
-        root.setStyle("-fx-background-color: #0f3d4a;");
+        root.getStyleClass().add("wizard-root");
 
         // ── Header band ───────────────────────────────────────────────────────
         VBox header = new VBox(8);
@@ -63,16 +63,16 @@ public class FirstRunWizard {
         header.setAlignment(Pos.CENTER_LEFT);
 
         Label appName = new Label("💰 Sanchay");
-        appName.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: white;");
+        appName.getStyleClass().add("wizard-app-name");
 
         Label tagline = new Label("Your household finances, organised.");
-        tagline.setStyle("-fx-font-size: 14px; -fx-text-fill: rgba(255,255,255,0.75);");
+        tagline.getStyleClass().add("wizard-tagline");
 
         header.getChildren().addAll(appName, tagline);
 
         // ── Body card ─────────────────────────────────────────────────────────
         VBox body = new VBox(20);
-        body.setStyle("-fx-background-color: white;");
+        body.getStyleClass().add("wizard-body");
         body.setPadding(new Insets(36, 48, 36, 48));
         VBox.setVgrow(body, Priority.ALWAYS);
 
@@ -83,12 +83,11 @@ public class FirstRunWizard {
                     + "\n\nPlease select the new location of your data folder, "
                     + "or choose a different folder to start fresh.");
             warn.setWrapText(true);
-            warn.setStyle("-fx-font-size: 12px; -fx-text-fill: #B7450D; "
-                    + "-fx-background-color: #FFF3E0; -fx-padding: 12; -fx-background-radius: 6;");
+            warn.getStyleClass().add("alert-warning");
             body.getChildren().add(warn);
         } else {
             Label welcome = new Label("Welcome! Let's get you set up.");
-            welcome.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f3d4a;");
+            welcome.getStyleClass().add("text-heading-lg");
             body.getChildren().add(welcome);
         }
 
@@ -101,11 +100,11 @@ public class FirstRunWizard {
                 + "select that folder and your data will be loaded automatically.");
         explanation.setWrapText(true);
         explanation.setMinHeight(Region.USE_PREF_SIZE);
-        explanation.setStyle("-fx-font-size: 13px; -fx-text-fill: #595959;");
+        explanation.getStyleClass().add("text-body-muted");
 
         // Folder picker row
         Label folderLabel = new Label("Data folder:");
-        folderLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #0f3d4a;");
+        folderLabel.getStyleClass().add("form-label");
 
         TextField pathField = new TextField();
         pathField.setPromptText("No folder selected…");
@@ -121,7 +120,7 @@ public class FirstRunWizard {
 
         // Status label (existing data detection)
         Label statusLbl = new Label();
-        statusLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #27AE60;");
+        statusLbl.getStyleClass().add("text-success");
 
         // Get Started button
         Button startBtn = new Button("Get Started");
@@ -130,7 +129,7 @@ public class FirstRunWizard {
 
         // Footer note
         Label footerNote = new Label("You can change this location at any time from Settings.");
-        footerNote.setStyle("-fx-font-size: 11px; -fx-text-fill: #9E9E9E;");
+        footerNote.getStyleClass().add("text-hint");
 
         body.getChildren().addAll(explanation, folderLabel, pickerRow, statusLbl, startBtn, footerNote);
 

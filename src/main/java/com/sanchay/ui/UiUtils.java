@@ -3,7 +3,6 @@ package com.sanchay.ui;
 import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
@@ -31,6 +30,11 @@ public final class UiUtils {
 
     private static final String CSS_PATH = "/com/sanchay/css/app.css";
 
+    /** Shared chart palette — used by ReportsScreen bar charts. */
+    public static final String[] CHART_PALETTE = {
+            "#E74C3C","#E67E22","#F39C12","#8E44AD","#2E75B6",
+            "#1ABC9C","#27AE60","#2980B9","#C0392B","#16A085"};
+
     /**
      * Applies the app stylesheet to a dialog's DialogPane.
      * Must be called on every Dialog because JavaFX dialogs open in a separate
@@ -51,7 +55,7 @@ public final class UiUtils {
      */
     public static HBox buildStep(String number, String stepTitle, String detail) {
         Label detailLbl = new Label(detail);
-        detailLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a7a88;");
+        detailLbl.getStyleClass().add("text-body-muted");
         detailLbl.setWrapText(true);
         return buildStep(number, stepTitle, detailLbl);
     }
@@ -62,18 +66,11 @@ public final class UiUtils {
         row.setAlignment(Pos.TOP_LEFT);
 
         Label num = new Label(number);
-        num.setMinSize(30, 30);
-        num.setPrefSize(30, 30);
-        num.setMaxSize(30, 30);
-        num.setAlignment(Pos.CENTER);
-        num.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #2a8a7a, #3db89a); "
-                + "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; "
-                + "-fx-background-radius: 15; "
-                + "-fx-effect: dropshadow(gaussian, rgba(42,138,122,0.35), 8, 0, 0, 2);");
+        num.getStyleClass().add("step-badge");
 
         VBox text = new VBox(5);
         Label titleLbl = new Label(stepTitle);
-        titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f3d4a;");
+        titleLbl.getStyleClass().add("text-step-title");
         text.getChildren().addAll(titleLbl, detailNode);
         HBox.setHgrow(text, Priority.ALWAYS);
 
@@ -87,12 +84,7 @@ public final class UiUtils {
      */
     public static Label navHint(String label) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-background-color: #f0f6f7; "
-                + "-fx-border-color: rgba(42,138,122,0.30); "
-                + "-fx-border-radius: 5; -fx-background-radius: 5; "
-                + "-fx-padding: 1 7 1 7; "
-                + "-fx-font-size: 11.5px; -fx-font-weight: 600; "
-                + "-fx-text-fill: #2a8a7a;");
+        lbl.getStyleClass().add("nav-hint");
         return lbl;
     }
 
@@ -106,7 +98,9 @@ public final class UiUtils {
         for (Object part : parts) {
             if (part instanceof String s) {
                 Text t = new Text(s);
-                t.setStyle("-fx-fill: #4a7a88; -fx-font-size: 13px;");
+                // Text nodes don't support style classes for -fx-fill; inline style required.
+                // Using CSS looked-up token so the colour stays in sync with the design system.
+                t.setStyle("-fx-fill: -text-secondary; -fx-font-size: 13px;");
                 tf.getChildren().add(t);
             } else if (part instanceof Node n) {
                 tf.getChildren().add(n);
@@ -159,24 +153,17 @@ public final class UiUtils {
     public static void setDialogHeader(Dialog<?> dlg, String icon, String title, String subtitle) {
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(14, 20, 14, 20));
-        header.setStyle("-fx-background-color: #f8fbfc; "
-                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-width: 0 0 1 0;");
+        header.getStyleClass().add("dialog-header-bar");
 
         Label iconLbl = new Label(icon);
-        iconLbl.setStyle("-fx-background-color: rgba(42,138,122,0.12); "
-                + "-fx-border-color: rgba(42,138,122,0.30); "
-                + "-fx-border-radius: 8; -fx-background-radius: 8; "
-                + "-fx-min-width: 28; -fx-min-height: 28; -fx-max-width: 28; -fx-max-height: 28; "
-                + "-fx-alignment: center; -fx-font-size: 13px; -fx-font-weight: bold; "
-                + "-fx-text-fill: #2a8a7a;");
+        iconLbl.getStyleClass().add("dialog-icon-box");
 
         Label titleLbl = new Label(title);
-        titleLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        titleLbl.getStyleClass().add("text-step-title");
 
         if (subtitle != null && !subtitle.isBlank()) {
             Label subLbl = new Label(subtitle);
-            subLbl.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #7aa4b0;");
+            subLbl.getStyleClass().add("dialog-subtitle");
             subLbl.setWrapText(true);
             VBox titleBlock = new VBox(2, titleLbl, subLbl);
             HBox.setHgrow(titleBlock, Priority.ALWAYS);
@@ -238,7 +225,7 @@ public final class UiUtils {
     /** Small italic hint label for placement below editable tables. */
     public static Label hintLabel(String text) {
         Label lbl = new Label(text);
-        lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #888888; -fx-font-style: italic;");
+        lbl.getStyleClass().add("text-hint");
         return lbl;
     }
 
@@ -259,11 +246,13 @@ public final class UiUtils {
         Node content = skin.getPopupContent();
         Node monthPane = content.lookup(".month-year-pane");
         if (monthPane == null) return;
+        // Inline required: DatePicker calendar popup is a separate JavaFX skin node tree
+        // not accessible via the main stylesheet; setStyle() via lookup is the only way.
         monthPane.setStyle("-fx-background-color: #d8f0ec;");
         monthPane.lookupAll(".label").forEach(n ->
-                n.setStyle("-fx-text-fill: #0f3d4a; -fx-font-weight: bold;"));
+                n.setStyle("-fx-text-fill: -brand-dark; -fx-font-weight: bold;"));
         monthPane.lookupAll(".left-arrow, .right-arrow").forEach(n ->
-                n.setStyle("-fx-background-color: #0f3d4a;"));
+                n.setStyle("-fx-background-color: -brand-dark;"));
     }
 
     /**
@@ -305,6 +294,6 @@ public final class UiUtils {
         // Force dark text on the editor regardless of which scene the picker is in.
         // Dialogs have a separate scene that doesn't inherit the main scene's CSS,
         // so this inline style is the only reliable way to ensure visibility.
-        dp.getEditor().setStyle("-fx-text-fill: #0f3d4a;");
+        dp.getEditor().setStyle("-fx-text-fill: -brand-dark;");
     }
 }

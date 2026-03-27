@@ -44,7 +44,7 @@ public class SettingsScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        view.getStyleClass().add("scroll-page-bg");
     }
 
     // ── Section wrapper ───────────────────────────────────────────────────────
@@ -53,10 +53,11 @@ public class SettingsScreen {
         VBox section = new VBox(8);
         HBox labelRow = new HBox(8);
         labelRow.setAlignment(Pos.CENTER_LEFT);
+        // Shape.fill cannot be set via style class; brand accent stays inline
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
                 javafx.scene.paint.Color.web("#3db89a"));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
-        h.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0; -fx-letter-spacing: 0.5;");
+        h.getStyleClass().add("section-group-label");
         labelRow.getChildren().addAll(dot, h);
         VBox card = new VBox(12);
         card.getStyleClass().add("table-card");
@@ -74,7 +75,7 @@ public class SettingsScreen {
         HBox pathRow = new HBox(10);
         pathRow.setAlignment(Pos.CENTER_LEFT);
         Label pathLbl = new Label("Data Folder:");
-        pathLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        pathLbl.getStyleClass().add("text-form-value");
         pathLbl.setMinWidth(130);
 
         String currentPath = DataStore.getInstance().getDataFolderPath();
@@ -95,7 +96,7 @@ public class SettingsScreen {
         pathRow.getChildren().addAll(pathLbl, pathField, browseBtn);
 
         Label hint = new Label("You can move your data folder to any location — cloud drive, external drive, etc.");
-        hint.setStyle("-fx-text-fill: #9E9E9E; -fx-font-size: 11px;");
+        hint.getStyleClass().add("text-hint");
         hint.setWrapText(true);
         box.getChildren().addAll(pathRow, hint);
         return box;
@@ -109,7 +110,7 @@ public class SettingsScreen {
         HBox dateRow = new HBox(10);
         dateRow.setAlignment(Pos.CENTER_LEFT);
         Label dateLbl = new Label("Date Format:");
-        dateLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        dateLbl.getStyleClass().add("text-form-value");
         dateLbl.setMinWidth(180);
 
         ComboBox<String> dateCb = new ComboBox<>();
@@ -119,7 +120,7 @@ public class SettingsScreen {
         dateCb.setOnAction(e -> DataStore.getInstance().setDateFormat(dateCb.getValue()));
 
         Label hint = new Label("Takes effect immediately on all date displays throughout the app.");
-        hint.setStyle("-fx-text-fill: #9E9E9E; -fx-font-size: 11px;");
+        hint.getStyleClass().add("text-hint");
 
         dateRow.getChildren().addAll(dateLbl, dateCb);
         box.getChildren().addAll(dateRow, hint);
@@ -132,7 +133,7 @@ public class SettingsScreen {
         HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
         Label lbl = new Label("Create a timestamped ZIP archive of your entire data folder.");
-        lbl.setStyle("-fx-text-fill: #595959;");
+        lbl.getStyleClass().add("text-body-muted");
         lbl.setWrapText(true);
         HBox.setHgrow(lbl, Priority.ALWAYS);
         Button backupBtn = new Button("Backup Now");
@@ -199,9 +200,9 @@ public class SettingsScreen {
         row.setAlignment(Pos.CENTER_LEFT);
         Label lbl = new Label(label + ":");
         lbl.setMinWidth(130);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        lbl.getStyleClass().add("text-form-value");
         Label val = new Label(value);
-        val.setStyle("-fx-text-fill: #595959;");
+        val.getStyleClass().add("text-body-muted");
         row.getChildren().addAll(lbl, val);
         box.getChildren().add(row);
     }

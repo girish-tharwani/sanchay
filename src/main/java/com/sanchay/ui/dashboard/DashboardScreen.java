@@ -24,11 +24,6 @@ public class DashboardScreen {
     private static final DateTimeFormatter HEADER_FMT =
             DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH);
 
-    // Accent stripe colours for stat cards
-    private static final String STRIPE_TEAL  = "#3db89a";
-    private static final String STRIPE_GOLD  = "#f0a500";
-    private static final String STRIPE_RED   = "#e05555";
-
     private final MainWindow mainWindow;
     private final boolean showWelcomeBanner;
     private boolean bannerDismissed = false;
@@ -56,7 +51,7 @@ public class DashboardScreen {
         title.getStyleClass().add("screen-title");
 
         Label dateLabel = new Label(LocalDate.now().format(HEADER_FMT));
-        dateLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #7aa4b0;");
+        dateLabel.getStyleClass().add("dialog-subtitle");
 
         VBox titleGroup = new VBox(2, title, dateLabel);
         content.getChildren().add(titleGroup);
@@ -74,27 +69,22 @@ public class DashboardScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        view.getStyleClass().add("scroll-page-bg");
     }
 
     // ── Get Started card ──────────────────────────────────────────────────────
 
     private VBox buildGetStartedCard() {
         VBox card = new VBox(16);
-        card.setPadding(new Insets(20, 24, 20, 24));
-        card.setStyle(
-                "-fx-background-color: #3db89a, white; " +
-                "-fx-background-insets: 0, 0 0 0 4; " +
-                "-fx-background-radius: 12, 12; " +
-                "-fx-border-color: rgba(42,138,122,0.25); " +
-                "-fx-border-radius: 12; -fx-border-width: 1;");
+        card.getStyleClass().add("card-welcome");
 
         HBox heading = new HBox(10);
         heading.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🚀");
+        // Inline required: single-use emoji size, no matching CSS utility class
         icon.setStyle("-fx-font-size: 20px;");
         Label titleLbl = new Label("Welcome — let's get you set up");
-        titleLbl.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0f3d4a;");
+        titleLbl.getStyleClass().add("text-step-title");
         Region headSpacer = new Region();
         HBox.setHgrow(headSpacer, Priority.ALWAYS);
         Button dismiss = new Button("Got it — I'll start now");
@@ -107,7 +97,7 @@ public class DashboardScreen {
 
         Label intro = new Label(
                 "Before you start recording transactions, complete these three steps in order:");
-        intro.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a7a88;");
+        intro.getStyleClass().add("text-body-muted");
         intro.setWrapText(true);
 
         VBox steps = new VBox(10);
@@ -136,7 +126,8 @@ public class DashboardScreen {
 
     private javafx.scene.text.Text navArrow() {
         javafx.scene.text.Text t = new javafx.scene.text.Text(" → ");
-        t.setStyle("-fx-fill: #7aa4b0; -fx-font-size: 11px;");
+        // Text nodes don't support style classes for -fx-fill; inline style required.
+        t.setStyle("-fx-fill: -text-muted; -fx-font-size: 11px;");
         return t;
     }
 
@@ -147,10 +138,10 @@ public class DashboardScreen {
         HBox row = new HBox(14);
         row.setFillHeight(true);
         row.getChildren().addAll(
-                summaryCard("Net Worth",        fmtInr(ds.getNetWorthPaise()),        STRIPE_GOLD, "#0f3d4a"),
-                summaryCard("Bank Balance",     fmtInr(ds.getTotalBankBalancePaise()), STRIPE_TEAL, "#0f3d4a"),
-                summaryCard("Monthly Expenses", fmtInr(ds.getMonthlyExpensesPaise()),  STRIPE_TEAL, "#0f3d4a"),
-                summaryCard("Monthly Income",   fmtInr(ds.getMonthlyIncomePaise()),    STRIPE_TEAL, "#0f3d4a")
+                summaryCard("Net Worth",        fmtInr(ds.getNetWorthPaise()),        "-brand-accent"),
+                summaryCard("Bank Balance",     fmtInr(ds.getTotalBankBalancePaise()), "-brand-light"),
+                summaryCard("Monthly Expenses", fmtInr(ds.getMonthlyExpensesPaise()),  "-brand-light"),
+                summaryCard("Monthly Income",   fmtInr(ds.getMonthlyIncomePaise()),    "-brand-light")
         );
         return row;
     }
@@ -160,48 +151,40 @@ public class DashboardScreen {
         long ccOutstanding = ds.getTotalCreditCardOutstandingPaise();
         long loanCount     = ds.getActiveLoanAccounts().size();
 
-        String ccStripe = ccOutstanding > 0 ? STRIPE_RED : STRIPE_TEAL;
-        String ccColor  = ccOutstanding > 0 ? "#c0392b" : "#0f3d4a";
+        String ccStripe = ccOutstanding > 0 ? "#e05555" : "-brand-light";
         String ccValue  = ccOutstanding > 0
                 ? "₹−" + String.format("%,.2f", ccOutstanding / 100.0)
                 : fmtInr(0);
 
         HBox row = new HBox(14);
         row.getChildren().addAll(
-                summaryCard("Credit Card Balance", ccValue,                  ccStripe, ccColor),
-                summaryCard("Active Loans",        String.valueOf(loanCount), STRIPE_TEAL, "#0f3d4a")
+                summaryCard("Credit Card Balance", ccValue,                  ccStripe),
+                summaryCard("Active Loans",        String.valueOf(loanCount), "-brand-light")
         );
         return row;
     }
 
     /**
      * Stat card with a 3 px left accent stripe.
-     * stripeColor — hex colour for the left stripe
-     * valueColor  — hex colour for the amount label
+     * stripeColor — hex/token for the left stripe (runtime-computed, stays inline).
+     * All static styles (border, shadow, padding, radius) live in .card-summary CSS class.
+     * All amount values use uniform brand-dark colour per CLAUDE.md — no per-tile colouring.
      */
-    private VBox summaryCard(String label, String value, String stripeColor, String valueColor) {
+    private VBox summaryCard(String label, String value, String stripeColor) {
         VBox card = new VBox(8);
         HBox.setHgrow(card, Priority.ALWAYS);
         card.setMinWidth(140);
+        card.getStyleClass().add("card-summary");
+        // Inline required: stripe colour is data-driven (teal / gold / red per card type)
         card.setStyle(
                 "-fx-background-color: " + stripeColor + ", white; " +
-                "-fx-background-insets: 0, 0 0 0 3; " +
-                "-fx-background-radius: 12, 12; " +
-                "-fx-border-color: rgba(42,138,122,0.18); " +
-                "-fx-border-radius: 12; " +
-                "-fx-border-width: 1; " +
-                "-fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2); " +
-                "-fx-padding: 18 18 18 20;");
+                "-fx-background-insets: 0, 0 0 0 3;");
 
         Label lbl = new Label(label.toUpperCase());
-        lbl.setStyle(
-                "-fx-text-fill: #7aa4b0; -fx-font-size: 10.5px; " +
-                "-fx-font-weight: 700;");
+        lbl.getStyleClass().add("card-title");
 
         Label val = new Label(value);
-        val.setStyle(
-                "-fx-text-fill: " + valueColor + "; " +
-                "-fx-font-size: 20px; -fx-font-weight: 700;");
+        val.getStyleClass().add("card-value");
 
         card.getChildren().addAll(lbl, val);
         return card;
@@ -211,20 +194,15 @@ public class DashboardScreen {
 
     private VBox buildPendingCard() {
         VBox card = new VBox(0);
-        card.setStyle(
-                "-fx-background-color: white; " +
-                "-fx-background-radius: 14; " +
-                "-fx-border-color: rgba(42,138,122,0.18); " +
-                "-fx-border-radius: 14; -fx-border-width: 1; " +
-                "-fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);");
+        card.getStyleClass().add("table-card");
 
         // Section header
-        HBox header = sectionHeader("Pending Recurring Transactions", STRIPE_TEAL, true);
+        HBox header = sectionHeader("Pending Recurring Transactions", "-brand-light", true);
         header.setPadding(new Insets(16, 20, 14, 20));
 
         // Separator
         Region sep = new Region();
-        sep.setStyle("-fx-background-color: rgba(42,138,122,0.12); -fx-pref-height: 1; -fx-max-height: 1;");
+        sep.getStyleClass().add("sep-teal");
         sep.setMaxWidth(Double.MAX_VALUE);
 
         // Items container — no background; rows self-separate via bottom border
@@ -242,7 +220,8 @@ public class DashboardScreen {
 
         if (pending.isEmpty()) {
             Label none = new Label("✅  No pending transactions. You're all caught up!");
-            none.setStyle("-fx-text-fill: #27AE60; -fx-padding: 12 0;");
+            none.getStyleClass().add("text-empty");
+            none.setPadding(new Insets(12, 0, 12, 0));
             container.getChildren().add(none);
         } else {
             for (int i = 0; i < pending.size(); i++) {
@@ -266,33 +245,23 @@ public class DashboardScreen {
         typeBadge.getStyleClass().add(UiUtils.badgeStyle(r.getTransactionType()));
 
         Label desc = new Label(r.getDescription());
-        desc.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+        desc.getStyleClass().add("text-step-title");
         Label due = new Label("Due: " + (r.getNextDueDate() != null
                 ? r.getNextDueDate().format(DATE_FMT) : "—"));
-        due.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        due.getStyleClass().add("dialog-subtitle");
         VBox details = new VBox(2, desc, due);
         HBox.setHgrow(details, Priority.ALWAYS);
 
         Label amount = new Label(r.getAmountInr());
-        amount.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        amount.getStyleClass().add("card-value");
 
         Button record = new Button("✓");
-        record.setStyle(
-                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
-                "-fx-font-size: 12px; " +
-                "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
-                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
-                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
+        record.getStyleClass().add("btn-action-sm");
         record.setTooltip(new Tooltip("Record"));
         record.setOnAction(e -> mainWindow.recordRecurring(r, () -> buildPendingItems(container)));
 
         Button skip = new Button("≫");
-        skip.setStyle(
-                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
-                "-fx-font-size: 12px; " +
-                "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
-                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
-                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
+        skip.getStyleClass().add("btn-action-sm");
         skip.setTooltip(new Tooltip("Skip"));
         skip.setOnAction(e -> mainWindow.skipRecurring(r, () -> buildPendingItems(container)));
 
@@ -304,18 +273,13 @@ public class DashboardScreen {
 
     private VBox buildRecentTransactions() {
         VBox card = new VBox(0);
-        card.setStyle(
-                "-fx-background-color: white; " +
-                "-fx-background-radius: 14; " +
-                "-fx-border-color: rgba(42,138,122,0.18); " +
-                "-fx-border-radius: 14; -fx-border-width: 1; " +
-                "-fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);");
+        card.getStyleClass().add("table-card");
 
-        HBox header = sectionHeader("Recent Transactions", STRIPE_GOLD, false);
+        HBox header = sectionHeader("Recent Transactions", "-brand-accent", false);
         header.setPadding(new Insets(16, 20, 14, 20));
 
         Region sep = new Region();
-        sep.setStyle("-fx-background-color: rgba(42,138,122,0.12); -fx-pref-height: 1; -fx-max-height: 1;");
+        sep.getStyleClass().add("sep-teal");
         sep.setMaxWidth(Double.MAX_VALUE);
 
         VBox rows = new VBox(0);
@@ -324,36 +288,38 @@ public class DashboardScreen {
         List<Transaction> recent = DataStore.getInstance().getRecentTransactions(10);
         if (recent.isEmpty()) {
             Label none = new Label("No transactions yet. Use the + button to record your first transaction.");
-            none.setStyle("-fx-text-fill: #7aa4b0; -fx-font-style: italic; -fx-padding: 12 0;");
+            none.getStyleClass().add("text-empty");
+            none.setPadding(new Insets(12, 0, 12, 0));
             rows.getChildren().add(none);
         } else {
             for (int i = 0; i < recent.size(); i++) {
                 Transaction t = recent.get(i);
                 HBox row = new HBox(12);
                 row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(10, 0, 10, 0));
 
-                // Bottom border on all but the last row
-                String borderStyle = (i < recent.size() - 1)
-                        ? "-fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent; " +
-                          "-fx-border-width: 0 0 1px 0;"
-                        : "";
-                row.setStyle("-fx-padding: 10 0;" + borderStyle);
+                // Bottom border on all but the last row (runtime-computed state, stays inline)
+                if (i < recent.size() - 1) {
+                    row.setStyle("-fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent; " +
+                                 "-fx-border-width: 0 0 1px 0;");
+                }
 
                 Label typeBadge = new Label(UiUtils.badgeText(t.getType()));
                 typeBadge.getStyleClass().add(UiUtils.badgeStyle(t.getType()));
                 typeBadge.setMinWidth(90);
 
                 Label dateL = new Label(t.getDate().format(DATE_FMT));
-                dateL.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+                dateL.getStyleClass().add("dialog-subtitle");
                 dateL.setMinWidth(90);
 
                 Label descL = new Label(t.getDescription());
-                descL.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a7a88;");
+                descL.getStyleClass().add("text-body-muted");
                 descL.setMaxWidth(Double.MAX_VALUE);
                 HBox.setHgrow(descL, Priority.ALWAYS);
 
                 Label amtL = new Label(t.getAmountInr());
-                amtL.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a; -fx-alignment: center-right;");
+                // Inline required: 13px bold-dark is a one-off size not covered by a utility class
+                amtL.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: -brand-dark; -fx-alignment: center-right;");
                 amtL.setMinWidth(110);
                 amtL.setMaxWidth(110);
 
@@ -378,11 +344,11 @@ public class DashboardScreen {
         header.setAlignment(Pos.CENTER_LEFT);
 
         Circle dot = new Circle(4);
+        // Inline required: Shape.fill cannot be set via style class; colour is data-driven
         dot.setStyle("-fx-fill: " + dotColor + ";");
 
         Label titleLbl = new Label(title.toUpperCase());
-        titleLbl.setStyle(
-                "-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #4a7a88;");
+        titleLbl.getStyleClass().add("section-group-label");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -391,9 +357,7 @@ public class DashboardScreen {
 
         if (showViewAll) {
             Hyperlink viewAll = new Hyperlink("View All →");
-            viewAll.setStyle(
-                    "-fx-font-size: 12px; -fx-font-weight: 600; " +
-                    "-fx-text-fill: #2a8a7a; -fx-border-color: transparent;");
+            viewAll.getStyleClass().add("link-teal");
             viewAll.setOnAction(e -> mainWindow.navigateToRecurring());
             header.getChildren().add(viewAll);
         }

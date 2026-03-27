@@ -117,25 +117,17 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
     private VBox buildContent() {
         // ── Detected columns as pills ─────────────────────────────────────────
         Label detectedLbl = new Label("DETECTED COLUMNS");
-        detectedLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+        detectedLbl.getStyleClass().add("section-group-label");
 
         javafx.scene.layout.FlowPane pillBox = new javafx.scene.layout.FlowPane(6, 6);
         for (String h : headers) {
             Label pill = new Label(h);
-            pill.setStyle(
-                    "-fx-font-size: 11px; -fx-text-fill: #2a8a7a; "
-                    + "-fx-background-color: #e8f0f2; "
-                    + "-fx-background-radius: 12; -fx-padding: 3 10; "
-                    + "-fx-border-color: rgba(42,138,122,0.30); "
-                    + "-fx-border-radius: 12; -fx-border-width: 1;");
+            pill.getStyleClass().add("chip-teal");
             pillBox.getChildren().add(pill);
         }
 
         VBox detectedBox = new VBox(6, detectedLbl, pillBox);
-        detectedBox.setStyle(
-                "-fx-background-color: #f8fbfc; -fx-background-radius: 8; "
-                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 8; -fx-border-width: 1; "
-                + "-fx-padding: 10 12;");
+        detectedBox.getStyleClass().add("info-box");
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
@@ -158,9 +150,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         // Amount type toggle
         singleRb = new RadioButton("Single amount column");
-        singleRb.setStyle("-fx-text-fill: #0f3d4a;");
         splitRb  = new RadioButton("Separate Debit / Credit columns");
-        splitRb.setStyle("-fx-text-fill: #0f3d4a;");
         ToggleGroup tg = new ToggleGroup();
         singleRb.setToggleGroup(tg); splitRb.setToggleGroup(tg);
         singleRb.setSelected(prefilled == null || !prefilled.isAmountSplit());
@@ -201,14 +191,11 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         addRow(splitGrid, 1, "Credit column", creditCb);
 
         Label splitTitle = new Label("AMOUNT COLUMNS");
-        splitTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+        splitTitle.getStyleClass().add("section-group-label");
         debitRow = new HBox();  // reuse field — content irrelevant, used only for visibility toggle
         creditRow = new HBox(); // same
         VBox splitSection = new VBox(8, splitTitle, splitGrid);
-        splitSection.setStyle(
-                "-fx-background-color: #f8fbfc; -fx-background-radius: 8; "
-                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 8; -fx-border-width: 1; "
-                + "-fx-padding: 10 12;");
+        splitSection.getStyleClass().add("info-box");
 
         g.add(splitSection, 0, row++, 2, 1);
 
@@ -234,7 +221,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         addRow(g, row++, "Date format *", fmtCb);
 
         Label fmtHint = new Label("Common formats: dd/MM/yyyy · yyyy-MM-dd · dd-MMM-yyyy");
-        fmtHint.setStyle("-fx-font-size: 10px; -fx-text-fill: #7aa4b0; -fx-padding: 0 0 0 2;");
+        fmtHint.getStyleClass().add("text-hint");
 
         VBox content = new VBox(12, detectedBox, g, fmtHint);
         content.setPadding(new Insets(4, 8, 4, 8));

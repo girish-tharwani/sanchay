@@ -79,20 +79,16 @@ public class MainWindow {
 
         // ── Brand / logo section ─────────────────────────────────────────────
         StackPane logoCircle = new StackPane();
-        logoCircle.setStyle(
-                "-fx-background-color: #f0a500; -fx-background-radius: 18;" +
-                "-fx-min-width: 36; -fx-min-height: 36;" +
-                "-fx-max-width: 36; -fx-max-height: 36;" +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 6, 0, 0, 2);");
+        logoCircle.getStyleClass().add("logo-circle");
         Label rupee = new Label("₹");
-        rupee.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+        rupee.getStyleClass().add("logo-rupee");
         logoCircle.getChildren().add(rupee);
 
         VBox brandText = new VBox(1);
         Label appName = new Label("Sanchay");
-        appName.setStyle("-fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold;");
+        appName.getStyleClass().add("logo-app-name");
         Label tagline = new Label("Personal Finance");
-        tagline.setStyle("-fx-text-fill: rgba(255,255,255,0.60); -fx-font-size: 10px;");
+        tagline.getStyleClass().add("logo-tagline");
         brandText.getChildren().addAll(appName, tagline);
 
         HBox logoSection = new HBox(10, logoCircle, brandText);
@@ -101,7 +97,7 @@ public class MainWindow {
 
         // ── Divider ──────────────────────────────────────────────────────────
         Region divider = new Region();
-        divider.setStyle("-fx-background-color: rgba(255,255,255,0.12); -fx-pref-height: 1; -fx-max-height: 1;");
+        divider.getStyleClass().add("sidebar-divider");
         divider.setMaxWidth(Double.MAX_VALUE);
         VBox.setMargin(divider, new Insets(0, 0, 6, 0));
 
@@ -120,7 +116,7 @@ public class MainWindow {
 
         // ── Bottom items ─────────────────────────────────────────────────────
         Region divider2 = new Region();
-        divider2.setStyle("-fx-background-color: rgba(255,255,255,0.12); -fx-pref-height: 1; -fx-max-height: 1;");
+        divider2.getStyleClass().add("sidebar-divider");
         divider2.setMaxWidth(Double.MAX_VALUE);
         VBox.setMargin(divider2, new Insets(6, 0, 6, 0));
 
@@ -257,15 +253,13 @@ public class MainWindow {
         UiUtils.setDialogHeader(dlg, "↺", "Record — " + r.getDescription());
 
         Label subtitle = new Label("Confirm the details for this occurrence:");
-        subtitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0; -fx-padding: 0 0 4 0;");
+        subtitle.getStyleClass().add("dialog-subtitle");
         subtitle.setWrapText(true);
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(10);
         g.setPadding(new Insets(12, 14, 12, 14));
-        g.setStyle(
-                "-fx-background-color: #f8fbfc; -fx-background-radius: 8; "
-                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 8; -fx-border-width: 1;");
+        g.getStyleClass().add("info-box");
         ColumnConstraints c1 = new ColumnConstraints(140);
         ColumnConstraints c2 = new ColumnConstraints();
         c2.setHgrow(Priority.ALWAYS);
@@ -408,21 +402,15 @@ public class MainWindow {
         HBox iconRow = new HBox(14);
         iconRow.setAlignment(Pos.CENTER_LEFT);
         Label iconLbl = new Label("↷");
-        iconLbl.setStyle(
-                "-fx-background-color: rgba(240,165,0,0.12); "
-                + "-fx-border-color: rgba(240,165,0,0.30); "
-                + "-fx-border-radius: 50; -fx-background-radius: 50; "
-                + "-fx-text-fill: #d4900a; -fx-font-size: 20px; "
-                + "-fx-min-width: 42; -fx-min-height: 42; "
-                + "-fx-max-width: 42; -fx-max-height: 42; -fx-alignment: center;");
+        iconLbl.getStyleClass().addAll("dialog-icon-box-lg", "dialog-icon-box-lg--gold");
         VBox textBlock = new VBox(4);
         Label headline = new Label("Skip \u2018" + r.getDescription() + "\u2019?");
-        headline.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        headline.getStyleClass().add("text-step-title");
         headline.setWrapText(true);
         Label subLbl = new Label(
                 "Use this when the transaction was already recorded separately. "
                 + "The schedule will advance to the next due date.");
-        subLbl.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #7aa4b0;");
+        subLbl.getStyleClass().add("dialog-subtitle");
         subLbl.setWrapText(true);
         subLbl.setMaxWidth(300);
         textBlock.getChildren().addAll(headline, subLbl);
@@ -457,15 +445,9 @@ public class MainWindow {
         HBox iconRow = new HBox(14);
         iconRow.setAlignment(Pos.CENTER_LEFT);
         Label iconLbl = new Label("⚠");
-        iconLbl.setStyle(
-                "-fx-background-color: rgba(192,57,43,0.10); "
-                + "-fx-border-color: rgba(192,57,43,0.25); "
-                + "-fx-border-radius: 50; -fx-background-radius: 50; "
-                + "-fx-text-fill: #c0392b; -fx-font-size: 18px; "
-                + "-fx-min-width: 42; -fx-min-height: 42; "
-                + "-fx-max-width: 42; -fx-max-height: 42; -fx-alignment: center;");
+        iconLbl.getStyleClass().addAll("dialog-icon-box-lg", "dialog-icon-box-lg--error");
         Label msgLbl = new Label(message);
-        msgLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
+        msgLbl.getStyleClass().add("text-body-muted");
         msgLbl.setWrapText(true);
         msgLbl.setMaxWidth(280);
         iconRow.getChildren().addAll(iconLbl, msgLbl);
@@ -480,7 +462,7 @@ public class MainWindow {
         Label lbl = new Label(labelText);
         lbl.getStyleClass().add("form-label");
         Label val = new Label(value);
-        val.setStyle("-fx-text-fill: #0f3d4a; -fx-font-size: 12px;");
+        val.getStyleClass().add("text-form-value");
         g.add(lbl, 0, row);
         g.add(val, 1, row);
     }

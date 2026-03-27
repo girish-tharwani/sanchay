@@ -1,3 +1,13 @@
+## v0.2.5 — 2026-03-27
+
+### Changed
+- CSS refactor: replaced ~200 inline `setStyle("…hex…")` calls across all 15 UI screens with CSS style-class references
+- New CSS utility classes added to `app.css`: `badge-imported`, `badge-auto-cat`, `badge-reconciled`, `badge-manual`, `category-row`, `subcategory-row`, `menu-item-danger`, `avatar-initial`
+- `UiUtils.CHART_PALETTE` extracted from `ReportsScreen.BAR_COLOURS` — single definition shared across report tabs
+- `DashboardScreen` `STRIPE_*` string constants removed; inlined as CSS token references at each call site
+- Removed 4 dead CSS classes (`btn-primary`, `btn-teal`, `amount-negative`, `amount-positive`, `text-caption`)
+- Remaining intentional inline styles documented with `// Inline required:` comments (runtime data, Text nodes, Shape.fill, DatePicker skin)
+
 ## v0.2.4 — 2026-03-27
 
 ### Fixed
