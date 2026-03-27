@@ -455,10 +455,10 @@
     -fx-border-radius: 7px;
     -fx-background-radius: 7px;
     -fx-border-width: 1px;
-    -fx-min-width: 30px;
-    -fx-max-width: 30px;
-    -fx-min-height: 30px;
-    -fx-max-height: 30px;
+    -fx-min-width: 28px;
+    -fx-max-width: 28px;
+    -fx-min-height: 28px;
+    -fx-max-height: 28px;
     -fx-cursor: hand;
     -fx-font-size: 13px;
     -fx-text-fill: -text-muted;
@@ -763,6 +763,8 @@
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-border-width: 1;
+    -fx-min-width: 26; -fx-max-width: 26;
+    -fx-min-height: 26; -fx-max-height: 26;
     -fx-cursor: hand;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
@@ -778,8 +780,8 @@
     -fx-text-fill: -color-error;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-min-width: 22; -fx-max-width: 22;
-    -fx-min-height: 22; -fx-max-height: 22;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
     -fx-padding: 0;
     -fx-background-radius: 3;
     -fx-cursor: hand;
@@ -888,6 +890,27 @@
 .logo-tagline {
     -fx-text-fill: rgba(255,255,255,0.60);
     -fx-font-size: 10px;
+}
+
+/* ── Window control buttons (min / max / close) in sidebar title area ──────── */
+.wc-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: -brand-mid;
+    -fx-font-size: 13px;
+    -fx-min-width: 26; -fx-max-width: 26;
+    -fx-min-height: 22; -fx-max-height: 22;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-background-radius: 4;
+    -fx-font-weight: bold;
+}
+.wc-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.14);
+    -fx-text-fill: -brand-dark;
+}
+.wc-btn-close:hover {
+    -fx-background-color: #c0392b;
+    -fx-text-fill: white;
 }
 
 /* ── Large circular icon boxes (42×42) for confirm / error dialogs ───────── */
@@ -1006,24 +1029,32 @@
     -fx-font-weight: 700;
 }
 
-/* ── Source-indicator badges (small caps in transaction table) ────────────── */
+/* ── Source-indicator badges (fixed 28×28 in transaction table) ──────────── */
 .badge-imported {
     -fx-background-color: #DDEEFF; -fx-text-fill: #1A66CC;
     -fx-font-weight: bold; -fx-font-size: 10px;
-    -fx-padding: 1 5; -fx-background-radius: 3;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER;
 }
 .badge-auto-cat {
     -fx-background-color: #FFF3CD; -fx-text-fill: #856404;
     -fx-font-weight: bold; -fx-font-size: 10px;
-    -fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER; -fx-cursor: hand;
 }
 .badge-reconciled {
     -fx-background-color: #DCFCE7; -fx-text-fill: #166534;
     -fx-font-weight: bold; -fx-font-size: 10px;
-    -fx-padding: 1 5; -fx-background-radius: 3;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER;
 }
 .badge-manual {
     -fx-background-color: #EEEEEE; -fx-text-fill: #555555;
     -fx-font-weight: bold; -fx-font-size: 10px;
-    -fx-padding: 1 5; -fx-background-radius: 3;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER;
 }

@@ -120,7 +120,6 @@ public class RecurringScreen {
                 pauseBtn.getStyleClass().add("btn-icon");
                 pauseBtn.setTooltip(new Tooltip("Pause / Resume"));
                 deleteBtn.getStyleClass().add("btn-danger-sm");
-                deleteBtn.setMinSize(28, 28); deleteBtn.setMaxSize(28, 28);
                 deleteBtn.setTooltip(new Tooltip("Delete schedule"));
             }
             @Override protected void updateItem(Void item, boolean empty) {
@@ -250,6 +249,7 @@ public class RecurringScreen {
                     allSchedulesTable.refresh();
                 }));
 
+        HBox.setMargin(skipBtn, new Insets(0, 16, 0, 0));
         row.getChildren().addAll(typeBadge, info, amount, recordBtn, skipBtn);
         return row;
     }
