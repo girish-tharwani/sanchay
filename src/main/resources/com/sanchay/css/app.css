@@ -31,6 +31,22 @@
     -color-expense:  #E74C3C;
     -color-transfer: #2E75B6;
     -color-invest:   #8E44AD;
+
+    /* Extended neutrals */
+    -text-label:              #1A1A2E;   /* form field labels — slightly bluer dark */
+    -text-hint:               #9E9E9E;   /* placeholder, disabled, hint text */
+    -surface-page:            #eef4f5;   /* main scroll-pane / screen background */
+    -surface-subtle:          #f8fbfc;   /* dialog headers, table footers */
+    -surface-field:           #f0f6f7;   /* text-field / combo default fill */
+    -surface-teal-faint:      #f0f8f6;   /* match-dialog unselected row */
+    -surface-datepicker-header: #d8f0ec; /* DatePicker popup month/year bar */
+
+    /* Semantic status */
+    -color-success:      #27AE60;
+    -color-success-dark: #1B5E20;
+    -color-error:        #c0392b;
+    -color-warning:      #B7450D;
+    -color-warning-bg:   #FFF3E0;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
@@ -109,10 +125,6 @@
     -fx-font-weight: bold;
     -fx-text-fill: -brand-dark;
 }
-
-/* Kept only for inline CC-breakdown rows where colour carries meaning */
-.amount-negative { -fx-text-fill: -color-expense; }
-.amount-positive { -fx-text-fill: -color-income;  }
 
 /* ── Table ──────────────────────────────────────────────────────────────── */
 .table-view {
@@ -207,20 +219,6 @@
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
-.btn-primary {
-    -fx-background-color: linear-gradient(to bottom, #2a8a7a, #1a5c6e);
-    -fx-text-fill: white;
-    -fx-background-radius: 8px;
-    -fx-cursor: hand;
-    -fx-padding: 7px 18px;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.18), 6, 0, 0, 2);
-}
-
-.btn-primary:hover {
-    -fx-background-color: linear-gradient(to bottom, #3db89a, #2a8a7a);
-}
-
 .btn-secondary {
     -fx-background-color: #f0f8f7;
     -fx-text-fill: -brand-dark;
@@ -382,12 +380,12 @@
 }
 
 .date-picker-popup > * > .month-year-pane {
-    -fx-background-color: #d8f0ec;
+    -fx-background-color: -surface-datepicker-header;
     -fx-padding: 6px 8px;
 }
 
 .date-picker-popup > * > .month-year-pane .label {
-    -fx-text-fill: #0f3d4a;
+    -fx-text-fill: -brand-dark;
     -fx-font-weight: bold;
 }
 
@@ -401,7 +399,7 @@
 
 .date-picker-popup > * > .month-year-pane .left-arrow,
 .date-picker-popup > * > .month-year-pane .right-arrow {
-    -fx-background-color: #0f3d4a;
+    -fx-background-color: -brand-dark;
 }
 
 .date-picker-popup .day-name-cell {
@@ -486,23 +484,6 @@
 }
 .btn-gold:hover {
     -fx-background-color: rgba(240,165,0,0.22);
-}
-
-/* ── Teal-tinted button (Download CSV etc.) ──────────────────────────────── */
-.btn-teal {
-    -fx-background-color: rgba(42,138,122,0.10);
-    -fx-border-color: rgba(42,138,122,0.30);
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-border-width: 1px;
-    -fx-text-fill: #2a8a7a;
-    -fx-font-size: 12px;
-    -fx-font-weight: 600;
-    -fx-cursor: hand;
-    -fx-padding: 6px 14px;
-}
-.btn-teal:hover {
-    -fx-background-color: rgba(42,138,122,0.18);
 }
 
 /* ── Filter bar card ─────────────────────────────────────────────────────── */
@@ -599,4 +580,450 @@
 
 .dialog-pane .button-bar .button:default:hover {
     -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #3db89a, #2a8a7a);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Extended component library — added in CSS refactor
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Text utility classes ────────────────────────────────────────────────── */
+/* Step / card titles: bold 14px brand-dark */
+.text-step-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: -brand-dark;
+}
+
+/* Section heading inside a card (same weight/colour as step title) */
+.text-section-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: -brand-dark;
+}
+
+/* Body text in muted secondary colour */
+.text-body-muted {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 13px;
+}
+
+/* Small italic hint / caption text */
+.text-hint {
+    -fx-text-fill: -text-hint;
+    -fx-font-size: 11px;
+    -fx-font-style: italic;
+}
+
+/* "No items" placeholder — same as hint but used on standalone labels */
+.text-empty {
+    -fx-text-fill: -text-hint;
+    -fx-font-style: italic;
+}
+
+/* Standard form value label — dark, 12px */
+.text-form-value {
+    -fx-text-fill: -text-label;
+    -fx-font-size: 12px;
+}
+
+/* Success / confirmation text (green) */
+.text-success {
+    -fx-text-fill: -color-success;
+    -fx-font-size: 12px;
+}
+
+/* Inline teal hyperlink-style label */
+.link-teal {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -brand-mid;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-background-color: transparent;
+}
+.link-teal:hover {
+    -fx-text-fill: -brand-dark;
+}
+
+/* Section group label — small, bold, muted (e.g. "BANK ACCOUNTS", "PENDING") */
+.section-group-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-muted;
+}
+
+/* ── Dialog components ───────────────────────────────────────────────────── */
+/* Header bar above dialog content (light surface + bottom border) */
+.dialog-header-bar {
+    -fx-background-color: -surface-subtle;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 14 20 14 20;
+}
+
+/* Subtitle / tagline below a dialog title — muted, non-italic */
+.dialog-subtitle {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -text-muted;
+}
+
+/* Teal icon box inside dialog headers (28×28 rounded square) */
+.dialog-icon-box {
+    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-width: 28; -fx-min-height: 28;
+    -fx-max-width: 28; -fx-max-height: 28;
+    -fx-alignment: center;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-mid;
+}
+
+/* ── Step badge (numbered circle in setup / help guides) ─────────────────── */
+.step-badge {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -brand-mid, -brand-light);
+    -fx-text-fill: -text-on-dark;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 15;
+    -fx-min-width: 30; -fx-min-height: 30;
+    -fx-max-width: 30; -fx-max-height: 30;
+    -fx-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(42,138,122,0.35), 8, 0, 0, 2);
+}
+
+/* ── Nav-hint chip (keyboard shortcut / screen-name pill) ────────────────── */
+.nav-hint {
+    -fx-background-color: -surface-field;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 1 7 1 7;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -brand-mid;
+}
+
+/* ── Teal chip / frequency tag (small rounded pill) ──────────────────────── */
+.chip-teal {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-text-fill: -brand-mid;
+    -fx-background-radius: 12;
+    -fx-padding: 2 8;
+}
+
+/* ── Sidebar divider (1px semi-white horizontal rule) ────────────────────── */
+.sidebar-divider {
+    -fx-background-color: rgba(255,255,255,0.12);
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+/* ── Scroll-pane surface utilities ───────────────────────────────────────── */
+/* Removes the default grey bezel from a ScrollPane */
+.scroll-transparent {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+/* ScrollPane background matches the page surface colour */
+.scroll-page-bg {
+    -fx-background-color: -surface-page;
+    -fx-background: -surface-page;
+}
+
+/* ── 28×28 action buttons (Record / Skip in pending lists) ──────────────── */
+.btn-action-sm {
+    -fx-background-color: -surface-field;
+    -fx-text-fill: -text-muted;
+    -fx-font-size: 12px;
+    -fx-min-width: 28; -fx-max-width: 28;
+    -fx-min-height: 28; -fx-max-height: 28;
+    -fx-background-radius: 7;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+.btn-action-sm:hover {
+    -fx-background-color: #ddf0ec;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Small red danger button (delete / remove inline) ───────────────────── */
+.btn-danger-sm {
+    -fx-background-color: #fef2f2;
+    -fx-text-fill: -color-error;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+}
+.btn-danger-sm:hover {
+    -fx-background-color: #fee2e2;
+}
+
+/* ── Row-editor ±22px add / remove buttons ───────────────────────────────── */
+.btn-row-remove {
+    -fx-background-color: #F5DADA;
+    -fx-text-fill: -color-error;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-min-width: 22; -fx-max-width: 22;
+    -fx-min-height: 22; -fx-max-height: 22;
+    -fx-padding: 0;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+.btn-row-add {
+    -fx-background-color: #E8F5E9;
+    -fx-text-fill: -color-success-dark;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-min-width: 22; -fx-max-width: 22;
+    -fx-min-height: 22; -fx-max-height: 22;
+    -fx-padding: 0;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+/* ── Account / category status badges ───────────────────────────────────── */
+.status-active {
+    -fx-font-size: 11px;
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-background-color: #DCFCE7;
+    -fx-text-fill: #166534;
+}
+
+.status-closed {
+    -fx-font-size: 11px;
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-background-color: #F5F5F5;
+    -fx-text-fill: -text-hint;
+}
+
+/* ── Info box (subtle teal-bordered content block) ───────────────────────── */
+/* Padding NOT included here — callers set it via Java to allow per-context values */
+.info-box {
+    -fx-background-color: -surface-subtle;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+/* ── Match-dialog components ─────────────────────────────────────────────── */
+/* Imported transaction block (left teal accent stripe) */
+.block-imported {
+    -fx-background-color: rgba(42,138,122,0.12), -surface-teal-faint;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 8, 6;
+    -fx-padding: 10 12 10 14;
+}
+
+/* Match candidate row — unselected */
+.match-row {
+    -fx-background-color: -surface-teal-faint;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+/* Match candidate row — selected */
+.match-row-selected {
+    -fx-background-color: rgba(42,138,122,0.10), -surface-teal-faint;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-border-color: -brand-mid;
+    -fx-border-radius: 8;
+    -fx-border-width: 1.5;
+}
+
+/* ── Warning alert box ───────────────────────────────────────────────────── */
+.alert-warning {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-warning;
+    -fx-background-color: -color-warning-bg;
+    -fx-padding: 12;
+    -fx-background-radius: 6;
+}
+
+/* ── Sidebar branding ────────────────────────────────────────────────────── */
+.logo-circle {
+    -fx-background-color: -brand-accent;
+    -fx-background-radius: 18;
+    -fx-min-width: 36; -fx-min-height: 36;
+    -fx-max-width: 36; -fx-max-height: 36;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 6, 0, 0, 2);
+}
+
+.logo-rupee {
+    -fx-text-fill: -text-on-dark;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.logo-app-name {
+    -fx-text-fill: -text-on-dark;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.logo-tagline {
+    -fx-text-fill: rgba(255,255,255,0.60);
+    -fx-font-size: 10px;
+}
+
+/* ── Large circular icon boxes (42×42) for confirm / error dialogs ───────── */
+.dialog-icon-box-lg {
+    -fx-border-radius: 50;
+    -fx-background-radius: 50;
+    -fx-min-width: 42; -fx-min-height: 42;
+    -fx-max-width: 42; -fx-max-height: 42;
+    -fx-alignment: center;
+}
+
+/* Gold tint — used in "Skip" / informational dialogs */
+.dialog-icon-box-lg--gold {
+    -fx-background-color: rgba(240,165,0,0.12);
+    -fx-border-color: rgba(240,165,0,0.30);
+    -fx-text-fill: #d4900a;
+    -fx-font-size: 20px;
+}
+
+/* Red tint — used in error / validation dialogs */
+.dialog-icon-box-lg--error {
+    -fx-background-color: rgba(192,57,43,0.10);
+    -fx-border-color: rgba(192,57,43,0.25);
+    -fx-text-fill: -color-error;
+    -fx-font-size: 18px;
+}
+
+/* ── Inline card separators ──────────────────────────────────────────────── */
+/* Teal-dark 1px line — separates header from content inside a card */
+.sep-teal {
+    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+/* Teal-faint 1px line — used between items in a dialog or content block */
+.content-divider {
+    -fx-background-color: rgba(42,138,122,0.15);
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+/* ── Summary / stat cards ─────────────────────────────────────────────────── */
+/* Static parts of summary cards; dynamic stripe is set inline in Java */
+.card-summary {
+    -fx-background-radius: 12, 12;
+    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+    -fx-padding: 18 18 18 20;
+}
+
+/* Welcome / get-started card (teal left-stripe, always brand-light) */
+.card-welcome {
+    -fx-background-color: -brand-light, white;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 12, 12;
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 20 24 20 24;
+}
+
+/* ── First-run wizard ─────────────────────────────────────────────────────── */
+.wizard-root {
+    -fx-background-color: -brand-dark;
+}
+
+.wizard-body {
+    -fx-background-color: white;
+}
+
+.wizard-app-name {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-on-dark;
+}
+
+.wizard-tagline {
+    -fx-font-size: 14px;
+    -fx-text-fill: rgba(255,255,255,0.75);
+}
+
+/* ── Additional text utilities ───────────────────────────────────────────── */
+/* Large heading — wizard welcome, screen hero titles */
+.text-heading-lg {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+
+
+/* ── Categories screen ───────────────────────────────────────────────────── */
+/* Parent category row bottom-border separator */
+.category-row {
+    -fx-border-color: transparent transparent #E0E6ED transparent;
+    -fx-border-width: 1;
+}
+/* Sub-category row background + bottom-border separator */
+.subcategory-row {
+    -fx-background-color: #FAFBFC;
+    -fx-border-color: transparent transparent #F0F4F8 transparent;
+    -fx-border-width: 1;
+}
+
+/* Danger menu item text */
+.menu-item-danger {
+    -fx-text-fill: -color-error;
+}
+
+/* Avatar initials label (white bold text overlaid on circle) */
+.avatar-initial {
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+/* ── Source-indicator badges (small caps in transaction table) ────────────── */
+.badge-imported {
+    -fx-background-color: #DDEEFF; -fx-text-fill: #1A66CC;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-padding: 1 5; -fx-background-radius: 3;
+}
+.badge-auto-cat {
+    -fx-background-color: #FFF3CD; -fx-text-fill: #856404;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;
+}
+.badge-reconciled {
+    -fx-background-color: #DCFCE7; -fx-text-fill: #166534;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-padding: 1 5; -fx-background-radius: 3;
+}
+.badge-manual {
+    -fx-background-color: #EEEEEE; -fx-text-fill: #555555;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-padding: 1 5; -fx-background-radius: 3;
 }

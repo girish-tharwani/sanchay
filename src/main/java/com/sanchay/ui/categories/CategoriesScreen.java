@@ -53,7 +53,7 @@ public class CategoriesScreen {
                 "Manage expense and income categories and sub-categories. "
                         + "Deactivated categories are hidden from transaction entry but preserved in history.");
         subtitle.setWrapText(true);
-        subtitle.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+        subtitle.getStyleClass().add("text-hint");
 
         VBox expSection = new VBox(8);
         VBox incSection = new VBox(8);
@@ -64,7 +64,7 @@ public class CategoriesScreen {
 
         view = new ScrollPane(content);
         view.setFitToWidth(true);
-        view.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        view.getStyleClass().add("scroll-page-bg");
     }
 
     // ── Category group (Expense or Income) ────────────────────────────────────
@@ -78,7 +78,7 @@ public class CategoriesScreen {
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
                 javafx.scene.paint.Color.web("#3db89a"));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
-        h.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+        h.getStyleClass().add("section-group-label");
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
         Button addBtn = new Button("+ Add");
@@ -110,7 +110,8 @@ public class CategoriesScreen {
 
         if (parentCats.isEmpty()) {
             Label none = new Label("No categories yet.");
-            none.setStyle("-fx-text-fill: #9E9E9E; -fx-font-style: italic; -fx-padding: 12;");
+            none.getStyleClass().add("text-empty");
+            none.setPadding(new Insets(12));
             card.getChildren().add(none);
         }
 
@@ -142,7 +143,7 @@ public class CategoriesScreen {
         HBox row = new HBox(10);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(10, 14, 10, 14));
-        if (!isLast) row.setStyle("-fx-border-color: transparent transparent #E0E6ED transparent; -fx-border-width: 1;");
+        if (!isLast) row.getStyleClass().add("category-row");
 
         final boolean[] expanded = {false};
         VBox subCatContainer = new VBox(0);
@@ -150,8 +151,7 @@ public class CategoriesScreen {
         subCatContainer.setManaged(false);
 
         Button expandBtn = new Button(subCats.isEmpty() ? "  " : "▶");
-        expandBtn.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; "
-                + "-fx-cursor: hand; -fx-font-size: 10px; -fx-text-fill: #595959; -fx-padding: 2 6;");
+        expandBtn.getStyleClass().add("btn-icon");
         expandBtn.setMinWidth(24);
         if (subCats.isEmpty()) expandBtn.setDisable(true);
         expandBtn.setOnAction(e -> {
@@ -163,17 +163,15 @@ public class CategoriesScreen {
 
         Label nameLbl = new Label(cat.getName());
         nameLbl.setMinWidth(180);
+        // Inline required: active/inactive text colour and style are runtime data
         nameLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;"
-                + (cat.isActive() ? " -fx-text-fill: #1A1A2E;" : " -fx-text-fill: #9E9E9E; -fx-font-style: italic;"));
+                + (cat.isActive() ? " -fx-text-fill: -text-label;" : " -fx-text-fill: -text-hint; -fx-font-style: italic;"));
 
         Label statusLbl = new Label(cat.isActive() ? "Active" : "Inactive");
-        statusLbl.setStyle("-fx-font-size: 11px; -fx-padding: 2 8; -fx-background-radius: 10;"
-                + (cat.isActive()
-                ? " -fx-background-color: #E8F8F0; -fx-text-fill: #27AE60;"
-                : " -fx-background-color: #F5F5F5; -fx-text-fill: #9E9E9E;"));
+        statusLbl.getStyleClass().add(cat.isActive() ? "status-active" : "status-closed");
 
         Label subCountLbl = new Label(subCats.size() + " sub-categor" + (subCats.size() == 1 ? "y" : "ies"));
-        subCountLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #9E9E9E;");
+        subCountLbl.getStyleClass().add("text-hint");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -226,7 +224,7 @@ public class CategoriesScreen {
         });
 
         MenuItem deleteItem = new MenuItem("Delete");
-        deleteItem.setStyle("-fx-text-fill: #A93226;");
+        deleteItem.getStyleClass().add("menu-item-danger");
         deleteItem.setOnAction(e -> handleCategoryDelete(cat, subCats, type, groupSection, heading));
 
         ContextMenu menu = new ContextMenu();
@@ -267,22 +265,19 @@ public class CategoriesScreen {
             HBox row = new HBox(10);
             row.setAlignment(Pos.CENTER_LEFT);
             row.setPadding(new Insets(8, 14, 8, 40));
-            row.setStyle("-fx-background-color: #FAFBFC; "
-                    + "-fx-border-color: transparent transparent #F0F4F8 transparent; -fx-border-width: 1;");
+            row.getStyleClass().add("subcategory-row");
 
             Label indent = new Label("↳");
-            indent.setStyle("-fx-text-fill: #C0CEDD; -fx-font-size: 12px;");
+            indent.getStyleClass().add("text-hint");
 
             Label nameLbl = new Label(sub.getName());
             nameLbl.setMinWidth(160);
+            // Inline required: active/inactive text colour and style are runtime data
             nameLbl.setStyle("-fx-font-size: 12px;"
-                    + (sub.isActive() ? " -fx-text-fill: #333;" : " -fx-text-fill: #9E9E9E; -fx-font-style: italic;"));
+                    + (sub.isActive() ? " -fx-text-fill: -text-label;" : " -fx-text-fill: -text-hint; -fx-font-style: italic;"));
 
             Label statusLbl = new Label(sub.isActive() ? "Active" : "Inactive");
-            statusLbl.setStyle("-fx-font-size: 10px; -fx-padding: 2 6; -fx-background-radius: 10;"
-                    + (sub.isActive()
-                    ? " -fx-background-color: #E8F8F0; -fx-text-fill: #27AE60;"
-                    : " -fx-background-color: #F5F5F5; -fx-text-fill: #9E9E9E;"));
+            statusLbl.getStyleClass().add(sub.isActive() ? "status-active" : "status-closed");
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -325,7 +320,7 @@ public class CategoriesScreen {
             });
 
             MenuItem deleteItem = new MenuItem("Delete");
-            deleteItem.setStyle("-fx-text-fill: #A93226;");
+            deleteItem.getStyleClass().add("menu-item-danger");
             deleteItem.setOnAction(e -> handleSubCategoryDelete(sub, type, groupSection, heading));
 
             ContextMenu menu = new ContextMenu();
@@ -339,8 +334,7 @@ public class CategoriesScreen {
                     deleteItem);
 
             Button menuBtn = new Button("⋮");
-            menuBtn.setStyle("-fx-background-color: transparent; -fx-font-size: 16px; "
-                    + "-fx-padding: 2 8; -fx-cursor: hand; -fx-text-fill: #595959;");
+            menuBtn.getStyleClass().add("btn-icon");
             menuBtn.setOnAction(e -> menu.show(menuBtn, Side.BOTTOM, 0, 0));
 
             row.getChildren().addAll(indent, nameLbl, statusLbl, spacer, showTxnBtn, menuBtn);
@@ -385,11 +379,11 @@ public class CategoriesScreen {
         content.setPadding(new Insets(16));
 
         Label countLbl = new Label(txns.size() + " transaction" + (txns.size() == 1 ? "" : "s") + " in '" + cat.getName() + "'");
-        countLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
+        countLbl.getStyleClass().add("text-section-title");
 
         if (txns.isEmpty()) {
             Label none = new Label("No transactions found for this category.");
-            none.setStyle("-fx-text-fill: #9E9E9E; -fx-font-style: italic;");
+            none.getStyleClass().add("text-empty");
             content.getChildren().addAll(countLbl, none);
         } else {
             TableView<Transaction> table = new TableView<>();
@@ -494,7 +488,7 @@ public class CategoriesScreen {
 
         ScrollPane sp = new ScrollPane(content);
         sp.setFitToWidth(true);
-        sp.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        sp.getStyleClass().add("scroll-transparent");
         dlg.getDialogPane().setContent(sp);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.showAndWait();
@@ -686,9 +680,9 @@ public class CategoriesScreen {
         });
 
         Label catLbl = new Label("Category:");
-        catLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        catLbl.getStyleClass().add("text-form-value");
         Label subLbl = new Label("Sub-category:");
-        subLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        subLbl.getStyleClass().add("text-form-value");
         g.add(catLbl,   0, 0); g.add(catCb,    1, 0); GridPane.setFillWidth(catCb,    true);
         g.add(subLbl,   0, 1); g.add(subCatCb, 1, 1); GridPane.setFillWidth(subCatCb, true);
 
@@ -757,7 +751,7 @@ public class CategoriesScreen {
                 .forEach(parentCb.getItems()::add);
 
         Label parentLbl = new Label("New Parent:");
-        parentLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        parentLbl.getStyleClass().add("text-form-value");
         g.add(parentLbl, 0, 0); g.add(parentCb, 1, 0); GridPane.setFillWidth(parentCb, true);
 
         long txnCount = ds.getTransactions().stream()
@@ -765,7 +759,7 @@ public class CategoriesScreen {
                 .count();
         if (txnCount > 0) {
             Label note = new Label(txnCount + " transaction(s) will have their category updated.");
-            note.setStyle("-fx-font-size: 11px; -fx-text-fill: #595959; -fx-font-style: italic;");
+            note.getStyleClass().add("text-hint");
             g.add(note, 0, 1, 2, 1);
         }
 
@@ -812,7 +806,7 @@ public class CategoriesScreen {
 
         if (subtitle != null && !subtitle.isBlank()) {
             Label sub = new Label(subtitle);
-            sub.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+            sub.getStyleClass().add("text-hint");
             content.getChildren().add(sub);
         }
 

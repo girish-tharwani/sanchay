@@ -52,7 +52,7 @@ public class RecurringScreen {
         Label title = new Label("Recurring Transactions");
         title.getStyleClass().add("screen-title");
         Label sub = new Label("Manage repeating schedules — EMIs, SIPs, rent, salary, and more.");
-        sub.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12.5px;");
+        sub.getStyleClass().add("text-hint");
         titleBlock.getChildren().addAll(title, sub);
         Region hSpacer = new Region();
         HBox.setHgrow(hSpacer, Priority.ALWAYS);
@@ -119,12 +119,8 @@ public class RecurringScreen {
             {
                 pauseBtn.getStyleClass().add("btn-icon");
                 pauseBtn.setTooltip(new Tooltip("Pause / Resume"));
-                deleteBtn.setStyle(
-                        "-fx-background-color: #fef2f2; -fx-text-fill: #c0392b; " +
-                        "-fx-border-color: #fecaca; -fx-border-radius: 6; " +
-                        "-fx-background-radius: 6; -fx-border-width: 1; " +
-                        "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
-                        "-fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 0;");
+                deleteBtn.getStyleClass().add("btn-danger-sm");
+                deleteBtn.setMinSize(28, 28); deleteBtn.setMaxSize(28, 28);
                 deleteBtn.setTooltip(new Tooltip("Delete schedule"));
             }
             @Override protected void updateItem(Void item, boolean empty) {
@@ -180,7 +176,7 @@ public class RecurringScreen {
 
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        scroll.getStyleClass().add("scroll-page-bg");
         view.getChildren().setAll(scroll);
     }
 
@@ -194,22 +190,19 @@ public class RecurringScreen {
         List<RecurringTransaction> pending = DataStore.getInstance().getPendingRecurring();
         if (pending.isEmpty()) {
             Label none = new Label("No pending transactions.");
-            none.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+            none.getStyleClass().add("text-empty");
             container.getChildren().add(none);
             return;
         }
 
         // All pending rows in a single white card
         VBox pendingCard = new VBox(0);
-        pendingCard.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 12; " +
-                "-fx-border-color: rgba(42,138,122,0.15); -fx-border-radius: 12; " +
-                "-fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);");
+        pendingCard.getStyleClass().add("table-card");
         for (int i = 0; i < pending.size(); i++) {
             HBox row = buildPendingRow(pending.get(i), container);
-            if (i < pending.size() - 1) {
-                // bottom-border separator between rows
-                row.setStyle("-fx-border-color: transparent transparent rgba(42,138,122,0.15) transparent; -fx-border-width: 0 0 1 0;");
+            // Last item: remove the bottom border added by .pending-item
+            if (i == pending.size() - 1) {
+                row.setStyle("-fx-border-color: transparent; -fx-border-width: 0;");
             }
             pendingCard.getChildren().add(row);
         }
@@ -221,7 +214,7 @@ public class RecurringScreen {
         DateTimeFormatter fmt = ds.getDateFormatter();
 
         HBox row = new HBox(12);
-        row.setPadding(new Insets(13, 18, 13, 18));
+        row.getStyleClass().add("pending-item");
         row.setAlignment(Pos.CENTER_LEFT);
 
         Label typeBadge = new Label(UiUtils.badgeText(r.getTransactionType()));
@@ -229,23 +222,18 @@ public class RecurringScreen {
         typeBadge.getStyleClass().add("badge-" + r.getTransactionType().name().toLowerCase().replace("_", "-"));
 
         Label desc = new Label(r.getDescription());
-        desc.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+        desc.getStyleClass().add("text-step-title");
         Label due  = new Label("Due: " + (r.getNextDueDate() != null ? r.getNextDueDate().format(fmt) : "—"));
-        due.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+        due.getStyleClass().add("text-hint");
         VBox info = new VBox(2, desc, due);
         HBox.setHgrow(info, Priority.ALWAYS);
 
         Label amount = new Label(r.getAmountInr());
-        amount.setStyle("-fx-font-weight: 700; -fx-font-size: 14px; -fx-text-fill: #0f3d4a; -fx-min-width: 110; -fx-alignment: CENTER_RIGHT;");
+        amount.getStyleClass().add("card-value");
+        amount.setMinWidth(110);
 
-        // Small icon buttons: teal ✓ for Record, light ✕ for Skip
         Button recordBtn = new Button("✓");
-        recordBtn.setStyle(
-                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
-                "-fx-font-size: 12px; " +
-                "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
-                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
-                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
+        recordBtn.getStyleClass().add("btn-action-sm");
         recordBtn.setTooltip(new Tooltip("Record"));
         recordBtn.setOnAction(e ->
                 mainWindow.recordRecurring(r, () -> {
@@ -254,12 +242,7 @@ public class RecurringScreen {
                 }));
 
         Button skipBtn = new Button("≫");
-        skipBtn.setStyle(
-                "-fx-background-color: #e8f0f2; -fx-text-fill: #7aa4b0; " +
-                "-fx-font-size: 12px; " +
-                "-fx-min-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-max-height: 28; " +
-                "-fx-background-radius: 7; -fx-border-color: rgba(42,138,122,0.30); -fx-border-radius: 7; " +
-                "-fx-border-width: 1; -fx-cursor: hand; -fx-padding: 0;");
+        skipBtn.getStyleClass().add("btn-action-sm");
         skipBtn.setTooltip(new Tooltip("Skip"));
         skipBtn.setOnAction(e ->
                 mainWindow.skipRecurring(r, () -> {
@@ -377,7 +360,8 @@ public class RecurringScreen {
         });
 
         Label invTypeLbl = new Label("—");
-        invTypeLbl.setStyle("-fx-text-fill: #7aa4b0; -fx-font-style: italic;");
+        // Inline required: needs italic + hint colour (text-hint class has no italic variant)
+        invTypeLbl.setStyle("-fx-text-fill: -text-hint; -fx-font-style: italic;");
 
         // CC Payment → credit card accounts
         ComboBox<Account> ccpCardCb = new ComboBox<>();
@@ -598,12 +582,11 @@ public class RecurringScreen {
 
         // ── Auto-record ───────────────────────────────────────────────────────
         CheckBox autoRecordCb = new CheckBox("Auto-record after");
-        autoRecordCb.setStyle("-fx-text-fill: #0f3d4a;");
         Spinner<Integer> autoRecordDaysSp = new Spinner<>(1, 30, 3);
         autoRecordDaysSp.setPrefWidth(70);
         autoRecordDaysSp.setDisable(true);
         Label autoRecordSuffix = new Label("days overdue");
-        autoRecordSuffix.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+        autoRecordSuffix.getStyleClass().add("text-hint");
         HBox autoRecordBox = new HBox(8, autoRecordCb, autoRecordDaysSp, autoRecordSuffix);
         autoRecordBox.setAlignment(Pos.CENTER_LEFT);
         autoRecordCb.selectedProperty().addListener((obs, o, n) -> autoRecordDaysSp.setDisable(!n));
@@ -656,7 +639,7 @@ public class RecurringScreen {
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
         sp.setPrefHeight(580);
-        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.getStyleClass().add("scroll-transparent");
         dlg.getDialogPane().setContent(sp);
 
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -864,10 +847,11 @@ public class RecurringScreen {
 
     /** Colored dot + uppercase muted section label (matching dashboard style). */
     private HBox sectionLabel(String text, String dotColor) {
+        // Shape.fill cannot be set via style class; data-driven colour stays inline
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(3.5);
         dot.setFill(javafx.scene.paint.Color.web(dotColor));
         Label lbl = new Label(text.toUpperCase());
-        lbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+        lbl.getStyleClass().add("section-group-label");
         HBox box = new HBox(7, dot, lbl);
         box.setAlignment(Pos.CENTER_LEFT);
         return box;

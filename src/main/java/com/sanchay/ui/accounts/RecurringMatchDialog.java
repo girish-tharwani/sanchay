@@ -49,22 +49,20 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
                 "This imported transaction matches a recurring schedule. "
                 + "Select the schedule to record against, or add as a new transaction.");
         subtitle.setWrapText(true);
-        subtitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        subtitle.getStyleClass().add("text-hint");
 
         // ── Imported block ────────────────────────────────────────────────────
         HBox importedSecLabel = sectionLabel("Imported transaction", "#3db89a");
 
         VBox importedBlock = new VBox(4);
-        importedBlock.setStyle(
-                "-fx-background-color: rgba(42,138,122,0.12), #f0f8f6; "
-                + "-fx-background-insets: 0, 0 0 0 4; "
-                + "-fx-background-radius: 8, 6; "
-                + "-fx-padding: 10 12 10 14;");
-        label(importedBlock, "IMPORTED",
-                "-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #2a8a7a; -fx-letter-spacing: 0.5;");
-        label(importedBlock,
-                imported.getDate() + "   " + imported.getAmountInr() + "   " + imported.getDescription(),
-                "-fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+        importedBlock.getStyleClass().add("block-imported");
+        Label importedChip = new Label("IMPORTED");
+        importedChip.getStyleClass().add("chip-teal");
+        Label importedInfo = new Label(
+                imported.getDate() + "   " + imported.getAmountInr() + "   " + imported.getDescription());
+        importedInfo.getStyleClass().add("text-step-title");
+        importedInfo.setWrapText(true);
+        importedBlock.getChildren().addAll(importedChip, importedInfo);
 
         // ── Candidates ────────────────────────────────────────────────────────
         HBox matchesSecLabel = sectionLabel("Matching recurring schedule(s)", "#f0a500");
@@ -90,41 +88,35 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
             // Frequency chip
             Label freqChip = new Label(freqText);
-            freqChip.setStyle(
-                    "-fx-font-size: 10px; -fx-font-weight: 700; "
-                    + "-fx-background-color: rgba(42,138,122,0.12); "
-                    + "-fx-text-fill: #2a8a7a; -fx-background-radius: 12; -fx-padding: 2 8;");
+            freqChip.getStyleClass().add("chip-teal");
 
             HBox mainRow = new HBox(8);
             mainRow.setAlignment(Pos.CENTER_LEFT);
             Label mainLbl = new Label(r.getDescription() + "   " + r.getAmountInr());
-            mainLbl.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+            mainLbl.getStyleClass().add("text-step-title");
             mainRow.getChildren().addAll(mainLbl, freqChip);
 
             VBox rCard = new VBox(3);
             rCard.getChildren().add(mainRow);
-            label(rCard, "Due: " + nextDue, "-fx-font-size: 11px; -fx-text-fill: #7aa4b0;");
-            if (!catLabel.isBlank())
-                label(rCard, catLabel, "-fx-font-size: 11px; -fx-text-fill: #7aa4b0;");
+            Label dueLabel = new Label("Due: " + nextDue);
+            dueLabel.getStyleClass().add("text-hint");
+            rCard.getChildren().add(dueLabel);
+            if (!catLabel.isBlank()) {
+                Label catLbl = new Label(catLabel);
+                catLbl.getStyleClass().add("text-hint");
+                rCard.getChildren().add(catLbl);
+            }
 
             HBox rbRow = new HBox(10, rb, rCard);
-            rbRow.setStyle(
-                    "-fx-background-color: #f0f8f6; "
-                    + "-fx-background-radius: 8; -fx-padding: 10 12; "
-                    + "-fx-border-color: rgba(42,138,122,0.22); "
-                    + "-fx-border-radius: 8; -fx-border-width: 1;");
+            rbRow.getStyleClass().add("match-row");
             rbRow.setAlignment(Pos.CENTER_LEFT);
             HBox.setHgrow(rCard, Priority.ALWAYS);
 
-            rb.selectedProperty().addListener((obs, o, n) ->
-                    rbRow.setStyle(n
-                            ? "-fx-background-color: rgba(42,138,122,0.10), #f0f8f6; "
-                              + "-fx-background-radius: 8; -fx-padding: 10 12; "
-                              + "-fx-border-color: #2a8a7a; -fx-border-radius: 8; -fx-border-width: 1.5;"
-                            : "-fx-background-color: #f0f8f6; "
-                              + "-fx-background-radius: 8; -fx-padding: 10 12; "
-                              + "-fx-border-color: rgba(42,138,122,0.22); "
-                              + "-fx-border-radius: 8; -fx-border-width: 1;"));
+            // Highlight selected row via CSS class toggle
+            rb.selectedProperty().addListener((obs, o, n) -> {
+                rbRow.getStyleClass().removeAll("match-row", "match-row-selected");
+                rbRow.getStyleClass().add(n ? "match-row-selected" : "match-row");
+            });
 
             candidateBox.getChildren().add(rbRow);
         }
@@ -143,7 +135,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         ScrollPane sp = new ScrollPane(content);
         sp.setFitToWidth(true);
         sp.setPrefHeight(400);
-        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.getStyleClass().add("scroll-transparent");
         getDialogPane().setContent(sp);
 
         // ── Buttons ───────────────────────────────────────────────────────────
@@ -172,18 +164,12 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static HBox sectionLabel(String text, String dotColor) {
+        // Shape.fill cannot be set via style class; data-driven colour stays inline
         Circle dot = new Circle(4, Color.web(dotColor));
         Label lbl = new Label(text.toUpperCase());
-        lbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7aa4b0;");
+        lbl.getStyleClass().add("section-group-label");
         HBox h = new HBox(8, dot, lbl);
         h.setAlignment(Pos.CENTER_LEFT);
         return h;
-    }
-
-    private static void label(VBox parent, String text, String style) {
-        Label lbl = new Label(text);
-        if (style != null) lbl.setStyle(style);
-        lbl.setWrapText(true);
-        parent.getChildren().add(lbl);
     }
 }

@@ -69,14 +69,6 @@ Internal (code-generated, not shown in type picker): `GAIN`, `LOSE` — created 
 - Auto-created when saving: Loan account → EMI schedule; CC account → payment reminder; RD account → instalment transfer
 - Pending instances shown on Dashboard (due ≤7 days or overdue)
 
-## Key UI rules (binding)
-- **No hover highlight** on table rows
-- **Row selection:** must have sufficient contrast — no light-blue-bg + white-text
-- **Dialog field labels:** dark text only (e.g. `#1A1A2E`) — never white on grey
-- **Dashboard tiles:** all amounts in one consistent colour — no per-tile colour coding
-- **Pending Recurring widget:** subtle background only (`#F5F5F5`); type tags fixed-width
-- **Text in wizard:** never clipped or truncated — use word wrap
-
 ## Navigation
 Left sidebar (fixed, non-collapsible): Dashboard → Accounts → Recurring → Reports → Categories | Profile → Settings. No standalone Transactions screen — accessed via account card → Transactions button. Floating `+` button on every screen opens the New Transaction dialog.
 

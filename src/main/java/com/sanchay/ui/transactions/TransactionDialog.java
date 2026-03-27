@@ -418,7 +418,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         rdePrincipalFld = tf("Original invested amount being returned");
         rdeGainLossLbl  = new Label("—");
-        rdeGainLossLbl.setStyle("-fx-text-fill: #7aa4b0;");
+        rdeGainLossLbl.getStyleClass().add("text-hint");
 
         // Live gain/loss computation
         rdePrincipalFld.textProperty().addListener((obs, old, val) -> updateRedeemGainLoss());
@@ -443,13 +443,14 @@ public class TransactionDialog extends Dialog<Transaction> {
             long principal = Math.round(Double.parseDouble(rdePrincipalFld.getText().replace(",", "")) * 100);
             long gainLoss  = total - principal;
             String sign  = gainLoss >= 0 ? "+" : "";
-            String color = gainLoss >= 0 ? "#2E7D32" : "#C62828";
+            // Inline required: runtime gain/loss colour is data-driven
+            String color = gainLoss >= 0 ? "-color-success-dark" : "-color-error";
             rdeGainLossLbl.setText(sign + String.format("₹%,.2f", gainLoss / 100.0));
             rdeGainLossLbl.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold;");
             switchRedeemCatList(gainLoss < 0);
         } catch (NumberFormatException e) {
             rdeGainLossLbl.setText("—");
-            rdeGainLossLbl.setStyle("-fx-text-fill: #7aa4b0;");
+            rdeGainLossLbl.setStyle(""); // clears inline; text-hint class applies
         }
     }
 
@@ -1415,15 +1416,9 @@ public class TransactionDialog extends Dialog<Transaction> {
         HBox iconRow = new HBox(14);
         iconRow.setAlignment(Pos.CENTER_LEFT);
         Label iconLbl = new Label("⚠");
-        iconLbl.setStyle(
-                "-fx-background-color: rgba(192,57,43,0.10); "
-                + "-fx-border-color: rgba(192,57,43,0.25); "
-                + "-fx-border-radius: 50; -fx-background-radius: 50; "
-                + "-fx-text-fill: #c0392b; -fx-font-size: 18px; "
-                + "-fx-min-width: 42; -fx-min-height: 42; "
-                + "-fx-max-width: 42; -fx-max-height: 42; -fx-alignment: center;");
+        iconLbl.getStyleClass().addAll("dialog-icon-box-lg", "dialog-icon-box-lg--error");
         Label msgLbl = new Label(msg);
-        msgLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #0f3d4a;");
+        msgLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: -brand-dark;");
         msgLbl.setWrapText(true);
         msgLbl.setMaxWidth(280);
         iconRow.getChildren().addAll(iconLbl, msgLbl);

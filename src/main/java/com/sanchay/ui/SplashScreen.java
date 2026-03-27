@@ -109,6 +109,9 @@ public class SplashScreen {
         StackPane coin = buildCoinGraphic();
         VBox.setMargin(coin, new Insets(0, 0, 6, 0));
 
+        // SplashScreen uses white + rgba transparent text on a dark gradient background.
+        // These inline styles are intentional: CSS tokens reference .root which is not
+        // in scope for this standalone-scene window, and rgba(255,255,255,...) has no token.
         Label appName = new Label("Sanchay");
         appName.setStyle("-fx-font-size: 40px; -fx-font-weight: bold; -fx-text-fill: white;");
 

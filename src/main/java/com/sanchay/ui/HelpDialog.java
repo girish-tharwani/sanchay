@@ -24,20 +24,14 @@ public class HelpDialog {
         dlg.getDialogPane().setPrefWidth(460);
         UiUtils.applyStylesheet(dlg);
 
-        // Custom header: icon box + title on #f8fbfc with bottom border
+        // Custom header: icon box + title
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(15, 20, 15, 20));
-        header.setStyle("-fx-background-color: #f8fbfc; "
-                + "-fx-border-color: rgba(42,138,122,0.15); -fx-border-width: 0 0 1 0;");
+        header.getStyleClass().add("dialog-header-bar");
         Label iconBox = new Label("?");
-        iconBox.setStyle("-fx-background-color: rgba(42,138,122,0.12); "
-                + "-fx-border-color: rgba(42,138,122,0.30); "
-                + "-fx-border-radius: 8; -fx-background-radius: 8; "
-                + "-fx-min-width: 28; -fx-min-height: 28; -fx-max-width: 28; -fx-max-height: 28; "
-                + "-fx-alignment: center; -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #2a8a7a;");
+        iconBox.getStyleClass().add("dialog-icon-box");
         Label titleLbl = new Label("Help — Sanchay");
-        titleLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        titleLbl.getStyleClass().add("text-step-title");
         header.getChildren().addAll(iconBox, titleLbl);
         dlg.getDialogPane().setHeader(header);
 
@@ -50,13 +44,13 @@ public class HelpDialog {
         hero.setAlignment(Pos.CENTER_LEFT);
         hero.setPadding(new Insets(0, 0, 6, 0));
         Label heroIcon = new Label("🚀");
-        heroIcon.setStyle("-fx-font-size: 22px;");
+        heroIcon.setStyle("-fx-font-size: 22px;"); // single-use emoji size, no CSS utility class
         Label heroTitle = new Label("Getting started");
-        heroTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        heroTitle.getStyleClass().add("text-heading-lg");
         hero.getChildren().addAll(heroIcon, heroTitle);
 
         Label intro = new Label("Before you start recording transactions, complete these three steps in order:");
-        intro.setStyle("-fx-font-size: 13px; -fx-text-fill: #7aa4b0;");
+        intro.getStyleClass().add("text-body-muted");
         intro.setWrapText(true);
         intro.setPadding(new Insets(0, 0, 24, 0));
 
@@ -75,8 +69,10 @@ public class HelpDialog {
             javafx.scene.Node barNode = dlg.getDialogPane().lookup(".button-bar");
             if (barNode instanceof ButtonBar bb) {
                 Button aboutBtn = new Button("About Sanchay…");
-                aboutBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #2a8a7a; "
-                        + "-fx-font-size: 13px; -fx-cursor: hand; -fx-underline: true; -fx-padding: 4 0;");
+                aboutBtn.getStyleClass().add("link-teal");
+                // Inline required: this button needs underline + 13px to distinguish it
+                // from action buttons; the base link-teal class only sets colour/cursor
+                aboutBtn.setStyle("-fx-font-size: 13px; -fx-underline: true; -fx-padding: 4 0;");
                 aboutBtn.setOnAction(e -> {
                     SplashScreen about = new SplashScreen();
                     about.show();
@@ -128,15 +124,14 @@ public class HelpDialog {
 
     private Region divider() {
         Region sep = new Region();
-        sep.setPrefHeight(1);
-        sep.setMaxHeight(1);
-        sep.setStyle("-fx-background-color: rgba(42,138,122,0.15);");
+        sep.getStyleClass().add("content-divider");
         return sep;
     }
 
     private javafx.scene.text.Text arrow() {
         javafx.scene.text.Text t = new javafx.scene.text.Text(" → ");
-        t.setStyle("-fx-fill: #7aa4b0; -fx-font-size: 11px;");
+        // Text nodes don't support style classes for -fx-fill; inline style required.
+        t.setStyle("-fx-fill: -text-muted; -fx-font-size: 11px;");
         return t;
     }
 }

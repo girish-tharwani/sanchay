@@ -87,7 +87,7 @@ public class AccountsScreen {
 
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        scroll.getStyleClass().add("scroll-page-bg");
 
         view.getChildren().setAll(scroll);
     }
@@ -98,7 +98,7 @@ public class AccountsScreen {
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        // Colored dot
+        // Shape.fill cannot be set via style class; data-driven colour stays inline
         Circle dot = new Circle(4);
         dot.setFill(Color.web(dotColor));
 
@@ -108,7 +108,7 @@ public class AccountsScreen {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        showClosedCb.setStyle("-fx-font-size: 11px; -fx-text-fill: #7aa4b0;");
+        showClosedCb.getStyleClass().add("text-hint");
         showClosedCb.setOnAction(e -> buildList());
 
         Button addBtn = new Button("+ Add");
@@ -119,7 +119,7 @@ public class AccountsScreen {
 
         if (accounts.isEmpty()) {
             Label none = new Label("No accounts added yet.");
-            none.setStyle("-fx-text-fill: #9E9E9E;");
+            none.getStyleClass().add("text-empty");
             group.getChildren().add(none);
         } else {
             for (T acc : accounts) {
@@ -141,17 +141,18 @@ public class AccountsScreen {
         info.setMinWidth(200);
         info.setMaxWidth(200);
         Label name = new Label(acc.getName());
+        // Inline required: active/inactive text colour is runtime data
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;"
-                + (active ? " -fx-text-fill: #0f3d4a;" : " -fx-text-fill: #9E9E9E;"));
+                + (active ? " -fx-text-fill: -brand-dark;" : " -fx-text-fill: -text-hint;"));
         name.setMaxWidth(200);
         Label sub  = new Label(acc.getAccountType());
-        sub.setStyle("-fx-text-fill: #9E9E9E; -fx-font-size: 11px;");
+        sub.getStyleClass().add("text-hint");
         info.getChildren().addAll(name, sub);
 
         Label descLbl = new Label(
                 (acc.getDescription() != null && !acc.getDescription().isBlank())
                         ? acc.getDescription() : "");
-        descLbl.setStyle("-fx-text-fill: #9E9E9E; -fx-font-size: 11px; -fx-font-style: italic;");
+        descLbl.getStyleClass().add("text-hint");
         descLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(descLbl, Priority.ALWAYS);
 
@@ -160,8 +161,7 @@ public class AccountsScreen {
             balanceBox = buildBalanceBox(acc);
         } else {
             Label statusBadge = new Label(formatAccountStatus(acc));
-            statusBadge.setStyle("-fx-font-size: 11px; -fx-padding: 2 8; -fx-background-radius: 10;"
-                    + " -fx-background-color: #F5F5F5; -fx-text-fill: #9E9E9E;");
+            statusBadge.getStyleClass().add("status-closed");
             balanceBox = new VBox(statusBadge);
         }
         balanceBox.setAlignment(Pos.CENTER_RIGHT);
@@ -190,13 +190,13 @@ public class AccountsScreen {
             long bal = computeRunningBalance(ba);
             label = "Balance";
             value = String.format("₹%,.2f", bal / 100.0);
-            valueColour = bal >= 0 ? "#0f3d4a" : "#c0392b";
+            valueColour = bal >= 0 ? "-brand-dark" : "-color-error";
         } else if (acc instanceof CreditCardAccount cc) {
             long out = ds.getCreditCardOutstandingPaise(cc.getId());
             long avail = cc.getCreditLimitPaise() - out;
             label = "Outstanding / Available";
             value = String.format("₹%,.2f  /  ₹%,.2f", out / 100.0, avail / 100.0);
-            valueColour = out > 0 ? "#c0392b" : "#0f3d4a";
+            valueColour = out > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof LoanAccount la) {
             long paid = ds.getTransactions().stream()
                     .filter(t -> (t.getType() == Transaction.Type.TRANSFER
@@ -206,7 +206,7 @@ public class AccountsScreen {
             long outstanding = Math.max(0, la.getOutstandingPrincipalPaise() - paid);
             label = "Outstanding";
             value = String.format("₹%,.2f", outstanding / 100.0);
-            valueColour = outstanding > 0 ? "#c0392b" : "#0f3d4a";
+            valueColour = outstanding > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof InvestmentAccount ia) {
             label = "Invested";
             long invested = ia.getInvestedAmountPaise()
@@ -219,14 +219,15 @@ public class AccountsScreen {
                                   && ia.getId().equals(t.getFromAccountId()))
                         .mapToLong(Transaction::getAmountPaise).sum();
             value = String.format("₹%,.2f", Math.max(0, invested) / 100.0);
-            valueColour = "#2a8a7a";
+            valueColour = "-brand-mid";
         } else {
             return new VBox();
         }
 
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #7aa4b0;");
+        lbl.getStyleClass().add("card-title");
         Label val = new Label(value);
+        // Inline required: positive/negative/investment colour is runtime data
         val.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: " + valueColour + ";");
         VBox box = new VBox(2, lbl, val);
         box.setAlignment(Pos.CENTER_RIGHT);
@@ -325,7 +326,7 @@ public class AccountsScreen {
 
         ScrollPane scroll = new ScrollPane(panel);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        scroll.getStyleClass().add("scroll-page-bg");
 
         view.getChildren().setAll(scroll);
     }
@@ -431,8 +432,9 @@ public class AccountsScreen {
         toLbl.getStyleClass().add("filter-label");
 
         CheckBox pendingOnly = new CheckBox("Show pending review only");
-        pendingOnly.setStyle("-fx-text-fill: #7aa4b0; -fx-font-size: 12px;");
+        pendingOnly.getStyleClass().add("text-hint");
 
+        // Inline required: vertical separator Region — no CSS class covers exact rgba brand tint + pixel sizing
         Region filterSep = new Region();
         filterSep.setStyle("-fx-background-color: rgba(42,138,122,0.18); -fx-pref-width: 1; -fx-min-width: 1; -fx-max-width: 1; -fx-pref-height: 22;");
 
@@ -592,11 +594,7 @@ public class AccountsScreen {
         actionsCol.setCellFactory(tc -> new TableCell<>() {
             private final Label deleteBtn = new Label("×");
             {
-                deleteBtn.setStyle(
-                        "-fx-background-color: #F5DADA; -fx-text-fill: #A93226; "
-                        + "-fx-font-size: 10px; -fx-font-weight: bold; "
-                        + "-fx-min-width: 22; -fx-max-width: 22; -fx-min-height: 22; -fx-max-height: 22; "
-                        + "-fx-padding: 0; -fx-background-radius: 3; -fx-cursor: hand; -fx-alignment: CENTER;");
+                deleteBtn.getStyleClass().add("btn-row-remove");
                 deleteBtn.setTooltip(new Tooltip("Delete transaction"));
                 deleteBtn.setOnMouseClicked(e -> {
                     Transaction t = getTableRow().getItem();
@@ -626,16 +624,12 @@ public class AccountsScreen {
                 switch (t.getSourceIndicator()) {
                     case IMPORTED -> {
                         badge.setText("I");
-                        badge.setStyle("-fx-background-color: #DDEEFF; -fx-text-fill: #1A66CC; "
-                                + "-fx-font-weight: bold; -fx-font-size: 10px; "
-                                + "-fx-padding: 1 5; -fx-background-radius: 3;");
+                        badge.getStyleClass().add("badge-imported");
                         badge.setTooltip(new Tooltip("Imported from file"));
                     }
                     case AUTO_CATEGORIZED -> {
                         badge.setText("?");
-                        badge.setStyle("-fx-background-color: #FFF3CD; -fx-text-fill: #856404; "
-                                + "-fx-font-weight: bold; -fx-font-size: 10px; "
-                                + "-fx-padding: 1 5; -fx-background-radius: 3; -fx-cursor: hand;");
+                        badge.getStyleClass().add("badge-auto-cat");
                         // Build tooltip showing what was auto-suggested
                         StringBuilder tip = new StringBuilder();
                         boolean isTypeSuggested = t.getType() != Transaction.Type.EXPENSE
@@ -664,16 +658,12 @@ public class AccountsScreen {
                     }
                     case RECONCILED -> {
                         badge.setText("R");
-                        badge.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #166534; "
-                                + "-fx-font-weight: bold; -fx-font-size: 10px; "
-                                + "-fx-padding: 1 5; -fx-background-radius: 3;");
+                        badge.getStyleClass().add("badge-reconciled");
                         badge.setTooltip(new Tooltip("Reconciled with import"));
                     }
                     default -> {
                         badge.setText("M");
-                        badge.setStyle("-fx-background-color: #EEEEEE; -fx-text-fill: #555555; "
-                                + "-fx-font-weight: bold; -fx-font-size: 10px; "
-                                + "-fx-padding: 1 5; -fx-background-radius: 3;");
+                        badge.getStyleClass().add("badge-manual");
                         badge.setTooltip(new Tooltip("Manually entered"));
                     }
                 }
@@ -712,7 +702,7 @@ public class AccountsScreen {
 
         ScrollPane scroll = new ScrollPane(panel);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background-color: #eef4f5; -fx-background: #eef4f5;");
+        scroll.getStyleClass().add("scroll-page-bg");
 
         view.getChildren().setAll(scroll);
     }
@@ -761,8 +751,9 @@ public class AccountsScreen {
     private VBox ccStat(String label, String value, String colour) {
         VBox b = new VBox(2);
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #7aa4b0;");
+        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: -text-hint;");
         Label val = new Label(value);
+        // Inline required: colour is runtime data (balance direction / CC outstanding)
         val.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + colour + ";");
         b.getChildren().addAll(lbl, val);
         return b;
@@ -1416,7 +1407,7 @@ public class AccountsScreen {
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
         sp.setPrefHeight(560);
-        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.getStyleClass().add("scroll-transparent");
         return sp;
     }
 
@@ -1450,7 +1441,6 @@ public class AccountsScreen {
     private void addRow(GridPane g, int row, String lbl, Node ctrl) {
         Label l = new Label(lbl);
         l.getStyleClass().add("form-label");
-        l.setStyle("-fx-text-fill: #1A1A2E;");
         l.setMinWidth(155);
         g.add(l, 0, row);
         g.add(ctrl, 1, row);
@@ -1462,9 +1452,9 @@ public class AccountsScreen {
         row.setAlignment(Pos.CENTER_LEFT);
         Label lbl = new Label(label + ":");
         lbl.setMinWidth(180);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-weight: bold;");
+        lbl.getStyleClass().add("text-form-value");
         Label val = new Label(value != null ? value : "—");
-        val.setStyle("-fx-text-fill: #595959;");
+        val.getStyleClass().add("text-body-muted");
         row.getChildren().addAll(lbl, val);
         container.getChildren().add(row);
     }
@@ -1528,35 +1518,36 @@ public class AccountsScreen {
         HBox warnRow = new HBox(12);
         warnRow.setAlignment(Pos.CENTER_LEFT);
         Label warnIcon = new Label("⚠");
-        warnIcon.setStyle("-fx-font-size: 22px; -fx-text-fill: #c0392b;");
+        warnIcon.setStyle("-fx-font-size: 22px; -fx-text-fill: -color-error;");
         VBox warnText = new VBox(4);
         Label headline = new Label(isGrouped ? "Delete linked redemption group?" : "Delete this transaction?");
-        headline.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        headline.getStyleClass().add("text-section-title");
         String subMsg = "This action cannot be undone."
                 + (isGrouped ? " This will also delete the related principal and gain/loss entries." : "");
         Label subLbl = new Label(subMsg);
-        subLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        subLbl.getStyleClass().add("text-hint");
         subLbl.setWrapText(true);
         subLbl.setMaxWidth(310);
         warnText.getChildren().addAll(headline, subLbl);
         warnRow.getChildren().addAll(warnIcon, warnText);
 
         VBox txnBlock = new VBox(5);
+        // Danger-tinted preview block — specific red tint has no CSS token; keep inline
         txnBlock.setStyle(
                 "-fx-background-color: #fef2f2; -fx-border-color: #fecaca; "
                 + "-fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 1; "
                 + "-fx-padding: 12 14;");
         Label desc = new Label(t.getDescription());
-        desc.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f3d4a;");
+        desc.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: -brand-dark;");
         desc.setWrapText(true);
         HBox meta = new HBox(8);
         meta.setAlignment(Pos.CENTER_LEFT);
         Label amt = new Label(t.getAmountInr());
-        amt.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #c0392b;");
+        amt.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: -color-error;");
         Label sep = new Label("·");
-        sep.setStyle("-fx-text-fill: #7aa4b0;");
+        sep.getStyleClass().add("text-hint");
         Label date = new Label(t.getDate().format(dateFmt()));
-        date.setStyle("-fx-font-size: 12px; -fx-text-fill: #7aa4b0;");
+        date.getStyleClass().add("text-hint");
         meta.getChildren().addAll(amt, sep, date);
         txnBlock.getChildren().addAll(desc, meta);
 
@@ -1568,7 +1559,8 @@ public class AccountsScreen {
         Platform.runLater(() -> {
             Button btn = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
             if (btn != null)
-                btn.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white; "
+                // Inline required: dialog button styling is applied post-show via Platform.runLater
+                btn.setStyle("-fx-background-color: -color-error; -fx-text-fill: white; "
                         + "-fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 7 20;");
         });
 
@@ -1590,21 +1582,20 @@ public class AccountsScreen {
 
         HBox titleRow = new HBox(14);
         titleRow.setAlignment(Pos.CENTER_LEFT);
-        titleRow.setStyle("-fx-padding: 0 0 14 0;");
+        titleRow.setPadding(new Insets(0, 0, 14, 0));
         Label iconLbl = new Label("✓");
+        // Inline required: gradient circle icon has no CSS class equivalent
         iconLbl.setStyle(
                 "-fx-background-color: linear-gradient(135deg, #2a8a7a, #3db89a); "
                 + "-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; "
                 + "-fx-min-width: 40; -fx-max-width: 40; -fx-min-height: 40; -fx-max-height: 40; "
                 + "-fx-background-radius: 20; -fx-alignment: CENTER; -fx-padding: 0;");
         Label titleLbl = new Label("Import Complete");
-        titleLbl.setStyle("-fx-font-size: 15px; -fx-font-weight: 700; -fx-text-fill: #0f3d4a;");
+        titleLbl.setStyle("-fx-font-size: 15px; -fx-font-weight: 700; -fx-text-fill: -brand-dark;");
         titleRow.getChildren().addAll(iconLbl, titleLbl);
 
         VBox lines = new VBox(0);
-        lines.setStyle(
-                "-fx-background-color: #f8fbfc; -fx-border-color: rgba(42,138,122,0.15); "
-                + "-fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 1;");
+        lines.getStyleClass().add("info-box");
         lines.getChildren().addAll(
                 importLine(result.newCount, "new transaction(s) added", true),
                 importLine(result.reconciledCount, "reconciled with existing manual entries", true),
@@ -1615,6 +1606,7 @@ public class AccountsScreen {
 
         if (!result.ambiguous.isEmpty()) {
             Label warn = new Label("⚠  " + result.ambiguous.size() + " ambiguous match(es) resolved manually");
+            // #856404 is amber warning text; -color-warning (#B7450D) is a different hue — keep hex
             warn.setStyle("-fx-text-fill: #856404; -fx-font-size: 12px; -fx-padding: 10 0 0 0;");
             body.getChildren().add(warn);
         }
@@ -1629,6 +1621,7 @@ public class AccountsScreen {
         HBox line = new HBox(10);
         line.setAlignment(Pos.CENTER_LEFT);
         line.setPadding(new Insets(8, 14, 8, 14));
+        // Bottom-border divider between import result rows
         line.setStyle("-fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent; "
                 + "-fx-border-width: 1;");
         String checkBg  = (successStyle && count > 0) ? "#f0fdf4" : "#f8fbfc";
@@ -1636,6 +1629,7 @@ public class AccountsScreen {
         String checkBdr = (successStyle && count > 0) ? "#bbf7d0" : "rgba(42,138,122,0.15)";
         String symbol   = successStyle ? "✓" : "⊘";
         Label check = new Label(symbol);
+        // Inline required: success/failure badge colours are runtime data
         check.setStyle("-fx-background-color: " + checkBg + "; -fx-text-fill: " + checkFg + "; "
                 + "-fx-border-color: " + checkBdr + "; "
                 + "-fx-border-radius: 10; -fx-background-radius: 10; "
@@ -1643,11 +1637,12 @@ public class AccountsScreen {
                 + "-fx-min-width: 20; -fx-max-width: 20; -fx-min-height: 20; -fx-max-height: 20; "
                 + "-fx-padding: 0; -fx-alignment: CENTER;");
         Label cnt = new Label(String.valueOf(count));
+        // Inline required: count text colour depends on whether count > 0
         cnt.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; "
-                + "-fx-text-fill: " + (count > 0 ? "#0f3d4a" : "#7aa4b0") + "; "
+                + "-fx-text-fill: " + (count > 0 ? "-brand-dark" : "-text-hint") + "; "
                 + "-fx-min-width: 28; -fx-alignment: CENTER_RIGHT;");
         Label txt = new Label(desc);
-        txt.setStyle("-fx-font-size: 13px; -fx-text-fill: #4a7a88;");
+        txt.getStyleClass().add("text-body-muted");
         line.getChildren().addAll(check, cnt, txt);
         return line;
     }

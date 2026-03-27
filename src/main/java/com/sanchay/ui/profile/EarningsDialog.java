@@ -215,7 +215,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         prefillPfAccount(salPfAcctCb, isSal ? member.getPfScheduleId() : null);
 
         Hyperlink createPfLink = new Hyperlink("+ Add PF Account");
-        createPfLink.setStyle("-fx-font-size: 11px;");
+        createPfLink.getStyleClass().add("link-teal");
         createPfLink.setOnAction(e -> {
             InvestmentAccount created = showCreatePfDialog();
             if (created != null) {
@@ -225,7 +225,6 @@ public class EarningsDialog extends Dialog<Boolean> {
         });
 
         gratuityChk = new CheckBox("Include in breakdown");
-        gratuityChk.setStyle("-fx-font-size: 12px;");
         gratuityChk.setSelected(isSal && member.isGratuityEnabled());
 
         int r = 0;
@@ -246,13 +245,13 @@ public class EarningsDialog extends Dialog<Boolean> {
         calcGross    = calcVal(); calcEmpPf   = calcVal(); calcTds      = calcVal();
         calcInHand   = calcVal(); calcEmpEpf  = calcVal(); calcEps      = calcVal("₹1,250.00");
         calcTotalEmp = calcVal(); calcPfDeposit = calcVal(); calcEpsDeposit = calcVal(); calcGratuity = calcVal();
-        calcInHand.setStyle(calcInHand.getStyle()
-                + " -fx-font-weight: bold; -fx-text-fill: #1B5E20; -fx-font-size: 13px;");
+        calcInHand.getStyleClass().add("text-success");
+        calcInHand.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
         GridPane calc = new GridPane();
         calc.setHgap(12); calc.setVgap(6);
         calc.setPadding(new Insets(12, 16, 12, 16));
-        calc.setStyle("-fx-background-color: #F0F4F8; -fx-background-radius: 6;");
+        calc.getStyleClass().add("info-box");
         ColumnConstraints cc1 = new ColumnConstraints(220);
         ColumnConstraints cc2 = new ColumnConstraints(); cc2.setHgrow(Priority.ALWAYS);
         calc.getColumnConstraints().addAll(cc1, cc2);
@@ -284,13 +283,12 @@ public class EarningsDialog extends Dialog<Boolean> {
         if (isSal) recalc.run(); // seed with existing values
 
         Label calcTitle = new Label("Salary Breakdown (Monthly)");
-        calcTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; "
-                + "-fx-text-fill: #0f3d4a; -fx-padding: 8 0 4 0;");
+        calcTitle.getStyleClass().add("text-section-title");
 
         // ── Side-by-side layout ───────────────────────────────────────────────
         ScrollPane leftScroll = new ScrollPane(g);
         leftScroll.setFitToWidth(true);
-        leftScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        leftScroll.getStyleClass().add("scroll-transparent");
         HBox.setHgrow(leftScroll, Priority.ALWAYS);
 
         VBox rightPanel = new VBox(8, calcTitle, calc);
@@ -438,13 +436,13 @@ public class EarningsDialog extends Dialog<Boolean> {
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
         sp.setPrefHeight(260);
-        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        sp.getStyleClass().add("scroll-transparent");
         return sp;
     }
 
     private void row(GridPane g, int rowIdx, String labelText, Node control) {
         Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        lbl.getStyleClass().add("text-form-value");
         lbl.setMinWidth(155);
         g.add(lbl, 0, rowIdx);
         g.add(control, 1, rowIdx);
@@ -453,7 +451,7 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private void calcRow(GridPane g, int row, String labelText, Label val) {
         Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-text-fill: #595959; -fx-font-size: 12px;");
+        lbl.getStyleClass().add("text-body-muted");
         g.add(lbl, 0, row);
         g.add(val, 1, row);
     }
@@ -497,7 +495,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     private Label calcVal()           { return calcVal("—"); }
     private Label calcVal(String txt) {
         Label l = new Label(txt);
-        l.setStyle("-fx-font-size: 12px; -fx-text-fill: #1A1A2E;");
+        l.getStyleClass().add("text-form-value");
         return l;
     }
 
@@ -623,11 +621,11 @@ public class EarningsDialog extends Dialog<Boolean> {
         balFld.setMaxWidth(Double.MAX_VALUE);
 
         Label nameLbl = new Label("Account Name*");
-        nameLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        nameLbl.getStyleClass().add("text-form-value");
         Label uanLbl  = new Label("UAN / A/C No.");
-        uanLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        uanLbl.getStyleClass().add("text-form-value");
         Label balLbl  = new Label("Opening Balance (₹)");
-        balLbl.setStyle("-fx-text-fill: #1A1A2E; -fx-font-size: 12px;");
+        balLbl.getStyleClass().add("text-form-value");
         g.add(nameLbl, 0, 0); g.add(nameFld, 1, 0); GridPane.setFillWidth(nameFld, true);
         g.add(uanLbl,  0, 1); g.add(uanFld,  1, 1); GridPane.setFillWidth(uanFld,  true);
         g.add(balLbl,  0, 2); g.add(balFld,  1, 2); GridPane.setFillWidth(balFld,  true);
