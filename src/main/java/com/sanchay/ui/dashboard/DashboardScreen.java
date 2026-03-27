@@ -100,35 +100,10 @@ public class DashboardScreen {
         intro.getStyleClass().add("text-body-muted");
         intro.setWrapText(true);
 
-        VBox steps = new VBox(10);
-        steps.getChildren().addAll(
-                UiUtils.buildStep("1", "Add family members",
-                        UiUtils.stepDescFlow(
-                                "Go to ", UiUtils.navHint("Profile"), navArrow(),
-                                UiUtils.navHint("+ Add Member"),
-                                ". Add everyone in your household.")),
-                UiUtils.buildStep("2", "Add your bank accounts",
-                        UiUtils.stepDescFlow(
-                                "Go to ", UiUtils.navHint("Accounts"), navArrow(),
-                                UiUtils.navHint("Bank Accounts"), navArrow(),
-                                UiUtils.navHint("+ Add"),
-                                ". Add accounts where salaries and income are deposited.")),
-                UiUtils.buildStep("3", "Complete earnings details",
-                        UiUtils.stepDescFlow(
-                                "Return to ", UiUtils.navHint("Profile"),
-                                " and click the ", UiUtils.navHint("₹"),
-                                " button next to each earning member."))
-        );
+        VBox steps = UiUtils.buildGetStartedSteps();
 
         card.getChildren().addAll(heading, intro, steps);
         return card;
-    }
-
-    private javafx.scene.text.Text navArrow() {
-        javafx.scene.text.Text t = new javafx.scene.text.Text(" → ");
-        // Text nodes don't support style classes for -fx-fill; inline style required.
-        t.setStyle("-fx-fill: -text-muted; -fx-font-size: 11px;");
-        return t;
     }
 
     // ── Summary stat cards ────────────────────────────────────────────────────

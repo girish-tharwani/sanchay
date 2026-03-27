@@ -5,7 +5,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.text.TextFlow;
 import javafx.stage.Window;
 
 /** Popup dialog showing the "Get Started" setup guide, opened from the Help sidebar button. */
@@ -54,8 +53,8 @@ public class HelpDialog {
         intro.setWrapText(true);
         intro.setPadding(new Insets(0, 0, 24, 0));
 
-        // Steps with dividers
-        VBox steps = buildSteps();
+        // Steps
+        VBox steps = UiUtils.buildGetStartedSteps();
 
         body.getChildren().addAll(hero, intro, steps);
 
@@ -86,52 +85,4 @@ public class HelpDialog {
         dlg.showAndWait();
     }
 
-    private VBox buildSteps() {
-        VBox steps = new VBox(0);
-
-        steps.getChildren().addAll(
-                stepRow("1", "Add family members",
-                        UiUtils.stepDescFlow(
-                                "Go to ", UiUtils.navHint("Profile"), arrow(),
-                                UiUtils.navHint("+ Add Member"),
-                                ". Add everyone in your household. Don't mark anyone as an "
-                                + "earning member yet — you'll do that in step 3.")),
-                divider(),
-                stepRow("2", "Add your bank accounts",
-                        UiUtils.stepDescFlow(
-                                "Go to ", UiUtils.navHint("Accounts"), arrow(),
-                                UiUtils.navHint("Bank Accounts"), arrow(),
-                                UiUtils.navHint("+ Add"),
-                                ". Add the accounts where salaries and income are deposited. "
-                                + "You can add credit cards and loans later.")),
-                divider(),
-                stepRow("3", "Complete earnings details",
-                        UiUtils.stepDescFlow(
-                                "Return to ", UiUtils.navHint("Profile"),
-                                " and click the ", UiUtils.navHint("₹"),
-                                " button next to each earning member. Mark them as earning "
-                                + "and fill in their salary and income details."))
-        );
-
-        return steps;
-    }
-
-    private HBox stepRow(String number, String title, TextFlow desc) {
-        HBox row = UiUtils.buildStep(number, title, desc);
-        row.setPadding(new Insets(16, 0, 16, 0));
-        return row;
-    }
-
-    private Region divider() {
-        Region sep = new Region();
-        sep.getStyleClass().add("content-divider");
-        return sep;
-    }
-
-    private javafx.scene.text.Text arrow() {
-        javafx.scene.text.Text t = new javafx.scene.text.Text(" → ");
-        // Text nodes don't support style classes for -fx-fill; inline style required.
-        t.setStyle("-fx-fill: -text-muted; -fx-font-size: 11px;");
-        return t;
-    }
 }
