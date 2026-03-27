@@ -16,7 +16,22 @@
       "Bash(xargs grep:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(grep -v \"//.*setStyle\")",
+      "Bash(grep -v \"//.*setTextFill\" grep -rn \"Color\\\\.web\\(\" src/main/java --include=\"*.java\")",
+      "Bash(grep -v \"//.*Color\\\\.web\")",
+      "Bash(/tmp/check_css.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(echo \"=== setStyle\\(\\) calls ===\" grep -rn \"\\\\.setStyle\\(\" src/main/java --include=\"*.java\")",
+      "Bash(grep -v \"//.*setStyle\\\\|// Inline\\\\|// Shape\\\\|// Text\\\\|// Danger\\\\|// Bottom\\\\|// single-use\\\\|// #8\")",
+      "Bash(wc:*)",
+      "Bash(INFILE=\"D:/Projects/sanchay/src/main/java/com/sanchay/ui/accounts/AccountsScreen.java\")",
+      "Bash(TMPFILE=\"/tmp/AccountsScreen_edited.java\")",
+      "Bash(__NEW_LINE_faa8ccf4b2507c21__ awk ':*)",
+      "Bash(\"$TMPFILE\")",
+      "Bash(__NEW_LINE_faa8ccf4b2507c21__ wc:*)",
+      "Bash(ls /tmp/AccountsScreen*.java)",
+      "Bash(python:*)"
     ]
   }
 }

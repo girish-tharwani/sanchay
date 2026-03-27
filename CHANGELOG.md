@@ -1,3 +1,8 @@
+## v0.2.7 — 2026-03-27
+
+### Changed
+- Claude tooling: `git-push.md` command wording fix; `settings.local.json` permissions updated; `refactor-project.md` skill renamed; added `baseline-mvp-version.md` and `code-refactor.md` skills
+
 ## v0.2.6 — 2026-03-27
 
 ### Added

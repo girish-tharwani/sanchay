@@ -1,7 +1,7 @@
-# Skill: Baseline Project
+# Skill: Refactor Project
 
 ## Purpose
-Guide Claude to learn and baseline a new project consistently according to standards.
+Guide Claude to learn and refactor a new project consistently according to standards.
 
 ## Rules
 - Do NOT change behavior, only structure
