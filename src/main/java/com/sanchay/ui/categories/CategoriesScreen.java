@@ -3,8 +3,8 @@ package com.sanchay.ui.categories;
 import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.SingleInputDialog;
 import com.sanchay.ui.UiUtils;
-import com.sanchay.ui.accounts.AccountsScreen;
 import com.sanchay.ui.transactions.TransactionDialog;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -84,7 +84,7 @@ public class CategoriesScreen {
         Button addBtn = new Button("+ Add");
         addBtn.getStyleClass().add("btn-gold");
         addBtn.setOnAction(e -> {
-            String input = styledInput("Add Category", "Category name*", null, "");
+            String input = SingleInputDialog.show("Add Category", "Category name*", null, "");
             if (input == null) return;
             String trimmed = input.trim();
             if (trimmed.isEmpty()) { alert("Add Failed", "Name cannot be blank."); return; }
@@ -187,7 +187,7 @@ public class CategoriesScreen {
 
         MenuItem addSubItem = new MenuItem("Add Sub-category");
         addSubItem.setOnAction(e -> {
-            String input = styledInput("Add Sub-category", "Sub-category name*", "Parent: " + cat.getName(), "");
+            String input = SingleInputDialog.show("Add Sub-category", "Sub-category name*", "Parent: " + cat.getName(), "");
             if (input == null) return;
             String t = input.trim();
             if (t.isEmpty()) { alert("Add Failed", "Name cannot be blank."); return; }
@@ -200,7 +200,7 @@ public class CategoriesScreen {
 
         MenuItem renameItem = new MenuItem("Rename");
         renameItem.setOnAction(e -> {
-            String input = styledInput("Rename Category", "New name*", null, cat.getName());
+            String input = SingleInputDialog.show("Rename Category", "New name*", null, cat.getName());
             if (input == null) return;
             String t = input.trim();
             if (t.isEmpty()) { alert("Rename Failed", "Name cannot be blank."); return; }
@@ -292,7 +292,7 @@ public class CategoriesScreen {
 
             MenuItem renameItem = new MenuItem("Rename");
             renameItem.setOnAction(e -> {
-                String input = styledInput("Rename Sub-category", "New name*", null, sub.getName());
+                String input = SingleInputDialog.show("Rename Sub-category", "New name*", null, sub.getName());
                 if (input == null) return;
                 String t = input.trim();
                 if (t.isEmpty()) { alert("Rename Failed", "Name cannot be blank."); return; }
@@ -415,7 +415,7 @@ public class CategoriesScreen {
                 @Override protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
                     if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
-                    setGraphic(AccountsScreen.typeBadge(getTableRow().getItem().getType()));
+                    setGraphic(UiUtils.typeBadge(getTableRow().getItem().getType()));
                 }
             });
 
@@ -788,49 +788,4 @@ public class CategoriesScreen {
         a.showAndWait();
     }
 
-    /**
-     * Shows a styled single-field input dialog.
-     * subtitle — optional context line shown above the field (e.g. "Parent: Food")
-     * Returns trimmed text, or null if the user cancelled.
-     */
-    private String styledInput(String title, String labelText, String subtitle, String initialValue) {
-        Dialog<String> dlg = new Dialog<>();
-        dlg.setTitle(title);
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, title.startsWith("Edit") || title.startsWith("Rename") ? "✎" : "+", title);
-
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(16));
-
-        if (subtitle != null && !subtitle.isBlank()) {
-            Label sub = new Label(subtitle);
-            sub.getStyleClass().add("text-hint");
-            content.getChildren().add(sub);
-        }
-
-        GridPane g = new GridPane();
-        g.setHgap(12);
-        g.setVgap(10);
-        ColumnConstraints c1 = new ColumnConstraints(120);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
-
-        Label lbl = new Label(labelText);
-        lbl.getStyleClass().add("form-label");
-        TextField tf = new TextField(initialValue == null ? "" : initialValue);
-        tf.setMaxWidth(Double.MAX_VALUE);
-        g.add(lbl, 0, 0);
-        g.add(tf, 1, 0);
-
-        content.getChildren().add(g);
-        dlg.getDialogPane().setContent(content);
-
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
-        dlg.setResultConverter(bt -> bt == saveBtn ? tf.getText().trim() : null);
-        return dlg.showAndWait().orElse(null);
-    }
 }

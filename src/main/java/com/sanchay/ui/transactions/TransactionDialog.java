@@ -229,8 +229,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         expCatCb    = makeCatCb(expCatMaster, "Select category");
         expSubCatCb = makeSubCatCb(expSubCatMaster);
         wireCatSubCat(expCatCb, expSubCatCb, expSubCatMaster);
-        makeAutoComplete(expCatCb,    expCatMaster);
-        makeAutoComplete(expSubCatCb, expSubCatMaster);
+        UiUtils.wireAutoComplete(expCatCb,    expCatMaster);
+        UiUtils.wireAutoComplete(expSubCatCb, expSubCatMaster);
 
         expAcctCb  = accountCombo(true);  // bank + CC
         expModeCb  = payModeCombo();
@@ -253,8 +253,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         incCatCb    = makeCatCb(incCatMaster, "Select category");
         incSubCatCb = makeSubCatCb(incSubCatMaster);
         wireCatSubCat(incCatCb, incSubCatCb, incSubCatMaster);
-        makeAutoComplete(incCatCb,    incCatMaster);
-        makeAutoComplete(incSubCatCb, incSubCatMaster);
+        UiUtils.wireAutoComplete(incCatCb,    incCatMaster);
+        UiUtils.wireAutoComplete(incSubCatCb, incSubCatMaster);
 
         incAcctCb    = accountCombo(false);
         incSrcFld    = tf("e.g. Barclays");
@@ -275,8 +275,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         trfCatCb    = makeCatCb(trfCatMaster, "Select category (optional)");
         trfSubCatCb = makeSubCatCb(trfSubCatMaster);
         wireCatSubCat(trfCatCb, trfSubCatCb, trfSubCatMaster);
-        makeAutoComplete(trfCatCb,    trfCatMaster);
-        makeAutoComplete(trfSubCatCb, trfSubCatMaster);
+        UiUtils.wireAutoComplete(trfCatCb,    trfCatMaster);
+        UiUtils.wireAutoComplete(trfSubCatCb, trfSubCatMaster);
 
         trfFromCb = accountCombo(false); // bank only
         trfToCb   = accountCombo(false); // bank only
@@ -295,8 +295,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         refCatCb    = makeCatCb(refCatMaster, "Select original expense category");
         refSubCatCb = makeSubCatCb(refSubCatMaster);
         wireCatSubCat(refCatCb, refSubCatCb, refSubCatMaster);
-        makeAutoComplete(refCatCb,    refCatMaster);
-        makeAutoComplete(refSubCatCb, refSubCatMaster);
+        UiUtils.wireAutoComplete(refCatCb,    refCatMaster);
+        UiUtils.wireAutoComplete(refSubCatCb, refSubCatMaster);
 
         refAcctCb    = accountCombo(true);  // bank + CC (where refund lands)
         refModeCb    = payModeCombo();
@@ -363,8 +363,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         lnCatCb    = makeCatCb(lnCatMaster, "Select category (optional)");
         lnSubCatCb = makeSubCatCb(lnSubCatMaster);
         wireCatSubCat(lnCatCb, lnSubCatCb, lnSubCatMaster);
-        makeAutoComplete(lnCatCb,    lnCatMaster);
-        makeAutoComplete(lnSubCatCb, lnSubCatMaster);
+        UiUtils.wireAutoComplete(lnCatCb,    lnCatMaster);
+        UiUtils.wireAutoComplete(lnSubCatCb, lnSubCatMaster);
 
         lnFromCb = accountCombo(true); // bank + CC
 
@@ -399,8 +399,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         rdeCatCb    = makeCatCb(rdeCatMaster, "Select gain category (optional)");
         rdeSubCatCb = makeSubCatCb(rdeSubCatMaster);
         wireCatSubCat(rdeCatCb, rdeSubCatCb, rdeSubCatMaster);
-        makeAutoComplete(rdeCatCb,    rdeCatMaster);
-        makeAutoComplete(rdeSubCatCb, rdeSubCatMaster);
+        UiUtils.wireAutoComplete(rdeCatCb,    rdeCatMaster);
+        UiUtils.wireAutoComplete(rdeSubCatCb, rdeSubCatMaster);
 
         rdeFromCb = new ComboBox<>();
         rdeFromCb.setMaxWidth(Double.MAX_VALUE);
@@ -519,12 +519,6 @@ public class TransactionDialog extends Dialog<Transaction> {
             subMaster.clear();
             subMaster.addAll(subCatCb.getItems());
         });
-    }
-
-    // ── Autocomplete ──────────────────────────────────────────────────────────
-
-    private void makeAutoComplete(ComboBox<Category> combo, List<Category> masterList) {
-        UiUtils.wireAutoComplete(combo, masterList);
     }
 
     // ── Auto-suggest (unified, routes by current type) ────────────────────────

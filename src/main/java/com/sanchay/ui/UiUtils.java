@@ -14,6 +14,7 @@ import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
@@ -80,6 +81,56 @@ public final class UiUtils {
     }
 
     /**
+     * Arrow text node used between nav-hint chips in step descriptions.
+     * Shared by buildGetStartedSteps() — previously duplicated in HelpDialog and DashboardScreen.
+     */
+    public static Text navArrow() {
+        Text t = new Text(" → ");
+        // Text nodes don't support style classes for -fx-fill; inline style required.
+        t.setStyle("-fx-fill: -text-muted; -fx-font-size: 11px;");
+        return t;
+    }
+
+    /**
+     * Builds the three-step "Get Started" setup guide rows, using the full step descriptions.
+     * Shared by HelpDialog and DashboardScreen welcome banner.
+     * Returns a VBox containing three HBox step rows with 16px vertical padding each.
+     * Callers that need separators between steps (e.g. HelpDialog) should interleave them after
+     * extracting the children, or wrap the result as needed.
+     */
+    public static VBox buildGetStartedSteps() {
+        VBox steps = new VBox(0);
+        steps.getChildren().addAll(
+                stepRowPadded("1", "Add family members",
+                        stepDescFlow(
+                                "Go to ", navHint("Profile"), navArrow(),
+                                navHint("+ Add Member"),
+                                ". Add everyone in your household. Don't mark anyone as an "
+                                + "earning member yet — you'll do that in step 3.")),
+                stepRowPadded("2", "Add your bank accounts",
+                        stepDescFlow(
+                                "Go to ", navHint("Accounts"), navArrow(),
+                                navHint("Bank Accounts"), navArrow(),
+                                navHint("+ Add"),
+                                ". Add the accounts where salaries and income are deposited. "
+                                + "You can add credit cards and loans later.")),
+                stepRowPadded("3", "Complete earnings details",
+                        stepDescFlow(
+                                "Return to ", navHint("Profile"),
+                                " and click the ", navHint("₹"),
+                                " button next to each earning member. Mark them as earning "
+                                + "and fill in their salary and income details."))
+        );
+        return steps;
+    }
+
+    private static HBox stepRowPadded(String number, String title, TextFlow desc) {
+        HBox row = buildStep(number, title, desc);
+        row.setPadding(new javafx.geometry.Insets(16, 0, 16, 0));
+        return row;
+    }
+
+    /**
      * Returns a styled navigation hint chip for inline use in step descriptions.
      * E.g. navHint("Profile"), navHint("+ Add Member").
      */
@@ -108,6 +159,13 @@ public final class UiUtils {
             }
         }
         return tf;
+    }
+
+    /** Builds a styled transaction type badge label (type colour class + badge-sm size). */
+    public static Label typeBadge(Transaction.Type type) {
+        Label lbl = new Label(badgeText(type));
+        lbl.getStyleClass().addAll(badgeStyle(type), "badge-sm");
+        return lbl;
     }
 
     /** Returns the CSS style class for a transaction type badge. */
