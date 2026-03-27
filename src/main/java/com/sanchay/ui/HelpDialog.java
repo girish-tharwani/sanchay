@@ -22,17 +22,7 @@ public class HelpDialog {
         dlg.setTitle("Help — Sanchay");
         dlg.getDialogPane().setPrefWidth(460);
         UiUtils.applyStylesheet(dlg);
-
-        // Custom header: icon box + title
-        HBox header = new HBox(10);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.getStyleClass().add("dialog-header-bar");
-        Label iconBox = new Label("?");
-        iconBox.getStyleClass().add("dialog-icon-box");
-        Label titleLbl = new Label("Help — Sanchay");
-        titleLbl.getStyleClass().add("text-step-title");
-        header.getChildren().addAll(iconBox, titleLbl);
-        dlg.getDialogPane().setHeader(header);
+        UiUtils.setDialogHeader(dlg, "?", "Help — Sanchay");
 
         // Body
         VBox body = new VBox();
