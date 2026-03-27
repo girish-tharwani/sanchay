@@ -321,7 +321,7 @@ public final class UiUtils {
                 });
                 popup.getItems().add(item);
             }
-            if (!popup.isShowing()) popup.show(field, Side.BOTTOM, 0, 0);
+            if (!popup.isShowing() && field.getScene() != null) popup.show(field, Side.BOTTOM, 0, 0);
         });
 
         // Tab accepts the top match without moving focus

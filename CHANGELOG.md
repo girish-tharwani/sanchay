@@ -1,3 +1,15 @@
+## v0.2.11 — 2026-03-27
+
+### Added
+- RD recurring schedule: Opening Balance and Maturity Amount fields added to capture amounts paid before app setup; stored as dedicated model fields
+- RD invested amount now includes opening balance from all associated RD recurring schedules
+- Main window drag-to-move: entire sidebar now acts as drag handle (was logo area only)
+
+### Fixed
+- Import recurring match: To Account and RD Reference No now correctly populated on matched transaction from the recurring schedule
+- Description autocomplete: NPE on pre-fill when dialog not yet attached to scene
+- Accounts screen: collapse chevron (▸/▾) size now consistent
+
 ## v0.2.10 — 2026-03-27
 
 ### Added

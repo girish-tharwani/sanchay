@@ -36,6 +36,11 @@ public class RecurringTransaction {
      */
     private int autoRecordAfterDays;
 
+    /** RD only: total instalments already paid before this schedule was set up (paise). */
+    private long rdOpeningBalancePaise;
+    /** RD only: expected maturity amount (paise). */
+    private long rdMaturityAmountPaise;
+
     public RecurringTransaction(String description, Transaction.Type type,
                                 Frequency frequency, int dueDayOfMonth,
                                 LocalDate startDate, long amountPaise) {
@@ -107,6 +112,8 @@ public class RecurringTransaction {
     public boolean isAutoCreated()          { return autoCreated; }
     public LocalDate getLastRecordedDate()  { return lastRecordedDate; }
     public int getAutoRecordAfterDays()     { return autoRecordAfterDays; }
+    public long getRdOpeningBalancePaise()  { return rdOpeningBalancePaise; }
+    public long getRdMaturityAmountPaise()  { return rdMaturityAmountPaise; }
 
     public String getAmountInr() {
         return amountPaise > 0
@@ -131,5 +138,7 @@ public class RecurringTransaction {
     public void setStatus(Status s)                 { this.status = s; }
     public void setAutoCreated(boolean b)           { this.autoCreated = b; }
     public void setLastRecordedDate(LocalDate d)    { this.lastRecordedDate = d; }
-    public void setAutoRecordAfterDays(int n)       { this.autoRecordAfterDays = n; }
+    public void setAutoRecordAfterDays(int n)        { this.autoRecordAfterDays = n; }
+    public void setRdOpeningBalancePaise(long p)     { this.rdOpeningBalancePaise = p; }
+    public void setRdMaturityAmountPaise(long p)     { this.rdMaturityAmountPaise = p; }
 }

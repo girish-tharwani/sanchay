@@ -179,6 +179,19 @@ public class AddEditRecurringDialog {
         UiUtils.styleOnShow(invRdMaturityPicker);
         UiUtils.applySmartDateConverter(invRdMaturityPicker);
 
+        TextField invRdOpeningBalFld = new TextField();
+        invRdOpeningBalFld.setPromptText("Total instalments paid before setup (optional)");
+        invRdOpeningBalFld.setMaxWidth(Double.MAX_VALUE);
+
+        TextField invRdMaturityAmtFld = new TextField();
+        invRdMaturityAmtFld.setPromptText("Expected maturity amount (optional)");
+        invRdMaturityAmtFld.setMaxWidth(Double.MAX_VALUE);
+
+        if (!isNew && existing.getRdOpeningBalancePaise() > 0)
+            invRdOpeningBalFld.setText(String.format("%.2f", existing.getRdOpeningBalancePaise() / 100.0));
+        if (!isNew && existing.getRdMaturityAmountPaise() > 0)
+            invRdMaturityAmtFld.setText(String.format("%.2f", existing.getRdMaturityAmountPaise() / 100.0));
+
         // ── Dynamic containers ────────────────────────────────────────────────
         VBox toAccountSection = new VBox(0);
         toAccountSection.setVisible(false);
@@ -212,9 +225,11 @@ public class AddEditRecurringDialog {
                     formRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
                 }
                 case RECURRING_DEPOSIT -> {
-                    formRow(dg, 0, "RD Reference No*",  invRdRefFld);
-                    formRow(dg, 1, "Interest Rate (%)", invRdRateFld);
-                    formRow(dg, 2, "Maturity Date",     invRdMaturityPicker);
+                    formRow(dg, 0, "RD Reference No*",   invRdRefFld);
+                    formRow(dg, 1, "Interest Rate (%)",  invRdRateFld);
+                    formRow(dg, 2, "Maturity Date",      invRdMaturityPicker);
+                    formRow(dg, 3, "Opening Balance (₹)", invRdOpeningBalFld);
+                    formRow(dg, 4, "Maturity Amount (₹)", invRdMaturityAmtFld);
                 }
                 case PROVIDENT_FUND -> { /* no additional fields */ }
             }
@@ -484,6 +499,16 @@ public class AddEditRecurringDialog {
                         invRdRefFld, invRdRateFld, invRdMaturityPicker);
             }
 
+            long rdOpenBal = 0, rdMatAmt = 0;
+            boolean isRd = type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null
+                    && invDestCb.getValue().getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT;
+            if (isRd) {
+                String raw = invRdOpeningBalFld.getText().trim().replace(",", "").replace("₹", "");
+                if (!raw.isEmpty()) try { rdOpenBal = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
+                raw = invRdMaturityAmtFld.getText().trim().replace(",", "").replace("₹", "");
+                if (!raw.isEmpty()) try { rdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
+            }
+
             String fromAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
             int autoRecordDays   = autoRecordCb.isSelected() ? autoRecordDaysSp.getValue() : 0;
 
@@ -494,6 +519,8 @@ public class AddEditRecurringDialog {
                 if (catCb.getValue() != null)    r.setCategoryId(catCb.getValue().getId());
                 if (subCatCb.getValue() != null) r.setSubCategoryId(subCatCb.getValue().getId());
                 r.setNotes(invNotes);
+                r.setRdOpeningBalancePaise(rdOpenBal);
+                r.setRdMaturityAmountPaise(rdMatAmt);
                 r.setAutoRecordAfterDays(autoRecordDays);
                 r.setStatus(RecurringTransaction.Status.ACTIVE);
                 ds.addRecurring(r);
@@ -509,6 +536,8 @@ public class AddEditRecurringDialog {
                 existing.setCategoryId(catCb.getValue() != null ? catCb.getValue().getId() : null);
                 existing.setSubCategoryId(subCatCb.getValue() != null ? subCatCb.getValue().getId() : null);
                 existing.setNotes(invNotes);
+                existing.setRdOpeningBalancePaise(rdOpenBal);
+                existing.setRdMaturityAmountPaise(rdMatAmt);
                 existing.setAutoRecordAfterDays(autoRecordDays);
                 ds.saveRecurringNow();
             }

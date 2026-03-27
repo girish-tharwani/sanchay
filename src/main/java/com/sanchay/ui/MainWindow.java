@@ -126,18 +126,17 @@ public class MainWindow {
         tagline.getStyleClass().add("logo-tagline");
         brandText.getChildren().addAll(appName, tagline);
 
-        // ── Drag-to-move (logo section acts as the title bar) ─────────────────
-        double[] dragOffset = {0, 0};
-
         HBox logoSection = new HBox(10, logoCircle, brandText);
         logoSection.setAlignment(Pos.CENTER_LEFT);
         logoSection.setPadding(new Insets(20, 16, 18, 16));
 
-        logoSection.setOnMousePressed(e -> {
+        // ── Drag-to-move (entire sidebar acts as the drag handle) ─────────────
+        double[] dragOffset = {0, 0};
+        sidebar.setOnMousePressed(e -> {
             dragOffset[0] = stage.getX() - e.getScreenX();
             dragOffset[1] = stage.getY() - e.getScreenY();
         });
-        logoSection.setOnMouseDragged(e -> {
+        sidebar.setOnMouseDragged(e -> {
             if (!stage.isMaximized()) {
                 stage.setX(e.getScreenX() + dragOffset[0]);
                 stage.setY(e.getScreenY() + dragOffset[1]);

@@ -220,7 +220,7 @@ public class AccountsScreen {
             valueColour = outstanding > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof InvestmentAccount ia) {
             label = "Invested";
-            long invested = ia.getInvestedAmountPaise()
+            long invested = ds.getBaseInvestedPaise(ia)
                     + ds.getTransactions().stream()
                         .filter(t -> t.getType() == Transaction.Type.INVESTMENT
                                   && ia.getId().equals(t.getToAccountId()))
@@ -303,7 +303,7 @@ public class AccountsScreen {
             if (la.isJointAccount() && la.getCoApplicantName() != null && !la.getCoApplicantName().isBlank())
                 addField(fields, "Co-applicant", la.getCoApplicantName());
         } else if (acc instanceof InvestmentAccount ia) {
-            long invested = ia.getInvestedAmountPaise()
+            long invested = DataStore.getInstance().getBaseInvestedPaise(ia)
                     + DataStore.getInstance().getTransactions().stream()
                         .filter(t -> t.getType() == Transaction.Type.INVESTMENT
                                   && ia.getId().equals(t.getToAccountId()))
@@ -395,7 +395,7 @@ public class AccountsScreen {
                 statValue  = "₹" + String.format("%,.2f", outstanding / 100.0);
                 statColour = outstanding > 0 ? "#C62828" : "#0f3d4a";
             } else if (acc instanceof InvestmentAccount ia) {
-                long invested = ia.getInvestedAmountPaise();
+                long invested = ds2.getBaseInvestedPaise(ia);
                 for (Transaction t : ds2.getTransactions()) {
                     if (t.getType() == Transaction.Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
                         invested += t.getAmountPaise();

@@ -871,9 +871,25 @@ public class DataStore {
                 .mapToLong(cc -> getCreditCardOutstandingPaise(cc.getId())).sum();
     }
 
+    /**
+     * Base invested amount for an investment account, including the opening balance
+     * of any associated RD recurring schedules (amounts paid before app setup).
+     * Use this as the starting point whenever computing the current invested value.
+     */
+    public long getBaseInvestedPaise(InvestmentAccount ia) {
+        long base = ia.getInvestedAmountPaise();
+        if (ia.getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT) {
+            base += getRecurring().stream()
+                    .filter(r -> ia.getId().equals(r.getToAccountId()))
+                    .mapToLong(com.sanchay.model.RecurringTransaction::getRdOpeningBalancePaise)
+                    .sum();
+        }
+        return base;
+    }
+
     public long getNetWorthPaise() {
         long totalInvested = getInvestmentAccounts().stream().mapToLong(ia -> {
-            long invested = ia.getInvestedAmountPaise();
+            long invested = getBaseInvestedPaise(ia);
             for (Transaction t : transactions) {
                 if (t.getType() == Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
                     invested += t.getAmountPaise();

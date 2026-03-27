@@ -7,7 +7,7 @@
 
     <groupId>com.sanchay</groupId>
     <artifactId>sanchay-personal-finance</artifactId>
-    <version>0.2.10-SNAPSHOT</version>
+    <version>0.2.11-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>

@@ -430,6 +430,34 @@ public class ImportService {
         if (imported.getSubCategoryId() == null && recurring.getSubCategoryId() != null)
             imported.setSubCategoryId(recurring.getSubCategoryId());
 
+        // Copy To Account from the recurring schedule
+        if (imported.getToAccountId() == null && recurring.getToAccountId() != null)
+            imported.setToAccountId(recurring.getToAccountId());
+
+        // Copy transaction type from recurring (e.g. INVESTMENT for RD)
+        if (recurring.getTransactionType() != null)
+            imported.setType(recurring.getTransactionType());
+
+        // For RD schedules: copy RD Ref from recurring notes into the transaction notes
+        String recurringNotes = recurring.getNotes();
+        if (recurringNotes != null) {
+            for (String line : recurringNotes.split("\n")) {
+                if (line.startsWith("RD Ref: ")) {
+                    String rdRef = line.substring("RD Ref: ".length()).trim();
+                    if (!rdRef.isBlank()) {
+                        String existing = imported.getNotes();
+                        String rdNote = "RD Ref: " + rdRef;
+                        if (existing == null || existing.isBlank()) {
+                            imported.setNotes(rdNote);
+                        } else if (!existing.contains(rdNote)) {
+                            imported.setNotes(existing + " | " + rdNote);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         imported.setFromRecurring(true);
         imported.setRecurringId(recurring.getId());
         imported.setSourceIndicator(SourceIndicator.RECONCILED);
