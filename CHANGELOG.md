@@ -1,3 +1,9 @@
+## v0.2.4 — 2026-03-27
+
+### Fixed
+- Category rule exact-key matches now win over fuzzy co-matches — a stored rule is no longer silently suppressed when other unrelated rules share a common word (e.g. "services")
+- Mid-word slashes in bank descriptions (e.g. `FAC/ILITY`) are now collapsed before tokenizing, so they still match against the correctly-spelled stored rule key
+
 ## v0.2.3 — 2026-03-26
 
 ### Added

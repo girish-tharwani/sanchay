@@ -346,6 +346,13 @@ public class DataStore {
     public Optional<CategoryRule> suggestCategoryForDescription(String description, Transaction.Type type) {
         List<CategoryRule> matching = getCategoryRulesFor(description, type);
         if (matching.isEmpty()) return Optional.empty();
+        // Exact key match always wins — don't let fuzzy co-matches from other rules
+        // trigger the ambiguity guard.
+        String needle = normalizeDesc(description);
+        Optional<CategoryRule> exact = matching.stream()
+                .filter(r -> r.getNormalizedKey().equals(needle))
+                .max(Comparator.comparingInt(CategoryRule::getCount));
+        if (exact.isPresent()) return exact;
         long distinctCats = matching.stream().map(CategoryRule::getCategoryId).distinct().count();
         if (distinctCats != 1) return Optional.empty();   // ambiguous
         return matching.stream().max(Comparator.comparingInt(CategoryRule::getCount));

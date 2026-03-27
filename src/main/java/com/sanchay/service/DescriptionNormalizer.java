@@ -139,6 +139,9 @@ public final class DescriptionNormalizer {
      */
     static String cleanDesc(String s) {
         String clean = s.trim().toLowerCase()
+                // Remove slashes embedded within a word (e.g. "FAC/ILITY" → "FACILITY")
+                // so that bank-garbled descriptions still match stored rule keys.
+                .replaceAll("(?<=[a-z0-9])/(?=[a-z0-9])", "")
                 .replaceAll("[^a-z0-9 ]+", " ")
                 .replaceAll("\\s{2,}", " ")
                 .strip();
