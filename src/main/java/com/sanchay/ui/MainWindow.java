@@ -51,6 +51,12 @@ public class MainWindow {
     // so the FAB pre-populates that account in the new-transaction dialog.
     private Account transactionContextAccount = null;
     public void setTransactionContextAccount(Account acc) { this.transactionContextAccount = acc; }
+
+    // Remembered across the session so repeated CSV exports start in the same folder.
+    private String lastAccountExportDir = null;
+    public String getLastAccountExportDir() { return lastAccountExportDir; }
+    public void setLastAccountExportDir(String dir) { lastAccountExportDir = dir; }
+
     private boolean isFirstRun;
 
     public MainWindow(boolean isFirstRun) {

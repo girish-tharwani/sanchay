@@ -35,9 +35,6 @@ public class AccountsScreen {
     // view is initialised ONCE; never reassigned so that the reference held by MainWindow stays valid
     private final StackPane view;
 
-    // Remembered across the session so repeated exports start in the same folder
-    private static String lastExportDir = null;
-
     // "Show Closed" checkbox per group — state persists across buildList() rebuilds
     private final CheckBox showClosedBank       = new CheckBox("Show Closed");
     private final CheckBox showClosedCC         = new CheckBox("Show Closed");
@@ -900,13 +897,14 @@ public class AccountsScreen {
         fc.setTitle("Save Transactions as CSV");
         fc.setInitialFileName(acc.getName().replaceAll("\\s+", "_") + "_transactions.csv");
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
-        if (lastExportDir != null) {
-            File dir = new File(lastExportDir);
+        String savedDir = mainWindow.getLastAccountExportDir();
+        if (savedDir != null) {
+            File dir = new File(savedDir);
             if (dir.isDirectory()) fc.setInitialDirectory(dir);
         }
         File file = fc.showSaveDialog(null);
         if (file == null) return;
-        lastExportDir = file.getParent();
+        mainWindow.setLastAccountExportDir(file.getParent());
         try {
             try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
                 pw.println("Date,Description,Type,Category,Sub-category,Amount");
