@@ -13,10 +13,13 @@ import com.sanchay.ui.transactions.TransactionDialog;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -55,13 +58,39 @@ public class MainWindow {
     }
 
     public void show(Stage stage) {
+        stage.initStyle(StageStyle.UNDECORATED);
+
         root = new BorderPane();
-        root.setLeft(buildSidebar());
+        root.setLeft(buildSidebar(stage));
         root.setCenter(buildMainPanelWrapper());
 
-        Scene scene = new Scene(root, 1200, 750);
+        // Window controls — floating overlay at the true top-right corner of the window
+        Button minBtn   = new Button("–");
+        Button maxBtn   = new Button("□");
+        Button closeBtn = new Button("✕");
+        minBtn.getStyleClass().add("wc-btn");
+        maxBtn.getStyleClass().add("wc-btn");
+        closeBtn.getStyleClass().addAll("wc-btn", "wc-btn-close");
+        minBtn.setOnAction(e -> stage.setIconified(true));
+        maxBtn.setOnAction(e -> stage.setMaximized(!stage.isMaximized()));
+        closeBtn.setOnAction(e -> stage.close());
+        stage.maximizedProperty().addListener((obs, wasMax, isMax) ->
+                maxBtn.setText(isMax ? "❐" : "□"));
+
+        HBox wcBar = new HBox(1, minBtn, maxBtn, closeBtn);
+        wcBar.setPadding(new Insets(4, 4, 0, 0));
+        wcBar.setMaxWidth(Region.USE_PREF_SIZE); // prevent StackPane from stretching to full width
+        wcBar.setPickOnBounds(false);
+
+        // Outer root: BorderPane content + window controls overlay
+        StackPane outerRoot = new StackPane(root, wcBar);
+        StackPane.setAlignment(wcBar, Pos.TOP_RIGHT);
+
+        Scene scene = new Scene(outerRoot, 1200, 750);
         scene.getStylesheets().add(
                 getClass().getResource("/com/sanchay/css/app.css").toExternalForm());
+
+        addResizeSupport(scene, stage);
 
         stage.setTitle("Sanchay — Personal Finance");
         stage.setScene(scene);
@@ -73,7 +102,7 @@ public class MainWindow {
         navigateTo("Dashboard");
     }
 
-    private VBox buildSidebar() {
+    private VBox buildSidebar(Stage stage) {
         VBox sidebar = new VBox();
         sidebar.getStyleClass().add("sidebar");
 
@@ -91,9 +120,23 @@ public class MainWindow {
         tagline.getStyleClass().add("logo-tagline");
         brandText.getChildren().addAll(appName, tagline);
 
+        // ── Drag-to-move (logo section acts as the title bar) ─────────────────
+        double[] dragOffset = {0, 0};
+
         HBox logoSection = new HBox(10, logoCircle, brandText);
         logoSection.setAlignment(Pos.CENTER_LEFT);
         logoSection.setPadding(new Insets(20, 16, 18, 16));
+
+        logoSection.setOnMousePressed(e -> {
+            dragOffset[0] = stage.getX() - e.getScreenX();
+            dragOffset[1] = stage.getY() - e.getScreenY();
+        });
+        logoSection.setOnMouseDragged(e -> {
+            if (!stage.isMaximized()) {
+                stage.setX(e.getScreenX() + dragOffset[0]);
+                stage.setY(e.getScreenY() + dragOffset[1]);
+            }
+        });
 
         // ── Divider ──────────────────────────────────────────────────────────
         Region divider = new Region();
@@ -472,5 +515,73 @@ public class MainWindow {
         lbl.getStyleClass().add("form-label");
         g.add(lbl, 0, row);
         g.add(field, 1, row);
+    }
+
+    // ── Window resize support (UNDECORATED stage has no native resize handles) ─
+
+    private static final int RESIZE_MARGIN = 6;
+
+    private void addResizeSupport(Scene scene, Stage stage) {
+        double[] resizeStart = new double[6]; // screenX, screenY, stageX, stageY, stageW, stageH
+        boolean[] resizing   = {false};
+        Cursor[]  activeCursor = {Cursor.DEFAULT};
+
+        // Use addEventFilter (capture phase) so these fire even when a child node
+        // consumes the event — required for edges overlapping the content area.
+        scene.addEventFilter(MouseEvent.MOUSE_MOVED, e -> {
+            if (stage.isMaximized()) { scene.setCursor(Cursor.DEFAULT); return; }
+            double x = e.getSceneX(), y = e.getSceneY();
+            double w = scene.getWidth(),  h = scene.getHeight();
+            boolean left  = x < RESIZE_MARGIN,  right = x > w - RESIZE_MARGIN;
+            boolean top   = y < RESIZE_MARGIN,   bot   = y > h - RESIZE_MARGIN;
+            Cursor c = Cursor.DEFAULT;
+            if      (left && top)   c = Cursor.NW_RESIZE;
+            else if (right && top)  c = Cursor.NE_RESIZE;
+            else if (left && bot)   c = Cursor.SW_RESIZE;
+            else if (right && bot)  c = Cursor.SE_RESIZE;
+            else if (left)          c = Cursor.W_RESIZE;
+            else if (right)         c = Cursor.E_RESIZE;
+            else if (top)           c = Cursor.N_RESIZE;
+            else if (bot)           c = Cursor.S_RESIZE;
+            scene.setCursor(c);
+        });
+
+        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+            Cursor c = scene.getCursor();
+            if (stage.isMaximized() || c == Cursor.DEFAULT) { resizing[0] = false; return; }
+            resizing[0]     = true;
+            activeCursor[0] = c;
+            resizeStart[0]  = e.getScreenX();
+            resizeStart[1]  = e.getScreenY();
+            resizeStart[2]  = stage.getX();
+            resizeStart[3]  = stage.getY();
+            resizeStart[4]  = stage.getWidth();
+            resizeStart[5]  = stage.getHeight();
+        });
+
+        scene.addEventFilter(MouseEvent.MOUSE_DRAGGED, e -> {
+            if (!resizing[0] || stage.isMaximized()) return;
+            double dx = e.getScreenX() - resizeStart[0];
+            double dy = e.getScreenY() - resizeStart[1];
+            Cursor c  = activeCursor[0];
+            double newX = resizeStart[2], newY = resizeStart[3];
+            double newW = resizeStart[4], newH = resizeStart[5];
+            if (c == Cursor.E_RESIZE  || c == Cursor.NE_RESIZE || c == Cursor.SE_RESIZE)
+                newW = Math.max(stage.getMinWidth(),  resizeStart[4] + dx);
+            if (c == Cursor.W_RESIZE  || c == Cursor.NW_RESIZE || c == Cursor.SW_RESIZE) {
+                newW = Math.max(stage.getMinWidth(),  resizeStart[4] - dx);
+                newX = resizeStart[2] + (resizeStart[4] - newW);
+            }
+            if (c == Cursor.S_RESIZE  || c == Cursor.SE_RESIZE || c == Cursor.SW_RESIZE)
+                newH = Math.max(stage.getMinHeight(), resizeStart[5] + dy);
+            if (c == Cursor.N_RESIZE  || c == Cursor.NE_RESIZE || c == Cursor.NW_RESIZE) {
+                newH = Math.max(stage.getMinHeight(), resizeStart[5] - dy);
+                newY = resizeStart[3] + (resizeStart[5] - newH);
+            }
+            stage.setX(newX); stage.setY(newY);
+            stage.setWidth(newW); stage.setHeight(newH);
+        });
+
+        scene.addEventFilter(MouseEvent.MOUSE_RELEASED, e -> resizing[0] = false);
     }
 }

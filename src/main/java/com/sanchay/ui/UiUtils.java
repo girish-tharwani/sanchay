@@ -16,6 +16,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.stage.StageStyle;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
@@ -151,6 +152,9 @@ public final class UiUtils {
     }
 
     public static void setDialogHeader(Dialog<?> dlg, String icon, String title, String subtitle) {
+        // Remove the native OS title bar — the custom branded header is the only chrome needed
+        dlg.initStyle(StageStyle.UNDECORATED);
+
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("dialog-header-bar");

@@ -1,3 +1,15 @@
+## v0.2.6 — 2026-03-27
+
+### Added
+- Custom window chrome: native OS title bar removed (`StageStyle.UNDECORATED`); min/max/close buttons added as a floating overlay at the top-right corner of the window
+- Manual window resize support: edge/corner drag handles (8 directions) re-implemented in code for the undecorated stage
+- Drag-to-move: sidebar logo section acts as the title bar drag handle
+
+### Changed
+- Window control buttons (`–`, `□`, `✕`) use `-brand-mid` / `-brand-dark` text fill (previously invisible white-on-white)
+- Recurring screen: ✓/≫ pending card buttons shifted left (16px right margin); pause/delete table buttons enforced to 28×28 via CSS
+- Transaction table: source-indicator badges (R/I/M/?) and delete (×) button enforced to 28×28 via CSS
+
 ## v0.2.5 — 2026-03-27
 
 ### Changed
