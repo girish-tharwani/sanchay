@@ -94,26 +94,22 @@ This file is created during the First-Run Wizard (§3.0) and updated whenever th
 
 ### 3.0 First-Run Wizard
 
-On the very first launch (i.e., `app-config.json` does not exist, or exists but points to a non-existent folder), the application displays a **First-Run Wizard** instead of the main shell. This is a simple, focused flow — not a complex multi-step wizard.
+On the very first launch (i.e., `app-config.json` does not exist, or exists but points to a non-existent folder), the application displays a **First-Run Wizard** instead of the main shell.
 
-**Step 1 — Welcome screen:**
-- Displays the application name and a short welcome message explaining that the app stores data locally in a folder of the user's choice.
-- The welcome message area must be sized to display the full message text without clipping. Text must never be truncated with "..." or cut off at the edge of a container. The container (label, text area, or panel) must expand to fit all content, or use wrapping with a minimum height that accommodates the full text at the default window size.
-- One button: **Get Started**
+**Folder selection page:**
+- Displays the application name, a short explanatory message, and a **Browse…** button that opens the OS folder picker
+- A read-only text field shows the selected path; the **Get Started** button is disabled until a folder is chosen
+- When the selected folder already contains data files (`accounts.json`, `transactions.json`, or `categories.json`), a status label confirms "Existing data found" and the button label changes to **Open Existing Data** — preferences dialog is skipped
+- When the selected folder is empty or new, a status label confirms "New folder" — clicking **Get Started** opens the **Preferences dialog** (see below) before closing the wizard
 
-**Step 2 — Data folder selection:**
-- Prompt: *"Choose a folder where your financial data will be stored. You can use an existing folder or create a new one."*
-- A read-only text field showing the currently selected path (defaults to `Documents\PersonalFinance`)
-- A **Browse…** button that opens the OS folder picker
-- A **Continue** button (enabled only when a valid path is selected)
+**Preferences dialog (fresh setups only):**
+- A modal dialog prompting for: **Currency** (INR), **Year Format** (Indian Financial Year / Calendar Year), and **Date Format** (DD/MM/YYYY / YYYY-MM-DD)
+- If the dialog is dismissed without confirming, defaults are used
+- Selected preferences are written to `settings.json` immediately after data is first loaded
 
-**Step 3 — Confirmation:**
-- Shows the chosen path and a brief summary: *"Your data will be stored in: [path]"*
-- **Finish** button: creates the folder if it does not exist, writes `app-config.json`, and transitions to the main application shell
-
-**Error handling:**
-- If the selected path is not writable, show an inline error and do not advance
-- If folder creation fails, show a clear error message with the reason
+**Recovery mode** (folder missing):
+- If `app-config.json` exists but the recorded path no longer exists on disk, the wizard opens in recovery mode with a warning showing the missing path
+- The user can point to the relocated folder (existing data auto-detected) or choose a new empty folder (preferences dialog shown)
 
 ### 3.1 Overall Layout
 
@@ -305,6 +301,7 @@ Credit cards are modelled as liability accounts. Spending on a credit card is re
 | Loan Account Number | Text | Reference number from the lender |
 | Bank / Lender Name | Text | |
 | Loan Type | Read-only | Home / Vehicle / Personal |
+| Opening Date | Date | Date the loan account was first entered into the app (required for amortization schedule) |
 | Disbursement Date | Date | Date loan amount was received |
 | Loan Amount | Currency (INR) | Total sanctioned amount |
 | Interest Rate | Decimal % | Current annual rate; can be overwritten when rate changes |
@@ -415,6 +412,7 @@ Each RD running within a bucket account is modelled as a **recurring investment 
 | Interest Rate | Decimal % | Annual interest rate |
 | Maturity Date | Date | Auto-calculated: opening date + tenure months |
 | Maturity Amount | Currency (INR) | Expected amount on maturity |
+| Opening Balance | Currency (INR) | Total already deposited before the app was set up (for accounts that pre-date app entry) |
 | Linked Bank Account | Dropdown | Bank account from which instalments are debited |
 | Joint Account | Boolean | Toggle |
 | Second Holder Name | Text | Visible only when Joint Account is enabled |
@@ -619,9 +617,9 @@ Recurring transactions allow the user to define a scheduled transaction that rep
 |------------------------|-------------------|
 | Mutual Funds / Equity / Debt Bonds | Scheme / Script Name (optional), Units / NAV (optional) |
 | Fixed Deposit | FD Reference No (optional), Interest Rate %, Maturity Date, Maturity Amount (optional) |
-| Recurring Deposit | RD Reference No (optional), Interest Rate %, Maturity Date |
+| Recurring Deposit | RD Reference No (optional), Interest Rate %, Maturity Date, Opening Balance (optional), Maturity Amount (optional) |
 
-> Investment-specific additional fields are stored in the recurring schedule's `notes` field in a structured key: value format.
+> Investment-specific additional fields are stored as dedicated typed fields on the recurring schedule record (not in the `notes` field).
 
 **All Schedules table columns:**
 
@@ -887,14 +885,18 @@ When a data file is written for the first time (i.e., the file did not exist bef
 
 #### 10.1.4 Data Folder Relocation (from Settings)
 
-The user can change the data folder path at any time from the Settings screen. When they do:
+The user can switch the active data folder at any time from the Settings screen. No restart is required — the app reloads in-session immediately.
+
+When the user selects a new folder:
 
 1. The app presents a folder picker
 2. The user selects the new folder
-3. The app asks: **"Move data to new folder, or just switch to an existing folder?"**
-4. If **Move**: all JSON files are copied to the new folder, then `app-config.json` is updated
-5. If **Switch**: only `app-config.json` is updated; no files are moved
-6. On next launch the app reads from the new folder
+3. `app-config.json` is updated with the new path (no files are moved — the app switches, not migrates)
+4. If the new folder is empty, the **Preferences dialog** is shown to set currency, year format, and date format before loading
+5. DataStore is reset and all data is reloaded from the new folder
+6. All cached screens are discarded and the app navigates to Dashboard
+
+> **Data migration:** Moving files to the new folder must be done manually outside the app. The app only updates the pointer — it does not copy or move JSON files between folders.
 
 #### 10.1.5 Members Data Schema
 
@@ -936,12 +938,12 @@ Family members are stored as structured objects in **`members.json`**. The file 
 
 | Setting | Type | Notes |
 |---------|------|-------|
-| Data Folder Path | Directory picker | Displays current configured path; allows relocation |
-| Default Currency | Read-only | INR — not configurable |
-| Financial Year Start | Read-only | 1 April — fixed to Indian tax year |
+| Data Folder Path | Directory picker | Displays current configured path; selecting a new folder reloads the app in-session immediately |
+| Currency | Dropdown | INR (currently the only option) |
+| Year Format | Dropdown | Indian Financial Year (Apr–Mar) / Calendar Year (Jan–Dec); affects financial year labels and date range filters throughout the app |
 | Date Format | Dropdown | DD/MM/YYYY (default) / YYYY-MM-DD |
-| Backup | Button | Triggers one-click backup to ZIP |
-| About / Version | Read-only | App version, build date, data schema version |
+| Backup | Button | Triggers one-click backup of the entire data folder to a timestamped ZIP file |
+| About / Version | Read-only | App version, data schema version, platform |
 
 > **Note:** Family Members is managed on the **Profile** screen (§12). Category Manager is on the **Categories** screen (§8.3). Each screen (Reports, Account Transaction History) manages its own date filter independently.
 
@@ -1025,7 +1027,6 @@ The following features are explicitly deferred to future versions:
 - Interest rate change history on floating-rate loans
 - Credit card reward points tracking
 - Credit card statement PDF import
-- Sub-categories for income categories
 - Moving sub-categories between parent categories
 
 ---
@@ -1069,7 +1070,7 @@ All text in the First-Run Wizard — including the welcome message, instructiona
 - Text labels and message areas must use **word wrap** and must not truncate content with ellipsis (`...`) or cut off at a container boundary.
 - The welcome message container must be sized with a minimum height that fits the full message at the application's default window size.
 - If the message is long, the container may scroll, but it must never silently hide content.
-- This rule applies to all three wizard steps (Welcome, Folder Selection, Confirmation).
+- This rule applies to the wizard's folder selection page and to the Preferences dialog.
 
 ### 14.6 Dialog Field Label Text Colour
 
