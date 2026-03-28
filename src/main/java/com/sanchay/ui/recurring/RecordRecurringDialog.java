@@ -150,10 +150,13 @@ public class RecordRecurringDialog {
                 t.setToAccountId(toAccountCb.getValue().getId());
             else
                 t.setToAccountId(r.getToAccountId());
-            t.setCategoryId(r.getCategoryId());
-            t.setSubCategoryId(r.getSubCategoryId());
-            t.setFromRecurring(true);
-            t.setRecurringId(r.getId());
+            if (r.getCategoryId() != null || r.getSubCategoryId() != null) {
+                Transaction.Classification cl = new Transaction.Classification();
+                cl.setCategoryId(r.getCategoryId());
+                cl.setSubCategoryId(r.getSubCategoryId());
+                t.setClassification(cl);
+            }
+            t.setRecurring(new Transaction.Recurring(r.getId()));
             // For RD investment schedules, copy the RD Ref into the transaction notes
             String rdRef = r.getRdRef();
             if (rdRef != null && !rdRef.isBlank())

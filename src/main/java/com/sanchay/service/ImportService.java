@@ -311,8 +311,10 @@ public class ImportService {
                         categorized = store.suggestCategoryForDescription(
                                 imported.getDescription(), imported.getType())
                                 .map(rule -> {
-                                    imported.setCategoryId(rule.getCategoryId());
-                                    imported.setSubCategoryId(rule.getSubCategoryId());
+                                    Transaction.Classification cl = new Transaction.Classification();
+                                    cl.setCategoryId(rule.getCategoryId());
+                                    cl.setSubCategoryId(rule.getSubCategoryId());
+                                    imported.setClassification(cl);
                                     return true;
                                 }).orElse(false);
                     }
@@ -425,10 +427,20 @@ public class ImportService {
     public static void reconcileWithRecurring(Transaction imported,
                                               RecurringTransaction recurring,
                                               DataStore store) {
-        if (imported.getCategoryId() == null && recurring.getCategoryId() != null)
-            imported.setCategoryId(recurring.getCategoryId());
-        if (imported.getSubCategoryId() == null && recurring.getSubCategoryId() != null)
-            imported.setSubCategoryId(recurring.getSubCategoryId());
+        String importedCatId = imported.getClassification() != null
+                ? imported.getClassification().getCategoryId() : null;
+        String importedSubCatId = imported.getClassification() != null
+                ? imported.getClassification().getSubCategoryId() : null;
+        if (importedCatId == null && recurring.getCategoryId() != null) {
+            if (imported.getClassification() == null)
+                imported.setClassification(new Transaction.Classification());
+            imported.getClassification().setCategoryId(recurring.getCategoryId());
+        }
+        if (importedSubCatId == null && recurring.getSubCategoryId() != null) {
+            if (imported.getClassification() == null)
+                imported.setClassification(new Transaction.Classification());
+            imported.getClassification().setSubCategoryId(recurring.getSubCategoryId());
+        }
 
         // Copy To Account from the recurring schedule
         if (imported.getToAccountId() == null && recurring.getToAccountId() != null)
@@ -449,8 +461,7 @@ public class ImportService {
                 imported.setNotes(existing + " | " + rdNote);
         }
 
-        imported.setFromRecurring(true);
-        imported.setRecurringId(recurring.getId());
+        imported.setRecurring(new Transaction.Recurring(recurring.getId()));
         imported.setSourceIndicator(SourceIndicator.RECONCILED);
 
         store.addTransactionInternal(imported);

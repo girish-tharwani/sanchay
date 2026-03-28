@@ -68,7 +68,7 @@ public class TransactionDialog extends Dialog<Transaction> {
     // ── Other type-specific fields ────────────────────────────────────────────
     private ComboBox<String> expModeCb, refModeCb, lnModeCb;
     private TextField        expFamilyFld, expRefFld;
-    private TextField        incSrcFld,    incFamilyFld;
+    private TextField        incFamilyFld;
     private TextField        refFamilyFld, refRefFld;
     private TextField        lnRefFld;
     private TextField        lnPrincipalFld;
@@ -89,6 +89,7 @@ public class TransactionDialog extends Dialog<Transaction> {
     private TextField invSchemeFld, invUnitsFld;
     private TextField invFdRefFld,  invFdRateFld, invFdMaturityAmtFld;
     private DatePicker invFdMaturityPicker;
+    private ComboBox<Transaction.InterestPayable> invFdInterestPayableCb;
     private ComboBox<String> invRdRefCb;
     private TextField invRdRateFld;
     private DatePicker invRdMaturityPicker;
@@ -258,7 +259,6 @@ public class TransactionDialog extends Dialog<Transaction> {
         wireCategory(incCatCb, incCatMaster, incSubCatCb, incSubCatMaster);
 
         incAcctCb    = accountCombo(false);
-        incSrcFld    = tf("e.g. Barclays");
         incFamilyFld = tf("optional");
 
         GridPane g = panelGrid();
@@ -266,7 +266,6 @@ public class TransactionDialog extends Dialog<Transaction> {
         row(g, r++, "To Account*",    incAcctCb);
         row(g, r++, "Category",       incCatCb);
         row(g, r++, "Sub-category",   incSubCatCb);
-        row(g, r++, "Source",         incSrcFld);
         row(g, r,   "Family Member",  incFamilyFld);
         return g;
     }
@@ -656,11 +655,17 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         Transaction t = new Transaction(Type.EXPENSE, date, desc, amt);
         t.setFromAccountId(acct.getId());
-        if (expCatCb.getValue()    != null) t.setCategoryId(expCatCb.getValue().getId());
-        if (expSubCatCb.getValue() != null) t.setSubCategoryId(expSubCatCb.getValue().getId());
+        Transaction.Classification expCl = new Transaction.Classification();
+        if (expCatCb.getValue()    != null) expCl.setCategoryId(expCatCb.getValue().getId());
+        if (expSubCatCb.getValue() != null) expCl.setSubCategoryId(expSubCatCb.getValue().getId());
+        expCl.setFamilyMember(nullIfBlank(expFamilyFld.getText()));
+        t.setClassification(expCl);
         applyPayMode(t, expModeCb);
-        t.setFamilyMember(nullIfBlank(expFamilyFld.getText()));
-        t.setReferenceNumber(nullIfBlank(expRefFld.getText()));
+        String expRef = nullIfBlank(expRefFld.getText());
+        if (expRef != null) {
+            if (t.getPayment() == null) t.setPayment(new Transaction.Payment());
+            t.getPayment().setReferenceNumber(expRef);
+        }
         t.setNotes(nullIfBlank(sharedNotes.getText()));
         return persistTransaction(t);
     }
@@ -673,10 +678,11 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         Transaction t = new Transaction(Type.INCOME, date, desc, amt);
         t.setToAccountId(acct.getId());
-        if (incCatCb.getValue()    != null) t.setCategoryId(incCatCb.getValue().getId());
-        if (incSubCatCb.getValue() != null) t.setSubCategoryId(incSubCatCb.getValue().getId());
-        t.setSource(nullIfBlank(incSrcFld.getText()));
-        t.setFamilyMember(nullIfBlank(incFamilyFld.getText()));
+        Transaction.Classification incCl = new Transaction.Classification();
+        if (incCatCb.getValue()    != null) incCl.setCategoryId(incCatCb.getValue().getId());
+        if (incSubCatCb.getValue() != null) incCl.setSubCategoryId(incSubCatCb.getValue().getId());
+        incCl.setFamilyMember(nullIfBlank(incFamilyFld.getText()));
+        t.setClassification(incCl);
         t.setNotes(nullIfBlank(sharedNotes.getText()));
         return persistTransaction(t);
     }
@@ -692,10 +698,16 @@ public class TransactionDialog extends Dialog<Transaction> {
         Transaction t = new Transaction(Type.LOAN_PAYMENT, date, desc, amt);
         t.setFromAccountId(from.getId());
         t.setToAccountId(to.getId());
-        if (lnCatCb.getValue()    != null) t.setCategoryId(lnCatCb.getValue().getId());
-        if (lnSubCatCb.getValue() != null) t.setSubCategoryId(lnSubCatCb.getValue().getId());
+        Transaction.Classification lnCl = new Transaction.Classification();
+        if (lnCatCb.getValue()    != null) lnCl.setCategoryId(lnCatCb.getValue().getId());
+        if (lnSubCatCb.getValue() != null) lnCl.setSubCategoryId(lnSubCatCb.getValue().getId());
+        t.setClassification(lnCl);
         applyPayMode(t, lnModeCb);
-        t.setReferenceNumber(nullIfBlank(lnRefFld.getText()));
+        String lnRef = nullIfBlank(lnRefFld.getText());
+        if (lnRef != null) {
+            if (t.getPayment() == null) t.setPayment(new Transaction.Payment());
+            t.getPayment().setReferenceNumber(lnRef);
+        }
         t.setNotes(nullIfBlank(sharedNotes.getText()));
 
         // Store principal portion for accurate outstanding calculation
@@ -703,7 +715,11 @@ public class TransactionDialog extends Dialog<Transaction> {
         if (prinText != null && !prinText.isBlank()) {
             try {
                 long prin = Math.round(Double.parseDouble(prinText.replace(",", "")) * 100);
-                if (prin > 0 && prin <= amt) t.setPrincipalPaise(prin);
+                if (prin > 0 && prin <= amt) {
+                    Transaction.RedeemDetails rd = new Transaction.RedeemDetails();
+                    rd.setPrincipalPaise(prin);
+                    t.setRedeemDetails(rd);
+                }
             } catch (NumberFormatException ignored) {}
         }
 
@@ -722,8 +738,12 @@ public class TransactionDialog extends Dialog<Transaction> {
         Transaction t = new Transaction(Type.TRANSFER, date, desc, amt);
         t.setFromAccountId(from.getId());
         t.setToAccountId(to.getId());
-        if (trfCatCb.getValue()    != null) t.setCategoryId(trfCatCb.getValue().getId());
-        if (trfSubCatCb.getValue() != null) t.setSubCategoryId(trfSubCatCb.getValue().getId());
+        if (trfCatCb.getValue() != null || trfSubCatCb.getValue() != null) {
+            Transaction.Classification trfCl = new Transaction.Classification();
+            if (trfCatCb.getValue()    != null) trfCl.setCategoryId(trfCatCb.getValue().getId());
+            if (trfSubCatCb.getValue() != null) trfCl.setSubCategoryId(trfSubCatCb.getValue().getId());
+            t.setClassification(trfCl);
+        }
         t.setNotes(nullIfBlank(sharedNotes.getText()));
         return persistTransaction(t);
     }
@@ -742,26 +762,33 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         String userNotes = nullIfBlank(sharedNotes.getText());
         switch (dest.getInvestmentType()) {
-            case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
-                if (invSchemeFld != null) t.setSchemeScriptName(nullIfBlank(invSchemeFld.getText()));
+            case MUTUAL_FUNDS, EQUITY -> {
+                Transaction.InvestmentDetails mfInv = new Transaction.InvestmentDetails();
+                if (invSchemeFld != null) mfInv.setSchemeScriptName(nullIfBlank(invSchemeFld.getText()));
                 if (invUnitsFld  != null && !invUnitsFld.getText().isBlank()) {
-                    try { t.setUnitsNav(Double.parseDouble(invUnitsFld.getText().trim())); }
+                    try { mfInv.setUnitsNav(Double.parseDouble(invUnitsFld.getText().trim())); }
                     catch (NumberFormatException e) { throw new IllegalArgumentException("Units/NAV must be a number."); }
                 }
+                t.setInvestmentDetails(mfInv);
                 t.setNotes(userNotes);
             }
-            case FIXED_DEPOSIT -> {
-                t.setFdRef(nullIfBlank(invFdRefFld != null ? invFdRefFld.getText() : null));
+            case FIXED_DEPOSIT, DEBT_BONDS -> {
+                Transaction.FdDetails fd = new Transaction.FdDetails();
+                fd.setRef(nullIfBlank(invFdRefFld != null ? invFdRefFld.getText() : null));
                 if (invFdRateFld != null && !invFdRateFld.getText().isBlank()) {
-                    try { t.setFdInterestRate(Double.parseDouble(invFdRateFld.getText().trim())); }
+                    try { fd.setInterestRate(Double.parseDouble(invFdRateFld.getText().trim())); }
                     catch (NumberFormatException e) { throw new IllegalArgumentException("Interest rate must be a number."); }
                 }
                 if (invFdMaturityPicker != null && invFdMaturityPicker.getValue() != null)
-                    t.setFdMaturityDate(invFdMaturityPicker.getValue().toString());
+                    fd.setMaturityDate(invFdMaturityPicker.getValue());
                 if (invFdMaturityAmtFld != null && !invFdMaturityAmtFld.getText().isBlank()) {
-                    try { t.setFdMaturityAmountPaise((long)(Double.parseDouble(invFdMaturityAmtFld.getText().trim()) * 100)); }
+                    try { fd.setMaturityAmountPaise((long)(Double.parseDouble(invFdMaturityAmtFld.getText().trim()) * 100)); }
                     catch (NumberFormatException e) { throw new IllegalArgumentException("Maturity amount must be a number."); }
                 }
+                if (invFdInterestPayableCb != null) fd.setInterestPayable(invFdInterestPayableCb.getValue());
+                Transaction.InvestmentDetails fdInv = new Transaction.InvestmentDetails();
+                fdInv.setFd(fd);
+                t.setInvestmentDetails(fdInv);
                 t.setNotes(userNotes);
             }
             case RECURRING_DEPOSIT -> {
@@ -807,11 +834,17 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         Transaction t = new Transaction(Type.REFUND, date, desc, amt);
         t.setToAccountId(acct.getId());
-        if (refCatCb.getValue()    != null) t.setCategoryId(refCatCb.getValue().getId());
-        if (refSubCatCb.getValue() != null) t.setSubCategoryId(refSubCatCb.getValue().getId());
+        Transaction.Classification refCl = new Transaction.Classification();
+        if (refCatCb.getValue()    != null) refCl.setCategoryId(refCatCb.getValue().getId());
+        if (refSubCatCb.getValue() != null) refCl.setSubCategoryId(refSubCatCb.getValue().getId());
+        refCl.setFamilyMember(nullIfBlank(refFamilyFld.getText()));
+        t.setClassification(refCl);
         applyPayMode(t, refModeCb);
-        t.setFamilyMember(nullIfBlank(refFamilyFld.getText()));
-        t.setReferenceNumber(nullIfBlank(refRefFld.getText()));
+        String refNum = nullIfBlank(refRefFld.getText());
+        if (refNum != null) {
+            if (t.getPayment() == null) t.setPayment(new Transaction.Payment());
+            t.getPayment().setReferenceNumber(refNum);
+        }
         t.setNotes(nullIfBlank(sharedNotes.getText()));
         return persistTransaction(t);
     }
@@ -834,7 +867,9 @@ public class TransactionDialog extends Dialog<Transaction> {
         // 1. Investment-side: outgoing REDEEM from investment account (amount = principal)
         Transaction invTxn = new Transaction(Type.REDEEM, date, desc, principal);
         invTxn.setFromAccountId(from.getId());
-        invTxn.setPrincipalPaise(principal);
+        Transaction.RedeemDetails invRd = new Transaction.RedeemDetails();
+        invRd.setPrincipalPaise(principal);
+        invTxn.setRedeemDetails(invRd);
         invTxn.setGroupTransactionId(groupId);
         invTxn.setNotes(notes);
         invTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
@@ -844,7 +879,9 @@ public class TransactionDialog extends Dialog<Transaction> {
         boolean existingWasImported = existing != null && existing.getImportHash() != null;
         Transaction bankPrincipal = new Transaction(Type.REDEEM, date, desc, principal);
         bankPrincipal.setToAccountId(to.getId());
-        bankPrincipal.setPrincipalPaise(principal);
+        Transaction.RedeemDetails bankRd = new Transaction.RedeemDetails();
+        bankRd.setPrincipalPaise(principal);
+        bankPrincipal.setRedeemDetails(bankRd);
         bankPrincipal.setGroupTransactionId(groupId);
         bankPrincipal.setNotes(notes);
         if (existingWasImported) {
@@ -872,8 +909,12 @@ public class TransactionDialog extends Dialog<Transaction> {
             } else {
                 gainLossTxn.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
             }
-            if (rdeCatCb.getValue()    != null) gainLossTxn.setCategoryId(rdeCatCb.getValue().getId());
-            if (rdeSubCatCb.getValue() != null) gainLossTxn.setSubCategoryId(rdeSubCatCb.getValue().getId());
+            if (rdeCatCb.getValue() != null || rdeSubCatCb.getValue() != null) {
+                Transaction.Classification gainCl = new Transaction.Classification();
+                if (rdeCatCb.getValue()    != null) gainCl.setCategoryId(rdeCatCb.getValue().getId());
+                if (rdeSubCatCb.getValue() != null) gainCl.setSubCategoryId(rdeSubCatCb.getValue().getId());
+                gainLossTxn.setClassification(gainCl);
+            }
         }
 
         // If editing, delete the old group or old single REDEEM (no save yet)
@@ -948,9 +989,9 @@ public class TransactionDialog extends Dialog<Transaction> {
                 contextIsSource  = true;
                 setAccount(expAcctCb, t.getFromAccountId());
                 prefillCat(expCatCb, expSubCatCb, t);
-                setPayMode(expModeCb, t.getPaymentMode());
-                setText(expFamilyFld, t.getFamilyMember());
-                setText(expRefFld,    t.getReferenceNumber());
+                setPayMode(expModeCb, t.getPayment() != null ? t.getPayment().getMode() : null);
+                setText(expFamilyFld, t.getClassification() != null ? t.getClassification().getFamilyMember() : null);
+                setText(expRefFld,    t.getPayment() != null ? t.getPayment().getReferenceNumber() : null);
             }
             case INCOME -> {
                 String id = t.getToAccountId() != null ? t.getToAccountId() : t.getFromAccountId();
@@ -958,8 +999,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 contextIsSource  = false;
                 setAccount(incAcctCb, id);
                 prefillCat(incCatCb, incSubCatCb, t);
-                setText(incSrcFld,    t.getSource());
-                setText(incFamilyFld, t.getFamilyMember());
+                setText(incFamilyFld, t.getClassification() != null ? t.getClassification().getFamilyMember() : null);
             }
             case TRANSFER -> {
                 setAccount(trfFromCb, t.getFromAccountId());
@@ -974,9 +1014,9 @@ public class TransactionDialog extends Dialog<Transaction> {
             case REFUND -> {
                 setAccount(refAcctCb, t.getToAccountId());
                 prefillCat(refCatCb, refSubCatCb, t);
-                setPayMode(refModeCb, t.getPaymentMode());
-                setText(refFamilyFld, t.getFamilyMember());
-                setText(refRefFld,    t.getReferenceNumber());
+                setPayMode(refModeCb, t.getPayment() != null ? t.getPayment().getMode() : null);
+                setText(refFamilyFld, t.getClassification() != null ? t.getClassification().getFamilyMember() : null);
+                setText(refRefFld,    t.getPayment() != null ? t.getPayment().getReferenceNumber() : null);
             }
             case REDEEM, GAIN, LOSE -> prefillRedeemForm(t);
             case LOAN_PAYMENT -> {
@@ -985,24 +1025,27 @@ public class TransactionDialog extends Dialog<Transaction> {
                     ds.getActiveLoanAccounts().stream()
                             .filter(la -> la.getId().equals(t.getToAccountId()))
                             .findFirst().ifPresent(lnToCb::setValue);
-                if (t.getPrincipalPaise() > 0)
-                    setText(lnPrincipalFld, String.format("%.0f", t.getPrincipalPaise() / 100.0));
+                long lnPrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+                if (lnPrin > 0)
+                    setText(lnPrincipalFld, String.format("%.0f", lnPrin / 100.0));
                 prefillCat(lnCatCb, lnSubCatCb, t);
-                setPayMode(lnModeCb, t.getPaymentMode());
-                setText(lnRefFld, t.getReferenceNumber());
+                setPayMode(lnModeCb, t.getPayment() != null ? t.getPayment().getMode() : null);
+                setText(lnRefFld, t.getPayment() != null ? t.getPayment().getReferenceNumber() : null);
             }
         }
     }
 
     private void prefillCat(ComboBox<Category> catCb, ComboBox<Category> subCatCb, Transaction t) {
-        if (t.getCategoryId() != null) {
+        String catId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+        String subCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+        if (catId != null) {
             catCb.getItems().stream()
-                    .filter(c -> c.getId().equals(t.getCategoryId()))
+                    .filter(c -> c.getId().equals(catId))
                     .findFirst().ifPresent(cat -> {
                         catCb.setValue(cat);
-                        if (subCatCb != null && t.getSubCategoryId() != null)
+                        if (subCatCb != null && subCatId != null)
                             subCatCb.getItems().stream()
-                                    .filter(s -> s.getId().equals(t.getSubCategoryId()))
+                                    .filter(s -> s.getId().equals(subCatId))
                                     .findFirst().ifPresent(subCatCb::setValue);
                     });
         } else if (t.getDescription() != null) {
@@ -1027,19 +1070,28 @@ public class TransactionDialog extends Dialog<Transaction> {
                 .findFirst().ifPresent(ia -> {
                     invDestCb.setValue(ia); // triggers refreshInvestmentDynamicFields
                     switch (ia.getInvestmentType()) {
-                        case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
-                            setText(invSchemeFld, t.getSchemeScriptName());
-                            if (t.getUnitsNav() != null && invUnitsFld != null)
-                                invUnitsFld.setText(t.getUnitsNav().toString());
+                        case MUTUAL_FUNDS, EQUITY -> {
+                            Transaction.InvestmentDetails mfInv = t.getInvestmentDetails();
+                            if (mfInv != null) {
+                                setText(invSchemeFld, mfInv.getSchemeScriptName());
+                                if (mfInv.getUnitsNav() != null && invUnitsFld != null)
+                                    invUnitsFld.setText(mfInv.getUnitsNav().toString());
+                            }
                         }
-                        case FIXED_DEPOSIT -> {
-                            setText(invFdRefFld, t.getFdRef());
-                            if (t.getFdInterestRate() != null && invFdRateFld != null)
-                                invFdRateFld.setText(t.getFdInterestRate().toString());
-                            if (t.getFdMaturityDate() != null && invFdMaturityPicker != null)
-                                invFdMaturityPicker.setValue(LocalDate.parse(t.getFdMaturityDate()));
-                            if (t.getFdMaturityAmountPaise() != null && invFdMaturityAmtFld != null)
-                                invFdMaturityAmtFld.setText(String.format("%.2f", t.getFdMaturityAmountPaise() / 100.0));
+                        case FIXED_DEPOSIT, DEBT_BONDS -> {
+                            Transaction.FdDetails fd = t.getInvestmentDetails() != null
+                                    ? t.getInvestmentDetails().getFd() : null;
+                            if (fd != null) {
+                                setText(invFdRefFld, fd.getRef());
+                                if (fd.getInterestRate() != null && invFdRateFld != null)
+                                    invFdRateFld.setText(fd.getInterestRate().toString());
+                                if (fd.getMaturityDate() != null && invFdMaturityPicker != null)
+                                    invFdMaturityPicker.setValue(fd.getMaturityDate());
+                                if (fd.getMaturityAmountPaise() != null && invFdMaturityAmtFld != null)
+                                    invFdMaturityAmtFld.setText(String.format("%.2f", fd.getMaturityAmountPaise() / 100.0));
+                                if (fd.getInterestPayable() != null && invFdInterestPayableCb != null)
+                                    invFdInterestPayableCb.setValue(fd.getInterestPayable());
+                            }
                             sharedNotes.setText(t.getNotes() != null ? t.getNotes() : "");
                         }
                         case RECURRING_DEPOSIT -> {
@@ -1117,8 +1169,9 @@ public class TransactionDialog extends Dialog<Transaction> {
                         .filter(ia -> ia.getId().equals(t.getFromAccountId()))
                         .findFirst().ifPresent(rdeFromCb::setValue);
             setAccount(rdeToCb, t.getToAccountId());
-            if (t.getPrincipalPaise() > 0)
-                rdePrincipalFld.setText(String.format("%.2f", t.getPrincipalPaise() / 100.0));
+            long rdePrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+            if (rdePrin > 0)
+                rdePrincipalFld.setText(String.format("%.2f", rdePrin / 100.0));
             // sharedAmt already set from t.getAmountPaise() = total for old format
             prefillCat(rdeCatCb, rdeSubCatCb, t);
         }
@@ -1231,6 +1284,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         invSchemeFld = invUnitsFld = null;
         invFdRefFld  = invFdRateFld = invFdMaturityAmtFld = null;
         invFdMaturityPicker = null;
+        invFdInterestPayableCb = null;
         invRdRefCb  = null;
         invRdRateFld = null;
         invRdMaturityPicker = null;
@@ -1238,22 +1292,41 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         GridPane g = panelGrid();
         switch (itype) {
-            case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
+            case MUTUAL_FUNDS, EQUITY -> {
                 invSchemeFld = tf("optional");
                 invUnitsFld  = tf("e.g. 100.5");
                 dynRow(g, 0, "Scheme / Script",   invSchemeFld);
                 dynRow(g, 1, "Units / NAV",        invUnitsFld);
             }
-            case FIXED_DEPOSIT -> {
-                invFdRefFld         = tf("optional");
-                invFdRateFld        = tf("e.g. 7.5");
-                invFdMaturityPicker = new DatePicker();
+            case FIXED_DEPOSIT, DEBT_BONDS -> {
+                invFdRefFld            = tf("optional");
+                invFdRateFld           = tf("e.g. 7.5");
+                invFdMaturityPicker    = new DatePicker();
                 UiUtils.styleOnShow(invFdMaturityPicker);
-                invFdMaturityAmtFld = tf("optional");
-                dynRow(g, 0, "FD Reference No",    invFdRefFld);
+                invFdMaturityAmtFld    = tf("optional");
+                invFdInterestPayableCb = new ComboBox<>();
+                invFdInterestPayableCb.getItems().addAll(Transaction.InterestPayable.values());
+                invFdInterestPayableCb.setPromptText("Select");
+                invFdInterestPayableCb.setMaxWidth(Double.MAX_VALUE);
+                invFdInterestPayableCb.setConverter(new javafx.util.StringConverter<>() {
+                    @Override public String toString(Transaction.InterestPayable ip) {
+                        if (ip == null) return "";
+                        // AT_MATURITY → "At Maturity", YEARLY → "Yearly"
+                        StringBuilder sb = new StringBuilder();
+                        for (String word : ip.name().split("_")) {
+                            if (sb.length() > 0) sb.append(' ');
+                            sb.append(Character.toUpperCase(word.charAt(0)));
+                            sb.append(word.substring(1).toLowerCase());
+                        }
+                        return sb.toString();
+                    }
+                    @Override public Transaction.InterestPayable fromString(String s) { return null; }
+                });
+                dynRow(g, 0, "Reference No",    invFdRefFld);
                 dynRow(g, 1, "Interest Rate (%)",   invFdRateFld);
                 dynRow(g, 2, "Maturity Date",       invFdMaturityPicker);
                 dynRow(g, 3, "Maturity Amount",     invFdMaturityAmtFld);
+                dynRow(g, 4, "Interest Payable",    invFdInterestPayableCb);
             }
             case RECURRING_DEPOSIT -> {
                 InvestmentAccount rdAcc = invDestCb.getValue();
@@ -1381,8 +1454,12 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private void applyPayMode(Transaction t, ComboBox<String> cb) {
         if (cb.getValue() == null || cb.getValue().isBlank()) return;
-        try { t.setPaymentMode(Transaction.PaymentMode.valueOf(cb.getValue().replace(' ', '_').toUpperCase())); }
-        catch (IllegalArgumentException ignored) {}
+        try {
+            Transaction.PaymentMode mode = Transaction.PaymentMode.valueOf(
+                    cb.getValue().replace(' ', '_').toUpperCase());
+            if (t.getPayment() == null) t.setPayment(new Transaction.Payment());
+            t.getPayment().setMode(mode);
+        } catch (IllegalArgumentException ignored) {}
     }
 
     private String nullIfBlank(String s) {

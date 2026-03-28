@@ -362,8 +362,11 @@ public class CategoriesScreen {
         }
 
         List<Transaction> txns = ds.getTransactions().stream()
-                .filter(t -> catIds.contains(t.getCategoryId())
-                        || (t.getSubCategoryId() != null && catIds.contains(t.getSubCategoryId())))
+                .filter(t -> {
+                    String tCatId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+                    String tSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+                    return catIds.contains(tCatId) || (tSubCatId != null && catIds.contains(tSubCatId));
+                })
                 .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
                 .toList();
 
@@ -428,7 +431,8 @@ public class CategoriesScreen {
             TableColumn<Transaction, String> subCatCol = new TableColumn<>("SUB-CATEGORY");
             subCatCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
-                            ds.getCategoryName(c.getValue().getSubCategoryId())));
+                            ds.getCategoryName(c.getValue().getClassification() != null
+                                    ? c.getValue().getClassification().getSubCategoryId() : null)));
             subCatCol.setPrefWidth(120);
 
             TableColumn<Transaction, String> amtCol = new TableColumn<>("AMOUNT");
@@ -449,9 +453,11 @@ public class CategoriesScreen {
             final List<String> finalCatIds = catIds;
             Runnable refreshTable = () -> {
                 List<Transaction> updated = ds.getTransactions().stream()
-                        .filter(tx -> finalCatIds.contains(tx.getCategoryId())
-                                || (tx.getSubCategoryId() != null
-                                    && finalCatIds.contains(tx.getSubCategoryId())))
+                        .filter(tx -> {
+                            String txCatId    = tx.getClassification() != null ? tx.getClassification().getCategoryId() : null;
+                            String txSubCatId = tx.getClassification() != null ? tx.getClassification().getSubCategoryId() : null;
+                            return finalCatIds.contains(txCatId) || (txSubCatId != null && finalCatIds.contains(txSubCatId));
+                        })
                         .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
                         .toList();
                 table.getItems().setAll(updated);
@@ -755,7 +761,8 @@ public class CategoriesScreen {
         g.add(parentLbl, 0, 0); g.add(parentCb, 1, 0); GridPane.setFillWidth(parentCb, true);
 
         long txnCount = ds.getTransactions().stream()
-                .filter(t -> sub.getId().equals(t.getSubCategoryId()))
+                .filter(t -> sub.getId().equals(t.getClassification() != null
+                        ? t.getClassification().getSubCategoryId() : null))
                 .count();
         if (txnCount > 0) {
             Label note = new Label(txnCount + " transaction(s) will have their category updated.");

@@ -340,8 +340,9 @@ public class DataStore {
         if (persistence != null) persistence.saveCategories(this);
         boolean changed = false;
         for (Transaction t : transactions) {
-            if (subId.equals(t.getSubCategoryId())) {
-                t.setCategoryId(newParentId);
+            if (t.getClassification() != null
+                    && subId.equals(t.getClassification().getSubCategoryId())) {
+                t.getClassification().setCategoryId(newParentId);
                 changed = true;
             }
         }
@@ -357,10 +358,12 @@ public class DataStore {
     public void reassignCategory(String fromCategoryId, String toCategoryId, String toSubCategoryId) {
         boolean changed = false;
         for (Transaction t : transactions) {
-            if (fromCategoryId.equals(t.getCategoryId())
-                    || fromCategoryId.equals(t.getSubCategoryId())) {
-                t.setCategoryId(toCategoryId);
-                t.setSubCategoryId(toSubCategoryId);
+            String tCatId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+            String tSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+            if (fromCategoryId.equals(tCatId) || fromCategoryId.equals(tSubCatId)) {
+                if (t.getClassification() == null) t.setClassification(new Transaction.Classification());
+                t.getClassification().setCategoryId(toCategoryId);
+                t.getClassification().setSubCategoryId(toSubCategoryId);
                 changed = true;
             }
         }
@@ -411,20 +414,22 @@ public class DataStore {
      * and increments its count, or creates a new rule entry.
      */
     public void learnFromTransaction(Transaction t) {
-        if (t.getCategoryId() == null || t.getDescription() == null) return;
+        String catId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+        String subCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+        if (catId == null || t.getDescription() == null) return;
         String key     = normalizeDesc(t.getDescription());
         if (!isUsableRuleKey(key)) return;
         String typeStr = t.getType().name();
         categoryRules.stream()
                 .filter(r -> r.getNormalizedKey().equals(key)
                           && r.getTransactionType().equals(typeStr)
-                          && r.getCategoryId().equals(t.getCategoryId())
-                          && Objects.equals(r.getSubCategoryId(), t.getSubCategoryId()))
+                          && r.getCategoryId().equals(catId)
+                          && Objects.equals(r.getSubCategoryId(), subCatId))
                 .findFirst()
                 .ifPresentOrElse(
                         CategoryRule::incrementCount,
                         () -> categoryRules.add(new CategoryRule(
-                                key, typeStr, t.getCategoryId(), t.getSubCategoryId())));
+                                key, typeStr, catId, subCatId)));
         if (persistence != null) persistence.saveCategoryRules(this);
         reapplyRulesToImported();
     }
@@ -581,11 +586,14 @@ public class DataStore {
             }
 
             // Category rule — only if no type rule applied and no category yet
-            if (!wasChanged && t.getCategoryId() == null) {
+            if (!wasChanged && (t.getClassification() == null
+                    || t.getClassification().getCategoryId() == null)) {
                 Optional<CategoryRule> catRule = suggestCategoryForDescription(t.getDescription(), t.getType());
                 if (catRule.isPresent()) {
-                    t.setCategoryId(catRule.get().getCategoryId());
-                    t.setSubCategoryId(catRule.get().getSubCategoryId());
+                    if (t.getClassification() == null)
+                        t.setClassification(new Transaction.Classification());
+                    t.getClassification().setCategoryId(catRule.get().getCategoryId());
+                    t.getClassification().setSubCategoryId(catRule.get().getSubCategoryId());
                     t.setSourceIndicator(Transaction.SourceIndicator.AUTO_CATEGORIZED);
                     wasChanged = true;
                 }
@@ -828,10 +836,11 @@ public class DataStore {
                         r.getTransactionType(), nextDue, r.getDescription(), r.getAmountPaise());
                 t.setFromAccountId(r.getFromAccountId());
                 t.setToAccountId(r.getToAccountId());
-                t.setCategoryId(r.getCategoryId());
-                t.setSubCategoryId(r.getSubCategoryId());
-                t.setFromRecurring(true);
-                t.setRecurringId(r.getId());
+                Transaction.Classification autoCl = new Transaction.Classification();
+                autoCl.setCategoryId(r.getCategoryId());
+                autoCl.setSubCategoryId(r.getSubCategoryId());
+                t.setClassification(autoCl);
+                t.setRecurring(new Transaction.Recurring(r.getId()));
                 t.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
                 transactions.add(t);
                 r.markRecorded(nextDue);
@@ -848,8 +857,11 @@ public class DataStore {
     public long getCategoryUsageCount(String categoryId) {
         if (categoryId == null) return 0;
         return transactions.stream()
-                .filter(t -> categoryId.equals(t.getCategoryId())
-                        || categoryId.equals(t.getSubCategoryId()))
+                .filter(t -> {
+                    String catId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+                    String subCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+                    return categoryId.equals(catId) || categoryId.equals(subCatId);
+                })
                 .count();
     }
 
@@ -865,8 +877,9 @@ public class DataStore {
         long paid = transactions.stream()
                 .filter(t -> (t.getType() == Type.TRANSFER || t.getType() == Type.LOAN_PAYMENT)
                         && la.getId().equals(t.getToAccountId()))
-                .mapToLong(t -> t.getType() == Type.LOAN_PAYMENT && t.getPrincipalPaise() > 0
-                        ? t.getPrincipalPaise() : t.getAmountPaise())
+                .mapToLong(t -> t.getType() == Type.LOAN_PAYMENT
+                        && t.getRedeemDetails() != null && t.getRedeemDetails().getPrincipalPaise() > 0
+                        ? t.getRedeemDetails().getPrincipalPaise() : t.getAmountPaise())
                 .sum();
         return Math.max(0, la.getOutstandingPrincipalPaise() - paid);
     }
@@ -924,9 +937,11 @@ public class DataStore {
                     invested += t.getAmountPaise();
                 if (t.getType() == Type.TRANSFER && ia.getId().equals(t.getFromAccountId()))
                     invested -= t.getAmountPaise();
-                if (t.getType() == Type.REDEEM && ia.getId().equals(t.getFromAccountId()))
+                if (t.getType() == Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
                     // Old format: principalPaise set separately. New format: amountPaise == principal.
-                    invested -= t.getPrincipalPaise() > 0 ? t.getPrincipalPaise() : t.getAmountPaise();
+                    long rdPrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+                    invested -= rdPrin > 0 ? rdPrin : t.getAmountPaise();
+                }
             }
             return Math.max(0, invested);
         }).sum();
