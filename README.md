@@ -82,7 +82,7 @@ A lightweight configuration file at `%APPDATA%\sanchay\app-config.json` stores o
 ```json
 {
   "dataFolderPath": "C:\\Users\\Girish\\Documents\\PersonalFinance",
-  "appVersion": "0.1.0-SNAPSHOT"
+  "appVersion": "1.0.0-MVP1"
 }
 ```
 
