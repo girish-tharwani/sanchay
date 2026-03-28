@@ -1,6 +1,6 @@
 # Sanchay — User Guide
 
-**Version 0.2.11 | March 2026 | Windows 11+**
+**Version v1.0.0-MVP1  | March 2026 | Windows 11+**
 
 Sanchay is a personal finance app for Indian households. It runs entirely on your Windows PC — no internet connection, no account, no cloud. All your data is stored as plain files in a folder you choose.
 

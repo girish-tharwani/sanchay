@@ -114,4 +114,4 @@ Left sidebar (fixed, non-collapsible): Dashboard → Accounts → Recurring → 
 `1.0.0-MVP1` (pom.xml)
 
 ## Out of scope (initial version)
-Cloud sync, PDF/OFX import, push notifications, loan amortization schedule, market value tracking, budgeting, ITR summaries, mobile app, sub-categories for income, multi-user login.
+Cloud sync, PDF/OFX import, push notifications, market value tracking, budgeting, ITR summaries, mobile app, multi-user login.

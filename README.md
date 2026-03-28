@@ -1018,16 +1018,13 @@ The following features are explicitly deferred to future versions:
 - Cloud sync or multi-device access
 - Bank statement import via PDF or OFX format
 - FD / RD maturity alerts and push notifications
-- Loan amortization schedule auto-generation
 - Investment current market value / NAV lookup
 - Budget planning and budget vs actuals tracking
 - ITR-relevant summaries and 80C tracking
 - Mobile application
 - Multi-user login with per-user access control
-- Interest rate change history on floating-rate loans
 - Credit card reward points tracking
 - Credit card statement PDF import
-- Moving sub-categories between parent categories
 
 ---
 
