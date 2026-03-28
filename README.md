@@ -548,7 +548,7 @@ Records money moved from a bank account into an investment bucket account. The f
 **Behaviour:**
 - When the user selects a **To Investment Account**, the type-specific additional fields appear immediately below; they replace whatever fields were shown for the previously selected type
 - All additional fields are optional — saving with only the base fields populated is valid
-- FD/RD-specific fields are stored in the transaction's notes field in a structured format until a dedicated FD/RD transaction sub-model is introduced
+- FD-specific fields (`fdRef`, `fdInterestRate`, `fdMaturityDate`, `fdMaturityAmountPaise`) are stored as dedicated typed fields on the Transaction record; the `notes` field carries only the user's freeform note
 
 ### 6.6 Credit Card Payment
 

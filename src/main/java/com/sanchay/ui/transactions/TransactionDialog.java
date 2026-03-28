@@ -751,15 +751,18 @@ public class TransactionDialog extends Dialog<Transaction> {
                 t.setNotes(userNotes);
             }
             case FIXED_DEPOSIT -> {
-                StringBuilder sb = new StringBuilder();
-                appendNote(sb, "FD Ref",         invFdRefFld);
-                appendNote(sb, "Interest Rate",   invFdRateFld);
+                t.setFdRef(nullIfBlank(invFdRefFld != null ? invFdRefFld.getText() : null));
+                if (invFdRateFld != null && !invFdRateFld.getText().isBlank()) {
+                    try { t.setFdInterestRate(Double.parseDouble(invFdRateFld.getText().trim())); }
+                    catch (NumberFormatException e) { throw new IllegalArgumentException("Interest rate must be a number."); }
+                }
                 if (invFdMaturityPicker != null && invFdMaturityPicker.getValue() != null)
-                    sb.append("Maturity Date: ").append(
-                            invFdMaturityPicker.getValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append("\n");
-                appendNote(sb, "Maturity Amount", invFdMaturityAmtFld);
-                if (userNotes != null) sb.append("Notes: ").append(userNotes);
-                t.setNotes(sb.toString().stripTrailing());
+                    t.setFdMaturityDate(invFdMaturityPicker.getValue().toString());
+                if (invFdMaturityAmtFld != null && !invFdMaturityAmtFld.getText().isBlank()) {
+                    try { t.setFdMaturityAmountPaise((long)(Double.parseDouble(invFdMaturityAmtFld.getText().trim()) * 100)); }
+                    catch (NumberFormatException e) { throw new IllegalArgumentException("Maturity amount must be a number."); }
+                }
+                t.setNotes(userNotes);
             }
             case RECURRING_DEPOSIT -> {
                 List<String> rdRefs = ds.getRdRefsForAccount(dest.getId());
@@ -1030,12 +1033,14 @@ public class TransactionDialog extends Dialog<Transaction> {
                                 invUnitsFld.setText(t.getUnitsNav().toString());
                         }
                         case FIXED_DEPOSIT -> {
-                            setText(invFdRefFld,         parseNote(t.getNotes(), "FD Ref"));
-                            setText(invFdRateFld,        parseNote(t.getNotes(), "Interest Rate"));
-                            setText(invFdMaturityAmtFld, parseNote(t.getNotes(), "Maturity Amount"));
-                            setDateFromNote(invFdMaturityPicker, parseNote(t.getNotes(), "Maturity Date"));
-                            String userNotes = parseNote(t.getNotes(), "Notes");
-                            sharedNotes.setText(userNotes != null ? userNotes : "");
+                            setText(invFdRefFld, t.getFdRef());
+                            if (t.getFdInterestRate() != null && invFdRateFld != null)
+                                invFdRateFld.setText(t.getFdInterestRate().toString());
+                            if (t.getFdMaturityDate() != null && invFdMaturityPicker != null)
+                                invFdMaturityPicker.setValue(LocalDate.parse(t.getFdMaturityDate()));
+                            if (t.getFdMaturityAmountPaise() != null && invFdMaturityAmtFld != null)
+                                invFdMaturityAmtFld.setText(String.format("%.2f", t.getFdMaturityAmountPaise() / 100.0));
+                            sharedNotes.setText(t.getNotes() != null ? t.getNotes() : "");
                         }
                         case RECURRING_DEPOSIT -> {
                             if (invRdRefCb != null) {

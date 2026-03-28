@@ -47,6 +47,12 @@ public class Transaction {
     private long principalPaise;      // REDEEM only: original invested amount being returned
     private String groupTransactionId; // links the 3 transactions created by a REDEEM operation
 
+    // Fixed Deposit fields — populated only when toAccount.investmentType == FIXED_DEPOSIT
+    private String fdRef;
+    private Double fdInterestRate;
+    private String fdMaturityDate;       // ISO 8601 (YYYY-MM-DD)
+    private Long fdMaturityAmountPaise;
+
     public enum SourceIndicator {
         MANUAL,           // User entered manually
         IMPORTED,         // Imported from CSV; category not yet confirmed
@@ -141,4 +147,13 @@ public class Transaction {
     public void setPrincipalPaise(long p)             { this.principalPaise = p; }
     public String getGroupTransactionId()             { return groupTransactionId; }
     public void setGroupTransactionId(String g)       { this.groupTransactionId = g; }
+
+    public String getFdRef()                          { return fdRef; }
+    public void setFdRef(String r)                    { this.fdRef = r; }
+    public Double getFdInterestRate()                 { return fdInterestRate; }
+    public void setFdInterestRate(Double r)           { this.fdInterestRate = r; }
+    public String getFdMaturityDate()                 { return fdMaturityDate; }
+    public void setFdMaturityDate(String d)           { this.fdMaturityDate = d; }
+    public Long getFdMaturityAmountPaise()            { return fdMaturityAmountPaise; }
+    public void setFdMaturityAmountPaise(Long p)      { this.fdMaturityAmountPaise = p; }
 }
