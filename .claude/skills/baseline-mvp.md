@@ -12,7 +12,7 @@ Guide Claude to learn and baseline project versioning for a new MVP
 
 ## Clean up comments
 - [] Clean up the comments to keep only the comments that are significant to understand the functionality in long run, remove trivial comments
-- [] Remove all the references to previous versions, change logs, bug reports, bug numbers, enhancement numbers etc.
+- [] Remove all the references to previous versions, change logs, bug reports, bug numbers, enhancement numbers, code refactoring, UI/UX style realignment etc.
 
 ## Improve cluade.md and readme.md
 - [] Remove all the references to previous versions, change logs, bug reports, bug numbers, enhancement numbers etc.
@@ -22,7 +22,7 @@ Guide Claude to learn and baseline project versioning for a new MVP
 - [] Read the last change log version from the changelog.md and add that version as a suffix to file name e.g.CHANGELOG_v0.2.4.md
 
 ## Update the version in POM.xml
-- [] Update the version in pom.xml to 1.0.0-MVPSuffix
+- [] Update the version in pom.xml to 1.0.0 with the user prvides suffix appended to it
 
 ```xml
 <version>1.0.0-MVP1</version>

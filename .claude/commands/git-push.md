@@ -36,7 +36,7 @@ Add a new entry at the **top** of `CHANGELOG.md` using today's date. Only includ
 
 Keep descriptions concise. No implementation details in Fixed entries.
 
-## Step 4 — Update README.md and CLAUDE.md if needed
+## Step 4 — Update README.md and CLAUDE.md
 
 Review both files and update anything that's now out of date with the changes made. Do **not** add version or changelog information to either file — that belongs only in `CHANGELOG.md`.
 

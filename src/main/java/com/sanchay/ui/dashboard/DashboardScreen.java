@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/** Dashboard screen — matches UI-Reimagined/dashboard.html */
+/** Dashboard screen. */
 public class DashboardScreen {
 
     private static final DateTimeFormatter DATE_FMT  = DateTimeFormatter.ofPattern("dd MMM yyyy");
