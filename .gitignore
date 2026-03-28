@@ -29,6 +29,7 @@ testdata/
 work-folder/
 ui-reimagined/
 logs/
+build.sh
 
 
 # IntelliJ IDEA

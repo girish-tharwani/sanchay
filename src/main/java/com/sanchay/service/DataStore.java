@@ -30,6 +30,8 @@ public class DataStore {
 
     private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
+    private String currency   = "INR";
+    private String yearFormat = "Indian Financial Year";
     private final Map<String, Boolean> groupCollapsed = new HashMap<>(
             Map.of("bank", true, "cc", true, "loan", true, "investment", true));
 
@@ -43,6 +45,29 @@ public class DataStore {
     public static DataStore getInstance() {
         if (instance == null) instance = new DataStore();
         return instance;
+    }
+
+    /**
+     * Clears all in-memory data and resets settings to defaults.
+     * Call before wiring a new PersistenceService and calling loadAll().
+     */
+    public void reset() {
+        accounts.clear();
+        transactions.clear();
+        recurring.clear();
+        categories.clear();
+        familyMembers.clear();
+        importMappings.clear();
+        categoryRules.clear();
+        typeRules.clear();
+        loanSchedules.clear();
+        activeFinancialYear = "FY 2025-26";
+        dateFormat  = "DD/MM/YYYY";
+        currency    = "INR";
+        yearFormat  = "Indian Financial Year";
+        groupCollapsed.replaceAll((k, v) -> true);
+        persistence    = null;
+        dataFolderPath = "Not configured";
     }
 
     /** Called by MainApp once the data folder path is known. */
@@ -84,14 +109,7 @@ public class DataStore {
     public List<String> getRdRefsForAccount(String accountId) {
         return recurring.stream()
                 .filter(r -> accountId.equals(r.getToAccountId()))
-                .map(r -> {
-                    String notes = r.getNotes();
-                    if (notes == null) return null;
-                    for (String line : notes.split("\n"))
-                        if (line.startsWith("RD Ref: "))
-                            return line.substring("RD Ref: ".length()).trim();
-                    return null;
-                })
+                .map(RecurringTransaction::getRdRef)
                 .filter(ref -> ref != null && !ref.isBlank())
                 .distinct()
                 .sorted()
@@ -157,6 +175,14 @@ public class DataStore {
 
     /** For internal load use only — does not trigger save. */
     public void setDateFormatInternal(String fmt) { this.dateFormat = fmt; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String c) { this.currency = c; if (persistence != null) persistence.saveSettings(this); }
+    public void setCurrencyInternal(String c) { this.currency = c; }
+
+    public String getYearFormat() { return yearFormat; }
+    public void setYearFormat(String yf) { this.yearFormat = yf; if (persistence != null) persistence.saveSettings(this); }
+    public void setYearFormatInternal(String yf) { this.yearFormat = yf; }
 
     // ── Account group collapse state ──────────────────────────────────────────
 

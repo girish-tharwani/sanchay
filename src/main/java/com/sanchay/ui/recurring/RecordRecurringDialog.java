@@ -154,22 +154,10 @@ public class RecordRecurringDialog {
             t.setSubCategoryId(r.getSubCategoryId());
             t.setFromRecurring(true);
             t.setRecurringId(r.getId());
-            // For RD investment schedules, copy the RD Ref from the schedule notes
-            if (rType == Transaction.Type.INVESTMENT && r.getToAccountId() != null) {
-                Account toAcc = ds.getAccounts().stream()
-                        .filter(a -> a.getId().equals(r.getToAccountId()))
-                        .findFirst().orElse(null);
-                if (toAcc instanceof InvestmentAccount ia
-                        && ia.getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT) {
-                    String rdRef = null;
-                    String sNotes = r.getNotes();
-                    if (sNotes != null)
-                        for (String line : sNotes.split("\n"))
-                            if (line.startsWith("RD Ref: ")) { rdRef = line.substring("RD Ref: ".length()).trim(); break; }
-                    if (rdRef != null && !rdRef.isBlank())
-                        t.setNotes("RD Ref: " + rdRef);
-                }
-            }
+            // For RD investment schedules, copy the RD Ref into the transaction notes
+            String rdRef = r.getRdRef();
+            if (rdRef != null && !rdRef.isBlank())
+                t.setNotes("RD Ref: " + rdRef);
             ds.addTransaction(t);
             r.markRecorded(txDate);
             ds.saveRecurringNow();

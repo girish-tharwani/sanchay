@@ -5,8 +5,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.text.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -22,14 +20,23 @@ import java.nio.file.*;
  *   - app-config.json does not exist (genuine first run), OR
  *   - the stored data folder no longer exists (folder moved/deleted).
  *
+ * Page 1 — data folder selection. For fresh setups, PreferencesSetupDialog
+ * is shown as a modal dialog after folder selection before the wizard closes.
+ *
  * Returns the selected data folder path via showAndWait(), or null if
  * the user closed the window without selecting.
+ * Preferences are exposed via getCurrency(), getYearFormat(), getDateFormat()
+ * and are non-null only when a fresh setup was completed.
  */
 public class FirstRunWizard {
 
     private final Stage stage;
-    private final String missingPreviousPath; // non-null → show "folder not found" message
-    private String selectedPath = null;
+    private final String missingPreviousPath;
+
+    private String selectedPath   = null;
+    private String selectedCurrency   = null;
+    private String selectedYearFormat = null;
+    private String selectedDateFormat = null;
 
     public FirstRunWizard(Stage owner, String missingPreviousPath) {
         this.missingPreviousPath = missingPreviousPath;
@@ -38,7 +45,7 @@ public class FirstRunWizard {
         stage.initStyle(StageStyle.DECORATED);
         stage.setTitle("Sanchay — Setup");
         stage.setMinWidth(620);
-        stage.setMinHeight(480);
+        stage.setMinHeight(510);
         stage.setResizable(false);
         if (owner != null) stage.initOwner(owner);
     }
@@ -48,35 +55,32 @@ public class FirstRunWizard {
      * Returns the chosen data folder path, or null if cancelled.
      */
     public String showAndWait() {
-        stage.setScene(buildScene());
+        stage.setScene(buildFolderScene());
         stage.showAndWait();
         return selectedPath;
     }
 
-    private Scene buildScene() {
+    public String getCurrency()   { return selectedCurrency; }
+    public String getYearFormat() { return selectedYearFormat; }
+    public String getDateFormat() { return selectedDateFormat; }
+
+    // ── Page 1: Data folder selection ─────────────────────────────────────────
+
+    private Scene buildFolderScene() {
         VBox root = new VBox(0);
         root.getStyleClass().add("wizard-root");
 
-        // ── Header band ───────────────────────────────────────────────────────
-        VBox header = new VBox(8);
-        header.setPadding(new Insets(40, 48, 32, 48));
-        header.setAlignment(Pos.CENTER_LEFT);
+        root.getChildren().addAll(buildHeader(), buildFolderBody(root));
 
-        Label appName = new Label("💰 Sanchay");
-        appName.getStyleClass().add("wizard-app-name");
+        return applyStylesheet(new Scene(root, 620, 510));
+    }
 
-        Label tagline = new Label("Your household finances, organised.");
-        tagline.getStyleClass().add("wizard-tagline");
-
-        header.getChildren().addAll(appName, tagline);
-
-        // ── Body card ─────────────────────────────────────────────────────────
+    private VBox buildFolderBody(VBox root) {
         VBox body = new VBox(20);
         body.getStyleClass().add("wizard-body");
         body.setPadding(new Insets(36, 48, 36, 48));
         VBox.setVgrow(body, Priority.ALWAYS);
 
-        // Welcome or recovery message
         if (missingPreviousPath != null) {
             Label warn = new Label(
                     "⚠  Your previous data folder could not be found:\n" + missingPreviousPath
@@ -91,7 +95,6 @@ public class FirstRunWizard {
             body.getChildren().add(welcome);
         }
 
-        // Explanation
         Label explanation = new Label(
                 "Your financial data is saved as files in a folder you choose. \n"
                 + "You can store this folder on your computer, an external drive,"
@@ -102,7 +105,6 @@ public class FirstRunWizard {
         explanation.setMinHeight(Region.USE_PREF_SIZE);
         explanation.getStyleClass().add("text-body-muted");
 
-        // Folder picker row
         Label folderLabel = new Label("Data folder:");
         folderLabel.getStyleClass().add("form-label");
 
@@ -118,22 +120,20 @@ public class FirstRunWizard {
         HBox pickerRow = new HBox(10, pathField, browseBtn);
         pickerRow.setAlignment(Pos.CENTER_LEFT);
 
-        // Status label (existing data detection)
         Label statusLbl = new Label();
         statusLbl.getStyleClass().add("text-success");
 
-        // Get Started button
         Button startBtn = new Button("Get Started");
         startBtn.getStyleClass().add("btn-gold");
         startBtn.setDisable(true);
 
-        // Footer note
         Label footerNote = new Label("You can change this location at any time from Settings.");
         footerNote.getStyleClass().add("text-hint");
 
         body.getChildren().addAll(explanation, folderLabel, pickerRow, statusLbl, startBtn, footerNote);
 
-        // ── Wire browse ───────────────────────────────────────────────────────
+        boolean[] hasData = {false};
+
         browseBtn.setOnAction(e -> {
             DirectoryChooser dc = new DirectoryChooser();
             dc.setTitle("Select Data Folder");
@@ -144,35 +144,58 @@ public class FirstRunWizard {
             pathField.setText(path);
             startBtn.setDisable(false);
 
-            // Detect existing data
-            boolean hasData = Files.exists(Paths.get(path, "accounts.json"))
+            hasData[0] = Files.exists(Paths.get(path, "accounts.json"))
                     || Files.exists(Paths.get(path, "transactions.json"))
                     || Files.exists(Paths.get(path, "categories.json"));
 
-            if (hasData) {
+            if (hasData[0]) {
                 statusLbl.setText("✅  Existing data found — it will be loaded automatically.");
                 startBtn.setText("Open Existing Data");
             } else {
                 statusLbl.setText("📁  New folder — a fresh data set will be created here.");
-                startBtn.setText("Get Started");
+                startBtn.setText("Get Started →");
             }
         });
 
-        // ── Wire start ────────────────────────────────────────────────────────
         startBtn.setOnAction(e -> {
             selectedPath = pathField.getText();
+            if (!hasData[0]) {
+                // Fresh setup — collect preferences via dialog before closing
+                PreferencesSetupDialog.Result result = PreferencesSetupDialog.show();
+                if (result != null) {
+                    selectedCurrency   = result.currency();
+                    selectedYearFormat = result.yearFormat();
+                    selectedDateFormat = result.dateFormat();
+                }
+            }
             stage.close();
         });
 
-        root.getChildren().addAll(header, body);
+        return body;
+    }
 
-        // Apply stylesheet if available
-        Scene scene = new Scene(root, 620, 480);
+    // ── Shared header band ────────────────────────────────────────────────────
+
+    private VBox buildHeader() {
+        VBox header = new VBox(8);
+        header.setPadding(new Insets(40, 48, 32, 48));
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label appName = new Label("💰 Sanchay");
+        appName.getStyleClass().add("wizard-app-name");
+
+        Label tagline = new Label("Your household finances, organised.");
+        tagline.getStyleClass().add("wizard-tagline");
+
+        header.getChildren().addAll(appName, tagline);
+        return header;
+    }
+
+    private Scene applyStylesheet(Scene scene) {
         try {
             String css = getClass().getResource("/com/sanchay/css/app.css").toExternalForm();
             scene.getStylesheets().add(css);
         } catch (Exception ignored) {}
-
         return scene;
     }
 }

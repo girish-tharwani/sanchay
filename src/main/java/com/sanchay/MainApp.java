@@ -25,6 +25,8 @@ import javafx.stage.Stage;
  */
 public class MainApp extends Application {
 
+    private FirstRunWizard wizard = null;
+
     @Override
     public void start(Stage primaryStage) {
         String dataFolderPath = resolveDataFolder(primaryStage);
@@ -47,6 +49,14 @@ public class MainApp extends Application {
         boolean isFirstRun = !persistence.hasExistingData();
         persistence.loadAll(store);
 
+        // Apply first-run preferences chosen in wizard page 2 (non-null only for fresh setups)
+        if (wizard != null && wizard.getCurrency() != null) {
+            store.setCurrencyInternal(wizard.getCurrency());
+            store.setYearFormatInternal(wizard.getYearFormat());
+            store.setDateFormatInternal(wizard.getDateFormat());
+            persistence.saveSettings(store);
+        }
+
         splash.closeAndThen(() -> new MainWindow(isFirstRun).show(primaryStage));
     }
 
@@ -66,7 +76,7 @@ public class MainApp extends Application {
         String missingPath = (cfg != null && cfg.dataFolderPath != null)
                 ? cfg.dataFolderPath : null;
 
-        FirstRunWizard wizard = new FirstRunWizard(primaryStage, missingPath);
+        wizard = new FirstRunWizard(primaryStage, missingPath);
         String chosen = wizard.showAndWait();
 
         if (chosen == null) return null;

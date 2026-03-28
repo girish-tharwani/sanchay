@@ -52,6 +52,8 @@ public class PersistenceService {
     public static class AppSettings {
         public String  activeFinancialYear    = "FY 2025-26";
         public String  dateFormat             = "DD/MM/YYYY";
+        public String  currency               = "INR";
+        public String  yearFormat             = "Indian Financial Year";
         public boolean bankGroupCollapsed       = true;
         public boolean ccGroupCollapsed         = true;
         public boolean loanGroupCollapsed       = true;
@@ -83,6 +85,10 @@ public class PersistenceService {
                     store.setActiveFinancialYearInternal(s.activeFinancialYear);
                 if (s.dateFormat != null)
                     store.setDateFormatInternal(s.dateFormat);
+                if (s.currency != null)
+                    store.setCurrencyInternal(s.currency);
+                if (s.yearFormat != null)
+                    store.setYearFormatInternal(s.yearFormat);
                 store.setGroupCollapsedInternal("bank",       s.bankGroupCollapsed);
                 store.setGroupCollapsedInternal("cc",         s.ccGroupCollapsed);
                 store.setGroupCollapsedInternal("loan",       s.loanGroupCollapsed);
@@ -298,6 +304,8 @@ public class PersistenceService {
         AppSettings s = new AppSettings();
         s.activeFinancialYear    = store.getActiveFinancialYear();
         s.dateFormat             = store.getDateFormat();
+        s.currency               = store.getCurrency();
+        s.yearFormat             = store.getYearFormat();
         s.bankGroupCollapsed       = store.isGroupCollapsed("bank");
         s.ccGroupCollapsed         = store.isGroupCollapsed("cc");
         s.loanGroupCollapsed       = store.isGroupCollapsed("loan");
@@ -378,7 +386,7 @@ public class PersistenceService {
                 {"Education",
                         "Books", "Fees", "Food", "Miscellaneous", "Transport", "Tuition"},
                 {"Food/Dining",
-                        "Drink", "Food Delivery", "Restaurants"},
+                        "Cafes", "Drinks", "Food Delivery", "Restaurants"},
                 {"Healthcare",
                         "Dental", "Eyecare", "Hospital", "Physician", "Prescriptions"},
                 {"Hobbies/Leisure",

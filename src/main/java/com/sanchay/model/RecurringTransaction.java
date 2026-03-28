@@ -41,6 +41,22 @@ public class RecurringTransaction {
     /** RD only: expected maturity amount (paise). */
     private long rdMaturityAmountPaise;
 
+    // ── Investment sub-type specific fields ───────────────────────────────────
+    /** RD: reference number identifying this RD schedule. */
+    private String rdRef;
+    /** FD/RD: annual interest rate as a percentage (e.g. 7.25). */
+    private Double interestRate;
+    /** FD/RD: maturity date. */
+    private LocalDate maturityDate;
+    /** FD: reference number. */
+    private String fdRef;
+    /** FD: expected maturity amount (paise). */
+    private long fdMaturityAmountPaise;
+    /** MF/Equity/Bonds: scheme or script name. */
+    private String schemeScript;
+    /** MF/Equity/Bonds: units / NAV info at investment time. */
+    private String unitsNav;
+
     public RecurringTransaction(String description, Transaction.Type type,
                                 Frequency frequency, int dueDayOfMonth,
                                 LocalDate startDate, long amountPaise) {
@@ -114,6 +130,13 @@ public class RecurringTransaction {
     public int getAutoRecordAfterDays()     { return autoRecordAfterDays; }
     public long getRdOpeningBalancePaise()  { return rdOpeningBalancePaise; }
     public long getRdMaturityAmountPaise()  { return rdMaturityAmountPaise; }
+    public String getRdRef()                { return rdRef; }
+    public Double getInterestRate()         { return interestRate; }
+    public LocalDate getMaturityDate()      { return maturityDate; }
+    public String getFdRef()                { return fdRef; }
+    public long getFdMaturityAmountPaise()  { return fdMaturityAmountPaise; }
+    public String getSchemeScript()         { return schemeScript; }
+    public String getUnitsNav()             { return unitsNav; }
 
     public String getAmountInr() {
         return amountPaise > 0
@@ -141,4 +164,11 @@ public class RecurringTransaction {
     public void setAutoRecordAfterDays(int n)        { this.autoRecordAfterDays = n; }
     public void setRdOpeningBalancePaise(long p)     { this.rdOpeningBalancePaise = p; }
     public void setRdMaturityAmountPaise(long p)     { this.rdMaturityAmountPaise = p; }
+    public void setRdRef(String s)                   { this.rdRef = s; }
+    public void setInterestRate(Double d)            { this.interestRate = d; }
+    public void setMaturityDate(LocalDate d)         { this.maturityDate = d; }
+    public void setFdRef(String s)                   { this.fdRef = s; }
+    public void setFdMaturityAmountPaise(long p)     { this.fdMaturityAmountPaise = p; }
+    public void setSchemeScript(String s)            { this.schemeScript = s; }
+    public void setUnitsNav(String s)                { this.unitsNav = s; }
 }

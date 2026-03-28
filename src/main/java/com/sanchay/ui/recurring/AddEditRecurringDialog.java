@@ -191,6 +191,23 @@ public class AddEditRecurringDialog {
             invRdOpeningBalFld.setText(String.format("%.2f", existing.getRdOpeningBalancePaise() / 100.0));
         if (!isNew && existing.getRdMaturityAmountPaise() > 0)
             invRdMaturityAmtFld.setText(String.format("%.2f", existing.getRdMaturityAmountPaise() / 100.0));
+        if (!isNew) {
+            if (existing.getSchemeScript() != null) invSchemeFld.setText(existing.getSchemeScript());
+            if (existing.getUnitsNav()     != null) invUnitsFld.setText(existing.getUnitsNav());
+            if (existing.getFdRef()        != null) invFdRefFld.setText(existing.getFdRef());
+            if (existing.getRdRef()        != null) invRdRefFld.setText(existing.getRdRef());
+            if (existing.getInterestRate() != null) {
+                String rateStr = existing.getInterestRate().toString();
+                invFdRateFld.setText(rateStr);
+                invRdRateFld.setText(rateStr);
+            }
+            if (existing.getMaturityDate() != null) {
+                invFdMaturityPicker.setValue(existing.getMaturityDate());
+                invRdMaturityPicker.setValue(existing.getMaturityDate());
+            }
+            if (existing.getFdMaturityAmountPaise() > 0)
+                invFdMaturityAmtFld.setText(String.format("%.2f", existing.getFdMaturityAmountPaise() / 100.0));
+        }
 
         // ── Dynamic containers ────────────────────────────────────────────────
         VBox toAccountSection = new VBox(0);
@@ -491,12 +508,32 @@ public class AddEditRecurringDialog {
             else if (type == Transaction.Type.LOAN_PAYMENT && loanToCb.getValue() != null)
                 toAccountId = loanToCb.getValue().getId();
 
-            String invNotes = null;
+            // Investment sub-type field values — collected here, applied to record below
+            String  invSchemeScript = null, invUnitsNav = null;
+            String  invFdRef = null, invRdRefVal = null;
+            Double  invInterestRate = null;
+            LocalDate invMaturityDate = null;
+            long    invFdMatAmt = 0;
             if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null) {
-                invNotes = buildInvNotes(invDestCb.getValue(),
-                        invSchemeFld, invUnitsFld,
-                        invFdRefFld, invFdRateFld, invFdMaturityPicker, invFdMaturityAmtFld,
-                        invRdRefFld, invRdRateFld, invRdMaturityPicker);
+                switch (invDestCb.getValue().getInvestmentType()) {
+                    case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
+                        invSchemeScript = nullIfBlank(invSchemeFld.getText());
+                        invUnitsNav     = nullIfBlank(invUnitsFld.getText());
+                    }
+                    case FIXED_DEPOSIT -> {
+                        invFdRef        = nullIfBlank(invFdRefFld.getText());
+                        invInterestRate = parseRate(invFdRateFld.getText());
+                        invMaturityDate = invFdMaturityPicker.getValue();
+                        String raw = invFdMaturityAmtFld.getText().trim().replace(",", "").replace("₹", "");
+                        if (!raw.isEmpty()) try { invFdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
+                    }
+                    case RECURRING_DEPOSIT -> {
+                        invRdRefVal     = nullIfBlank(invRdRefFld.getText());
+                        invInterestRate = parseRate(invRdRateFld.getText());
+                        invMaturityDate = invRdMaturityPicker.getValue();
+                    }
+                    default -> {}
+                }
             }
 
             long rdOpenBal = 0, rdMatAmt = 0;
@@ -518,7 +555,13 @@ public class AddEditRecurringDialog {
                 r.setToAccountId(toAccountId);
                 if (catCb.getValue() != null)    r.setCategoryId(catCb.getValue().getId());
                 if (subCatCb.getValue() != null) r.setSubCategoryId(subCatCb.getValue().getId());
-                r.setNotes(invNotes);
+                r.setSchemeScript(invSchemeScript);
+                r.setUnitsNav(invUnitsNav);
+                r.setFdRef(invFdRef);
+                r.setRdRef(invRdRefVal);
+                r.setInterestRate(invInterestRate);
+                r.setMaturityDate(invMaturityDate);
+                r.setFdMaturityAmountPaise(invFdMatAmt);
                 r.setRdOpeningBalancePaise(rdOpenBal);
                 r.setRdMaturityAmountPaise(rdMatAmt);
                 r.setAutoRecordAfterDays(autoRecordDays);
@@ -535,7 +578,13 @@ public class AddEditRecurringDialog {
                 existing.setToAccountId(toAccountId);
                 existing.setCategoryId(catCb.getValue() != null ? catCb.getValue().getId() : null);
                 existing.setSubCategoryId(subCatCb.getValue() != null ? subCatCb.getValue().getId() : null);
-                existing.setNotes(invNotes);
+                existing.setSchemeScript(invSchemeScript);
+                existing.setUnitsNav(invUnitsNav);
+                existing.setFdRef(invFdRef);
+                existing.setRdRef(invRdRefVal);
+                existing.setInterestRate(invInterestRate);
+                existing.setMaturityDate(invMaturityDate);
+                existing.setFdMaturityAmountPaise(invFdMatAmt);
                 existing.setRdOpeningBalancePaise(rdOpenBal);
                 existing.setRdMaturityAmountPaise(rdMatAmt);
                 existing.setAutoRecordAfterDays(autoRecordDays);
@@ -561,38 +610,13 @@ public class AddEditRecurringDialog {
         return g;
     }
 
-    private static String buildInvNotes(InvestmentAccount dest,
-            TextField schemeFld, TextField unitsFld,
-            TextField fdRefFld, TextField fdRateFld,
-            DatePicker fdMaturityPicker, TextField fdMaturityAmtFld,
-            TextField rdRefFld, TextField rdRateFld, DatePicker rdMaturityPicker) {
-        StringBuilder sb = new StringBuilder();
-        switch (dest.getInvestmentType()) {
-            case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
-                appendNote(sb, "Scheme/Script", schemeFld.getText().trim());
-                appendNote(sb, "Units/NAV",     unitsFld.getText().trim());
-            }
-            case FIXED_DEPOSIT -> {
-                appendNote(sb, "FD Ref",          fdRefFld.getText().trim());
-                appendNote(sb, "Interest Rate",   fdRateFld.getText().trim());
-                appendNote(sb, "Maturity Date",
-                        fdMaturityPicker.getValue() != null ? fdMaturityPicker.getValue().toString() : "");
-                appendNote(sb, "Maturity Amount", fdMaturityAmtFld.getText().trim());
-            }
-            case RECURRING_DEPOSIT -> {
-                appendNote(sb, "RD Ref",        rdRefFld.getText().trim());
-                appendNote(sb, "Interest Rate", rdRateFld.getText().trim());
-                appendNote(sb, "Maturity Date",
-                        rdMaturityPicker.getValue() != null ? rdMaturityPicker.getValue().toString() : "");
-            }
-            case PROVIDENT_FUND -> { /* no additional fields */ }
-        }
-        return sb.length() > 0 ? sb.toString().trim() : null;
+    private static String nullIfBlank(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 
-    private static void appendNote(StringBuilder sb, String key, String value) {
-        if (value != null && !value.isBlank())
-            sb.append(key).append(": ").append(value).append("\n");
+    private static Double parseRate(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return Double.parseDouble(s.trim()); } catch (NumberFormatException e) { return null; }
     }
 
     private static void formRow(GridPane g, int rowIdx, String labelText, Node control) {

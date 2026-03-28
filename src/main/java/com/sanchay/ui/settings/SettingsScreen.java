@@ -2,6 +2,8 @@ package com.sanchay.ui.settings;
 
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.MainWindow;
+import com.sanchay.ui.wizard.PreferencesSetupDialog;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -18,9 +20,13 @@ import java.util.zip.*;
 /** Settings screen. */
 public class SettingsScreen {
 
+    private final MainWindow mainWindow;
     private ScrollPane view;
 
-    public SettingsScreen() { buildView(); }
+    public SettingsScreen(MainWindow mainWindow) {
+        this.mainWindow = mainWindow;
+        buildView();
+    }
 
     public Node getView() { return view; }
 
@@ -88,14 +94,23 @@ public class SettingsScreen {
             DirectoryChooser dc = new DirectoryChooser();
             dc.setTitle("Select Data Folder");
             File chosen = dc.showDialog(null);
-            if (chosen != null) {
-                pathField.setText(chosen.getAbsolutePath());
-                showInfo("Data Folder", "Restart the application to apply the new data folder location.");
+            if (chosen == null) return;
+            String newPath = chosen.getAbsolutePath();
+            try {
+                AppConfig.write(newPath);
+            } catch (Exception ex) {
+                showInfo("Error", "Could not save the new location: " + ex.getMessage());
+                return;
             }
+            boolean isEmpty = !new File(newPath, "accounts.json").exists()
+                    && !new File(newPath, "transactions.json").exists()
+                    && !new File(newPath, "categories.json").exists();
+            PreferencesSetupDialog.Result prefs = isEmpty ? PreferencesSetupDialog.show() : null;
+            mainWindow.reloadDataFolder(newPath, prefs);
         });
         pathRow.getChildren().addAll(pathLbl, pathField, browseBtn);
 
-        Label hint = new Label("You can move your data folder to any location — cloud drive, external drive, etc.");
+        Label hint = new Label("You can switch to any folder — cloud drive, external drive, etc. The app reloads immediately.");
         hint.getStyleClass().add("text-hint");
         hint.setWrapText(true);
         box.getChildren().addAll(pathRow, hint);
@@ -112,18 +127,38 @@ public class SettingsScreen {
         Label dateLbl = new Label("Date Format:");
         dateLbl.getStyleClass().add("text-form-value");
         dateLbl.setMinWidth(180);
-
         ComboBox<String> dateCb = new ComboBox<>();
         dateCb.getItems().addAll("DD/MM/YYYY", "YYYY-MM-DD");
         dateCb.setValue(DataStore.getInstance().getDateFormat());
-
         dateCb.setOnAction(e -> DataStore.getInstance().setDateFormat(dateCb.getValue()));
+        dateRow.getChildren().addAll(dateLbl, dateCb);
 
-        Label hint = new Label("Takes effect immediately on all date displays throughout the app.");
+        HBox currencyRow = new HBox(10);
+        currencyRow.setAlignment(Pos.CENTER_LEFT);
+        Label currencyLbl = new Label("Currency:");
+        currencyLbl.getStyleClass().add("text-form-value");
+        currencyLbl.setMinWidth(180);
+        ComboBox<String> currencyCb = new ComboBox<>();
+        currencyCb.getItems().add("INR");
+        currencyCb.setValue(DataStore.getInstance().getCurrency());
+        currencyCb.setOnAction(e -> DataStore.getInstance().setCurrency(currencyCb.getValue()));
+        currencyRow.getChildren().addAll(currencyLbl, currencyCb);
+
+        HBox yearFormatRow = new HBox(10);
+        yearFormatRow.setAlignment(Pos.CENTER_LEFT);
+        Label yearFormatLbl = new Label("Year Format:");
+        yearFormatLbl.getStyleClass().add("text-form-value");
+        yearFormatLbl.setMinWidth(180);
+        ComboBox<String> yearFormatCb = new ComboBox<>();
+        yearFormatCb.getItems().addAll("Indian Financial Year", "Calendar Year");
+        yearFormatCb.setValue(DataStore.getInstance().getYearFormat());
+        yearFormatCb.setOnAction(e -> DataStore.getInstance().setYearFormat(yearFormatCb.getValue()));
+        yearFormatRow.getChildren().addAll(yearFormatLbl, yearFormatCb);
+
+        Label hint = new Label("Date format and year format take effect immediately throughout the app.");
         hint.getStyleClass().add("text-hint");
 
-        dateRow.getChildren().addAll(dateLbl, dateCb);
-        box.getChildren().addAll(dateRow, hint);
+        box.getChildren().addAll(dateRow, currencyRow, yearFormatRow, hint);
         return box;
     }
 

@@ -241,8 +241,8 @@ public class CategoriesScreen {
         menuBtn.getStyleClass().add("btn-icon");
         menuBtn.setOnAction(e -> menu.show(menuBtn, Side.BOTTOM, 0, 0));
 
-        row.getChildren().addAll(expandBtn, nameLbl, statusLbl, subCountLbl, spacer,
-                showTxnBtn, menuBtn);
+        row.getChildren().addAll(expandBtn, nameLbl, subCountLbl, spacer,
+                statusLbl, showTxnBtn, menuBtn);
         block.getChildren().add(row);
 
         buildSubCategoryRows(subCatContainer, subCats, cat, groupSection, type, heading, ds);
@@ -337,7 +337,7 @@ public class CategoriesScreen {
             menuBtn.getStyleClass().add("btn-icon");
             menuBtn.setOnAction(e -> menu.show(menuBtn, Side.BOTTOM, 0, 0));
 
-            row.getChildren().addAll(indent, nameLbl, statusLbl, spacer, showTxnBtn, menuBtn);
+            row.getChildren().addAll(indent, nameLbl, spacer, statusLbl, showTxnBtn, menuBtn);
             container.getChildren().add(row);
         }
     }

@@ -438,24 +438,15 @@ public class ImportService {
         if (recurring.getTransactionType() != null)
             imported.setType(recurring.getTransactionType());
 
-        // For RD schedules: copy RD Ref from recurring notes into the transaction notes
-        String recurringNotes = recurring.getNotes();
-        if (recurringNotes != null) {
-            for (String line : recurringNotes.split("\n")) {
-                if (line.startsWith("RD Ref: ")) {
-                    String rdRef = line.substring("RD Ref: ".length()).trim();
-                    if (!rdRef.isBlank()) {
-                        String existing = imported.getNotes();
-                        String rdNote = "RD Ref: " + rdRef;
-                        if (existing == null || existing.isBlank()) {
-                            imported.setNotes(rdNote);
-                        } else if (!existing.contains(rdNote)) {
-                            imported.setNotes(existing + " | " + rdNote);
-                        }
-                    }
-                    break;
-                }
-            }
+        // For RD schedules: copy RD Ref from the recurring schedule into the transaction notes
+        String rdRef = recurring.getRdRef();
+        if (rdRef != null && !rdRef.isBlank()) {
+            String existing = imported.getNotes();
+            String rdNote = "RD Ref: " + rdRef;
+            if (existing == null || existing.isBlank())
+                imported.setNotes(rdNote);
+            else if (!existing.contains(rdNote))
+                imported.setNotes(existing + " | " + rdNote);
         }
 
         imported.setFromRecurring(true);

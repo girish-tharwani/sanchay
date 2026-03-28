@@ -1,3 +1,17 @@
+## v0.2.12 — 2026-03-28
+
+### Added
+- Settings: changing the data folder now reloads the app in-session — no restart required
+- Settings: empty new folder triggers the Preferences dialog (currency, year format, date format) before reloading
+- Preferences dialog extracted as a reusable component (`PreferencesSetupDialog`) shared by Settings and First-Run Wizard
+- RecurringTransaction model: RD ref, interest rate, maturity date, FD ref, FD maturity amount, scheme/script, and units/NAV promoted to dedicated typed fields (replaces packed notes string)
+- Add/Edit Recurring dialog: investment sub-fields (FD Ref, Rate, Maturity Date, etc.) now populated correctly when editing an existing schedule
+- Categories screen: Active/Inactive badge moved to the right side of each row, before action buttons
+- First-Run Wizard: preferences page now shown as a modal dialog (consistent with mid-session flow)
+
+### Fixed
+- Settings: "Change Data Folder" previously only updated the path label without saving it
+
 ## v0.2.11 — 2026-03-27
 
 ### Added

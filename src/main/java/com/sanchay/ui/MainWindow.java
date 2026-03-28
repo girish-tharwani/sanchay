@@ -2,6 +2,7 @@ package com.sanchay.ui;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.PersistenceService;
 import com.sanchay.ui.accounts.AccountsScreen;
 import com.sanchay.ui.categories.CategoriesScreen;
 import com.sanchay.ui.dashboard.DashboardScreen;
@@ -12,6 +13,7 @@ import com.sanchay.ui.recurring.SkipRecurringDialog;
 import com.sanchay.ui.reports.ReportsScreen;
 import com.sanchay.ui.settings.SettingsScreen;
 import com.sanchay.ui.transactions.TransactionDialog;
+import com.sanchay.ui.wizard.PreferencesSetupDialog;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -230,7 +232,7 @@ public class MainWindow {
             }
             case "Reports" -> {
                 if (reportsScreen == null) reportsScreen = new ReportsScreen();
-                else reportsScreen.refresh();
+                reportsScreen.refresh();
                 yield reportsScreen.getView();
             }
             case "Categories" -> {
@@ -244,7 +246,8 @@ public class MainWindow {
                 yield profileScreen.getView();
             }
             case "Settings" -> {
-                if (settingsScreen == null) settingsScreen = new SettingsScreen();
+                if (settingsScreen == null) settingsScreen = new SettingsScreen(this);
+                else settingsScreen.refresh();
                 yield settingsScreen.getView();
             }
             default -> new Label("Screen not found: " + screen);
@@ -299,6 +302,42 @@ public class MainWindow {
 
     public void skipRecurring(RecurringTransaction r, Runnable onComplete) {
         new SkipRecurringDialog(r).show(onComplete, this::refreshDashboard);
+    }
+
+    // ── Data folder reload (no restart required) ──────────────────────────────
+
+    /**
+     * Switches the app to a new data folder in-session.
+     * Resets DataStore, loads from newPath, applies optional first-run preferences,
+     * discards all cached screens, and navigates to Dashboard.
+     */
+    public void reloadDataFolder(String newPath, PreferencesSetupDialog.Result prefs) {
+        DataStore store = DataStore.getInstance();
+        store.reset();
+
+        PersistenceService persistence = new PersistenceService(newPath);
+        store.setPersistence(persistence);
+        store.setDataFolderPath(newPath);
+        persistence.loadAll(store);
+
+        if (prefs != null) {
+            store.setCurrencyInternal(prefs.currency());
+            store.setYearFormatInternal(prefs.yearFormat());
+            store.setDateFormatInternal(prefs.dateFormat());
+            persistence.saveSettings(store);
+        }
+
+        dashboardScreen  = null;
+        recurringScreen  = null;
+        reportsScreen    = null;
+        settingsScreen   = null;
+        profileScreen    = null;
+        categoriesScreen = null;
+        isFirstRun       = false;
+        postTransactionCallback   = null;
+        transactionContextAccount = null;
+
+        navigateTo("Dashboard");
     }
 
     // ── Window resize support (UNDECORATED stage has no native resize handles) ─

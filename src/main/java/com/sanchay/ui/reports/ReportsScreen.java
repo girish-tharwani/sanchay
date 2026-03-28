@@ -36,6 +36,10 @@ public class ReportsScreen {
     private StackPane view;
     private Runnable summaryRefresh;
     private Runnable ccRefresh;
+    private ComboBox<String> summaryFyPicker;
+    private Label summaryFyLabel;
+    private ComboBox<String> ccFyPicker;
+    private Label ccFyLabel;
 
     public ReportsScreen() { buildView(); }
 
@@ -43,8 +47,26 @@ public class ReportsScreen {
 
     /** Re-queries DataStore and redraws both tabs. Called by MainWindow on every navigation. */
     public void refresh() {
+        updateYearPickers();
         if (summaryRefresh != null) summaryRefresh.run();
         if (ccRefresh      != null) ccRefresh.run();
+    }
+
+    private void updateYearPickers() {
+        boolean isIndianFY = "Indian Financial Year".equals(DataStore.getInstance().getYearFormat());
+        List<String> options = isIndianFY ? buildFYOptions() : buildCYOptions();
+        String labelText  = isIndianFY ? "FY" : "YEAR";
+        String promptText = isIndianFY ? "Select FY…" : "Select Year…";
+        if (summaryFyPicker != null) {
+            summaryFyPicker.getItems().setAll(options);
+            summaryFyPicker.setPromptText(promptText);
+            summaryFyLabel.setText(labelText);
+        }
+        if (ccFyPicker != null) {
+            ccFyPicker.getItems().setAll(options);
+            ccFyPicker.setPromptText(promptText);
+            ccFyLabel.setText(labelText);
+        }
     }
 
     private void buildView() {
@@ -97,13 +119,15 @@ public class ReportsScreen {
         }
         monthPicker.setValue(monthPicker.getItems().get(0));
 
-        Label fyLabel = new Label("FY");
-        fyLabel.getStyleClass().add("filter-label");
-        ComboBox<String> fyPicker = new ComboBox<>();
-        fyPicker.getStyleClass().add("filter-field");
-        fyPicker.getItems().addAll(buildFYOptions());
-        fyPicker.setPromptText("Select FY…");
-        fyPicker.setPrefWidth(140);
+        summaryFyLabel = new Label("FY");
+        summaryFyLabel.getStyleClass().add("filter-label");
+        summaryFyPicker = new ComboBox<>();
+        summaryFyPicker.getStyleClass().add("filter-field");
+        summaryFyPicker.getItems().addAll(buildFYOptions());
+        summaryFyPicker.setPromptText("Select FY…");
+        summaryFyPicker.setPrefWidth(140);
+        Label fyLabel = summaryFyLabel;
+        ComboBox<String> fyPicker = summaryFyPicker;
 
         CheckBox showSubCat = new CheckBox("Show sub-categories");
         showSubCat.getStyleClass().add("text-hint");
@@ -113,7 +137,7 @@ public class ReportsScreen {
         Button downloadBtn = new Button("⬇ Download CSV");
         downloadBtn.getStyleClass().add("btn-gold");
 
-        controls.getChildren().addAll(monthLabel, monthPicker, fyLabel, fyPicker, showSubCat, ctrlSpacer, downloadBtn);
+        controls.getChildren().addAll(monthLabel, monthPicker, summaryFyLabel, summaryFyPicker, showSubCat, ctrlSpacer, downloadBtn);
         root.getChildren().add(controls);
 
         // ── Dynamic content ───────────────────────────────────────────────────
@@ -457,15 +481,17 @@ public class ReportsScreen {
         }
         monthPicker.setValue(monthPicker.getItems().get(0));
 
-        Label fyLabel = new Label("FY");
-        fyLabel.getStyleClass().add("filter-label");
-        ComboBox<String> fyPicker = new ComboBox<>();
-        fyPicker.getStyleClass().add("filter-field");
-        fyPicker.getItems().addAll(buildFYOptions());
-        fyPicker.setPromptText("Select FY…");
-        fyPicker.setPrefWidth(140);
+        ccFyLabel = new Label("FY");
+        ccFyLabel.getStyleClass().add("filter-label");
+        ccFyPicker = new ComboBox<>();
+        ccFyPicker.getStyleClass().add("filter-field");
+        ccFyPicker.getItems().addAll(buildFYOptions());
+        ccFyPicker.setPromptText("Select FY…");
+        ccFyPicker.setPrefWidth(140);
+        Label fyLabel = ccFyLabel;
+        ComboBox<String> fyPicker = ccFyPicker;
 
-        controls.getChildren().addAll(cardLabel, cardPicker, monthLabel, monthPicker, fyLabel, fyPicker);
+        controls.getChildren().addAll(cardLabel, cardPicker, monthLabel, monthPicker, ccFyLabel, ccFyPicker);
         root.getChildren().add(controls);
 
         // ── Dynamic content ───────────────────────────────────────────────────
@@ -656,7 +682,7 @@ public class ReportsScreen {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Derives distinct FY labels from all transaction dates, most recent first. */
+    /** Derives distinct Indian FY labels from all transaction dates, most recent first. */
     private List<String> buildFYOptions() {
         return DataStore.getInstance().getTransactions().stream()
                 .map(t -> {
@@ -670,13 +696,34 @@ public class ReportsScreen {
                 .collect(Collectors.toList());
     }
 
-    /** Parses "FY 2024-25" → { 2024-04-01, 2025-03-31 }. */
-    private LocalDate[] parseFYRange(String fyLabel) {
-        int startYear = Integer.parseInt(fyLabel.replace("FY ", "").split("-")[0]);
-        return new LocalDate[]{
-                LocalDate.of(startYear, 4, 1),
-                LocalDate.of(startYear + 1, 3, 31)
-        };
+    /** Derives distinct calendar year labels from all transaction dates, most recent first. */
+    private List<String> buildCYOptions() {
+        return DataStore.getInstance().getTransactions().stream()
+                .map(t -> String.valueOf(t.getDate().getYear()))
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Parses a year-range label into a [from, to] date pair.
+     * Accepts "FY 2024-25" → { 2024-04-01, 2025-03-31 } (Indian FY)
+     * or "2024" → { 2024-01-01, 2024-12-31 } (Calendar Year).
+     */
+    private LocalDate[] parseFYRange(String label) {
+        if (label.startsWith("FY ")) {
+            int startYear = Integer.parseInt(label.replace("FY ", "").split("-")[0]);
+            return new LocalDate[]{
+                    LocalDate.of(startYear, 4, 1),
+                    LocalDate.of(startYear + 1, 3, 31)
+            };
+        } else {
+            int year = Integer.parseInt(label);
+            return new LocalDate[]{
+                    LocalDate.of(year, 1, 1),
+                    LocalDate.of(year, 12, 31)
+            };
+        }
     }
 
     private TableColumn<Transaction, String> rCol(String title, int width,
