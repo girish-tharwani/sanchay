@@ -243,10 +243,11 @@ public class ReportsScreen {
                 .filter(t -> t.getType() == Transaction.Type.EXPENSE
                           && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
                 .forEach(t -> {
-                    String cat = ds.getCategoryName(t.getCategoryId());
+                    String rCatId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+                    String rSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+                    String cat = ds.getCategoryName(rCatId);
                     if ("—".equals(cat)) cat = "(Uncategorized)";
-                    String subCat = t.getSubCategoryId() != null
-                            ? ds.getCategoryName(t.getSubCategoryId()) : "";
+                    String subCat = rSubCatId != null ? ds.getCategoryName(rSubCatId) : "";
                     result.computeIfAbsent(cat, k -> new LinkedHashMap<>())
                           .merge(subCat, t.getAmountPaise(), Long::sum);
                 });
@@ -435,7 +436,8 @@ public class ReportsScreen {
                 rCol("Date",        80,  t -> t.getDate().format(DateTimeFormatter.ofPattern("dd MMM"))),
                 rCol("Description", 0,   t -> t.getDescription(), "cell-desc"),
                 rCol("Account",     140, t -> DataStore.getInstance().getAccountName(t.getFromAccountId())),
-                rCol("Category",    130, t -> DataStore.getInstance().getCategoryName(t.getCategoryId())),
+                rCol("Category",    130, t -> DataStore.getInstance().getCategoryName(
+                        t.getClassification() != null ? t.getClassification().getCategoryId() : null)),
                 amtCol1
         );
         VBox tableCard = new VBox();
@@ -602,7 +604,8 @@ public class ReportsScreen {
                           && cardIds.contains(t.getFromAccountId())
                           && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
                 .collect(Collectors.groupingBy(
-                        t -> ds.getCategoryName(t.getCategoryId()),
+                        t -> ds.getCategoryName(t.getClassification() != null
+                                ? t.getClassification().getCategoryId() : null),
                         Collectors.summingLong(Transaction::getAmountPaise)));
 
         long total = byCategory.values().stream().mapToLong(Long::longValue).sum();
@@ -633,7 +636,8 @@ public class ReportsScreen {
                 rCol("Description", 0,   t -> t.getDescription(), "cell-desc"),
                 rCol("Card",        140, t -> ds.getAccountName(
                         t.getType() == Transaction.Type.CC_PAYMENT ? t.getToAccountId() : t.getFromAccountId())),
-                rCol("Category",    130, t -> ds.getCategoryName(t.getCategoryId())),
+                rCol("Category",    130, t -> ds.getCategoryName(t.getClassification() != null
+                        ? t.getClassification().getCategoryId() : null)),
                 amtCol2
         );
         VBox tableCard = new VBox();

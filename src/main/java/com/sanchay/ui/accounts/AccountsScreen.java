@@ -315,7 +315,8 @@ public class AccountsScreen {
                     - DataStore.getInstance().getTransactions().stream()
                         .filter(t -> t.getType() == Transaction.Type.REDEEM
                                   && ia.getId().equals(t.getFromAccountId()))
-                        .mapToLong(t -> t.getPrincipalPaise() > 0 ? t.getPrincipalPaise() : t.getAmountPaise()).sum();
+                        .mapToLong(t -> t.getRedeemDetails() != null && t.getRedeemDetails().getPrincipalPaise() > 0
+                                ? t.getRedeemDetails().getPrincipalPaise() : t.getAmountPaise()).sum();
             addField(fields, "Investment Type",         ia.getAccountType());
             addField(fields, "Account Number",           ia.getFolioAccountNumber());
             addField(fields, "Current Invested Amount", String.format("₹%,.2f", Math.max(0, invested) / 100.0));
@@ -399,8 +400,10 @@ public class AccountsScreen {
                 for (Transaction t : ds2.getTransactions()) {
                     if (t.getType() == Transaction.Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
                         invested += t.getAmountPaise();
-                    if (t.getType() == Transaction.Type.REDEEM && ia.getId().equals(t.getFromAccountId()))
-                        invested -= t.getPrincipalPaise() > 0 ? t.getPrincipalPaise() : t.getAmountPaise();
+                    if (t.getType() == Transaction.Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
+                        long rdPrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+                        invested -= rdPrin > 0 ? rdPrin : t.getAmountPaise();
+                    }
                 }
                 statLabel  = "Invested";
                 statValue  = "₹" + String.format("%,.2f", Math.max(0, invested) / 100.0);
@@ -491,9 +494,11 @@ public class AccountsScreen {
             return "—".equals(name) ? "" : name;
         });
         TableColumn<Transaction, String> catCol  = col("Category", 100,
-                t -> ds.getCategoryName(t.getCategoryId()));
+                t -> ds.getCategoryName(t.getClassification() != null
+                        ? t.getClassification().getCategoryId() : null));
         TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
-                t -> ds.getCategoryName(t.getSubCategoryId()));
+                t -> ds.getCategoryName(t.getClassification() != null
+                        ? t.getClassification().getSubCategoryId() : null));
         TableColumn<Transaction, Long> amtCol = new TableColumn<>("AMOUNT");
         amtCol.setPrefWidth(90);
         amtCol.setCellValueFactory(cd ->
@@ -651,10 +656,12 @@ public class AccountsScreen {
                             if (!"—".equals(acctName)) tip.append(" → ").append(acctName);
                         } else {
                             tip.append("Category auto-filled");
-                            if (t.getCategoryId() != null)
-                                tip.append(": ").append(ds.getCategoryName(t.getCategoryId()));
-                            if (t.getSubCategoryId() != null)
-                                tip.append(" / ").append(ds.getCategoryName(t.getSubCategoryId()));
+                            String tipCatId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+                            String tipSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
+                            if (tipCatId != null)
+                                tip.append(": ").append(ds.getCategoryName(tipCatId));
+                            if (tipSubCatId != null)
+                                tip.append(" / ").append(ds.getCategoryName(tipSubCatId));
                         }
                         tip.append("\nClick to accept, or double-click to edit");
                         badge.setTooltip(new Tooltip(tip.toString()));
@@ -833,8 +840,10 @@ public class AccountsScreen {
                 boolean categorized = ds.suggestCategoryForDescription(
                         am.imported.getDescription(), am.imported.getType())
                         .map(rule -> {
-                            am.imported.setCategoryId(rule.getCategoryId());
-                            am.imported.setSubCategoryId(rule.getSubCategoryId());
+                            Transaction.Classification cl = new Transaction.Classification();
+                            cl.setCategoryId(rule.getCategoryId());
+                            cl.setSubCategoryId(rule.getSubCategoryId());
+                            am.imported.setClassification(cl);
                             return true;
                         }).orElse(false);
                 am.imported.setSourceIndicator(categorized
@@ -857,8 +866,10 @@ public class AccountsScreen {
                     boolean categorized = ds.suggestCategoryForDescription(
                             am.imported.getDescription(), am.imported.getType())
                             .map(rule -> {
-                                am.imported.setCategoryId(rule.getCategoryId());
-                                am.imported.setSubCategoryId(rule.getSubCategoryId());
+                                Transaction.Classification cl = new Transaction.Classification();
+                                cl.setCategoryId(rule.getCategoryId());
+                                cl.setSubCategoryId(rule.getSubCategoryId());
+                                am.imported.setClassification(cl);
                                 return true;
                             }).orElse(false);
                     am.imported.setSourceIndicator(categorized
@@ -883,8 +894,10 @@ public class AccountsScreen {
                 boolean categorized = ds.suggestCategoryForDescription(
                         rm.imported.getDescription(), rm.imported.getType())
                         .map(rule -> {
-                            rm.imported.setCategoryId(rule.getCategoryId());
-                            rm.imported.setSubCategoryId(rule.getSubCategoryId());
+                            Transaction.Classification cl = new Transaction.Classification();
+                            cl.setCategoryId(rule.getCategoryId());
+                            cl.setSubCategoryId(rule.getSubCategoryId());
+                            rm.imported.setClassification(cl);
                             return true;
                         }).orElse(false);
                 rm.imported.setSourceIndicator(categorized
@@ -940,8 +953,8 @@ public class AccountsScreen {
                             t.getDate().format(dateFmt()),
                             "\"" + t.getDescription().replace("\"", "\"\"") + "\"",
                             t.getType().name(),
-                            "\"" + ds.getCategoryName(t.getCategoryId()) + "\"",
-                            "\"" + ds.getCategoryName(t.getSubCategoryId()) + "\"",
+                            "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getCategoryId() : null) + "\"",
+                            "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getSubCategoryId() : null) + "\"",
                             String.format("%.2f", signedPaise / 100.0)
                     ));
                 }

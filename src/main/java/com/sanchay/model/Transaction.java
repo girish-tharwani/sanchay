@@ -21,54 +21,124 @@ public class Transaction {
         NEFT, IMPS, INTERNAL_TRANSFER
     }
 
-    public enum IncomeType {
-        SALARY, INTEREST, DIVIDEND, RENTAL, FREELANCE, GIFT, OTHER
-    }
-
-    private String id;
-    private Type type;
-    private LocalDate date;
-    private String description;
-    private long amountPaise;
-    private String categoryId;
-    private String subCategoryId;
-    private String familyMember;
-    private String referenceNumber;
-    private String notes;
-    private String fromAccountId;
-    private String toAccountId;
-    private PaymentMode paymentMode;
-    private IncomeType incomeType;
-    private String source;
-    private String schemeScriptName;
-    private Double unitsNav;
-    private boolean fromRecurring;
-    private String recurringId;
-    private long principalPaise;      // REDEEM only: original invested amount being returned
-    private String groupTransactionId; // links the 3 transactions created by a REDEEM operation
-
-    // Fixed Deposit fields — populated only when toAccount.investmentType == FIXED_DEPOSIT
-    private String fdRef;
-    private Double fdInterestRate;
-    private String fdMaturityDate;       // ISO 8601 (YYYY-MM-DD)
-    private Long fdMaturityAmountPaise;
-
     public enum SourceIndicator {
         MANUAL,           // User entered manually
         IMPORTED,         // Imported from CSV; category not yet confirmed
         AUTO_CATEGORIZED, // Imported and auto-categorized by rules; awaiting user acceptance
         RECONCILED        // Import row matched and merged with an existing manual transaction
     }
+
+    public enum InterestPayable {
+        AT_MATURITY, YEARLY, QUARTERLY, MONTHLY
+    }
+
+    // ── Sub-object classes ────────────────────────────────────────────────────
+
+    public static class Classification {
+        private String categoryId;
+        private String subCategoryId;
+        private String familyMember;
+
+        public String getCategoryId()              { return categoryId; }
+        public void   setCategoryId(String c)      { this.categoryId = c; }
+        public String getSubCategoryId()           { return subCategoryId; }
+        public void   setSubCategoryId(String s)   { this.subCategoryId = s; }
+        public String getFamilyMember()            { return familyMember; }
+        public void   setFamilyMember(String f)    { this.familyMember = f; }
+    }
+
+    public static class Payment {
+        private PaymentMode mode;
+        private String      referenceNumber;
+
+        public PaymentMode getMode()                    { return mode; }
+        public void        setMode(PaymentMode m)       { this.mode = m; }
+        public String      getReferenceNumber()         { return referenceNumber; }
+        public void        setReferenceNumber(String r) { this.referenceNumber = r; }
+    }
+
+    public static class Recurring {
+        private String recurringId;
+
+        public Recurring() {}
+        public Recurring(String recurringId) { this.recurringId = recurringId; }
+
+        public String getRecurringId()          { return recurringId; }
+        public void   setRecurringId(String r)  { this.recurringId = r; }
+    }
+
+    public static class FdDetails {
+        private String           ref;
+        private Double           interestRate;
+        private LocalDate        maturityDate;
+        private Long             maturityAmountPaise;
+        private InterestPayable  interestPayable;
+
+        public String          getRef()                           { return ref; }
+        public void            setRef(String r)                   { this.ref = r; }
+        public Double          getInterestRate()                  { return interestRate; }
+        public void            setInterestRate(Double r)          { this.interestRate = r; }
+        public LocalDate       getMaturityDate()                  { return maturityDate; }
+        public void            setMaturityDate(LocalDate d)       { this.maturityDate = d; }
+        public Long            getMaturityAmountPaise()           { return maturityAmountPaise; }
+        public void            setMaturityAmountPaise(Long p)     { this.maturityAmountPaise = p; }
+        public InterestPayable getInterestPayable()               { return interestPayable; }
+        public void            setInterestPayable(InterestPayable i) { this.interestPayable = i; }
+    }
+
+    public static class InvestmentDetails {
+        private String    schemeScriptName;
+        private Double    unitsNav;
+        private FdDetails fd;
+
+        public String    getSchemeScriptName()          { return schemeScriptName; }
+        public void      setSchemeScriptName(String s)  { this.schemeScriptName = s; }
+        public Double    getUnitsNav()                  { return unitsNav; }
+        public void      setUnitsNav(Double u)          { this.unitsNav = u; }
+        public FdDetails getFd()                        { return fd; }
+        public void      setFd(FdDetails f)             { this.fd = f; }
+    }
+
+    public static class RedeemDetails {
+        private long principalPaise;
+
+        public long getPrincipalPaise()         { return principalPaise; }
+        public void setPrincipalPaise(long p)   { this.principalPaise = p; }
+    }
+
+    // ── Root fields ───────────────────────────────────────────────────────────
+
+    private String         id;
+    private Type           type;
+    private LocalDate      date;
+    private String         description;
+    private long           amountPaise;
+    private String         fromAccountId;
+    private String         toAccountId;
+    private String         notes;
     private SourceIndicator sourceIndicator;
-    private String importHash;
+    private String         importHash;
+    private String         groupTransactionId;
+
+    // ── Sub-object fields ─────────────────────────────────────────────────────
+
+    private Classification   classification;
+    private Payment          payment;
+    private Recurring        recurring;
+    private InvestmentDetails investmentDetails;
+    private RedeemDetails    redeemDetails;
+
+    // ── Constructor ───────────────────────────────────────────────────────────
 
     public Transaction(Type type, LocalDate date, String description, long amountPaise) {
-        this.id = UUID.randomUUID().toString();
-        this.type = type;
-        this.date = date;
+        this.id          = UUID.randomUUID().toString();
+        this.type        = type;
+        this.date        = date;
         this.description = description;
         this.amountPaise = amountPaise;
     }
+
+    // ── Business methods ──────────────────────────────────────────────────────
 
     public String getAmountInr() {
         return String.format("₹%,.2f", amountPaise / 100.0);
@@ -98,62 +168,44 @@ public class Transaction {
         };
     }
 
-    public String getId()                   { return id; }
-    public Type getType()                   { return type; }
-    public void setType(Type t)             { this.type = t; }
-    public LocalDate getDate()              { return date; }
-    public String getDescription()          { return description; }
-    public long getAmountPaise()            { return amountPaise; }
-    public String getCategoryId()           { return categoryId; }
-    public String getSubCategoryId()        { return subCategoryId; }
-    public String getFamilyMember()         { return familyMember; }
-    public String getReferenceNumber()      { return referenceNumber; }
-    public String getNotes()                { return notes; }
-    public String getFromAccountId()        { return fromAccountId; }
-    public String getToAccountId()          { return toAccountId; }
-    public PaymentMode getPaymentMode()     { return paymentMode; }
-    public IncomeType getIncomeType()       { return incomeType; }
-    public String getSource()               { return source; }
-    public String getSchemeScriptName()     { return schemeScriptName; }
-    public Double getUnitsNav()             { return unitsNav; }
-    public boolean isFromRecurring()        { return fromRecurring; }
-    public String getRecurringId()          { return recurringId; }
+    // ── Root getters / setters ────────────────────────────────────────────────
+
+    public String        getId()                         { return id; }
+    public Type          getType()                       { return type; }
+    public void          setType(Type t)                 { this.type = t; }
+    public LocalDate     getDate()                       { return date; }
+    public void          setDate(LocalDate d)            { this.date = d; }
+    public String        getDescription()                { return description; }
+    public void          setDescription(String d)        { this.description = d; }
+    public long          getAmountPaise()                { return amountPaise; }
+    public void          setAmountPaise(long p)          { this.amountPaise = p; }
+    public String        getFromAccountId()              { return fromAccountId; }
+    public void          setFromAccountId(String id)     { this.fromAccountId = id; }
+    public String        getToAccountId()                { return toAccountId; }
+    public void          setToAccountId(String id)       { this.toAccountId = id; }
+    public String        getNotes()                      { return notes; }
+    public void          setNotes(String n)              { this.notes = n; }
+    public String        getImportHash()                 { return importHash; }
+    public void          setImportHash(String h)         { this.importHash = h; }
+    public String        getGroupTransactionId()         { return groupTransactionId; }
+    public void          setGroupTransactionId(String g) { this.groupTransactionId = g; }
+
     /** Returns MANUAL when sourceIndicator is null (data migrated from before this field existed). */
     public SourceIndicator getSourceIndicator() {
         return sourceIndicator == null ? SourceIndicator.MANUAL : sourceIndicator;
     }
-    public String getImportHash()           { return importHash; }
-
-    public void setDate(LocalDate d)                { this.date = d; }
-    public void setDescription(String d)            { this.description = d; }
-    public void setAmountPaise(long p)              { this.amountPaise = p; }
-    public void setCategoryId(String c)             { this.categoryId = c; }
-    public void setSubCategoryId(String s)          { this.subCategoryId = s; }
-    public void setFamilyMember(String f)           { this.familyMember = f; }
-    public void setReferenceNumber(String r)        { this.referenceNumber = r; }
-    public void setNotes(String n)                  { this.notes = n; }
-    public void setFromAccountId(String id)         { this.fromAccountId = id; }
-    public void setToAccountId(String id)           { this.toAccountId = id; }
-    public void setPaymentMode(PaymentMode m)       { this.paymentMode = m; }
-    public void setIncomeType(IncomeType t)         { this.incomeType = t; }
-    public void setSource(String s)                 { this.source = s; }
-    public void setSchemeScriptName(String s)       { this.schemeScriptName = s; }
-    public void setUnitsNav(Double u)               { this.unitsNav = u; }
-    public void setFromRecurring(boolean b)           { this.fromRecurring = b; }
-    public void setRecurringId(String id)             { this.recurringId = id; }
     public void setSourceIndicator(SourceIndicator s) { this.sourceIndicator = s; }
-    public void setImportHash(String h)               { this.importHash = h; }
-    public long getPrincipalPaise()                   { return principalPaise; }
-    public void setPrincipalPaise(long p)             { this.principalPaise = p; }
-    public String getGroupTransactionId()             { return groupTransactionId; }
-    public void setGroupTransactionId(String g)       { this.groupTransactionId = g; }
 
-    public String getFdRef()                          { return fdRef; }
-    public void setFdRef(String r)                    { this.fdRef = r; }
-    public Double getFdInterestRate()                 { return fdInterestRate; }
-    public void setFdInterestRate(Double r)           { this.fdInterestRate = r; }
-    public String getFdMaturityDate()                 { return fdMaturityDate; }
-    public void setFdMaturityDate(String d)           { this.fdMaturityDate = d; }
-    public Long getFdMaturityAmountPaise()            { return fdMaturityAmountPaise; }
-    public void setFdMaturityAmountPaise(Long p)      { this.fdMaturityAmountPaise = p; }
+    // ── Sub-object getters / setters ──────────────────────────────────────────
+
+    public Classification    getClassification()                    { return classification; }
+    public void              setClassification(Classification c)    { this.classification = c; }
+    public Payment           getPayment()                           { return payment; }
+    public void              setPayment(Payment p)                  { this.payment = p; }
+    public Recurring         getRecurring()                         { return recurring; }
+    public void              setRecurring(Recurring r)              { this.recurring = r; }
+    public InvestmentDetails getInvestmentDetails()                 { return investmentDetails; }
+    public void              setInvestmentDetails(InvestmentDetails i) { this.investmentDetails = i; }
+    public RedeemDetails     getRedeemDetails()                     { return redeemDetails; }
+    public void              setRedeemDetails(RedeemDetails r)      { this.redeemDetails = r; }
 }

@@ -66,8 +66,8 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
             rb.setToggleGroup(tg);
             rb.setUserData(c);
 
-            String catName    = ds.getCategoryName(c.getCategoryId());
-            String subCatName = ds.getCategoryName(c.getSubCategoryId());
+            String catName    = ds.getCategoryName(c.getClassification() != null ? c.getClassification().getCategoryId() : null);
+            String subCatName = ds.getCategoryName(c.getClassification() != null ? c.getClassification().getSubCategoryId() : null);
             String catLabel   = catName.isBlank() ? ""
                     : subCatName.isBlank() ? catName : catName + " › " + subCatName;
 
