@@ -456,8 +456,13 @@ public class ImportService {
         store.addTransactionInternal(imported);
         store.saveTransactionsNow();
 
+        recurring.incrementPaymentsMade();
         recurring.setLastRecordedDate(imported.getDate());
-        store.saveRecurringNow();
+        if (recurring.isPaymentLimitReached()) {
+            store.deleteRecurring(recurring.getId());
+        } else {
+            store.saveRecurringNow();
+        }
     }
 
     // ── Description similarity ────────────────────────────────────────────────

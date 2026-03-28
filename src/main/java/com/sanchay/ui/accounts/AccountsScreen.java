@@ -1116,13 +1116,15 @@ public class AccountsScreen {
 
         ButtonType deleteBtn = new ButtonType("Delete", ButtonBar.ButtonData.OK_DONE);
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, deleteBtn);
-        Platform.runLater(() -> {
-            Button btn = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
-            if (btn != null)
+        Button deleteButton = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
+        if (deleteButton != null) {
+            ButtonBar.setButtonUniformSize(deleteButton, false);
+            Platform.runLater(() -> {
                 // Inline required: dialog button styling is applied post-show via Platform.runLater
-                btn.setStyle("-fx-background-color: -color-error; -fx-text-fill: white; "
+                deleteButton.setStyle("-fx-background-color: -color-error; -fx-text-fill: white; "
                         + "-fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 7 20;");
-        });
+            });
+        }
 
         return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
     }

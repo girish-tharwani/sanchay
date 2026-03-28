@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -107,6 +108,10 @@ public class RecurringScreen {
                 r -> ds.getCategoryName(r.getCategoryId()));
         TableColumn<RecurringTransaction, String> subCatCol = col("Sub-category", 120,
                 r -> ds.getCategoryName(r.getSubCategoryId()));
+        TableColumn<RecurringTransaction, String> paymentsCol = col("Payments", 80,
+                r -> r.getNumberOfPayments() != null
+                        ? r.getPaymentsMade() + " / " + r.getNumberOfPayments()
+                        : "—");
 
         // Actions column: record + pause/resume + delete
         TableColumn<RecurringTransaction, Void> actionsCol = new TableColumn<>("");
@@ -141,16 +146,10 @@ public class RecurringScreen {
                     allSchedulesTable.refresh();
                 });
                 deleteBtn.setOnAction(e -> {
-                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                    confirm.setTitle("Delete Schedule");
-                    confirm.setHeaderText("Delete '" + r.getDescription() + "'?");
-                    confirm.setContentText("Past recorded transactions will not be affected.");
-                    confirm.showAndWait()
-                            .filter(b -> b == ButtonType.OK)
-                            .ifPresent(b -> {
-                                DataStore.getInstance().deleteRecurring(r.getId());
-                                buildView();
-                            });
+                    if (showDeleteScheduleConfirm(r)) {
+                        DataStore.getInstance().deleteRecurring(r.getId());
+                        buildView();
+                    }
                 });
                 setGraphic(new HBox(2, recordBtn, pauseBtn, deleteBtn));
             }
@@ -168,7 +167,7 @@ public class RecurringScreen {
         });
 
         allSchedulesTable.getColumns().addAll(
-                descCol, typeCol, freqCol, amtCol, nextCol, statusCol, catCol, subCatCol, actionsCol);
+                descCol, typeCol, freqCol, amtCol, nextCol, statusCol, catCol, subCatCol, paymentsCol, actionsCol);
 
         HBox tableFooter = new HBox();
         tableFooter.getStyleClass().add("table-footer");
@@ -234,7 +233,7 @@ public class RecurringScreen {
         HBox.setHgrow(info, Priority.ALWAYS);
 
         Label amount = new Label(r.getAmountInr());
-        amount.getStyleClass().add("card-value");
+        amount.getStyleClass().add("text-step-title");
         amount.setMinWidth(110);
 
         Button recordBtn = new Button("✓");
@@ -316,6 +315,65 @@ public class RecurringScreen {
         HBox box = new HBox(7, dot, lbl);
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
+    }
+
+    private boolean showDeleteScheduleConfirm(RecurringTransaction r) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Delete Schedule");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(420);
+        UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "⚠", "Delete Schedule");
+
+        VBox body = new VBox(14);
+        body.setPadding(new Insets(16));
+
+        HBox warnRow = new HBox(12);
+        warnRow.setAlignment(Pos.CENTER_LEFT);
+        Label warnIcon = new Label("⚠");
+        // Inline required: colour computed from role (danger), no CSS token for icon-only size
+        warnIcon.setStyle("-fx-font-size: 22px; -fx-text-fill: -color-error;");
+        VBox warnText = new VBox(4);
+        Label headline = new Label("Delete '" + r.getDescription() + "'?");
+        headline.getStyleClass().add("text-section-title");
+        Label subLbl = new Label("Past recorded transactions will not be affected.");
+        subLbl.getStyleClass().add("text-hint");
+        subLbl.setWrapText(true);
+        warnText.getChildren().addAll(headline, subLbl);
+        warnRow.getChildren().addAll(warnIcon, warnText);
+
+        VBox detailBlock = new VBox(5);
+        detailBlock.getStyleClass().add("dialog-danger-block");
+        Label descLbl = new Label(r.getDescription());
+        // Inline required: colour computed from role (danger)
+        descLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: -brand-dark;");
+        descLbl.setWrapText(true);
+        HBox meta = new HBox(8);
+        meta.setAlignment(Pos.CENTER_LEFT);
+        Label amtLbl = new Label(r.getAmountInr());
+        amtLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: -color-error;");
+        Label sep = new Label("·");
+        sep.getStyleClass().add("text-hint");
+        Label freqLbl = new Label(formatFrequency(r.getFrequency()));
+        freqLbl.getStyleClass().add("text-hint");
+        meta.getChildren().addAll(amtLbl, sep, freqLbl);
+        detailBlock.getChildren().addAll(descLbl, meta);
+
+        body.getChildren().addAll(warnRow, detailBlock);
+        dlg.getDialogPane().setContent(body);
+
+        ButtonType deleteBtn = new ButtonType("Delete", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, deleteBtn);
+        Button deleteButton = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
+        if (deleteButton != null) {
+            ButtonBar.setButtonUniformSize(deleteButton, false);
+            Platform.runLater(() ->
+                // Inline required: dialog button styling applied post-show via Platform.runLater
+                deleteButton.setStyle("-fx-background-color: -color-error; -fx-text-fill: white; "
+                        + "-fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 7 20;"));
+        }
+
+        return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
     }
 
     private void alert(String title, String msg) {

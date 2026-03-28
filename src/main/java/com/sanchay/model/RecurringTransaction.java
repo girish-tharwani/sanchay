@@ -36,6 +36,14 @@ public class RecurringTransaction {
      */
     private int autoRecordAfterDays;
 
+    /**
+     * Optional cap on the number of times this schedule should be recorded.
+     * Null = open-ended (runs indefinitely).
+     */
+    private Integer numberOfPayments;
+    /** Counts how many times this schedule has been recorded. Incremented on each Record. */
+    private int paymentsMade;
+
     /** RD only: total instalments already paid before this schedule was set up (paise). */
     private long rdOpeningBalancePaise;
     /** RD only: expected maturity amount (paise). */
@@ -128,6 +136,8 @@ public class RecurringTransaction {
     public boolean isAutoCreated()          { return autoCreated; }
     public LocalDate getLastRecordedDate()  { return lastRecordedDate; }
     public int getAutoRecordAfterDays()     { return autoRecordAfterDays; }
+    public Integer getNumberOfPayments()    { return numberOfPayments; }
+    public int getPaymentsMade()            { return paymentsMade; }
     public long getRdOpeningBalancePaise()  { return rdOpeningBalancePaise; }
     public long getRdMaturityAmountPaise()  { return rdMaturityAmountPaise; }
     public String getRdRef()                { return rdRef; }
@@ -137,6 +147,23 @@ public class RecurringTransaction {
     public long getFdMaturityAmountPaise()  { return fdMaturityAmountPaise; }
     public String getSchemeScript()         { return schemeScript; }
     public String getUnitsNav()             { return unitsNav; }
+
+    /**
+     * Returns the calculated date of the last payment when numberOfPayments is set,
+     * or null if the schedule is open-ended.
+     */
+    public LocalDate getLastPaymentDate() {
+        if (numberOfPayments == null || numberOfPayments <= 0 || startDate == null) return null;
+        LocalDate d = startDate;
+        for (int i = 1; i < numberOfPayments; i++) d = advanceByFrequency(d);
+        int day = Math.min(dueDayOfMonth, d.lengthOfMonth());
+        return d.withDayOfMonth(day);
+    }
+
+    /** Returns true if numberOfPayments is set and paymentsMade has reached it. */
+    public boolean isPaymentLimitReached() {
+        return numberOfPayments != null && paymentsMade >= numberOfPayments;
+    }
 
     public String getAmountInr() {
         return amountPaise > 0
@@ -162,6 +189,8 @@ public class RecurringTransaction {
     public void setAutoCreated(boolean b)           { this.autoCreated = b; }
     public void setLastRecordedDate(LocalDate d)    { this.lastRecordedDate = d; }
     public void setAutoRecordAfterDays(int n)        { this.autoRecordAfterDays = n; }
+    public void setNumberOfPayments(Integer n)       { this.numberOfPayments = n; }
+    public void incrementPaymentsMade()              { this.paymentsMade++; }
     public void setRdOpeningBalancePaise(long p)     { this.rdOpeningBalancePaise = p; }
     public void setRdMaturityAmountPaise(long p)     { this.rdMaturityAmountPaise = p; }
     public void setRdRef(String s)                   { this.rdRef = s; }

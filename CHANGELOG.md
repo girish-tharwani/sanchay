@@ -1,3 +1,27 @@
+## v0.2.13 — 2026-03-28
+
+### Added
+- Recurring: `numberOfPayments` cap — schedule auto-deletes when the payment limit is reached
+- Recurring screen: "Payments" (made / total) column in the all-schedules table
+- Add/Edit Recurring dialog: "No. of Payments" field with live last-payment date hint
+- `RemoveMemberDialog` extracted as a standalone dialog class (was inline in ProfileScreen)
+- `UiUtils.makeSpinnerEditable()` — helper that makes integer spinners directly type-editable with clamping
+- UiUtils: Tab key commits a matching category in the combo editor so value-change listeners fire correctly
+- AccountDialog: billing day, payment due days, and EMI due day spinners are now directly editable
+- CSS: `.dialog-icon-box--danger` and `.dialog-danger-block` tokens for destructive-action dialogs
+
+### Changed
+- RecurringScreen: delete-schedule confirmation uses a styled dialog (matches AccountsScreen pattern)
+- RecurringMatchDialog: due date promoted into the main label row; "Due:" sub-label removed; reconcile button uniform-size disabled
+- Dashboard and RecurringScreen recurring cards: amount label changed from `card-value` to `text-step-title`
+- ProfileScreen: DOB column respects the user's date format preference; "Earning?" column max-width widened to 90
+- AccountsScreen: delete-account button lookup moved before `Platform.runLater` to avoid null; uniform-size disabled
+- ImportMappingDialog: dialog resizes to fit scene when toggling single / split amount mode
+- CSS: table header padding corrected (added 16 px horizontal); success badge size increased to 24 × 24 px
+
+### Fixed
+- CC outstanding balance now correctly subtracts refund transactions
+
 ## v0.2.12 — 2026-03-28
 
 ### Added

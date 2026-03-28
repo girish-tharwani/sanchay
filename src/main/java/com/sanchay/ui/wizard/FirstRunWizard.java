@@ -97,7 +97,7 @@ public class FirstRunWizard {
 
         Label explanation = new Label(
                 "Your financial data is saved as files in a folder you choose. \n"
-                + "You can store this folder on your computer, an external drive,"
+                + "You can store this folder on your computer, an external drive, "
                 + "or a synced folder (e.g. OneDrive, Google Drive).\n"
                 + "If you already have a data folder from a previous installation, "
                 + "select that folder and your data will be loaded automatically.");

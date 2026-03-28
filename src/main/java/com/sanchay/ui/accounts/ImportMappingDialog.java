@@ -204,6 +204,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         singleRb.selectedProperty().addListener((o, p, n) -> {
             singleRow.setVisible(n);  singleRow.setManaged(n);
             splitSection.setVisible(!n); splitSection.setManaged(!n);
+            getDialogPane().getScene().getWindow().sizeToScene();
         });
         // Override default updateAmountRows for the split section
         splitSection.setVisible(!singleRb.isSelected());

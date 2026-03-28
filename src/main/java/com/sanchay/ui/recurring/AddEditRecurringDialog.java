@@ -386,6 +386,50 @@ public class AddEditRecurringDialog {
             autoRecordDaysSp.getValueFactory().setValue(existing.getAutoRecordAfterDays());
         }
 
+        // ── Number of payments ─────────────────────────────────────────────────
+        TextField numPaymentsFld = new TextField();
+        numPaymentsFld.setPromptText("Blank = no limit (runs indefinitely)");
+        numPaymentsFld.setMaxWidth(Double.MAX_VALUE);
+        if (!isNew && existing.getNumberOfPayments() != null)
+            numPaymentsFld.setText(String.valueOf(existing.getNumberOfPayments()));
+
+        Label lastPaymentHint = new Label();
+        lastPaymentHint.getStyleClass().add("text-hint");
+        lastPaymentHint.setVisible(false);
+        lastPaymentHint.setManaged(false);
+
+        Runnable updateLastPaymentHint = () -> {
+            String raw = numPaymentsFld.getText().trim();
+            LocalDate start = startPicker.getValue();
+            RecurringTransaction.Frequency freq = freqCb.getValue();
+            if (raw.isEmpty() || start == null || freq == null) {
+                lastPaymentHint.setVisible(false); lastPaymentHint.setManaged(false); return;
+            }
+            try {
+                int n = Integer.parseInt(raw);
+                if (n <= 0) { lastPaymentHint.setVisible(false); lastPaymentHint.setManaged(false); return; }
+                LocalDate d = start;
+                for (int i = 1; i < n; i++) d = switch (freq) {
+                    case MONTHLY        -> d.plusMonths(1);
+                    case QUARTERLY      -> d.plusMonths(3);
+                    case ANNUALLY       -> d.plusYears(1);
+                    case ALTERNATE_YEAR -> d.plusYears(2);
+                };
+                int actualDay = Math.min(daySpinner.getValue(), d.lengthOfMonth());
+                d = d.withDayOfMonth(actualDay);
+                lastPaymentHint.setText("Last payment: " + d.format(ds.getDateFormatter()));
+                lastPaymentHint.setVisible(true); lastPaymentHint.setManaged(true);
+            } catch (NumberFormatException e) {
+                lastPaymentHint.setVisible(false); lastPaymentHint.setManaged(false);
+            }
+        };
+
+        numPaymentsFld.textProperty().addListener((obs, o, n) -> updateLastPaymentHint.run());
+        startPicker.valueProperty().addListener((obs, o, n) -> updateLastPaymentHint.run());
+        freqCb.valueProperty().addListener((obs, o, n) -> updateLastPaymentHint.run());
+        daySpinner.valueProperty().addListener((obs, o, n) -> updateLastPaymentHint.run());
+        updateLastPaymentHint.run();
+
         // ── Pre-select to-account when editing ────────────────────────────────
         if (!isNew && existing.getToAccountId() != null) {
             Transaction.Type t = existing.getTransactionType();
@@ -419,6 +463,8 @@ public class AddEditRecurringDialog {
         formRow(g, row++, "Due Day of Month", daySpinner);
         formRow(g, row++, "Start Date",       startPicker);
         formRow(g, row++, "Amount (₹)",       amtFld);
+        VBox numPaymentsBox = new VBox(4, numPaymentsFld, lastPaymentHint);
+        formRow(g, row++, "No. of Payments", numPaymentsBox);
         formRow(g, row++, "From Account",     accountCb);
         g.add(toAccountSection, 0, row++, 2, 1);
         g.add(invDynamicBox,    0, row++, 2, 1);
@@ -477,7 +523,17 @@ public class AddEditRecurringDialog {
                 if (autoRecordCb.isSelected() && amtRaw.isEmpty()) {
                     alert("Validation Error",
                             "Auto-record requires a fixed amount. Enter an amount or uncheck auto-record.");
-                    ev.consume();
+                    ev.consume(); return;
+                }
+                String numPayRaw = numPaymentsFld.getText().trim();
+                if (!numPayRaw.isEmpty()) {
+                    try {
+                        if (Integer.parseInt(numPayRaw) <= 0) {
+                            alert("Validation Error", "No. of Payments must be a positive number."); ev.consume();
+                        }
+                    } catch (NumberFormatException e) {
+                        alert("Validation Error", "No. of Payments must be a whole number."); ev.consume();
+                    }
                 }
             });
         });
@@ -549,6 +605,13 @@ public class AddEditRecurringDialog {
             String fromAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
             int autoRecordDays   = autoRecordCb.isSelected() ? autoRecordDaysSp.getValue() : 0;
 
+            Integer numPayments = null;
+            String numPayRaw = numPaymentsFld.getText().trim();
+            if (!numPayRaw.isEmpty()) {
+                try { int n = Integer.parseInt(numPayRaw); if (n > 0) numPayments = n; }
+                catch (NumberFormatException ignored) {}
+            }
+
             if (isNew) {
                 RecurringTransaction r = new RecurringTransaction(desc, type, freq, day, start, paise);
                 r.setFromAccountId(fromAccountId);
@@ -565,6 +628,7 @@ public class AddEditRecurringDialog {
                 r.setRdOpeningBalancePaise(rdOpenBal);
                 r.setRdMaturityAmountPaise(rdMatAmt);
                 r.setAutoRecordAfterDays(autoRecordDays);
+                r.setNumberOfPayments(numPayments);
                 r.setStatus(RecurringTransaction.Status.ACTIVE);
                 ds.addRecurring(r);
             } else {
@@ -588,6 +652,7 @@ public class AddEditRecurringDialog {
                 existing.setRdOpeningBalancePaise(rdOpenBal);
                 existing.setRdMaturityAmountPaise(rdMatAmt);
                 existing.setAutoRecordAfterDays(autoRecordDays);
+                existing.setNumberOfPayments(numPayments);
                 ds.saveRecurringNow();
             }
             return null;

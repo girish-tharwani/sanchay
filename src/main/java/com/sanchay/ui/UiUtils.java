@@ -13,6 +13,7 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.input.KeyCode;
@@ -288,6 +289,19 @@ public final class UiUtils {
                 combo.show();
             }
         });
+        // When Tab is pressed, commit the matching category as the combo's value so
+        // that valueProperty listeners (e.g. sub-category visibility) fire correctly.
+        combo.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.TAB) {
+                String text = combo.getEditor().getText();
+                if (text != null && !text.isBlank()) {
+                    masterList.stream()
+                            .filter(c -> c.getName().equalsIgnoreCase(text.trim()))
+                            .findFirst()
+                            .ifPresent(combo::setValue);
+                }
+            }
+        });
     }
 
     /**
@@ -334,6 +348,25 @@ public final class UiUtils {
                 suppress[0] = false;
                 popup.hide();
                 e.consume();
+            }
+        });
+    }
+
+    /**
+     * Makes an integer Spinner directly editable.
+     * On focus loss the typed value is parsed, clamped to [min, max], and committed.
+     * Invalid text is reverted to the current value.
+     */
+    public static void makeSpinnerEditable(Spinner<Integer> spinner, int min, int max) {
+        spinner.setEditable(true);
+        spinner.getEditor().focusedProperty().addListener((obs, wasFocused, focused) -> {
+            if (!focused) {
+                try {
+                    int parsed = Integer.parseInt(spinner.getEditor().getText().trim());
+                    spinner.getValueFactory().setValue(Math.max(min, Math.min(max, parsed)));
+                } catch (NumberFormatException e) {
+                    spinner.getEditor().setText(String.valueOf(spinner.getValue()));
+                }
             }
         });
     }

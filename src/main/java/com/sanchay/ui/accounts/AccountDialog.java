@@ -119,8 +119,10 @@ public class AccountDialog {
                 : String.format("%.0f", existing.getCreditLimitPaise() / 100.0), "Credit limit");
         Spinner<Integer> billDay = new Spinner<>(1, 28, isNew ? 1 : existing.getBillingCycleDate());
         billDay.setMaxWidth(Double.MAX_VALUE);
+        UiUtils.makeSpinnerEditable(billDay, 1, 28);
         Spinner<Integer> dueDays = new Spinner<>(1, 60, isNew ? 20 : existing.getPaymentDueDays());
         dueDays.setMaxWidth(Double.MAX_VALUE);
+        UiUtils.makeSpinnerEditable(dueDays, 1, 60);
 
         CheckBox addOnCb = new CheckBox("Has Add-on Card");
         addOnCb.setSelected(!isNew && existing.isAddOnCard());
@@ -217,6 +219,7 @@ public class AccountDialog {
         TextField emiFld     = tf(isNew ? "0" : String.format("%.0f", existing.getEmiAmountPaise() / 100.0),          "EMI amount");
         Spinner<Integer> emiDay = new Spinner<>(1, 28, isNew ? 1 : existing.getEmiDueDay());
         emiDay.setMaxWidth(Double.MAX_VALUE);
+        UiUtils.makeSpinnerEditable(emiDay, 1, 28);
         TextField outFld     = tf(isNew ? "0" : String.format("%.0f", existing.getOutstandingPrincipalPaise() / 100.0), "Outstanding principal");
 
         DatePicker openDatePicker = new DatePicker(isNew ? LocalDate.now() : existing.getOpeningDate());

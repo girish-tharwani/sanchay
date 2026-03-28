@@ -461,7 +461,7 @@
     -fx-background-color: transparent;
     -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
     -fx-border-width: 0 0 1px 0;
-    -fx-padding: 11px 0;
+    -fx-padding: 11px 16px;
 }
 
 /* ── Small icon button (ℹ ☰ etc.) ───────────────────────────────────────── */
@@ -830,8 +830,8 @@
     -fx-text-fill: -color-success-dark;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-min-width: 22; -fx-max-width: 22;
-    -fx-min-height: 22; -fx-max-height: 22;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
     -fx-padding: 0;
     -fx-background-radius: 3;
     -fx-cursor: hand;
@@ -973,6 +973,23 @@
     -fx-border-color: rgba(192,57,43,0.25);
     -fx-text-fill: -color-error;
     -fx-font-size: 18px;
+}
+
+/* Red variant of the small header icon box — used in destructive dialogs */
+.dialog-icon-box--danger {
+    -fx-background-color: rgba(192,57,43,0.10);
+    -fx-border-color: rgba(192,57,43,0.25);
+    -fx-text-fill: -color-error;
+}
+
+/* Red-tinted detail card — shows the record being deleted */
+.dialog-danger-block {
+    -fx-background-color: #fef2f2;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 12 16 12 16;
 }
 
 /* ── Inline card separators ──────────────────────────────────────────────── */

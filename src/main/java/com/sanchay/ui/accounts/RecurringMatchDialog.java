@@ -92,15 +92,12 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
             HBox mainRow = new HBox(8);
             mainRow.setAlignment(Pos.CENTER_LEFT);
-            Label mainLbl = new Label(r.getDescription() + "   " + r.getAmountInr());
+            Label mainLbl = new Label(nextDue + "   " + r.getAmountInr() + "   " + r.getDescription());
             mainLbl.getStyleClass().add("text-step-title");
             mainRow.getChildren().addAll(mainLbl, freqChip);
 
             VBox rCard = new VBox(3);
             rCard.getChildren().add(mainRow);
-            Label dueLabel = new Label("Due: " + nextDue);
-            dueLabel.getStyleClass().add("text-hint");
-            rCard.getChildren().add(dueLabel);
             if (!catLabel.isBlank()) {
                 Label catLbl = new Label(catLabel);
                 catLbl.getStyleClass().add("text-hint");
@@ -147,6 +144,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
         // "Record against Schedule" enabled only when a radio is selected
         Button reconcileBtn = (Button) getDialogPane().lookupButton(reconcileBt);
+        ButtonBar.setButtonUniformSize(reconcileBtn, false);
         reconcileBtn.setDisable(tg.getSelectedToggle() == null);
         tg.selectedToggleProperty().addListener(
                 (o, p, n) -> reconcileBtn.setDisable(n == null));

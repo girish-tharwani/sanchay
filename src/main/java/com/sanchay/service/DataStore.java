@@ -889,7 +889,10 @@ public class DataStore {
         long paid = transactions.stream()
                 .filter(t -> t.getType() == Type.CC_PAYMENT && cardId.equals(t.getToAccountId()))
                 .mapToLong(Transaction::getAmountPaise).sum();
-        return charged - paid;
+        long refunded = transactions.stream()
+                .filter(t -> t.getType() == Type.REFUND && cardId.equals(t.getToAccountId()))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        return charged - paid - refunded;
     }
 
     public long getTotalCreditCardOutstandingPaise() {

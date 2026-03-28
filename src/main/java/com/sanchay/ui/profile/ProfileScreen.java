@@ -13,7 +13,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /** Profile screen — family members and earnings configuration. */
@@ -124,7 +123,7 @@ public class ProfileScreen {
         dobCol.setMinWidth(110);
         dobCol.setCellValueFactory(d -> {
             LocalDate dob = d.getValue().getDateOfBirth();
-            String text = dob != null ? dob.format(DateTimeFormatter.ofPattern("dd MMM yyyy")) : "—";
+            String text = dob != null ? dob.format(DataStore.getInstance().getDateFormatter()) : "—";
             return new javafx.beans.property.SimpleStringProperty(text);
         });
 
@@ -137,7 +136,7 @@ public class ProfileScreen {
         // Earning? checkbox column — toggles earning flag and handles schedule lifecycle
         TableColumn<FamilyMember, Void> earningChkCol = new TableColumn<>("EARNING?");
         earningChkCol.setMinWidth(72);
-        earningChkCol.setMaxWidth(72);
+        earningChkCol.setMaxWidth(90);
         earningChkCol.setCellFactory(tc -> new TableCell<>() {
             private final CheckBox chk = new CheckBox();
             {
@@ -229,17 +228,10 @@ public class ProfileScreen {
                 if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
                 FamilyMember m = getTableRow().getItem();
                 removeBtn.setOnAction(e -> {
-                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                    confirm.setTitle("Remove Member");
-                    confirm.setHeaderText("Remove '" + m.getName() + "'?");
-                    confirm.setContentText(
-                            "This removes the member from the list. "
-                            + "Existing transactions tagged to this member are not affected.");
-                    confirm.showAndWait().filter(b -> b == ButtonType.OK)
-                            .ifPresent(b -> {
-                                ds.removeFamilyMember(m.getId());
-                                refreshFamilyList(box);
-                            });
+                    if (new RemoveMemberDialog(m).showAndWait()) {
+                        ds.removeFamilyMember(m.getId());
+                        refreshFamilyList(box);
+                    }
                 });
                 setGraphic(removeBtn);
             }

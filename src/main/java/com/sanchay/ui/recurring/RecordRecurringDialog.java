@@ -159,8 +159,13 @@ public class RecordRecurringDialog {
             if (rdRef != null && !rdRef.isBlank())
                 t.setNotes("RD Ref: " + rdRef);
             ds.addTransaction(t);
+            r.incrementPaymentsMade();
             r.markRecorded(txDate);
-            ds.saveRecurringNow();
+            if (r.isPaymentLimitReached()) {
+                ds.deleteRecurring(r.getId());
+            } else {
+                ds.saveRecurringNow();
+            }
             if (onComplete != null) onComplete.run();
             if (postRefresh != null) postRefresh.run();
         });

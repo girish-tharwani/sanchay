@@ -228,7 +228,7 @@ public class DashboardScreen {
         HBox.setHgrow(details, Priority.ALWAYS);
 
         Label amount = new Label(r.getAmountInr());
-        amount.getStyleClass().add("card-value");
+        amount.getStyleClass().add("text-step-title");
 
         Button record = new Button("✓");
         record.getStyleClass().add("btn-action-sm");
