@@ -1,6 +1,7 @@
 package com.sanchay.ui.accounts;
 
 import com.sanchay.model.*;
+import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.ImportService;
 import com.sanchay.ui.MainWindow;
@@ -216,7 +217,7 @@ public class AccountsScreen {
         } else if (acc instanceof LoanAccount la) {
             long outstanding = ds.getLoanOutstandingPaise(la);
             label = "Outstanding";
-            value = String.format("₹%,.2f", outstanding / 100.0);
+            value = String.format("₹%,.0f", outstanding / 100.0);
             valueColour = outstanding > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof InvestmentAccount ia) {
             label = "Invested";
@@ -229,7 +230,7 @@ public class AccountsScreen {
                         .filter(t -> t.getType() == Transaction.Type.REDEEM
                                   && ia.getId().equals(t.getFromAccountId()))
                         .mapToLong(Transaction::getAmountPaise).sum();
-            value = String.format("₹%,.2f", Math.max(0, invested) / 100.0);
+            value = String.format("₹%,.0f", Math.max(0, invested) / 100.0);
             valueColour = "-brand-mid";
         } else {
             return new VBox();
@@ -393,7 +394,7 @@ public class AccountsScreen {
             } else if (acc instanceof LoanAccount la) {
                 long outstanding = ds2.getLoanOutstandingPaise(la);
                 statLabel  = "Outstanding";
-                statValue  = "₹" + String.format("%,.2f", outstanding / 100.0);
+                statValue  = "₹" + String.format("%,.0f", outstanding / 100.0);
                 statColour = outstanding > 0 ? "#C62828" : "#0f3d4a";
             } else if (acc instanceof InvestmentAccount ia) {
                 long invested = ds2.getBaseInvestedPaise(ia);
@@ -406,7 +407,7 @@ public class AccountsScreen {
                     }
                 }
                 statLabel  = "Invested";
-                statValue  = "₹" + String.format("%,.2f", Math.max(0, invested) / 100.0);
+                statValue  = "₹" + String.format("%,.0f", Math.max(0, invested) / 100.0);
                 statColour = "#0f3d4a";
             } else {
                 statLabel = statValue = statColour = null;
@@ -487,9 +488,27 @@ public class AccountsScreen {
                 setGraphic(typeBadge(getTableRow().getItem().getType()));
             }
         });
+        // For REDEEM group transactions only one side's account ID is set on each record
+        // (investment-side has fromAccountId only; bank-side has toAccountId only).
+        // Pre-build a map of groupId → {from, to} so the column can resolve the counterpart.
+        Map<String, String> groupFromId = new java.util.HashMap<>();
+        Map<String, String> groupToId   = new java.util.HashMap<>();
+        for (Transaction gt : ds.getTransactions()) {
+            String gid = gt.getGroupTransactionId();
+            if (gid == null) continue;
+            if (gt.getFromAccountId() != null) groupFromId.put(gid, gt.getFromAccountId());
+            if (gt.getToAccountId()   != null) groupToId  .put(gid, gt.getToAccountId());
+        }
+
         TableColumn<Transaction, String> acctCol = col("To / From Account", 140, t -> {
             String secondId = acc.getId().equals(t.getFromAccountId())
                     ? t.getToAccountId() : t.getFromAccountId();
+            if (secondId == null && t.getGroupTransactionId() != null) {
+                // Resolve counterpart for REDEEM split transactions
+                String gid = t.getGroupTransactionId();
+                secondId = acc.getId().equals(t.getFromAccountId())
+                        ? groupToId.get(gid) : groupFromId.get(gid);
+            }
             String name = ds.getAccountName(secondId);
             return "—".equals(name) ? "" : name;
         });
@@ -499,6 +518,10 @@ public class AccountsScreen {
         TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
                 t -> ds.getCategoryName(t.getClassification() != null
                         ? t.getClassification().getSubCategoryId() : null));
+
+        // ── Account-type-specific columns (replace Category/Sub-category) ────────
+        List<TableColumn<Transaction, ?>> specialtyCols = buildSpecialtyCols(acc, ds);
+
         TableColumn<Transaction, Long> amtCol = new TableColumn<>("AMOUNT");
         amtCol.setPrefWidth(90);
         amtCol.setCellValueFactory(cd ->
@@ -687,8 +710,9 @@ public class AccountsScreen {
             }
         });
 
-        table.getColumns().addAll(dateCol, descCol, typeCol, acctCol, catCol, subCatCol, amtCol,
-                srcCol, actionsCol);
+        table.getColumns().addAll(dateCol, descCol, typeCol, acctCol);
+        table.getColumns().addAll(specialtyCols);
+        table.getColumns().addAll(amtCol, srcCol, actionsCol);
         table.getSortOrder().add(dateCol);
 
         Button exportBtn = new Button("Export CSV");
@@ -721,6 +745,82 @@ public class AccountsScreen {
         scroll.getStyleClass().add("scroll-page-bg");
 
         view.getChildren().setAll(scroll);
+    }
+
+    /**
+     * Returns the two columns that replace Category/Sub-category in the transaction table,
+     * chosen based on the account type being viewed.
+     */
+    private List<TableColumn<Transaction, ?>> buildSpecialtyCols(Account acc, DataStore ds) {
+        if (acc instanceof LoanAccount) {
+            TableColumn<Transaction, String> principalCol = col("Principal", 100, t -> {
+                if (t.getType() != Transaction.Type.LOAN_PAYMENT) return null;
+                long p = effectiveLoanPrincipalPaise(t, ds);
+                return p > 0 ? String.format("₹%,.0f", p / 100.0) : null;
+            });
+            TableColumn<Transaction, String> interestCol = col("Interest", 100, t -> {
+                if (t.getType() != Transaction.Type.LOAN_PAYMENT) return null;
+                long principal = effectiveLoanPrincipalPaise(t, ds);
+                if (principal <= 0) return null;
+                long interest = t.getAmountPaise() - principal;
+                return interest > 0 ? String.format("₹%,.0f", interest / 100.0) : null;
+            });
+            return List.of(principalCol, interestCol);
+        }
+
+        if (acc instanceof InvestmentAccount ia) {
+            InvestmentAccount.InvestmentType invType = ia.getInvestmentType();
+            if (invType == InvestmentAccount.InvestmentType.EQUITY
+                    || invType == InvestmentAccount.InvestmentType.MUTUAL_FUNDS) {
+                TableColumn<Transaction, String> schemeCol = col("Scheme / Script", 160,
+                        t -> t.getInvestmentDetails() != null
+                                ? t.getInvestmentDetails().getSchemeScriptName() : null);
+                TableColumn<Transaction, String> unitsCol = col("Units / NAV", 90, t -> {
+                    if (t.getInvestmentDetails() == null
+                            || t.getInvestmentDetails().getUnitsNav() == null) return null;
+                    return String.format("%.4f", t.getInvestmentDetails().getUnitsNav());
+                });
+                return List.of(schemeCol, unitsCol);
+            }
+
+            if (invType == InvestmentAccount.InvestmentType.DEBT_BONDS
+                    || invType == InvestmentAccount.InvestmentType.FIXED_DEPOSIT) {
+                TableColumn<Transaction, String> matDateCol = col("Maturity Date", 110, t -> {
+                    if (t.getInvestmentDetails() == null
+                            || t.getInvestmentDetails().getFd() == null) return null;
+                    LocalDate d = t.getInvestmentDetails().getFd().getMaturityDate();
+                    return d != null ? d.format(dateFmt()) : null;
+                });
+                TableColumn<Transaction, String> matAmtCol = col("Maturity Amount", 110, t -> {
+                    if (t.getInvestmentDetails() == null
+                            || t.getInvestmentDetails().getFd() == null) return null;
+                    Long p = t.getInvestmentDetails().getFd().getMaturityAmountPaise();
+                    return p != null ? String.format("₹%,.2f", p / 100.0) : null;
+                });
+                return List.of(matDateCol, matAmtCol);
+            }
+
+            if (invType == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT) {
+                TableColumn<Transaction, String> matDateCol = col("Maturity Date", 110, t -> {
+                    if (t.getRecurring() == null
+                            || t.getRecurring().getRecurringId() == null) return null;
+                    RecurringTransaction r = ds.findRecurringById(t.getRecurring().getRecurringId());
+                    if (r == null) return null;
+                    LocalDate d = r.getMaturityDate();
+                    return d != null ? d.format(dateFmt()) : null;
+                });
+                return List.of(matDateCol);
+            }
+        }
+
+        // Bank, Credit Card, and any unhandled investment sub-type → Category + Sub-category
+        TableColumn<Transaction, String> catCol = col("Category", 100,
+                t -> ds.getCategoryName(t.getClassification() != null
+                        ? t.getClassification().getCategoryId() : null));
+        TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
+                t -> ds.getCategoryName(t.getClassification() != null
+                        ? t.getClassification().getSubCategoryId() : null));
+        return List.of(catCol, subCatCol);
     }
 
     private static void restoreSelection(TableView<Transaction> table, String id) {
@@ -1030,6 +1130,19 @@ public class AccountsScreen {
         val.getStyleClass().add("text-body-muted");
         row.getChildren().addAll(lbl, val);
         container.getChildren().add(row);
+    }
+
+    /**
+     * Returns the principal for a LOAN_PAYMENT transaction in paise.
+     * Reads from redeemDetails if stored; otherwise falls back to the amortization schedule.
+     */
+    private static long effectiveLoanPrincipalPaise(Transaction t, DataStore ds) {
+        long p = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+        if (p <= 0 && t.getToAccountId() != null) {
+            p = AmortizationService.getScheduledPrincipalForDate(
+                    ds.getSchedule(t.getToAccountId()), t.getDate());
+        }
+        return p;
     }
 
     private <T> TableColumn<T, String> col(String title, int prefWidth,

@@ -9,20 +9,20 @@ Read the current version from `pom.xml`. It follows `MAJOR.MINOR.PATCH-SNAPSHOT`
 - Default: increment **PATCH** only (bug fixes, UI tweaks, new features — everything)
 - Increment **MINOR** and reset PATCH to 0 **only** if the user explicitly requested it in this session
 - Never increment **MAJOR** under any circumstances
-- Always keep the existing suffix `-SNAPSHOT` suffix
+- Always keep the existing suffix `-MVP1` suffix
 
 ## Step 2 — Update pom.xml
 
 Set the new version in `pom.xml`:
 ```xml
-<version>0.1.1-SNAPSHOT</version>
+<version>1.0.1-MVP1</version>
 ```
 
 ## Step 3 — Update CHANGELOG.md
 
 Add a new entry at the **top** of `CHANGELOG.md` using today's date. Only include sections that apply:
 ```markdown
-## v0.1.1 — YYYY-MM-DD
+## v1.0.1 — YYYY-MM-DD
 
 ### Added
 - ...
@@ -38,12 +38,12 @@ Keep descriptions concise. No implementation details in Fixed entries.
 
 ## Step 4 — Update README.md and CLAUDE.md
 
-Review both files and update anything that's now out of date with the changes made. Do **not** add version or changelog information to either file — that belongs only in `CHANGELOG.md`.
+Review both files and update them with new information to align with the changes made in the new version. Do **not** add version or changelog information to either file — that belongs only in `CHANGELOG.md`.
 
 ## Step 5 — Stage, commit, and push
 ```bash
 git add -A
-git commit -m "v0.1.1-SNAPSHOT"
+git commit -m "v1.0.1-MVP1"
 git push
 ```
 

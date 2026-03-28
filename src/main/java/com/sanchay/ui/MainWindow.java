@@ -94,7 +94,7 @@ public class MainWindow {
         StackPane outerRoot = new StackPane(root, wcBar);
         StackPane.setAlignment(wcBar, Pos.TOP_RIGHT);
 
-        Scene scene = new Scene(outerRoot, 1280, 750);
+        Scene scene = new Scene(outerRoot, 1175, 750);
         scene.getStylesheets().add(
                 getClass().getResource("/com/sanchay/css/app.css").toExternalForm());
 

@@ -2,6 +2,7 @@ package com.sanchay.service;
 
 import com.sanchay.model.*;
 import com.sanchay.model.ImportMapping;
+import com.sanchay.service.AmortizationService;
 import com.sanchay.model.BankAccount.SubType;
 import com.sanchay.model.InvestmentAccount.InvestmentType;
 import com.sanchay.model.LoanAccount.LoanType;
@@ -877,9 +878,13 @@ public class DataStore {
         long paid = transactions.stream()
                 .filter(t -> (t.getType() == Type.TRANSFER || t.getType() == Type.LOAN_PAYMENT)
                         && la.getId().equals(t.getToAccountId()))
-                .mapToLong(t -> t.getType() == Type.LOAN_PAYMENT
-                        && t.getRedeemDetails() != null && t.getRedeemDetails().getPrincipalPaise() > 0
-                        ? t.getRedeemDetails().getPrincipalPaise() : t.getAmountPaise())
+                .mapToLong(t -> {
+                    if (t.getType() != Type.LOAN_PAYMENT) return t.getAmountPaise(); // TRANSFER
+                    long p = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+                    if (p <= 0)
+                        p = AmortizationService.getScheduledPrincipalForDate(getSchedule(la.getId()), t.getDate());
+                    return p > 0 ? p : t.getAmountPaise(); // last resort: full EMI
+                })
                 .sum();
         return Math.max(0, la.getOutstandingPrincipalPaise() - paid);
     }
@@ -956,20 +961,37 @@ public class DataStore {
 
     public long getMonthlyExpensesPaise() {
         LocalDate now = LocalDate.now();
-        return transactions.stream()
+        long expenses = transactions.stream()
                 .filter(t -> t.getType() == Type.EXPENSE
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
+        long refunds = transactions.stream()
+                .filter(t -> t.getType() == Type.REFUND
+                        && t.getDate().getMonth() == now.getMonth()
+                        && t.getDate().getYear()  == now.getYear())
+                .mapToLong(Transaction::getAmountPaise).sum();
+        return Math.max(0, expenses - refunds);
     }
 
     public long getMonthlyIncomePaise() {
         LocalDate now = LocalDate.now();
-        return transactions.stream()
+        long income = transactions.stream()
                 .filter(t -> t.getType() == Type.INCOME
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
+        long gain = transactions.stream()
+                .filter(t -> t.getType() == Type.GAIN
+                        && t.getDate().getMonth() == now.getMonth()
+                        && t.getDate().getYear()  == now.getYear())
+                .mapToLong(Transaction::getAmountPaise).sum();
+        long lose = transactions.stream()
+                .filter(t -> t.getType() == Type.LOSE
+                        && t.getDate().getMonth() == now.getMonth()
+                        && t.getDate().getYear()  == now.getYear())
+                .mapToLong(Transaction::getAmountPaise).sum();
+        return Math.max(0, income + gain - lose);
     }
 
     public List<Transaction> getRecentTransactions(int n) {
