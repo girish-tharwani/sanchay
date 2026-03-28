@@ -31,7 +31,10 @@
       "Bash(\"$TMPFILE\")",
       "Bash(__NEW_LINE_faa8ccf4b2507c21__ wc:*)",
       "Bash(ls /tmp/AccountsScreen*.java)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(find /d/Projects/sanchay/logs -type f -name *.log -o -name *.txt)",
+      "Bash(find /d/Projects/sanchay -name *.log -o -name *error* -type f)",
+      "Bash(find /d/Projects/sanchay/src/main/java -type f -name \"*.java\" -exec grep -l \"TableView\\\\|TableColumn\\\\|getCellData\\\\|transaction\" {})"
     ]
   }
 }

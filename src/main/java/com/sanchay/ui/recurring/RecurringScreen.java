@@ -104,10 +104,6 @@ public class RecurringScreen {
                 r -> r.getNextDueDate() != null ? r.getNextDueDate().format(fmt) : "—");
         TableColumn<RecurringTransaction, String> statusCol = col("Status", 80,
                 r -> formatStatus(r.getStatus()));
-        TableColumn<RecurringTransaction, String> catCol = col("Category", 120,
-                r -> ds.getCategoryName(r.getCategoryId()));
-        TableColumn<RecurringTransaction, String> subCatCol = col("Sub-category", 120,
-                r -> ds.getCategoryName(r.getSubCategoryId()));
         TableColumn<RecurringTransaction, String> paymentsCol = col("Payments", 80,
                 r -> r.getNumberOfPayments() != null
                         ? r.getPaymentsMade() + " / " + r.getNumberOfPayments()
@@ -167,7 +163,7 @@ public class RecurringScreen {
         });
 
         allSchedulesTable.getColumns().addAll(
-                descCol, typeCol, freqCol, amtCol, nextCol, statusCol, catCol, subCatCol, paymentsCol, actionsCol);
+                descCol, typeCol, freqCol, amtCol, nextCol, statusCol, paymentsCol, actionsCol);
 
         HBox tableFooter = new HBox();
         tableFooter.getStyleClass().add("table-footer");

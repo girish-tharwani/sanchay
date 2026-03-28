@@ -1,6 +1,6 @@
 ---
 name: log-watcher
-description: Monitors error log files and reports issues
+description: Monitors error log files and reports issues. Should always run in the background.
 tools:
   - Read
   - Grep
