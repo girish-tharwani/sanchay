@@ -801,7 +801,102 @@ public class TransactionDialog extends Dialog<Transaction> {
             } catch (NumberFormatException ignored) {}
         }
 
-        return persistTransaction(t);
+        Transaction saved = persistTransaction(t);
+        checkAndHandlePrepayment(saved, to, date);
+        return saved;
+    }
+
+    /**
+     * After saving a LOAN_PAYMENT, check if the principal paid exceeds the
+     * scheduled principal for that month. If so, prompt for prepayment mode
+     * (or use the loan's saved default) and regenerate the amortization schedule.
+     */
+    private void checkAndHandlePrepayment(Transaction t, LoanAccount loan, LocalDate date) {
+        List<AmortizationEntry> schedule = ds.getSchedule(loan.getId());
+        if (schedule == null || schedule.isEmpty()) return;
+
+        // Find the schedule entry for this payment month
+        int entryIndex = -1;
+        for (int i = 0; i < schedule.size(); i++) {
+            AmortizationEntry e = schedule.get(i);
+            if (e.getPaymentDate().getYear()  == date.getYear()
+             && e.getPaymentDate().getMonth() == date.getMonth()) {
+                entryIndex = i;
+                break;
+            }
+        }
+        if (entryIndex < 0) return;
+
+        AmortizationEntry entry           = schedule.get(entryIndex);
+        long              scheduledPrin   = entry.getPrincipalRepaymentPaise();
+        long              actualPrin      = (t.getRedeemDetails() != null)
+                                                ? t.getRedeemDetails().getPrincipalPaise() : 0;
+        long              extraPrin       = actualPrin - scheduledPrin;
+        if (extraPrin <= 0) return; // no prepayment
+
+        // Determine mode — use saved default or ask the user
+        LoanAccount.PrepaymentMode mode = loan.getDefaultPrepaymentMode();
+        if (mode == null) {
+            mode = promptPrepaymentMode(loan);
+            if (mode == null) return; // user dismissed without choosing
+        }
+
+        // New balance after actual principal payment
+        long newBalance = entry.getOpeningBalancePaise() - actualPrin;
+        int  nextIndex  = entryIndex + 1;
+
+        if (newBalance <= 0 || nextIndex >= schedule.size()) {
+            // Loan effectively paid off — trim remaining entries
+            ds.saveSchedule(loan.getId(), new ArrayList<>(schedule.subList(0, nextIndex)));
+            return;
+        }
+
+        List<AmortizationEntry> updated = AmortizationService.recalculateFromBalance(
+                schedule, nextIndex, loan, newBalance, mode);
+        ds.saveSchedule(loan.getId(), updated);
+    }
+
+    /**
+     * Shows a dialog asking whether the prepayment should reduce tenure or EMI.
+     * Offers a "Remember my choice" checkbox so the user is not asked again.
+     * Returns the chosen mode, or null if the dialog was cancelled.
+     */
+    private LoanAccount.PrepaymentMode promptPrepaymentMode(LoanAccount loan) {
+        ButtonType reduceTenure = new ButtonType("Reduce Tenure", ButtonBar.ButtonData.LEFT);
+        ButtonType reduceEmi    = new ButtonType("Reduce EMI",    ButtonBar.ButtonData.RIGHT);
+        ButtonType cancel       = new ButtonType("Cancel",        ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.initOwner(getDialogPane().getScene().getWindow());
+        dlg.setTitle("Part-Prepayment Detected");
+        dlg.setHeaderText("This payment includes an extra principal amount.");
+        dlg.setContentText(
+                "How should the amortization schedule be recalculated?\n\n" +
+                "• Reduce Tenure — keep the same EMI, fewer months remaining.\n" +
+                "• Reduce EMI    — keep the same tenure, lower monthly EMI.\n");
+
+        CheckBox rememberChk = new CheckBox("Remember my choice for this loan");
+        rememberChk.getStyleClass().add("form-label");
+        dlg.getDialogPane().setExpandableContent(rememberChk);
+        dlg.getDialogPane().setExpanded(true);
+
+        dlg.getDialogPane().getButtonTypes().addAll(reduceTenure, reduceEmi, cancel);
+        dlg.getDialogPane().getStylesheets().addAll(
+                getDialogPane().getStylesheets());
+
+        Optional<ButtonType> result = dlg.showAndWait();
+        if (result.isEmpty() || result.get() == cancel) return null;
+
+        LoanAccount.PrepaymentMode chosen = (result.get() == reduceTenure)
+                ? LoanAccount.PrepaymentMode.REDUCE_TENURE
+                : LoanAccount.PrepaymentMode.REDUCE_EMI;
+
+        if (rememberChk.isSelected()) {
+            loan.setDefaultPrepaymentMode(chosen);
+            ds.saveAccountsNow();
+        }
+
+        return chosen;
     }
 
     private Transaction saveTransfer() {

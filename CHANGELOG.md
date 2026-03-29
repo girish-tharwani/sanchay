@@ -1,3 +1,16 @@
+## v1.0.7 — 2026-03-29
+
+### Added
+- Loan payments: part-prepayment is automatically detected when the principal paid exceeds the scheduled amount; user is prompted to choose between "Reduce Tenure" (same EMI, fewer months) or "Reduce EMI" (same tenure, lower EMI); the amortization schedule is recalculated and saved immediately
+- Prepayment mode preference can be saved per loan so the user is not prompted again
+- Profile → Earnings: each earning member now supports multiple income sources; tabs are user-named and can be added (Simple or Structured Salary) or removed independently
+- Profile → Earnings: Estimated Tax Rate field added to the Simple earnings tab; net amount shown live
+- Profile → Earnings: Structured Salary inputs are now entered as annual figures; calculations divide by 12 internally
+- Profile → Earnings: EPS field now shows "—" until Basic+DA data is entered; no longer defaults to ₹1,250
+- Profile: removing an earning member now cascade-deletes all linked income and PF recurring schedules
+
+---
+
 ## v1.0.6 — 2026-03-29
 
 ### Added

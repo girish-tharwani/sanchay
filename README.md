@@ -327,7 +327,7 @@ Credit cards are modelled as liability accounts. Spending on a credit card is re
 | Vehicle Registration No. | Text | Optional |
 | Vehicle Description | Text | e.g., "Maruti Swift 2023" |
 
-> **Future enhancement:** Auto-generate full amortization schedule (monthly breakdown of principal and interest) from loan parameters.
+> When a Loan Payment transaction includes a principal amount exceeding the scheduled EMI principal, the app detects it as a part-prepayment and prompts the user to choose between **Reduce Tenure** (same EMI, fewer months) or **Reduce EMI** (same tenure, lower monthly payment). The amortization schedule is recalculated from that point forward. The chosen mode can be saved as the default for the loan to skip the prompt on future prepayments.
 
 ---
 
@@ -988,22 +988,26 @@ The family members list is presented as a table with the following columns:
 
 **Earnings Configuration dialog** (opened via ₹ button or on first Earning=true save):
 
-*Simple tab* — Amount (₹), Frequency, Into Account, Day of Month, Schedule Description, Income Category. Creates one monthly/periodic INCOME recurring schedule.
+An earning member can have any number of income sources. Each source appears as a named tab; tabs can be added via the **+ Income** button (choose Simple or Structured Salary), renamed inline, and removed individually.
 
-*Structured Salary tab* — Basic+DA, HRA, Other Allowances, Estimated Tax Rate %, VPF %, Into Account, Day of Month, Schedule Description, Income Category, PF Account. A live breakdown panel shows:
+*Simple tab* — Amount (₹), Frequency, Estimated Tax Rate %, Into Account, Day of Month, Schedule Description, Income Category. Net amount after tax is shown live. Creates one INCOME recurring schedule at the net amount.
+
+*Structured Salary tab* — Basic+DA, HRA, Other Allowances entered as **annual** figures; calculations divide by 12 internally. Estimated Tax Rate %, VPF %, Into Account, Day of Month, Schedule Description, Income Category, PF Account. A live breakdown panel shows:
 
 | Row | Calculation |
 |-----|-------------|
-| Gross Monthly | Basic+DA + HRA + Other Allowances |
-| Employee PF (12% + VPF) | (12% + VPF%) × Basic+DA |
-| Estimated Monthly TDS | (Gross − 12% of Basic+DA) × Tax Rate% — VPF is not tax-exempt |
+| Gross Monthly | (Basic+DA + HRA + Other Allowances) ÷ 12 |
+| Employee PF (12% + VPF) | (12% + VPF%) × Monthly Basic+DA |
+| Estimated Monthly TDS | (Gross − 12% of Basic+DA) × Tax Rate% |
 | **Net In-hand** | Gross − Employee PF − TDS |
 | Employer EPF | (12% of Basic+DA) − ₹1,250 |
-| EPS | ₹1,250 (fixed cap) |
+| EPS | Computed only after Basic+DA is entered; blank otherwise |
 | Total Employer Cost | Gross + (12% of Basic+DA) |
-| Monthly PF Deposit | (24% + VPF%) × Basic+DA — total credited to PF account |
+| Monthly PF Deposit | (24% + VPF%) × Monthly Basic+DA |
 
-The Net In-hand figure becomes the INCOME recurring schedule amount. If a PF account is selected, a second INVESTMENT recurring schedule is created for the Monthly PF Deposit amount, deposited directly into the PF account (no source bank account). Both schedules share the same day of month. The employer contribution rows are informational only.
+The Net In-hand figure becomes the INCOME recurring schedule amount. If a PF account is selected, a second INVESTMENT recurring schedule is created for the Monthly PF Deposit amount. Both schedules share the same day of month. The employer contribution rows are informational only.
+
+Removing an earning member cascade-deletes all linked income and PF recurring schedules.
 
 **Validation:**
 - Member names must be non-empty

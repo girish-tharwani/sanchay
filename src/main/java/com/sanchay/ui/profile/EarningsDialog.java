@@ -3,79 +3,65 @@ package com.sanchay.ui.profile;
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import java.time.LocalDate;
+import java.util.*;
 
 /**
  * Dialog for configuring earnings for a family member.
+ * Supports multiple income sources (EarningSource), each creating its own
+ * recurring INCOME schedule. Each source gets its own tab; a "+ Income" tab
+ * appends new sources.
  *
- * Two tabs:
- *   Simple  — single amount + frequency → creates one INCOME recurring schedule.
- *   Salary  — structured breakdown (Basic+DA, HRA, Other Allowances, tax rate) →
- *             computes net in-hand live and creates one monthly INCOME schedule.
+ * SIMPLE sources: gross amount entered, net = gross × (1 − tax%). Schedule uses net amount.
+ * SALARY sources: annual inputs entered, monthly net computed via PF + TDS deductions.
  *
- * On Save: updates the FamilyMember model and creates or updates the linked
- * RecurringTransaction. The schedule ID is stored on the member so it can be
- * paused / resumed / updated when the member's earning flag changes.
+ * On Save: all tabs are validated and their EarningSource objects are persisted.
  */
 public class EarningsDialog extends Dialog<Boolean> {
 
     private final FamilyMember member;
     private final DataStore    ds = DataStore.getInstance();
 
-    // ── Simple form field refs ────────────────────────────────────────────────
-    private TextField                                simpleDescFld;
-    private TextField                                simpleAmtFld;
-    private ComboBox<RecurringTransaction.Frequency> simpleFreqCb;
-    private ComboBox<Account>                        simpleAcctCb;
-    private Spinner<Integer>                         simpleDaySp;
-    private ComboBox<Category>                       simpleCatCb;
+    private final List<EarningSource>         workingSources = new ArrayList<>();
+    private final Map<String, SourceFormRefs> formRefs       = new LinkedHashMap<>();
+    private final List<EarningSource>         pendingDeletes = new ArrayList<>();
 
-    // ── Salary form field refs ────────────────────────────────────────────────
-    private TextField          salDescFld;
-    private TextField          salBasicFld;
-    private TextField          salHraFld;
-    private TextField          salOtherFld;
-    private TextField          salTaxFld;
-    private TextField          salVpfFld;
-    private ComboBox<Account>  salAcctCb;
-    private Spinner<Integer>   salDaySp;
-    private ComboBox<Category> salCatCb;
-
-    // ── Salary form extras ────────────────────────────────────────────────────
-    private CheckBox gratuityChk;
-
-    // ── Salary calc labels ────────────────────────────────────────────────────
-    private Label calcGross, calcEmpPf, calcTds, calcInHand;
-    private Label calcEmpEpf, calcEps, calcTotalEmp, calcPfDeposit, calcEpsDeposit;
-    private Label calcGratuity;
-
-    // ── PF account selector ───────────────────────────────────────────────────
-    private ComboBox<InvestmentAccount> salPfAcctCb;
+    // ── Inner class holding all form field refs for one source tab ────────────
+    private static class SourceFormRefs {
+        TextField sourceNameFld, descFld;
+        // SIMPLE
+        TextField simpleAmtFld, simpleTaxFld;
+        ComboBox<RecurringTransaction.Frequency> simpleFreqCb;
+        ComboBox<Account> simpleAcctCb;
+        Spinner<Integer>  simpleDaySp;
+        ComboBox<Category> simpleCatCb;
+        Label netAmountHint;
+        // SALARY
+        TextField salBasicFld, salHraFld, salOtherFld, salTaxFld, salVpfFld;
+        ComboBox<Account> salAcctCb;
+        Spinner<Integer>  salDaySp;
+        ComboBox<Category> salCatCb;
+        ComboBox<InvestmentAccount> salPfAcctCb;
+        CheckBox gratuityChk;
+        Label calcGross, calcEmpPf, calcTds, calcInHand,
+              calcEmpEpf, calcEps, calcPfDeposit, calcEpsDeposit, calcGratuity;
+    }
 
     public EarningsDialog(FamilyMember member) {
         this.member = member;
         setTitle("Earnings — " + member.getName());
         setHeaderText(null);
-        getDialogPane().setPrefWidth(780);
+        getDialogPane().setPrefWidth(950);
+        getDialogPane().setPrefHeight(680);
         UiUtils.applyStylesheet(this);
         UiUtils.setDialogHeader(this, "₹", "Earnings — " + member.getName());
-        getDialogPane().setPrefHeight(650);
 
-        TabPane tabs = new TabPane();
-        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-
-        Tab simpleTab = new Tab("Simple",            buildSimpleForm());
-        Tab salaryTab = new Tab("Structured Salary", buildSalaryForm());
-        tabs.getTabs().addAll(simpleTab, salaryTab);
-
-        // Pre-select tab based on existing earning type
-        if (member.getEarningType() == FamilyMember.EarningType.SALARY)
-            tabs.getSelectionModel().select(1);
-
+        TabPane tabs = buildTabPane();
         getDialogPane().setContent(tabs);
 
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -83,209 +69,332 @@ public class EarningsDialog extends Dialog<Boolean> {
 
         setResultConverter(bt -> {
             if (bt != saveBtn) return null;
-            try {
-                Tab active = tabs.getSelectionModel().getSelectedItem();
-                if (active == simpleTab) saveSimple();
-                else                    saveSalary();
-                return Boolean.TRUE;
-            } catch (IllegalArgumentException ex) {
-                showError(ex.getMessage());
-                return null;
+            return saveAll(tabs);
+        });
+    }
+
+    // ── Tab pane construction ─────────────────────────────────────────────────
+
+    private TabPane buildTabPane() {
+        TabPane tabs = new TabPane();
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        List<EarningSource> existing = member.getEarningSources();
+        if (existing == null || existing.isEmpty()) {
+            EarningSource blank = new EarningSource();
+            blank.setSourceName("Income");
+            blank.setType(FamilyMember.EarningType.SIMPLE);
+            blank.setSimpleFrequency(RecurringTransaction.Frequency.MONTHLY.name());
+            existing = List.of(blank);
+        }
+        for (EarningSource src : existing) {
+            workingSources.add(src);
+            tabs.getTabs().add(buildSourceTab(src, tabs));
+        }
+
+        Tab addTab = new Tab("+ Income");
+        addTab.setClosable(false);
+        tabs.getTabs().add(addTab);
+
+        tabs.getSelectionModel().selectedItemProperty().addListener((obs, prev, curr) -> {
+            if (curr == addTab) {
+                Platform.runLater(() -> {
+                    if (prev != null) tabs.getSelectionModel().select(prev);
+                });
+                showAddSourceDialog(tabs, addTab);
             }
         });
+
+        return tabs;
+    }
+
+    private Tab buildSourceTab(EarningSource src, TabPane tabs) {
+        Tab tab = new Tab(src.getSourceName() != null ? src.getSourceName() : "Income");
+        tab.setClosable(false);
+
+        SourceFormRefs refs = new SourceFormRefs();
+        formRefs.put(src.getId(), refs);
+
+        refs.sourceNameFld = tf(src.getSourceName() != null ? src.getSourceName() : "");
+        refs.sourceNameFld.setPromptText("e.g. Main Job, Freelance, Rental...");
+        refs.sourceNameFld.textProperty().addListener((o, ov, nv) ->
+                tab.setText(nv.isBlank() ? "Income" : nv));
+
+        GridPane nameGrid = new GridPane();
+        nameGrid.setHgap(12);
+        nameGrid.setVgap(10);
+        nameGrid.setPadding(new Insets(12, 16, 8, 16));
+        ColumnConstraints nc1 = new ColumnConstraints(160);
+        ColumnConstraints nc2 = new ColumnConstraints();
+        nc2.setHgrow(Priority.ALWAYS);
+        nameGrid.getColumnConstraints().addAll(nc1, nc2);
+        Label nameLbl = new Label("Source Name*");
+        nameLbl.getStyleClass().add("text-form-value");
+        nameLbl.setMinWidth(155);
+        nameGrid.add(nameLbl, 0, 0);
+        nameGrid.add(refs.sourceNameFld, 1, 0);
+        GridPane.setFillWidth(refs.sourceNameFld, true);
+
+        Node formContent = src.getType() == FamilyMember.EarningType.SALARY
+                ? buildSalaryForm(src, refs)
+                : buildSimpleForm(src, refs);
+
+        Button removeBtn = new Button("Remove this source");
+        removeBtn.setOnAction(e -> removeSource(src, tab, tabs));
+        HBox removeRow = new HBox(removeBtn);
+        removeRow.setPadding(new Insets(6, 16, 10, 16));
+
+        VBox wrapper = new VBox(0, nameGrid, new Separator(), formContent, removeRow);
+
+        ScrollPane scroll = new ScrollPane(wrapper);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("scroll-transparent");
+        tab.setContent(scroll);
+        return tab;
+    }
+
+    private void showAddSourceDialog(TabPane tabs, Tab addTab) {
+        Dialog<EarningSource> dlg = new Dialog<>();
+        dlg.setTitle("Add Income Source");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "+", "Add Income Source");
+
+        GridPane g = new GridPane();
+        g.setHgap(12); g.setVgap(12);
+        g.setPadding(new Insets(16));
+        ColumnConstraints c1 = new ColumnConstraints(130);
+        ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
+        g.getColumnConstraints().addAll(c1, c2);
+
+        TextField nameFld = tf("");
+        nameFld.setPromptText("e.g. Main Job, Freelance...");
+
+        ComboBox<String> typeCb = new ComboBox<>();
+        typeCb.getItems().addAll("Simple Income", "Structured Salary");
+        typeCb.setValue("Simple Income");
+        typeCb.setMaxWidth(Double.MAX_VALUE);
+
+        Label l1 = new Label("Source Name*"); l1.getStyleClass().add("text-form-value"); l1.setMinWidth(125);
+        Label l2 = new Label("Type*");        l2.getStyleClass().add("text-form-value"); l2.setMinWidth(125);
+        g.add(l1, 0, 0); g.add(nameFld, 1, 0); GridPane.setFillWidth(nameFld, true);
+        g.add(l2, 0, 1); g.add(typeCb,  1, 1);
+
+        dlg.getDialogPane().setContent(g);
+        ButtonType addBtn = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
+        dlg.getDialogPane().getButtonTypes().addAll(addBtn, ButtonType.CANCEL);
+
+        dlg.setResultConverter(bt -> {
+            if (bt != addBtn) return null;
+            String name = nameFld.getText().trim();
+            if (name.isEmpty()) { showError("Source Name is required."); return null; }
+            EarningSource src = new EarningSource();
+            src.setSourceName(name);
+            boolean isSalary = "Structured Salary".equals(typeCb.getValue());
+            src.setType(isSalary ? FamilyMember.EarningType.SALARY : FamilyMember.EarningType.SIMPLE);
+            if (!isSalary) src.setSimpleFrequency(RecurringTransaction.Frequency.MONTHLY.name());
+            return src;
+        });
+
+        dlg.showAndWait().ifPresent(src -> {
+            workingSources.add(src);
+            int insertIdx = tabs.getTabs().indexOf(addTab);
+            Tab newTab = buildSourceTab(src, tabs);
+            tabs.getTabs().add(insertIdx, newTab);
+            tabs.getSelectionModel().select(newTab);
+        });
+    }
+
+    private void removeSource(EarningSource src, Tab tab, TabPane tabs) {
+        if (workingSources.size() == 1) {
+            showError("At least one income source is required.");
+            return;
+        }
+        if (src.getRecurringScheduleId() != null) {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Remove Income Source");
+            confirm.setHeaderText(null);
+            confirm.setContentText(
+                    "This will also delete the linked recurring income schedule. Continue?");
+            UiUtils.applyStylesheet(confirm);
+            if (confirm.showAndWait().filter(r -> r == ButtonType.OK).isEmpty()) return;
+            pendingDeletes.add(src);
+        }
+        workingSources.remove(src);
+        formRefs.remove(src.getId());
+        tabs.getTabs().remove(tab);
     }
 
     // ── Simple form ───────────────────────────────────────────────────────────
 
-    private Node buildSimpleForm() {
+    private Node buildSimpleForm(EarningSource src, SourceFormRefs refs) {
         GridPane g = formGrid();
+        boolean configured = src.getSimpleAmountPaise() > 0;
 
-        boolean isSim = member.getEarningType() == FamilyMember.EarningType.SIMPLE;
+        refs.descFld = tf(src.getScheduleDescription() != null
+                ? src.getScheduleDescription()
+                : member.getName() + " — " + (src.getSourceName() != null ? src.getSourceName() : "Income"));
+        refs.simpleAmtFld = tf(configured ? fmtAmt(src.getSimpleAmountPaise()) : "");
+        refs.simpleAmtFld.setPromptText("0.00 (gross)");
 
-        simpleDescFld = tf(isSim && member.getScheduleDescription() != null
-                ? member.getScheduleDescription() : member.getName() + " — Income");
-        simpleAmtFld  = tf(isSim && member.getSimpleAmountPaise() > 0
-                ? fmtAmt(member.getSimpleAmountPaise()) : "");
-        simpleAmtFld.setPromptText("0.00");
-
-        simpleFreqCb = new ComboBox<>();
-        simpleFreqCb.getItems().addAll(RecurringTransaction.Frequency.values());
-        simpleFreqCb.setValue(RecurringTransaction.Frequency.MONTHLY);
-        simpleFreqCb.setMaxWidth(Double.MAX_VALUE);
-        simpleFreqCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(RecurringTransaction.Frequency item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : formatFrequency(item));
-            }
-        });
-        simpleFreqCb.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(RecurringTransaction.Frequency item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : formatFrequency(item));
-            }
-        });
-        if (isSim && member.getSimpleFrequency() != null) {
-            try {
-                simpleFreqCb.setValue(RecurringTransaction.Frequency
-                        .valueOf(member.getSimpleFrequency()));
-            } catch (IllegalArgumentException ignored) {}
+        refs.simpleFreqCb = new ComboBox<>();
+        refs.simpleFreqCb.getItems().addAll(RecurringTransaction.Frequency.values());
+        refs.simpleFreqCb.setMaxWidth(Double.MAX_VALUE);
+        refs.simpleFreqCb.setCellFactory(lv -> freqCell());
+        refs.simpleFreqCb.setButtonCell(freqCell());
+        RecurringTransaction.Frequency freq = RecurringTransaction.Frequency.MONTHLY;
+        if (src.getSimpleFrequency() != null) {
+            try { freq = RecurringTransaction.Frequency.valueOf(src.getSimpleFrequency()); }
+            catch (IllegalArgumentException ignored) {}
         }
+        refs.simpleFreqCb.setValue(freq);
 
-        simpleAcctCb = accountCombo();
-        prefillAccount(simpleAcctCb, isSim ? member.getDepositAccountId() : null);
+        refs.simpleTaxFld = tf(src.getEstimatedTaxRatePct() > 0
+                ? String.valueOf(src.getEstimatedTaxRatePct()) : "");
+        refs.simpleTaxFld.setPromptText("e.g. 10.0 (optional)");
 
-        simpleDaySp = new Spinner<>(1, 28,
-                isSim && member.getDepositDay() > 0 ? member.getDepositDay() : 1);
-        simpleDaySp.setMaxWidth(Double.MAX_VALUE);
+        refs.netAmountHint = new Label("");
+        refs.netAmountHint.getStyleClass().add("text-body-muted");
 
-        simpleCatCb = categoryCombo();
-        prefillCategory(simpleCatCb, existingScheduleCategoryId());
+        refs.simpleAcctCb = accountCombo();
+        prefillAccount(refs.simpleAcctCb, src.getDepositAccountId());
+
+        refs.simpleDaySp = new Spinner<>(1, 28, src.getDepositDay() > 0 ? src.getDepositDay() : 1);
+        refs.simpleDaySp.setMaxWidth(Double.MAX_VALUE);
+
+        refs.simpleCatCb = categoryCombo();
+        prefillCategory(refs.simpleCatCb, src.getCategoryId());
+
+        Runnable updateHint = () -> updateSimpleNetHint(refs);
+        refs.simpleAmtFld.textProperty().addListener((o, ov, nv) -> updateHint.run());
+        refs.simpleTaxFld.textProperty().addListener((o, ov, nv) -> updateHint.run());
+        if (configured) updateHint.run();
 
         int r = 0;
-        row(g, r++, "Description*",  simpleDescFld);
-        row(g, r++, "Amount (₹)*",   simpleAmtFld);
-        row(g, r++, "Frequency*",    simpleFreqCb);
-        row(g, r++, "Into Account*", simpleAcctCb);
-        row(g, r++, "Day of Month*", simpleDaySp);
-        row(g, r,   "Category",      simpleCatCb);
+        row(g, r++, "Description*",           refs.descFld);
+        row(g, r++, "Amount (₹, gross)*",      refs.simpleAmtFld);
+        g.add(refs.netAmountHint, 1, r++);
+        row(g, r++, "Frequency*",              refs.simpleFreqCb);
+        row(g, r++, "Estimated Tax Rate (%)",  refs.simpleTaxFld);
+        row(g, r++, "Into Account*",           refs.simpleAcctCb);
+        row(g, r++, "Day of Month*",           refs.simpleDaySp);
+        row(g, r,   "Category",                refs.simpleCatCb);
 
-        return scroll(g);
+        return scrollPane(g);
     }
 
-    private void saveSimple() {
-        String desc = req(simpleDescFld, "Description");
-        long   amt  = parsePaise(simpleAmtFld, "Amount");
-
-        if (simpleFreqCb.getValue() == null)
-            throw new IllegalArgumentException("Select a frequency.");
-        RecurringTransaction.Frequency freq = simpleFreqCb.getValue();
-
-        Account acct = reqAccount(simpleAcctCb);
-        int     day  = simpleDaySp.getValue();
-
-        member.setEarningType(FamilyMember.EarningType.SIMPLE);
-        member.setSimpleAmountPaise(amt);
-        member.setSimpleFrequency(freq.name());
-        member.setDepositAccountId(acct.getId());
-        member.setDepositDay(day);
-        member.setScheduleDescription(desc);
-
-        createOrUpdateSchedule(amt, freq, acct.getId(), day, desc,
-                simpleCatCb.getValue() != null ? simpleCatCb.getValue().getId() : null);
-        ds.updateFamilyMember(member);
+    private void updateSimpleNetHint(SourceFormRefs refs) {
+        long   gross = parseAmountStr(refs.simpleAmtFld.getText());
+        double tax   = parseDoubleStr(refs.simpleTaxFld.getText());
+        long   net   = Math.round(gross * (1.0 - tax / 100.0));
+        refs.netAmountHint.setText(gross > 0 ? "Net schedule amount: " + fmtR(net) : "");
     }
 
     // ── Salary form ───────────────────────────────────────────────────────────
 
-    private Node buildSalaryForm() {
-        boolean isSal = member.getEarningType() == FamilyMember.EarningType.SALARY;
-
+    private Node buildSalaryForm(EarningSource src, SourceFormRefs refs) {
+        boolean configured = src.getBasicDaPaise() > 0;
         GridPane g = formGrid();
 
-        salDescFld  = tf(isSal && member.getScheduleDescription() != null
-                ? member.getScheduleDescription() : member.getName() + " — Salary");
-        salBasicFld = tf(isSal && member.getBasicDaPaise() > 0
-                ? fmtAmt(member.getBasicDaPaise()) : "");
-        salBasicFld.setPromptText("e.g. 50000");
-        salHraFld   = tf(isSal && member.getHraPaise() > 0
-                ? fmtAmt(member.getHraPaise()) : "");
-        salHraFld.setPromptText("optional");
-        salOtherFld = tf(isSal && member.getOtherAllowancesPaise() > 0
-                ? fmtAmt(member.getOtherAllowancesPaise()) : "");
-        salOtherFld.setPromptText("optional");
-        salTaxFld   = tf(isSal && member.getEstimatedTaxRatePct() > 0
-                ? String.valueOf(member.getEstimatedTaxRatePct()) : "");
-        salTaxFld.setPromptText("e.g. 20.0");
-        salVpfFld   = tf(isSal && member.getVpfPct() > 0
-                ? String.valueOf(member.getVpfPct()) : "");
-        salVpfFld.setPromptText("optional, e.g. 5.0");
+        refs.descFld = tf(src.getScheduleDescription() != null
+                ? src.getScheduleDescription()
+                : member.getName() + " — " + (src.getSourceName() != null ? src.getSourceName() : "Salary"));
+        refs.salBasicFld = tf(configured ? fmtAmt(src.getBasicDaPaise()) : "");
+        refs.salBasicFld.setPromptText("e.g. 600000");
+        refs.salHraFld   = tf(configured && src.getHraPaise() > 0 ? fmtAmt(src.getHraPaise()) : "");
+        refs.salHraFld.setPromptText("optional");
+        refs.salOtherFld = tf(configured && src.getOtherAllowancesPaise() > 0 ? fmtAmt(src.getOtherAllowancesPaise()) : "");
+        refs.salOtherFld.setPromptText("optional");
+        refs.salTaxFld   = tf(src.getEstimatedTaxRatePct() > 0 ? String.valueOf(src.getEstimatedTaxRatePct()) : "");
+        refs.salTaxFld.setPromptText("e.g. 20.0");
+        refs.salVpfFld   = tf(src.getVpfPct() > 0 ? String.valueOf(src.getVpfPct()) : "");
+        refs.salVpfFld.setPromptText("optional, e.g. 5.0");
 
-        salAcctCb = accountCombo();
-        prefillAccount(salAcctCb, isSal ? member.getDepositAccountId() : null);
+        refs.salAcctCb = accountCombo();
+        prefillAccount(refs.salAcctCb, src.getDepositAccountId());
 
-        salDaySp = new Spinner<>(1, 28,
-                isSal && member.getDepositDay() > 0 ? member.getDepositDay() : 1);
-        salDaySp.setMaxWidth(Double.MAX_VALUE);
+        refs.salDaySp = new Spinner<>(1, 28, src.getDepositDay() > 0 ? src.getDepositDay() : 1);
+        refs.salDaySp.setMaxWidth(Double.MAX_VALUE);
 
-        salCatCb = categoryCombo();
-        prefillCategory(salCatCb, existingScheduleCategoryId());
+        refs.salCatCb = categoryCombo();
+        prefillCategory(refs.salCatCb, src.getCategoryId());
 
-        // PF account selector
-        salPfAcctCb = pfAccountCombo();
-        prefillPfAccount(salPfAcctCb, isSal ? member.getPfScheduleId() : null);
+        refs.salPfAcctCb = pfAccountCombo();
+        prefillPfAccount(refs.salPfAcctCb, src.getPfScheduleId());
 
         Hyperlink createPfLink = new Hyperlink("+ Add PF Account");
         createPfLink.getStyleClass().add("link-teal");
         createPfLink.setOnAction(e -> {
             InvestmentAccount created = showCreatePfDialog();
             if (created != null) {
-                salPfAcctCb.getItems().add(created);
-                salPfAcctCb.setValue(created);
+                refs.salPfAcctCb.getItems().add(created);
+                refs.salPfAcctCb.setValue(created);
             }
         });
 
-        gratuityChk = new CheckBox("Include in breakdown");
-        gratuityChk.setSelected(isSal && member.isGratuityEnabled());
+        refs.gratuityChk = new CheckBox("Include in breakdown");
+        refs.gratuityChk.setSelected(src.isGratuityEnabled());
 
         int r = 0;
-        row(g, r++, "Description*",           salDescFld);
-        row(g, r++, "Basic + DA (₹/mo)*",     salBasicFld);
-        row(g, r++, "HRA (₹/month)",           salHraFld);
-        row(g, r++, "Other Allowances",        salOtherFld);
-        row(g, r++, "Estimated Tax Rate (%)",  salTaxFld);
-        row(g, r++, "VPF (%)",                 salVpfFld);
-        row(g, r++, "Into Account*",           salAcctCb);
-        row(g, r++, "Day of Month*",           salDaySp);
-        row(g, r++, "Category",                salCatCb);
-        row(g, r++, "PF Account",              salPfAcctCb);
+        row(g, r++, "Description*",               refs.descFld);
+        row(g, r++, "Basic + DA (annual)*",        refs.salBasicFld);
+        row(g, r++, "HRA (annual)",                refs.salHraFld);
+        row(g, r++, "Other Allowances (annual)",   refs.salOtherFld);
+        row(g, r++, "Estimated Tax Rate (%)",      refs.salTaxFld);
+        row(g, r++, "VPF (%)",                     refs.salVpfFld);
+        row(g, r++, "To Account*",                 refs.salAcctCb);
+        row(g, r++, "Day of Month*",               refs.salDaySp);
+        row(g, r++, "Category",                    refs.salCatCb);
+        row(g, r++, "PF Account",                  refs.salPfAcctCb);
         g.add(createPfLink, 1, r++);
-        row(g, r,   "Gratuity",               gratuityChk);
+        row(g, r,   "Gratuity",                    refs.gratuityChk);
 
-        // ── Calculation panel ─────────────────────────────────────────────────
-        calcGross    = calcVal(); calcEmpPf   = calcVal(); calcTds      = calcVal();
-        calcInHand   = calcVal(); calcEmpEpf  = calcVal(); calcEps      = calcVal("₹1,250.00");
-        calcTotalEmp = calcVal(); calcPfDeposit = calcVal(); calcEpsDeposit = calcVal(); calcGratuity = calcVal();
-        calcInHand.getStyleClass().add("text-success");
-        calcInHand.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+        // Calculation panel
+        refs.calcGross      = calcVal(); refs.calcEmpPf      = calcVal();
+        refs.calcTds        = calcVal(); refs.calcInHand     = calcVal();
+        refs.calcEmpEpf     = calcVal(); refs.calcEps        = calcVal();
+        refs.calcPfDeposit  = calcVal(); refs.calcEpsDeposit = calcVal();
+        refs.calcGratuity   = calcVal();
+        refs.calcInHand.getStyleClass().add("text-success");
+        // Inline required: font-weight and size are layout emphasis, not colour — no token covers them
+        refs.calcInHand.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
         GridPane calc = new GridPane();
         calc.setHgap(12); calc.setVgap(6);
         calc.setPadding(new Insets(12, 16, 12, 16));
         calc.getStyleClass().add("info-box");
-        ColumnConstraints cc1 = new ColumnConstraints(220);
+        ColumnConstraints cc1 = new ColumnConstraints(190);
         ColumnConstraints cc2 = new ColumnConstraints(); cc2.setHgrow(Priority.ALWAYS);
         calc.getColumnConstraints().addAll(cc1, cc2);
 
         int cr = 0;
-        calcRow(calc, cr++, "Gross Monthly:",             calcGross);
-        calcRow(calc, cr++, "Employee PF (12% + VPF):",   calcEmpPf);
-        calcRow(calc, cr++, "Estimated Monthly TDS:",     calcTds);
+        calcRow(calc, cr++, "Gross Monthly:",              refs.calcGross);
+        calcRow(calc, cr++, "Employee PF (12% + VPF):",    refs.calcEmpPf);
+        calcRow(calc, cr++, "Estimated Monthly TDS:",      refs.calcTds);
         calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr++, "Net In-hand:",               calcInHand);
+        calcRow(calc, cr++, "Net In-hand:",                refs.calcInHand);
         calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr++, "Employer EPF:",              calcEmpEpf);
-        calcRow(calc, cr++, "EPS:",                       calcEps);
-        calcRow(calc, cr++, "Total Employer Cost:",       calcTotalEmp);
+        calcRow(calc, cr++, "Employer EPF:",               refs.calcEmpEpf);
+        calcRow(calc, cr++, "EPS:",                        refs.calcEps);
         calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr++, "Monthly PF Deposit:",        calcPfDeposit);
-        calcRow(calc, cr++, "Monthly EPS Deposit:",       calcEpsDeposit);
+        calcRow(calc, cr++, "Monthly PF Deposit:",         refs.calcPfDeposit);
+        calcRow(calc, cr++, "Monthly EPS Deposit:",        refs.calcEpsDeposit);
         calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr,   "Gratuity (per year of service):", calcGratuity);
+        calcRow(calc, cr,   "Gratuity (per year of service):", refs.calcGratuity);
 
-        // Wire live updates
-        Runnable recalc = this::recalcSalary;
-        salBasicFld .textProperty().addListener((o, ov, nv) -> recalc.run());
-        salHraFld   .textProperty().addListener((o, ov, nv) -> recalc.run());
-        salOtherFld .textProperty().addListener((o, ov, nv) -> recalc.run());
-        salTaxFld   .textProperty().addListener((o, ov, nv) -> recalc.run());
-        salVpfFld   .textProperty().addListener((o, ov, nv) -> recalc.run());
-        gratuityChk .selectedProperty().addListener((o, ov, nv) -> recalc.run());
-        if (isSal) recalc.run(); // seed with existing values
+        Runnable recalc = () -> recalcSalary(refs);
+        refs.salBasicFld.textProperty().addListener((o, ov, nv) -> recalc.run());
+        refs.salHraFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
+        refs.salOtherFld.textProperty().addListener((o, ov, nv) -> recalc.run());
+        refs.salTaxFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
+        refs.salVpfFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
+        refs.gratuityChk.selectedProperty().addListener((o, ov, nv) -> recalc.run());
+        if (configured) recalc.run();
 
         Label calcTitle = new Label("Salary Breakdown (Monthly)");
         calcTitle.getStyleClass().add("text-section-title");
 
-        // ── Side-by-side layout ───────────────────────────────────────────────
         ScrollPane leftScroll = new ScrollPane(g);
         leftScroll.setFitToWidth(true);
         leftScroll.getStyleClass().add("scroll-transparent");
@@ -301,123 +410,165 @@ public class EarningsDialog extends Dialog<Boolean> {
         return outer;
     }
 
-    private void recalcSalary() {
-        long   basic   = parseAmountStr(salBasicFld.getText());
-        long   hra     = parseAmountStr(salHraFld.getText());
-        long   other   = parseAmountStr(salOtherFld.getText());
-        double taxPct  = parseDoubleStr(salTaxFld.getText());
-        double vpfPct  = parseDoubleStr(salVpfFld.getText());
+    private void recalcSalary(SourceFormRefs refs) {
+        long   basic  = parseAmountStr(refs.salBasicFld.getText());   // annual
+        long   hra    = parseAmountStr(refs.salHraFld.getText());     // annual
+        long   other  = parseAmountStr(refs.salOtherFld.getText());   // annual
+        double taxPct = parseDoubleStr(refs.salTaxFld.getText());
+        double vpfPct = parseDoubleStr(refs.salVpfFld.getText());
 
-        long gross        = basic + hra + other;
-        long mandatoryEpf = Math.round(basic * 0.12);
-        long totalEmpPf   = Math.round(basic * (0.12 + vpfPct / 100.0));
+        long basicMo = basic / 12;
+        long hraMo   = hra   / 12;
+        long otherMo = other / 12;
+
+        long gross        = basicMo + hraMo + otherMo;
+        long mandatoryEpf = Math.round(basicMo * 0.12);
+        long totalEmpPf   = Math.round(basicMo * (0.12 + vpfPct / 100.0));
         long tds          = Math.round((gross - mandatoryEpf) * taxPct / 100.0);
         long inHand       = gross - totalEmpPf - tds;
-        long empEpf    = Math.max(0L, Math.round(basic * 0.12) - 125_000L);
-        long eps       = 125_000L;   // ₹1,250 in paise
-        long totalEmp  = gross + Math.round(basic * 0.12);
+        long empEpf       = Math.max(0L, Math.round(basicMo * 0.12) - 125_000L);
+        long eps          = basicMo > 0 ? Math.min(125_000L, Math.round(basicMo * 0.0833)) : 0;
+        long pfDeposit    = totalEmpPf + empEpf;
+        long epsDeposit   = eps;
+        boolean showGratuity = refs.gratuityChk != null && refs.gratuityChk.isSelected();
+        long gratuityPerYear = showGratuity ? Math.round(basicMo * 15.0 / (12 * 26.0)) : 0;
 
-        long pfDeposit  = totalEmpPf + empEpf;  // employee (incl. VPF) + employer EPF, excl. EPS
-        long epsDeposit = eps;
-
-        // Gratuity = (Basic+DA) × 15/26 per year of service (Payment of Gratuity Act)
-        boolean showGratuity = gratuityChk != null && gratuityChk.isSelected();
-        long gratuityPerYear = showGratuity ? Math.round(basic * 15.0 / 26.0) : 0;
-
-        calcGross    .setText(fmtR(gross));
-        calcEmpPf    .setText(fmtR(totalEmpPf));
-        calcTds      .setText(fmtR(tds));
-        calcInHand   .setText(fmtR(inHand));
-        calcEmpEpf   .setText(fmtR(empEpf));
-        calcEps      .setText(fmtR(eps));
-        calcTotalEmp .setText(fmtR(totalEmp));
-        calcPfDeposit .setText(fmtR(pfDeposit));
-        calcEpsDeposit.setText(fmtR(epsDeposit));
-        if (calcGratuity != null)
-            calcGratuity.setText(showGratuity ? fmtR(gratuityPerYear) : "—");
+        refs.calcGross    .setText(fmtR(gross));
+        refs.calcEmpPf    .setText(fmtR(totalEmpPf));
+        refs.calcTds      .setText(fmtR(tds));
+        refs.calcInHand   .setText(fmtR(inHand));
+        refs.calcEmpEpf   .setText(fmtR(empEpf));
+        refs.calcEps      .setText(basicMo > 0 ? fmtR(eps) : "—");
+        refs.calcPfDeposit .setText(fmtR(pfDeposit));
+        refs.calcEpsDeposit.setText(fmtR(epsDeposit));
+        if (refs.calcGratuity != null)
+            refs.calcGratuity.setText(showGratuity ? fmtR(gratuityPerYear) : "—");
     }
 
-    private void saveSalary() {
-        String desc    = req(salDescFld, "Description");
-        long   basicDa = parsePaise(salBasicFld, "Basic + DA");
-        long   hra     = parseOptionalPaise(salHraFld);
-        long   other   = parseOptionalPaise(salOtherFld);
-        double taxPct  = parseOptionalDouble(salTaxFld);
-        double vpfPct  = parseOptionalDouble(salVpfFld);
-        Account acct   = reqAccount(salAcctCb);
-        int    day     = salDaySp.getValue();
+    // ── Save ──────────────────────────────────────────────────────────────────
 
-        long gross        = basicDa + hra + other;
-        long mandatoryEpf = Math.round(basicDa * 0.12);
-        long totalEmpPf   = Math.round(basicDa * (0.12 + vpfPct / 100.0));
-        long tds          = Math.round((gross - mandatoryEpf) * taxPct / 100.0);
-        long inHand       = gross - totalEmpPf - tds;
+    private Boolean saveAll(TabPane tabs) {
+        try {
+            for (EarningSource src : pendingDeletes) {
+                if (src.getRecurringScheduleId() != null) ds.deleteRecurring(src.getRecurringScheduleId());
+                if (src.getPfScheduleId() != null)        ds.deleteRecurring(src.getPfScheduleId());
+            }
 
-        if (inHand <= 0)
-            throw new IllegalArgumentException(
-                    "Computed in-hand is zero or negative — check inputs.");
+            List<EarningSource> savedSources = new ArrayList<>();
+            for (EarningSource src : workingSources) {
+                SourceFormRefs refs = formRefs.get(src.getId());
+                if (refs == null) continue;
 
-        member.setEarningType(FamilyMember.EarningType.SALARY);
-        member.setBasicDaPaise(basicDa);
-        member.setHraPaise(hra);
-        member.setOtherAllowancesPaise(other);
-        member.setEstimatedTaxRatePct(taxPct);
-        member.setVpfPct(vpfPct);
-        member.setGratuityEnabled(gratuityChk.isSelected());
-        member.setDepositAccountId(acct.getId());
-        member.setDepositDay(day);
-        member.setScheduleDescription(desc);
+                String name = refs.sourceNameFld.getText().trim();
+                if (name.isEmpty())
+                    throw new IllegalArgumentException("Source Name is required for all income sources.");
+                src.setSourceName(name);
 
-        createOrUpdateSchedule(inHand, RecurringTransaction.Frequency.MONTHLY,
-                acct.getId(), day, desc,
-                salCatCb.getValue() != null ? salCatCb.getValue().getId() : null);
+                if (src.getType() == FamilyMember.EarningType.SIMPLE)
+                    validateAndReadSimple(src, refs);
+                else
+                    validateAndReadSalary(src, refs);
 
-        // PF schedule — only if user selected a PF account
-        InvestmentAccount pfAcct = salPfAcctCb.getValue();
-        if (pfAcct != null) {
-            long empPf   = Math.round(basicDa * (0.12 + vpfPct / 100.0));
-            long empEpf  = Math.max(0L, Math.round(basicDa * 0.12) - 125_000L);
-            long pfDeposit = empPf + empEpf; // excludes EPS (₹1,250 goes to pension scheme)
-            createOrUpdatePfSchedule(pfDeposit, pfAcct.getId(), day,
-                    member.getName() + " — PF Deposit");
+                createOrUpdateSchedule(src, refs);
+                savedSources.add(src);
+            }
+
+            member.setEarningSources(savedSources);
+            ds.updateFamilyMember(member);
+            return Boolean.TRUE;
+
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
+            return null;
         }
-
-        ds.updateFamilyMember(member);
     }
 
-    // ── Schedule lifecycle ────────────────────────────────────────────────────
+    private void validateAndReadSimple(EarningSource src, SourceFormRefs refs) {
+        src.setScheduleDescription(req(refs.descFld, "Description"));
+        src.setSimpleAmountPaise(parsePaise(refs.simpleAmtFld, "Amount"));
+        src.setEstimatedTaxRatePct(parseOptionalDouble(refs.simpleTaxFld));
+        if (refs.simpleFreqCb.getValue() == null)
+            throw new IllegalArgumentException("Select a frequency for \"" + src.getSourceName() + "\".");
+        src.setSimpleFrequency(refs.simpleFreqCb.getValue().name());
+        src.setDepositAccountId(reqAccount(refs.simpleAcctCb).getId());
+        src.setDepositDay(refs.simpleDaySp.getValue());
+        src.setCategoryId(refs.simpleCatCb.getValue() != null ? refs.simpleCatCb.getValue().getId() : null);
+    }
 
-    private void createOrUpdateSchedule(long amountPaise,
-                                        RecurringTransaction.Frequency freq,
-                                        String accountId, int day, String description,
-                                        String categoryId) {
-        RecurringTransaction existing =
-                ds.findRecurringById(member.getRecurringScheduleId());
+    private void validateAndReadSalary(EarningSource src, SourceFormRefs refs) {
+        src.setScheduleDescription(req(refs.descFld, "Description"));
+        src.setBasicDaPaise(parsePaise(refs.salBasicFld, "Basic + DA"));
+        src.setHraPaise(parseOptionalPaise(refs.salHraFld));
+        src.setOtherAllowancesPaise(parseOptionalPaise(refs.salOtherFld));
+        src.setEstimatedTaxRatePct(parseOptionalDouble(refs.salTaxFld));
+        src.setVpfPct(parseOptionalDouble(refs.salVpfFld));
+        src.setDepositAccountId(reqAccount(refs.salAcctCb).getId());
+        src.setDepositDay(refs.salDaySp.getValue());
+        src.setCategoryId(refs.salCatCb.getValue() != null ? refs.salCatCb.getValue().getId() : null);
+        src.setGratuityEnabled(refs.gratuityChk.isSelected());
+        if (src.computeScheduleAmountPaise() <= 0)
+            throw new IllegalArgumentException(
+                    "Computed in-hand is zero or negative for \"" + src.getSourceName() + "\" — check inputs.");
+    }
 
+    private void createOrUpdateSchedule(EarningSource src, SourceFormRefs refs) {
+        long amount = src.computeScheduleAmountPaise();
+        RecurringTransaction.Frequency freq = src.getType() == FamilyMember.EarningType.SALARY
+                ? RecurringTransaction.Frequency.MONTHLY
+                : RecurringTransaction.Frequency.valueOf(src.getSimpleFrequency());
+
+        RecurringTransaction existing = ds.findRecurringById(src.getRecurringScheduleId());
         if (existing != null) {
-            existing.setAmountPaise(amountPaise);
+            existing.setAmountPaise(amount);
             existing.setFrequency(freq);
-            existing.setToAccountId(accountId);
-            existing.setDueDayOfMonth(day);
-            existing.setDescription(description);
-            existing.setCategoryId(categoryId);
+            existing.setToAccountId(src.getDepositAccountId());
+            existing.setDueDayOfMonth(src.getDepositDay());
+            existing.setDescription(src.getScheduleDescription());
+            existing.setCategoryId(src.getCategoryId());
             existing.setStatus(RecurringTransaction.Status.ACTIVE);
             ds.saveRecurringNow();
         } else {
             RecurringTransaction rt = new RecurringTransaction(
-                    description, Transaction.Type.INCOME,
-                    freq, day, LocalDate.now(), amountPaise);
-            rt.setToAccountId(accountId);
-            rt.setCategoryId(categoryId);
+                    src.getScheduleDescription(), Transaction.Type.INCOME,
+                    freq, src.getDepositDay(), LocalDate.now(), amount);
+            rt.setToAccountId(src.getDepositAccountId());
+            rt.setCategoryId(src.getCategoryId());
+            rt.setAutoCreated(true);
             ds.addRecurring(rt);
-            member.setRecurringScheduleId(rt.getId());
+            src.setRecurringScheduleId(rt.getId());
+        }
+
+        if (src.getType() == FamilyMember.EarningType.SALARY) {
+            InvestmentAccount pfAcct = refs.salPfAcctCb.getValue();
+            if (pfAcct != null) {
+                long basicMo   = src.getBasicDaPaise() / 12;
+                long empPf     = Math.round(basicMo * (0.12 + src.getVpfPct() / 100.0));
+                long empEpf    = Math.max(0L, Math.round(basicMo * 0.12) - 125_000L);
+                createOrUpdatePfSchedule(src, empPf + empEpf, pfAcct.getId());
+            }
         }
     }
 
-    /** Returns the categoryId already saved on the linked recurring schedule, or null. */
-    private String existingScheduleCategoryId() {
-        RecurringTransaction sched = ds.findRecurringById(member.getRecurringScheduleId());
-        return sched != null ? sched.getCategoryId() : null;
+    private void createOrUpdatePfSchedule(EarningSource src, long amountPaise, String pfAccountId) {
+        String desc = member.getName() + " — PF Deposit (" + src.getSourceName() + ")";
+        RecurringTransaction existing = ds.findRecurringById(src.getPfScheduleId());
+        if (existing != null) {
+            existing.setAmountPaise(amountPaise);
+            existing.setToAccountId(pfAccountId);
+            existing.setDueDayOfMonth(src.getDepositDay());
+            existing.setDescription(desc);
+            existing.setStatus(RecurringTransaction.Status.ACTIVE);
+            ds.saveRecurringNow();
+        } else {
+            RecurringTransaction rt = new RecurringTransaction(
+                    desc, Transaction.Type.INVESTMENT,
+                    RecurringTransaction.Frequency.MONTHLY, src.getDepositDay(),
+                    LocalDate.now(), amountPaise);
+            rt.setToAccountId(pfAccountId);
+            rt.setAutoCreated(true);
+            ds.addRecurring(rt);
+            src.setPfScheduleId(rt.getId());
+        }
     }
 
     // ── UI helpers ────────────────────────────────────────────────────────────
@@ -432,10 +583,10 @@ public class EarningsDialog extends Dialog<Boolean> {
         return g;
     }
 
-    private ScrollPane scroll(GridPane g) {
+    private ScrollPane scrollPane(GridPane g) {
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(260);
+        sp.setPrefHeight(280);
         sp.getStyleClass().add("scroll-transparent");
         return sp;
     }
@@ -472,8 +623,7 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private void prefillAccount(ComboBox<Account> cb, String accountId) {
         if (accountId == null) return;
-        cb.getItems().stream()
-                .filter(a -> accountId.equals(a.getId()))
+        cb.getItems().stream().filter(a -> accountId.equals(a.getId()))
                 .findFirst().ifPresent(cb::setValue);
     }
 
@@ -487,19 +637,43 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private void prefillCategory(ComboBox<Category> cb, String categoryId) {
         if (categoryId == null) return;
-        cb.getItems().stream()
-                .filter(c -> categoryId.equals(c.getId()))
+        cb.getItems().stream().filter(c -> categoryId.equals(c.getId()))
                 .findFirst().ifPresent(cb::setValue);
     }
 
-    private Label calcVal()           { return calcVal("—"); }
-    private Label calcVal(String txt) {
-        Label l = new Label(txt);
+    private ComboBox<InvestmentAccount> pfAccountCombo() {
+        ComboBox<InvestmentAccount> cb = new ComboBox<>();
+        cb.setMaxWidth(Double.MAX_VALUE);
+        cb.setPromptText("Select PF account (optional)");
+        ds.getInvestmentAccounts().stream()
+                .filter(a -> a.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND)
+                .forEach(cb.getItems()::add);
+        return cb;
+    }
+
+    private void prefillPfAccount(ComboBox<InvestmentAccount> cb, String pfScheduleId) {
+        if (pfScheduleId == null) return;
+        RecurringTransaction sched = ds.findRecurringById(pfScheduleId);
+        if (sched == null || sched.getToAccountId() == null) return;
+        String acctId = sched.getToAccountId();
+        cb.getItems().stream().filter(a -> acctId.equals(a.getId()))
+                .findFirst().ifPresent(cb::setValue);
+    }
+
+    private Label calcVal() {
+        Label l = new Label("—");
         l.getStyleClass().add("text-form-value");
         return l;
     }
 
-    // ── Value extractors ──────────────────────────────────────────────────────
+    private ListCell<RecurringTransaction.Frequency> freqCell() {
+        return new ListCell<>() {
+            @Override protected void updateItem(RecurringTransaction.Frequency item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : formatFrequency(item));
+            }
+        };
+    }
 
     private String req(TextField tf, String fieldName) {
         String v = tf.getText().trim();
@@ -539,10 +713,9 @@ public class EarningsDialog extends Dialog<Boolean> {
         throw new IllegalArgumentException("Select an account.");
     }
 
-    private long   parseAmountStr(String s) {
+    private long parseAmountStr(String s) {
         if (s == null || s.isBlank()) return 0;
-        try { return Math.round(Double.parseDouble(
-                s.replace(",", "").replace("₹", "").trim()) * 100); }
+        try { return Math.round(Double.parseDouble(s.replace(",", "").replace("₹", "").trim()) * 100); }
         catch (NumberFormatException e) { return 0; }
     }
 
@@ -552,50 +725,17 @@ public class EarningsDialog extends Dialog<Boolean> {
         catch (NumberFormatException e) { return 0; }
     }
 
-    private String fmtAmt(long paise) { return String.format("%.2f", paise / 100.0); }
+    private String fmtAmt(long paise) { return String.format("%.2f",   paise / 100.0); }
     private String fmtR  (long paise) { return String.format("₹%,.2f", paise / 100.0); }
 
-    private void createOrUpdatePfSchedule(long amountPaise, String pfAccountId,
-                                          int day, String description) {
-        RecurringTransaction existing = ds.findRecurringById(member.getPfScheduleId());
-        if (existing != null) {
-            existing.setAmountPaise(amountPaise);
-            existing.setToAccountId(pfAccountId);
-            existing.setDueDayOfMonth(day);
-            existing.setDescription(description);
-            existing.setStatus(RecurringTransaction.Status.ACTIVE);
-            ds.saveRecurringNow();
-        } else {
-            RecurringTransaction rt = new RecurringTransaction(
-                    description, Transaction.Type.INVESTMENT,
-                    RecurringTransaction.Frequency.MONTHLY, day,
-                    LocalDate.now(), amountPaise);
-            rt.setToAccountId(pfAccountId);
-            // fromAccountId intentionally null — PF is a direct deposit, not from salary account
-            ds.addRecurring(rt);
-            member.setPfScheduleId(rt.getId());
-        }
-    }
-
-    private ComboBox<InvestmentAccount> pfAccountCombo() {
-        ComboBox<InvestmentAccount> cb = new ComboBox<>();
-        cb.setMaxWidth(Double.MAX_VALUE);
-        cb.setPromptText("Select PF account (optional)");
-        ds.getInvestmentAccounts().stream()
-                .filter(a -> a.getInvestmentType()
-                        == InvestmentAccount.InvestmentType.PROVIDENT_FUND)
-                .forEach(cb.getItems()::add);
-        return cb;
-    }
-
-    private void prefillPfAccount(ComboBox<InvestmentAccount> cb, String pfScheduleId) {
-        if (pfScheduleId == null) return;
-        RecurringTransaction sched = ds.findRecurringById(pfScheduleId);
-        if (sched == null || sched.getToAccountId() == null) return;
-        String acctId = sched.getToAccountId();
-        cb.getItems().stream()
-                .filter(a -> acctId.equals(a.getId()))
-                .findFirst().ifPresent(cb::setValue);
+    private static String formatFrequency(RecurringTransaction.Frequency f) {
+        if (f == null) return "—";
+        return switch (f) {
+            case MONTHLY        -> "Monthly";
+            case QUARTERLY      -> "Quarterly";
+            case ANNUALLY       -> "Annually";
+            case ALTERNATE_YEAR -> "Alternate Year";
+        };
     }
 
     private InvestmentAccount showCreatePfDialog() {
@@ -613,19 +753,13 @@ public class EarningsDialog extends Dialog<Boolean> {
         ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
         g.getColumnConstraints().addAll(c1, c2);
 
-        TextField nameFld = new TextField(); nameFld.setPromptText("e.g. EPF — Employer");
-        nameFld.setMaxWidth(Double.MAX_VALUE);
-        TextField uanFld  = new TextField(); uanFld.setPromptText("UAN number (optional)");
-        uanFld.setMaxWidth(Double.MAX_VALUE);
-        TextField balFld  = new TextField(); balFld.setPromptText("0.00");
-        balFld.setMaxWidth(Double.MAX_VALUE);
+        TextField nameFld = new TextField(); nameFld.setPromptText("e.g. EPF — Employer"); nameFld.setMaxWidth(Double.MAX_VALUE);
+        TextField uanFld  = new TextField(); uanFld.setPromptText("UAN number (optional)"); uanFld.setMaxWidth(Double.MAX_VALUE);
+        TextField balFld  = new TextField(); balFld.setPromptText("0.00"); balFld.setMaxWidth(Double.MAX_VALUE);
 
-        Label nameLbl = new Label("Account Name*");
-        nameLbl.getStyleClass().add("text-form-value");
-        Label uanLbl  = new Label("UAN / A/C No.");
-        uanLbl.getStyleClass().add("text-form-value");
-        Label balLbl  = new Label("Opening Balance (₹)");
-        balLbl.getStyleClass().add("text-form-value");
+        Label nameLbl = new Label("Account Name*"); nameLbl.getStyleClass().add("text-form-value");
+        Label uanLbl  = new Label("UAN / A/C No."); uanLbl.getStyleClass().add("text-form-value");
+        Label balLbl  = new Label("Opening Balance (₹)"); balLbl.getStyleClass().add("text-form-value");
         g.add(nameLbl, 0, 0); g.add(nameFld, 1, 0); GridPane.setFillWidth(nameFld, true);
         g.add(uanLbl,  0, 1); g.add(uanFld,  1, 1); GridPane.setFillWidth(uanFld,  true);
         g.add(balLbl,  0, 2); g.add(balFld,  1, 2); GridPane.setFillWidth(balFld,  true);
@@ -638,8 +772,7 @@ public class EarningsDialog extends Dialog<Boolean> {
             if (bt != saveBtn) return null;
             String name = nameFld.getText().trim();
             if (name.isEmpty()) { showError("Account name is required."); return null; }
-            InvestmentAccount acc = new InvestmentAccount(
-                    name, InvestmentAccount.InvestmentType.PROVIDENT_FUND);
+            InvestmentAccount acc = new InvestmentAccount(name, InvestmentAccount.InvestmentType.PROVIDENT_FUND);
             acc.setFolioAccountNumber(uanFld.getText().trim());
             acc.setInvestedAmountPaise(parseAmountStr(balFld.getText()));
             ds.addAccount(acc);
@@ -649,19 +782,10 @@ public class EarningsDialog extends Dialog<Boolean> {
         return dlg.showAndWait().orElse(null);
     }
 
-    private static String formatFrequency(RecurringTransaction.Frequency f) {
-        if (f == null) return "—";
-        return switch (f) {
-            case MONTHLY        -> "Monthly";
-            case QUARTERLY      -> "Quarterly";
-            case ANNUALLY       -> "Annually";
-            case ALTERNATE_YEAR -> "Alternate Year";
-        };
-    }
-
     private void showError(String msg) {
         Alert a = new Alert(Alert.AlertType.ERROR);
         a.setTitle("Validation Error"); a.setHeaderText(null); a.setContentText(msg);
+        UiUtils.applyStylesheet(a);
         a.showAndWait();
     }
 }

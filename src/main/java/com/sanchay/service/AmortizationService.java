@@ -119,6 +119,70 @@ public class AmortizationService {
     }
 
     /**
+     * Recalculates entries from {@code fromIndex} onward after a part-prepayment,
+     * starting with the supplied {@code openingBalance}.
+     * <ul>
+     *   <li>REDUCE_TENURE — keeps the EMI from rate history; fewer rows result.</li>
+     *   <li>REDUCE_EMI    — recomputes a new constant EMI from the remaining
+     *       balance, remaining months and the applicable interest rate.</li>
+     * </ul>
+     */
+    public static List<AmortizationEntry> recalculateFromBalance(
+            List<AmortizationEntry> entries, int fromIndex, LoanAccount loan,
+            long openingBalance, LoanAccount.PrepaymentMode mode) {
+
+        if (entries.isEmpty() || fromIndex >= entries.size() || openingBalance <= 0) {
+            return new ArrayList<>(entries.subList(0, fromIndex));
+        }
+
+        List<LoanRateChange> history = new ArrayList<>(loan.getRateHistory());
+        history.sort(Comparator.comparing(LoanRateChange::getEffectiveFrom));
+
+        AmortizationEntry pivot     = entries.get(fromIndex);
+        LoanRateChange    pivotRate = getApplicableRate(history, pivot.getPaymentDate(), loan);
+        double            annualRate = pivotRate.getInterestRate();
+
+        // For REDUCE_EMI: compute a new level EMI over remaining months
+        long newEmiPaise = 0;
+        if (mode == LoanAccount.PrepaymentMode.REDUCE_EMI) {
+            int remaining = entries.size() - fromIndex;
+            double r = annualRate / 12.0 / 100.0;
+            if (r == 0 || remaining == 0) {
+                newEmiPaise = remaining > 0 ? openingBalance / remaining : openingBalance;
+            } else {
+                double factor = Math.pow(1 + r, remaining);
+                newEmiPaise = Math.round(openingBalance * r * factor / (factor - 1));
+            }
+        }
+
+        List<AmortizationEntry> result  = new ArrayList<>(entries.subList(0, fromIndex));
+        long                    balance = openingBalance;
+
+        for (int i = fromIndex; i < entries.size() && balance > 0; i++) {
+            AmortizationEntry existing   = entries.get(i);
+            LocalDate         payDate    = existing.getPaymentDate();
+            LoanRateChange    rc         = getApplicableRate(history, payDate, loan);
+            double            rate       = rc.getInterestRate();
+            long              emi        = (mode == LoanAccount.PrepaymentMode.REDUCE_EMI)
+                                               ? newEmiPaise
+                                               : rc.getEmiAmountPaise();
+
+            long interest  = Math.round(balance * rate / 12.0 / 100.0);
+            long principal = emi - interest;
+
+            if (principal <= 0) { principal = 0; emi = interest; }
+            if (principal >= balance) { principal = balance; emi = principal + interest; }
+
+            result.add(new AmortizationEntry(
+                    loan.getId(), existing.getSequenceNo(), payDate,
+                    balance, emi, principal, interest));
+            balance -= principal;
+        }
+
+        return result;
+    }
+
+    /**
      * Returns the scheduled principal for the given payment date by finding the
      * schedule entry whose payment month matches the date's year-month.
      * Returns 0 if no matching entry is found.

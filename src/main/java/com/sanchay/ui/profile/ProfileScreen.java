@@ -1,5 +1,6 @@
 package com.sanchay.ui.profile;
 
+import com.sanchay.model.EarningSource;
 import com.sanchay.model.FamilyMember;
 import com.sanchay.model.RecurringTransaction;
 import com.sanchay.service.DataStore;
@@ -148,21 +149,9 @@ public class ProfileScreen {
                     m.setEarning(nowEarning);
                     ds.updateFamilyMember(m);
                     if (wasEarning && !nowEarning) {
-                        setScheduleStatus(ds, m.getRecurringScheduleId(),
-                                RecurringTransaction.Status.PAUSED);
-                        setScheduleStatus(ds, m.getPfScheduleId(),
-                                RecurringTransaction.Status.PAUSED);
-                        ds.saveRecurringNow();
+                        pauseOrResumeAllSchedules(ds, m, RecurringTransaction.Status.PAUSED);
                     } else if (!wasEarning && nowEarning) {
-                        RecurringTransaction sched =
-                                ds.findRecurringById(m.getRecurringScheduleId());
-                        if (sched != null) {
-                            setScheduleStatus(ds, m.getRecurringScheduleId(),
-                                    RecurringTransaction.Status.ACTIVE);
-                            setScheduleStatus(ds, m.getPfScheduleId(),
-                                    RecurringTransaction.Status.ACTIVE);
-                            ds.saveRecurringNow();
-                        }
+                        pauseOrResumeAllSchedules(ds, m, RecurringTransaction.Status.ACTIVE);
                         // Earnings details are configured via the ₹ button — not launched here
                     }
                     refreshFamilyList(box);
@@ -183,7 +172,7 @@ public class ProfileScreen {
             String text;
             if (!m.isEarning()) {
                 text = "—";
-            } else if (m.getEarningType() == null) {
+            } else if (!m.hasEarningsConfigured()) {
                 text = "Not configured";
             } else {
                 long paise = m.computeInHandPaise();
@@ -372,21 +361,9 @@ public class ProfileScreen {
 
             // ── Earning lifecycle ─────────────────────────────────────────────
             if (wasEarning && !nowEarning) {
-                setScheduleStatus(ds, saved.getRecurringScheduleId(),
-                        RecurringTransaction.Status.PAUSED);
-                setScheduleStatus(ds, saved.getPfScheduleId(),
-                        RecurringTransaction.Status.PAUSED);
-                ds.saveRecurringNow();
+                pauseOrResumeAllSchedules(ds, saved, RecurringTransaction.Status.PAUSED);
             } else if (!wasEarning && nowEarning) {
-                RecurringTransaction sched =
-                        ds.findRecurringById(saved.getRecurringScheduleId());
-                if (sched != null) {
-                    setScheduleStatus(ds, saved.getRecurringScheduleId(),
-                            RecurringTransaction.Status.ACTIVE);
-                    setScheduleStatus(ds, saved.getPfScheduleId(),
-                            RecurringTransaction.Status.ACTIVE);
-                    ds.saveRecurringNow();
-                }
+                pauseOrResumeAllSchedules(ds, saved, RecurringTransaction.Status.ACTIVE);
                 // Earnings details are configured via the ₹ button — not launched here
             }
 
@@ -405,6 +382,16 @@ public class ProfileScreen {
         if (!hasSelf)   return FamilyMember.Relationship.SELF;
         if (!hasSpouse) return FamilyMember.Relationship.SPOUSE;
         return FamilyMember.Relationship.CHILD;
+    }
+
+    private static void pauseOrResumeAllSchedules(DataStore ds, FamilyMember m,
+                                                   RecurringTransaction.Status status) {
+        if (!m.hasEarningsConfigured()) return;
+        for (EarningSource src : m.getEarningSources()) {
+            setScheduleStatus(ds, src.getRecurringScheduleId(), status);
+            setScheduleStatus(ds, src.getPfScheduleId(), status);
+        }
+        ds.saveRecurringNow();
     }
 
     private static void setScheduleStatus(DataStore ds, String scheduleId,

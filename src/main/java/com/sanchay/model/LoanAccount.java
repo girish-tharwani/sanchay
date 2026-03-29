@@ -7,8 +7,9 @@ import java.util.List;
 /** Home, Vehicle, or Personal loan account. */
 public class LoanAccount extends Account {
 
-    public enum LoanType   { HOME, VEHICLE, PERSONAL }
-    public enum LoanStatus { ACTIVE, CLOSED, SETTLED }
+    public enum LoanType       { HOME, VEHICLE, PERSONAL }
+    public enum LoanStatus     { ACTIVE, CLOSED, SETTLED }
+    public enum PrepaymentMode { REDUCE_TENURE, REDUCE_EMI }
 
     private LoanType loanType;
     private String loanAccountNumber;
@@ -24,7 +25,8 @@ public class LoanAccount extends Account {
     private String coApplicantName;
     private String vehicleRegistrationNo;
     private String vehicleDescription;
-    private List<LoanRateChange> rateHistory = new ArrayList<>();
+    private List<LoanRateChange> rateHistory       = new ArrayList<>();
+    private PrepaymentMode       defaultPrepaymentMode;
 
     public LoanAccount(String name, LoanType loanType) {
         super(name);
@@ -76,4 +78,7 @@ public class LoanAccount extends Account {
         return rateHistory;
     }
     public void setRateHistory(List<LoanRateChange> h)           { this.rateHistory = h; }
+
+    public PrepaymentMode getDefaultPrepaymentMode()             { return defaultPrepaymentMode; }
+    public void setDefaultPrepaymentMode(PrepaymentMode m)       { this.defaultPrepaymentMode = m; }
 }

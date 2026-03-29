@@ -700,6 +700,10 @@ public class DataStore {
 
     // ── Convenience in-place save triggers ───────────────────────────────────
 
+    public void saveAccountsNow() {
+        if (persistence != null) persistence.saveAccounts(this);
+    }
+
     public void saveCategoriesNow() {
         if (persistence != null) persistence.saveCategories(this);
     }
@@ -765,7 +769,18 @@ public class DataStore {
     }
 
     public void removeFamilyMember(String memberId) {
-        familyMembers.removeIf(m -> m.getId().equals(memberId));
+        FamilyMember m = familyMembers.stream()
+                .filter(x -> x.getId().equals(memberId)).findFirst().orElse(null);
+        if (m != null && m.getEarningSources() != null) {
+            for (EarningSource src : m.getEarningSources()) {
+                if (src.getRecurringScheduleId() != null)
+                    recurring.removeIf(r -> src.getRecurringScheduleId().equals(r.getId()));
+                if (src.getPfScheduleId() != null)
+                    recurring.removeIf(r -> src.getPfScheduleId().equals(r.getId()));
+            }
+            if (persistence != null) persistence.saveRecurring(this);
+        }
+        familyMembers.removeIf(x -> x.getId().equals(memberId));
         if (persistence != null) persistence.saveMembers(this);
     }
 

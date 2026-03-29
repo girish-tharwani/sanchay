@@ -16,7 +16,7 @@ Answer user queries:
 - Change the plan if needed, as per user conversation
 - Present the revised plan
 
-Once user confirms, Write a detailed step-by-step plan at ./.claude/plans with a suitable file name in .md format for execution later.
+Once user confirms, write a detailed step-by-step plan at ./.claude/plans with a suitable file name in .md format for execution later.
 
 Do not write or update any code
 
