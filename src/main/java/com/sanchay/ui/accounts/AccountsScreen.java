@@ -63,12 +63,33 @@ public class AccountsScreen {
         content.getStyleClass().add("main-panel");
         content.setPadding(new Insets(24));
 
+        DataStore ds = DataStore.getInstance();
+
+        boolean allCollapsed = ds.isGroupCollapsed("bank") && ds.isGroupCollapsed("cc")
+                && ds.isGroupCollapsed("loan") && ds.isGroupCollapsed("investment");
+
+        Label collapseAllChevron = new Label(allCollapsed ? "▸" : "▾");
+        collapseAllChevron.getStyleClass().add("group-chevron");
+        // Inline required: font-size is a sizing tweak, not a colour or theme token
+        collapseAllChevron.setStyle("-fx-font-size: 24px;");
+
         Label title = new Label("Accounts");
         title.getStyleClass().add("screen-title");
 
-        DataStore ds = DataStore.getInstance();
+        HBox titleRow = new HBox(10, collapseAllChevron, title);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        titleRow.setStyle("-fx-cursor: hand;");
+        Tooltip.install(titleRow, new Tooltip(allCollapsed ? "Expand all" : "Collapse all"));
+        titleRow.setOnMouseClicked(e -> {
+            boolean collapse = !allCollapsed;
+            ds.setGroupCollapsed("bank",       collapse);
+            ds.setGroupCollapsed("cc",         collapse);
+            ds.setGroupCollapsed("loan",       collapse);
+            ds.setGroupCollapsed("investment", collapse);
+            buildList();
+        });
         content.getChildren().addAll(
-                title,
+                titleRow,
                 buildGroup("Bank Accounts",   "#3db89a",
                         showClosedBank.isSelected() ? ds.getAllBankAccounts()       : ds.getBankAccounts(),
                         "bank", showClosedBank),
@@ -280,7 +301,7 @@ public class AccountsScreen {
         addField(fields, "Status",       formatAccountStatus(acc));
         if (acc.getOpeningDate() != null)
             addField(fields, "Opening Date", acc.getOpeningDate().format(dateFmt()));
-        if (acc.isJointAccount())
+        if (acc.isJointAccount() && !(acc instanceof LoanAccount))
             addField(fields, "Joint Holder", acc.getSecondHolderName());
 
         if (acc instanceof BankAccount ba) {

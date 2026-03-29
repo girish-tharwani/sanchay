@@ -1,3 +1,13 @@
+## v1.0.6 — 2026-03-29
+
+### Added
+- Accounts screen: chevron next to the "Accounts" title collapses or expands all account groups at once; clicking anywhere on the title row (chevron or label) toggles it
+
+### Fixed
+- Loan account details page no longer shows a redundant "Joint Holder" row; co-applicant is shown via the existing "Co-applicant" field
+
+---
+
 ## v1.0.5 — 2026-03-29
 
 ### Added
