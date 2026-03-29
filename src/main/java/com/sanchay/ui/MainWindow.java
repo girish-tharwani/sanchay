@@ -94,7 +94,7 @@ public class MainWindow {
         StackPane outerRoot = new StackPane(root, wcBar);
         StackPane.setAlignment(wcBar, Pos.TOP_RIGHT);
 
-        Scene scene = new Scene(outerRoot, 1175, 750);
+        Scene scene = new Scene(outerRoot, 1185, 750);
         scene.getStylesheets().add(
                 getClass().getResource("/com/sanchay/css/app.css").toExternalForm());
 
@@ -102,7 +102,7 @@ public class MainWindow {
 
         stage.setTitle("Sanchay — Personal Finance");
         stage.setScene(scene);
-        stage.setMinWidth(900);
+        stage.setMinWidth(1185);
         stage.setMinHeight(600);
         stage.show();
 

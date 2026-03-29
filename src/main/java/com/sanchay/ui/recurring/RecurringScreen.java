@@ -75,7 +75,6 @@ public class RecurringScreen {
 
         allSchedulesTable = new TableView<>();
         allSchedulesTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        allSchedulesTable.setPrefHeight(300);
         allSchedulesTable.getItems().addAll(ds.getRecurring());
 
         TableColumn<RecurringTransaction, String> descCol = col("Description", 180,
@@ -171,11 +170,16 @@ public class RecurringScreen {
 
         VBox tableCard = new VBox();
         tableCard.getStyleClass().add("table-card");
+        allSchedulesTable.setMaxHeight(Double.MAX_VALUE);
+        VBox.setVgrow(allSchedulesTable, Priority.ALWAYS);
         tableCard.getChildren().addAll(allSchedulesTable, tableFooter);
+        VBox.setVgrow(tableCard, Priority.ALWAYS);
         content.getChildren().add(tableCard);
 
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         scroll.getStyleClass().add("scroll-page-bg");
         view.getChildren().setAll(scroll);
     }

@@ -36,6 +36,7 @@ public class ReportsScreen {
     private StackPane view;
     private Runnable summaryRefresh;
     private Runnable ccRefresh;
+    private CashFlowForecastTab cashFlowTab;
     private ComboBox<String> summaryFyPicker;
     private Label summaryFyLabel;
     private ComboBox<String> ccFyPicker;
@@ -45,11 +46,12 @@ public class ReportsScreen {
 
     public Node getView() { return view; }
 
-    /** Re-queries DataStore and redraws both tabs. Called by MainWindow on every navigation. */
+    /** Re-queries DataStore and redraws all tabs. Called by MainWindow on every navigation. */
     public void refresh() {
         updateYearPickers();
         if (summaryRefresh != null) summaryRefresh.run();
         if (ccRefresh      != null) ccRefresh.run();
+        if (cashFlowTab    != null) cashFlowTab.refresh();
     }
 
     private void updateYearPickers() {
@@ -79,7 +81,10 @@ public class ReportsScreen {
         Tab ccTab = new Tab("Credit Card Report");
         ccTab.setContent(buildCreditCardTab());
 
-        tabPane.getTabs().addAll(summaryTab, ccTab);
+        cashFlowTab = new CashFlowForecastTab();
+        Tab forecastTab = new Tab("Cash Flow Forecast");
+        forecastTab.setContent(cashFlowTab.getView());
+        tabPane.getTabs().addAll(summaryTab, ccTab, forecastTab);
 
         VBox panel = new VBox(0);
         panel.getStyleClass().add("main-panel");

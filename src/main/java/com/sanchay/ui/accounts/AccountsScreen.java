@@ -538,7 +538,8 @@ public class AccountsScreen {
         // ── Transaction table ──────────────────────────────────────────────────
         TableView<Transaction> table = new TableView<>();
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        table.setPrefHeight(400);
+        //table.setPrefHeight(400);
+
 
         TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("DATE");
         dateCol.setPrefWidth(90);
@@ -809,11 +810,16 @@ public class AccountsScreen {
 
         VBox tableCard = new VBox();
         tableCard.getStyleClass().add("table-card");
+        table.setMaxHeight(Double.MAX_VALUE);
+        VBox.setVgrow(table, Priority.ALWAYS);
         tableCard.getChildren().addAll(table, footerRow);
+
+        VBox.setVgrow(tableCard, Priority.ALWAYS);
 
         panel.getChildren().addAll(filterRow, tableCard);
 
         ScrollPane scroll = new ScrollPane(panel);
+        scroll.setFitToHeight(true);
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("scroll-page-bg");
 

@@ -5,6 +5,7 @@ import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -30,6 +31,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     private final List<EarningSource>         workingSources = new ArrayList<>();
     private final Map<String, SourceFormRefs> formRefs       = new LinkedHashMap<>();
     private final List<EarningSource>         pendingDeletes = new ArrayList<>();
+    private Boolean                           pendingResult  = null;
 
     // ── Inner class holding all form field refs for one source tab ────────────
     private static class SourceFormRefs {
@@ -67,10 +69,20 @@ public class EarningsDialog extends Dialog<Boolean> {
         ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
 
-        setResultConverter(bt -> {
-            if (bt != saveBtn) return null;
-            return saveAll(tabs);
+        // Intercept Save click: validate, keep dialog open on error (same pattern as TransactionDialog)
+        Platform.runLater(() -> {
+            Button btn = (Button) getDialogPane().lookupButton(saveBtn);
+            if (btn != null) btn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+                Boolean result = saveAll(tabs);
+                if (result == null) {
+                    ev.consume(); // validation failed — keep dialog open
+                } else {
+                    pendingResult = result;
+                }
+            });
         });
+
+        setResultConverter(bt -> bt == saveBtn ? pendingResult : null);
     }
 
     // ── Tab pane construction ─────────────────────────────────────────────────
@@ -431,7 +443,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         long pfDeposit    = totalEmpPf + empEpf;
         long epsDeposit   = eps;
         boolean showGratuity = refs.gratuityChk != null && refs.gratuityChk.isSelected();
-        long gratuityPerYear = showGratuity ? Math.round(basicMo * 15.0 / (12 * 26.0)) : 0;
+        long gratuityPerYear = showGratuity ? Math.round(basicMo * 15.0 / (26.0)) : 0;
 
         refs.calcGross    .setText(fmtR(gross));
         refs.calcEmpPf    .setText(fmtR(totalEmpPf));
@@ -783,9 +795,26 @@ public class EarningsDialog extends Dialog<Boolean> {
     }
 
     private void showError(String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle("Validation Error"); a.setHeaderText(null); a.setContentText(msg);
-        UiUtils.applyStylesheet(a);
-        a.showAndWait();
+        Dialog<Void> dlg = new Dialog<>();
+        dlg.setTitle("Validation Error");
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(380);
+        UiUtils.applyStylesheet(dlg);
+        UiUtils.setDialogHeader(dlg, "⚠", "Validation Error");
+
+        HBox iconRow = new HBox(14);
+        iconRow.setAlignment(Pos.CENTER_LEFT);
+        iconRow.setPadding(new Insets(16));
+        Label iconLbl = new Label("⚠");
+        iconLbl.getStyleClass().addAll("dialog-icon-box-lg", "dialog-icon-box-lg--error");
+        Label msgLbl = new Label(msg);
+        msgLbl.getStyleClass().add("form-label");
+        msgLbl.setWrapText(true);
+        msgLbl.setMaxWidth(280);
+        iconRow.getChildren().addAll(iconLbl, msgLbl);
+
+        dlg.getDialogPane().setContent(iconRow);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dlg.showAndWait();
     }
 }

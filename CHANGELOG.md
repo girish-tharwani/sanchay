@@ -1,3 +1,17 @@
+## v1.0.8 — 2026-03-29
+
+### Added
+- Reports: Cash Flow Forecast tab shows a multi-series line chart projecting account balances month by month over Next 6 / 12 / 24 Months, This Financial Year, or This Calendar Year; includes all active bank accounts, credit cards, and FD / RD / Bond investment accounts
+- Cash Flow Forecast: stat cards show projected end balance, total projected income, total projected expenses, and net cash flow for the selected period
+- Cash Flow Forecast: FD and RD maturity events are applied at the correct month; the maturity amount is credited to the source bank account and the investment account closes to zero
+- Cash Flow Forecast: warning bar highlights active loans that have no recurring EMI payment set up and are therefore excluded from the projection
+
+### Fixed
+- Reports screen no longer crashes on navigation (StackOverflowError caused by re-entrant refresh loop in period picker)
+- Profile → Earnings: validation error now uses the same styled dialog as New Transaction; dialog stays open after a validation error so the user can correct the fields
+
+---
+
 ## v1.0.7 — 2026-03-29
 
 ### Added
