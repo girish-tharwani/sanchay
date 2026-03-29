@@ -721,6 +721,15 @@ public class DataStore {
         return recurring.stream().filter(r -> id.equals(r.getId())).findFirst().orElse(null);
     }
 
+    /** Returns the first active LOAN_PAYMENT recurring schedule for the given loan, or null. */
+    public RecurringTransaction findLoanPaymentSchedule(String loanAccountId) {
+        if (loanAccountId == null) return null;
+        return recurring.stream()
+                .filter(r -> r.getTransactionType() == Transaction.Type.LOAN_PAYMENT
+                          && loanAccountId.equals(r.getToAccountId()))
+                .findFirst().orElse(null);
+    }
+
     public void deleteRecurring(String id) {
         recurring.removeIf(r -> id.equals(r.getId()));
         if (persistence != null) persistence.saveRecurring(this);

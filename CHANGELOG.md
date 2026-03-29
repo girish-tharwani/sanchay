@@ -1,3 +1,13 @@
+## v1.0.9 — 2026-03-29
+
+### Added
+- Loan amortization schedule: "Setup Payments" gold button generates a new recurring payment schedule pre-populated with EMI amount, due day, start date, and remaining payment count from the amortization schedule
+- Loan amortization schedule: if a payment schedule already exists, the button is disabled and an "Edit" link is shown instead — preventing duplicate schedules for the same loan
+- Loan rate / EMI change: when an EMI change is saved, the app offers to update the linked recurring payment schedule amount automatically
+- Loan prepayment (Reduce EMI mode): after the amortization schedule is recalculated, the app offers to update the linked recurring payment schedule to the new EMI amount
+
+---
+
 ## v1.0.8 — 2026-03-29
 
 ### Added

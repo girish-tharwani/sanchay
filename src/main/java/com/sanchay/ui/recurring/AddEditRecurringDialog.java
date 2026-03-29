@@ -22,7 +22,20 @@ import java.util.List;
 public class AddEditRecurringDialog {
 
     public static void show(RecurringTransaction existing) {
-        boolean isNew = (existing == null);
+        showInternal(existing, false);
+    }
+
+    /**
+     * Opens the dialog pre-populated with values from {@code defaults} but always
+     * creates a new record on save — the defaults object is never persisted directly.
+     */
+    public static void showWithDefaults(RecurringTransaction defaults) {
+        showInternal(defaults, true);
+    }
+
+    private static void showInternal(RecurringTransaction existing, boolean forceNew) {
+        boolean isNew = (existing == null || forceNew);
+        boolean hasDefaults = (existing != null);
         Dialog<Void> dlg = new Dialog<>();
         dlg.setTitle(isNew ? "New Recurring Schedule" : "Edit Recurring Schedule");
         dlg.setHeaderText(null);
@@ -39,7 +52,7 @@ public class AddEditRecurringDialog {
         g.getColumnConstraints().addAll(c1, c2);
 
         // ── Description ───────────────────────────────────────────────────────
-        TextField descFld = new TextField(isNew ? "" : existing.getDescription());
+        TextField descFld = new TextField(!hasDefaults ? "" : existing.getDescription());
         descFld.setPromptText("e.g. SBI Home Loan EMI");
         descFld.setMaxWidth(Double.MAX_VALUE);
         UiUtils.wireDescriptionAutocomplete(descFld, DataStore.getInstance().getDistinctScheduleDescriptions());
@@ -56,13 +69,13 @@ public class AddEditRecurringDialog {
             }
             @Override public Transaction.Type fromString(String s) { return null; }
         });
-        typeCb.setValue(isNew ? Transaction.Type.EXPENSE : existing.getTransactionType());
+        typeCb.setValue(!hasDefaults ? Transaction.Type.EXPENSE : existing.getTransactionType());
         typeCb.setMaxWidth(Double.MAX_VALUE);
 
         // ── Frequency ─────────────────────────────────────────────────────────
         ComboBox<RecurringTransaction.Frequency> freqCb = new ComboBox<>();
         freqCb.getItems().addAll(RecurringTransaction.Frequency.values());
-        freqCb.setValue(isNew ? RecurringTransaction.Frequency.MONTHLY : existing.getFrequency());
+        freqCb.setValue(!hasDefaults ? RecurringTransaction.Frequency.MONTHLY : existing.getFrequency());
         freqCb.setMaxWidth(Double.MAX_VALUE);
         freqCb.setCellFactory(lv -> new ListCell<>() {
             @Override protected void updateItem(RecurringTransaction.Frequency item, boolean empty) {
@@ -78,19 +91,19 @@ public class AddEditRecurringDialog {
         });
 
         // ── Due day ───────────────────────────────────────────────────────────
-        Spinner<Integer> daySpinner = new Spinner<>(1, 28, isNew ? 1 : existing.getDueDayOfMonth());
+        Spinner<Integer> daySpinner = new Spinner<>(1, 28, !hasDefaults ? 1 : existing.getDueDayOfMonth());
         daySpinner.setEditable(true);
         daySpinner.setMaxWidth(Double.MAX_VALUE);
 
         // ── Start date ────────────────────────────────────────────────────────
-        DatePicker startPicker = new DatePicker(isNew ? LocalDate.now()
+        DatePicker startPicker = new DatePicker(!hasDefaults ? LocalDate.now()
                 : (existing.getStartDate() != null ? existing.getStartDate() : LocalDate.now()));
         startPicker.setMaxWidth(Double.MAX_VALUE);
         UiUtils.applySmartDateConverter(startPicker);
         UiUtils.styleOnShow(startPicker);
 
         // ── Amount ────────────────────────────────────────────────────────────
-        TextField amtFld = new TextField(isNew ? ""
+        TextField amtFld = new TextField(!hasDefaults ? ""
                 : (existing.getAmountPaise() > 0
                 ? String.format("%.2f", existing.getAmountPaise() / 100.0) : ""));
         amtFld.setPromptText("Leave blank for variable (e.g. CC Payment)");
@@ -187,11 +200,11 @@ public class AddEditRecurringDialog {
         invRdMaturityAmtFld.setPromptText("Expected maturity amount (optional)");
         invRdMaturityAmtFld.setMaxWidth(Double.MAX_VALUE);
 
-        if (!isNew && existing.getRdOpeningBalancePaise() > 0)
+        if (hasDefaults && existing.getRdOpeningBalancePaise() > 0)
             invRdOpeningBalFld.setText(String.format("%.2f", existing.getRdOpeningBalancePaise() / 100.0));
-        if (!isNew && existing.getRdMaturityAmountPaise() > 0)
+        if (hasDefaults && existing.getRdMaturityAmountPaise() > 0)
             invRdMaturityAmtFld.setText(String.format("%.2f", existing.getRdMaturityAmountPaise() / 100.0));
-        if (!isNew) {
+        if (hasDefaults) {
             if (existing.getSchemeScript() != null) invSchemeFld.setText(existing.getSchemeScript());
             if (existing.getUnitsNav()     != null) invUnitsFld.setText(existing.getUnitsNav());
             if (existing.getFdRef()        != null) invFdRefFld.setText(existing.getFdRef());
@@ -340,7 +353,7 @@ public class AddEditRecurringDialog {
             }
             if (prevFrom != null && accountCb.getItems().contains(prevFrom)) {
                 accountCb.setValue(prevFrom);
-            } else if (!isNew && existing.getFromAccountId() != null) {
+            } else if (hasDefaults && existing.getFromAccountId() != null) {
                 accountCb.getItems().stream()
                         .filter(a -> a.getId().equals(existing.getFromAccountId()))
                         .findFirst().ifPresent(accountCb::setValue);
@@ -379,7 +392,7 @@ public class AddEditRecurringDialog {
         typeCb.setOnAction(e -> refreshToAccount.run());
         invDestCb.setOnAction(e -> refreshInvFields.run());
 
-        if (!isNew && existing.getCategoryId() != null) {
+        if (hasDefaults && existing.getCategoryId() != null) {
             ds.getCategories().stream()
                     .filter(c -> c.getId().equals(existing.getCategoryId()))
                     .findFirst().ifPresent(catCb::setValue);
@@ -401,7 +414,7 @@ public class AddEditRecurringDialog {
         autoRecordBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         autoRecordCb.selectedProperty().addListener((obs, o, n) -> autoRecordDaysSp.setDisable(!n));
 
-        if (!isNew && existing.getAutoRecordAfterDays() > 0) {
+        if (hasDefaults && existing.getAutoRecordAfterDays() > 0) {
             autoRecordCb.setSelected(true);
             autoRecordDaysSp.getValueFactory().setValue(existing.getAutoRecordAfterDays());
         }
@@ -410,7 +423,7 @@ public class AddEditRecurringDialog {
         TextField numPaymentsFld = new TextField();
         numPaymentsFld.setPromptText("Blank = no limit (runs indefinitely)");
         numPaymentsFld.setMaxWidth(Double.MAX_VALUE);
-        if (!isNew && existing.getNumberOfPayments() != null)
+        if (hasDefaults && existing.getNumberOfPayments() != null)
             numPaymentsFld.setText(String.valueOf(existing.getNumberOfPayments()));
 
         Label lastPaymentHint = new Label();
@@ -451,7 +464,7 @@ public class AddEditRecurringDialog {
         updateLastPaymentHint.run();
 
         // ── Pre-select to-account when editing ────────────────────────────────
-        if (!isNew && existing.getToAccountId() != null) {
+        if (hasDefaults && existing.getToAccountId() != null) {
             Transaction.Type t = existing.getTransactionType();
             if (t == Transaction.Type.TRANSFER) {
                 ds.getBankAccounts().stream()

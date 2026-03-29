@@ -854,6 +854,32 @@ public class TransactionDialog extends Dialog<Transaction> {
         List<AmortizationEntry> updated = AmortizationService.recalculateFromBalance(
                 schedule, nextIndex, loan, newBalance, mode);
         ds.saveSchedule(loan.getId(), updated);
+
+        if (mode == LoanAccount.PrepaymentMode.REDUCE_EMI && nextIndex < updated.size()) {
+            offerEmiSyncAfterPrepayment(loan, updated.get(nextIndex).getEmiAmountPaise());
+        }
+    }
+
+    /**
+     * If a LOAN_PAYMENT recurring schedule exists and the new EMI after prepayment
+     * differs from the scheduled amount, offers to update it.
+     */
+    private void offerEmiSyncAfterPrepayment(LoanAccount loan, long newEmiPaise) {
+        RecurringTransaction rt = ds.findLoanPaymentSchedule(loan.getId());
+        if (rt == null || rt.getAmountPaise() == newEmiPaise) return;
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.initOwner(getDialogPane().getScene().getWindow());
+        confirm.setTitle("Update Payment Schedule");
+        confirm.setHeaderText(null);
+        confirm.setContentText(String.format(
+                "EMI has changed to \u20b9%.0f after prepayment.\nUpdate the linked payment schedule?",
+                newEmiPaise / 100.0));
+        confirm.showAndWait().ifPresent(bt -> {
+            if (bt == ButtonType.OK) {
+                rt.setAmountPaise(newEmiPaise);
+                ds.saveRecurringNow();
+            }
+        });
     }
 
     /**

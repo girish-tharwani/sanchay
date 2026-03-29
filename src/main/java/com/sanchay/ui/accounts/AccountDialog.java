@@ -315,6 +315,7 @@ public class AccountDialog {
                         DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
                         List<AmortizationEntry> newSchedule = AmortizationService.generateSchedule(acc);
                         DataStore.getInstance().saveSchedule(acc.getId(), newSchedule);
+                        if (origEmi != finalNewEmi) offerEmiSync(acc, origEmi, finalNewEmi);
                     } else {
                         // User cancelled effective-from — revert to original values
                         acc.setInterestRate(origRate);
@@ -531,6 +532,27 @@ public class AccountDialog {
         a.setHeaderText(null);
         a.setContentText(msg);
         a.showAndWait();
+    }
+
+    /**
+     * If a LOAN_PAYMENT recurring schedule exists for this loan and the EMI has
+     * changed, offers to update the schedule's amount.
+     */
+    private static void offerEmiSync(LoanAccount loan, long oldEmiPaise, long newEmiPaise) {
+        RecurringTransaction rt = DataStore.getInstance().findLoanPaymentSchedule(loan.getId());
+        if (rt == null || rt.getAmountPaise() == newEmiPaise) return;
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Update Payment Schedule");
+        confirm.setHeaderText(null);
+        confirm.setContentText(String.format(
+                "EMI has changed from \u20b9%.0f to \u20b9%.0f.\nUpdate the linked payment schedule?",
+                oldEmiPaise / 100.0, newEmiPaise / 100.0));
+        confirm.showAndWait().ifPresent(bt -> {
+            if (bt == ButtonType.OK) {
+                rt.setAmountPaise(newEmiPaise);
+                DataStore.getInstance().saveRecurringNow();
+            }
+        });
     }
 
     /**

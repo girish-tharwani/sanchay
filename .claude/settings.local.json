@@ -35,7 +35,9 @@
       "Bash(find /d/Projects/sanchay/logs -type f -name *.log -o -name *.txt)",
       "Bash(find /d/Projects/sanchay -name *.log -o -name *error* -type f)",
       "Bash(find /d/Projects/sanchay/src/main/java -type f -name \"*.java\" -exec grep -l \"TableView\\\\|TableColumn\\\\|getCellData\\\\|transaction\" {})",
-      "Bash(grep -v \"^\\\\[ERROR\\\\] $\\\\|Help\\\\|switch\\\\|articles\")"
+      "Bash(grep -v \"^\\\\[ERROR\\\\] $\\\\|Help\\\\|switch\\\\|articles\")",
+      "Bash(grep -E \"\\\\.\\(java|xml\\)$\")",
+      "Bash(grep \"\\\\.java$\")"
     ]
   }
 }

@@ -2,9 +2,12 @@ package com.sanchay.ui.accounts;
 
 import com.sanchay.model.AmortizationEntry;
 import com.sanchay.model.LoanAccount;
+import com.sanchay.model.RecurringTransaction;
+import com.sanchay.model.Transaction;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.recurring.AddEditRecurringDialog;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -136,7 +139,7 @@ public class LoanScheduleDialog {
                 schedule = List.of();
                 Label errLabel = new Label("Could not generate schedule: " + ex.getMessage()
                         + "\nPlease check that the loan has a valid opening date, tenure, rate and EMI.");
-                errLabel.setStyle("-fx-text-fill: #f87171; -fx-font-size: 12px;");
+                errLabel.getStyleClass().add("text-error");
                 errLabel.setWrapText(true);
                 dlg.getDialogPane().setContent(errLabel);
                 dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -149,10 +152,51 @@ public class LoanScheduleDialog {
         // ── Summary label ──────────────────────────────────────────────────────
         Label hint = new Label("Click a Principal cell to edit. Changed rows are highlighted. " +
                 "All subsequent rows are recalculated automatically.");
-        hint.setStyle("-fx-font-size: 11px; -fx-text-fill: #777;");
+        hint.getStyleClass().add("text-hint");
         hint.setWrapText(true);
 
-        VBox content = new VBox(10, table, hint);
+        // ── Setup Payments button row ──────────────────────────────────────────
+        RecurringTransaction existingSchedule = ds.findLoanPaymentSchedule(loan.getId());
+        HBox buttonRow = new HBox(10);
+        buttonRow.setAlignment(Pos.CENTER_LEFT);
+
+        if (existingSchedule == null) {
+            Button setupBtn = new Button("Setup Payments");
+            setupBtn.getStyleClass().add("btn-gold");
+            setupBtn.setOnAction(e -> {
+                List<AmortizationEntry> currentSchedule = ds.getSchedule(loan.getId());
+                LocalDate today = LocalDate.now();
+                LocalDate startDate = currentSchedule.stream()
+                        .map(AmortizationEntry::getPaymentDate)
+                        .filter(d -> d != null && !d.isBefore(today))
+                        .findFirst().orElse(today);
+                long remainingPayments = currentSchedule.stream()
+                        .filter(entry -> entry.getPaymentDate() != null && !entry.getPaymentDate().isBefore(today))
+                        .count();
+                RecurringTransaction defaults = new RecurringTransaction(
+                        "EMI - " + loan.getName(),
+                        Transaction.Type.LOAN_PAYMENT,
+                        RecurringTransaction.Frequency.MONTHLY,
+                        loan.getEmiDueDay(),
+                        startDate,
+                        loan.getEmiAmountPaise());
+                defaults.setToAccountId(loan.getId());
+                if (remainingPayments > 0) defaults.setNumberOfPayments((int) remainingPayments);
+                AddEditRecurringDialog.showWithDefaults(defaults);
+            });
+            buttonRow.getChildren().add(setupBtn);
+        } else {
+            Button setupBtn = new Button("Setup Payments");
+            setupBtn.getStyleClass().add("btn-gold");
+            setupBtn.setDisable(true);
+            Label alreadyLbl = new Label("Payment schedule already set up.");
+            alreadyLbl.getStyleClass().add("text-hint");
+            Hyperlink editLink = new Hyperlink("Edit");
+            editLink.setOnAction(e -> AddEditRecurringDialog.show(existingSchedule));
+            buttonRow.getChildren().addAll(setupBtn, alreadyLbl, editLink);
+        }
+
+        VBox content = new VBox(10, table, buttonRow, hint);
         content.setPadding(new Insets(16));
         VBox.setVgrow(table, Priority.ALWAYS);
 
