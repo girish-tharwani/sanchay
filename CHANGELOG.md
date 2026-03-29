@@ -1,3 +1,16 @@
+## v1.0.3 — 2026-03-29
+
+### Added
+- Investment transaction dialog: account-specific fields (Scheme/NAV, FD details, RD reference) now appear in a side panel that expands the dialog width when a To Account is selected; fields use a stacked label-above-input layout
+- Payout Date day spinner is now editable (user can type a number directly)
+
+### Fixed
+- Investment side panel was blank when switching away from Investment type and back; the panel now repopulates correctly on every return
+- Payout Date month ComboBox was too narrow to show the month name; Day spinner was too wide — widths corrected
+- Payout Date month ComboBox and Day spinner heights now match
+
+---
+
 ## v1.0.2 — 2026-03-28
 
 ### Added

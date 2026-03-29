@@ -7,14 +7,19 @@ import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.stage.Stage;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.Locale;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -85,15 +90,30 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     // ── Investment-specific ───────────────────────────────────────────────────
     private ComboBox<InvestmentAccount> invDestCb;
-    private Label     invTypeLbl;
     private TextField invSchemeFld, invUnitsFld;
     private TextField invFdRefFld,  invFdRateFld, invFdMaturityAmtFld;
     private DatePicker invFdMaturityPicker;
     private ComboBox<Transaction.InterestPayable> invFdInterestPayableCb;
+    private ComboBox<Transaction.PayoutAnchor>    invFdPayoutAnchorCb;
+    private ComboBox<Month>                       invFdPayoutMonthCb;
+    private Spinner<Integer>                      invFdPayoutDaySp;
     private ComboBox<String> invRdRefCb;
     private TextField invRdRateFld;
     private DatePicker invRdMaturityPicker;
-    private VBox      invDynamicBox;
+
+    // ── Investment right-panel nodes (built in buildInvestmentPanel) ──────────
+    private VBox    invDynamicBox;
+    private VBox    invPreviewPanel;
+    private VBox    invPrevScheduleBox;
+    private Label   invPrevPrincipal, invPrevAnnualInt, invPrevTotalInt, invPrevTenor;
+
+    // ── Investment layout: shared nodes promoted to fields so they can be
+    //    moved between standardContent and invLeftContent on type switch ───────
+    private GridPane topGrid, botGrid;
+    private ScrollPane scroll;
+    private VBox standardContent, invLeftContent;
+    private HBox invContent;
+    private VBox invRightPanel; // account-specific input fields, right side
 
     // ── Type → panel mapping ──────────────────────────────────────────────────
     private final Map<Type, Node> panels = new EnumMap<>(Type.class);
@@ -145,7 +165,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         panels.put(Type.LOAN_PAYMENT, buildLoanPaymentPanel());
 
         // Shared top grid: Type, Date, Description, Amount
-        GridPane topGrid = form();
+        topGrid = form();
         topGrid.setPadding(new Insets(10, 10, 4, 10));
         int r = 0;
         row(topGrid, r++, "Type*",        typeCb);
@@ -154,7 +174,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         row(topGrid, r,   "Amount (₹)*",  sharedAmt);
 
         // Shared bottom grid: Notes
-        GridPane botGrid = form();
+        botGrid = form();
         botGrid.setPadding(new Insets(4, 10, 10, 10));
         row(botGrid, 0, "Notes", sharedNotes);
 
@@ -162,18 +182,39 @@ public class TransactionDialog extends Dialog<Transaction> {
         typeSection = new VBox();
         typeSection.getChildren().add(panels.get(Type.EXPENSE));
 
+        // Investment side-by-side layout containers (built once, reused)
+        invLeftContent = new VBox();
+        HBox.setHgrow(invLeftContent, Priority.ALWAYS);
+        Separator invSep = new Separator(Orientation.VERTICAL);
+        invContent = new HBox(0, invLeftContent, invSep, invRightPanel);
+
         typeCb.valueProperty().addListener((obs, old, type) -> {
-            typeSection.getChildren().setAll(panels.get(type));
+            if (type == Type.INVESTMENT) {
+                // Move shared nodes into the investment HBox layout
+                standardContent.getChildren().clear();
+                invLeftContent.getChildren().setAll(topGrid, panels.get(Type.INVESTMENT), botGrid);
+                scroll.setContent(invContent);
+                // Re-populate right panel if account was already selected
+                InvestmentAccount sel = invDestCb.getValue();
+                refreshInvestmentDynamicFields(sel != null ? sel.getInvestmentType() : null);
+            } else {
+                // Return shared nodes to the standard VBox layout
+                invLeftContent.getChildren().clear();
+                refreshInvestmentDynamicFields(null); // clears dynamic content, hides invRightPanel, resizes
+                typeSection.getChildren().setAll(panels.get(type));
+                standardContent.getChildren().setAll(topGrid, typeSection, botGrid);
+                scroll.setContent(standardContent);
+            }
             if (contextAccountId != null)
                 applyContextAccount(type);
         });
 
         wireAutoSuggest();
 
-        VBox content = new VBox();
-        content.getChildren().addAll(topGrid, typeSection, botGrid);
+        standardContent = new VBox();
+        standardContent.getChildren().addAll(topGrid, typeSection, botGrid);
 
-        ScrollPane scroll = new ScrollPane(content);
+        scroll = new ScrollPane(standardContent);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         getDialogPane().setContent(scroll);
@@ -326,18 +367,55 @@ public class TransactionDialog extends Dialog<Transaction> {
         });
         invDestCb.setButtonCell(invDestCb.getCellFactory().call(null));
 
-        invTypeLbl    = new Label("—");
-        invDynamicBox = new VBox(8);
-
         invDestCb.valueProperty().addListener((obs, old, ia) ->
                 refreshInvestmentDynamicFields(ia == null ? null : ia.getInvestmentType()));
 
+        // Right panel: initialised here, populated by refreshInvestmentDynamicFields
+        invDynamicBox = new VBox(0);
+
+        invPrevPrincipal   = previewVal();
+        invPrevAnnualInt   = previewVal();
+        invPrevTotalInt    = previewVal();
+        invPrevTenor       = previewVal();
+        invPrevScheduleBox = new VBox(4);
+
+        GridPane prevSummaryGrid = new GridPane();
+        prevSummaryGrid.setHgap(8); prevSummaryGrid.setVgap(6);
+        prevSummaryGrid.setPadding(new Insets(8, 8, 4, 8));
+        ColumnConstraints pc1 = new ColumnConstraints(110);
+        ColumnConstraints pc2 = new ColumnConstraints(0, 100, Double.MAX_VALUE);
+        pc2.setHgrow(Priority.ALWAYS);
+        prevSummaryGrid.getColumnConstraints().addAll(pc1, pc2);
+        prevRow(prevSummaryGrid, 0, "Principal",       invPrevPrincipal);
+        prevRow(prevSummaryGrid, 1, "Annual Interest", invPrevAnnualInt);
+        prevRow(prevSummaryGrid, 2, "Total Interest",  invPrevTotalInt);
+        prevRow(prevSummaryGrid, 3, "Tenor",           invPrevTenor);
+
+        VBox schedSection = new VBox(4);
+        schedSection.setPadding(new Insets(4, 8, 8, 8));
+        Label schedHeader = new Label("Payout Schedule");
+        schedHeader.getStyleClass().add("text-body-muted");
+        schedSection.getChildren().addAll(schedHeader, invPrevScheduleBox);
+
+        Label fdPreviewHeader = new Label("FD / Bond Preview");
+        fdPreviewHeader.getStyleClass().add("text-body-muted");
+        fdPreviewHeader.setPadding(new Insets(8, 8, 0, 8));
+
+        invPreviewPanel = new VBox(0, fdPreviewHeader, prevSummaryGrid, schedSection);
+        invPreviewPanel.setVisible(false);
+        invPreviewPanel.setManaged(false);
+
+        invRightPanel = new VBox(0);
+        invRightPanel.setMinWidth(256);
+        invRightPanel.setMaxWidth(256);
+        invRightPanel.setVisible(false);
+        invRightPanel.setManaged(false);
+        invRightPanel.getChildren().add(invDynamicBox);
+
+        // Panel returned for panels.get(INVESTMENT): just From/To account selectors
         GridPane g = panelGrid();
-        int r = 0;
-        row(g, r++, "From Account*",    invFromCb);
-        row(g, r++, "To Account*",      invDestCb);
-        GridPane.setColumnSpan(invDynamicBox, 2);
-        g.add(invDynamicBox, 0, r);
+        row(g, 0, "From Account*", invFromCb);
+        row(g, 1, "To Account*",   invDestCb);
         return g;
     }
 
@@ -786,6 +864,16 @@ public class TransactionDialog extends Dialog<Transaction> {
                     catch (NumberFormatException e) { throw new IllegalArgumentException("Maturity amount must be a number."); }
                 }
                 if (invFdInterestPayableCb != null) fd.setInterestPayable(invFdInterestPayableCb.getValue());
+                if (invFdPayoutAnchorCb != null && invFdPayoutAnchorCb.getValue() != null) {
+                    Transaction.PayoutAnchor anchor = invFdPayoutAnchorCb.getValue();
+                    fd.setPayoutAnchor(anchor);
+                    if (anchor == Transaction.PayoutAnchor.FIXED_DATE) {
+                        if (invFdPayoutMonthCb != null && invFdPayoutMonthCb.getValue() != null)
+                            fd.setPayoutMonth(invFdPayoutMonthCb.getValue().getValue());
+                        if (invFdPayoutDaySp != null)
+                            fd.setPayoutDay(invFdPayoutDaySp.getValue());
+                    }
+                }
                 Transaction.InvestmentDetails fdInv = new Transaction.InvestmentDetails();
                 fdInv.setFd(fd);
                 t.setInvestmentDetails(fdInv);
@@ -1091,6 +1179,15 @@ public class TransactionDialog extends Dialog<Transaction> {
                                     invFdMaturityAmtFld.setText(String.format("%.2f", fd.getMaturityAmountPaise() / 100.0));
                                 if (fd.getInterestPayable() != null && invFdInterestPayableCb != null)
                                     invFdInterestPayableCb.setValue(fd.getInterestPayable());
+                                if (invFdPayoutAnchorCb != null) {
+                                    invFdPayoutAnchorCb.setValue(fd.getPayoutAnchor());
+                                    if (fd.getPayoutAnchor() == Transaction.PayoutAnchor.FIXED_DATE) {
+                                        if (fd.getPayoutMonth() != null && invFdPayoutMonthCb != null)
+                                            invFdPayoutMonthCb.setValue(Month.of(fd.getPayoutMonth()));
+                                        if (fd.getPayoutDay() != null && invFdPayoutDaySp != null)
+                                            invFdPayoutDaySp.getValueFactory().setValue(fd.getPayoutDay());
+                                    }
+                                }
                             }
                             sharedNotes.setText(t.getNotes() != null ? t.getNotes() : "");
                         }
@@ -1285,18 +1382,31 @@ public class TransactionDialog extends Dialog<Transaction> {
         invFdRefFld  = invFdRateFld = invFdMaturityAmtFld = null;
         invFdMaturityPicker = null;
         invFdInterestPayableCb = null;
+        invFdPayoutAnchorCb = null;
+        invFdPayoutMonthCb  = null;
+        invFdPayoutDaySp    = null;
         invRdRefCb  = null;
         invRdRateFld = null;
         invRdMaturityPicker = null;
-        if (itype == null) return;
+        invPrevScheduleBox.getChildren().clear();
+        if (itype == null) {
+            invRightPanel.setVisible(false);
+            invRightPanel.setManaged(false);
+            resizeDialog(560);
+            return;
+        }
+        invRightPanel.setVisible(true);
+        invRightPanel.setManaged(true);
+        resizeDialog(828);
 
-        GridPane g = panelGrid();
+        VBox g = new VBox(4);
+        g.setPadding(new Insets(8, 10, 4, 10));
         switch (itype) {
             case MUTUAL_FUNDS, EQUITY -> {
                 invSchemeFld = tf("optional");
                 invUnitsFld  = tf("e.g. 100.5");
-                dynRow(g, 0, "Scheme / Script",   invSchemeFld);
-                dynRow(g, 1, "Units / NAV",        invUnitsFld);
+                dynStackRow(g, "Scheme / Script", invSchemeFld);
+                dynStackRow(g, "Units / NAV",     invUnitsFld);
             }
             case FIXED_DEPOSIT, DEBT_BONDS -> {
                 invFdRefFld            = tf("optional");
@@ -1308,9 +1418,10 @@ public class TransactionDialog extends Dialog<Transaction> {
                 invFdInterestPayableCb.getItems().addAll(Transaction.InterestPayable.values());
                 invFdInterestPayableCb.setPromptText("Select");
                 invFdInterestPayableCb.setMaxWidth(Double.MAX_VALUE);
-                invFdInterestPayableCb.setConverter(new javafx.util.StringConverter<>() {
-                    @Override public String toString(Transaction.InterestPayable ip) {
-                        if (ip == null) return "";
+                invFdInterestPayableCb.setCellFactory(lv -> new ListCell<>() {
+                    @Override protected void updateItem(Transaction.InterestPayable ip, boolean empty) {
+                        super.updateItem(ip, empty);
+                        if (empty || ip == null) { setText(null); return; }
                         // AT_MATURITY → "At Maturity", YEARLY → "Yearly"
                         StringBuilder sb = new StringBuilder();
                         for (String word : ip.name().split("_")) {
@@ -1318,15 +1429,61 @@ public class TransactionDialog extends Dialog<Transaction> {
                             sb.append(Character.toUpperCase(word.charAt(0)));
                             sb.append(word.substring(1).toLowerCase());
                         }
-                        return sb.toString();
+                        setText(sb.toString());
                     }
-                    @Override public Transaction.InterestPayable fromString(String s) { return null; }
                 });
-                dynRow(g, 0, "Reference No",    invFdRefFld);
-                dynRow(g, 1, "Interest Rate (%)",   invFdRateFld);
-                dynRow(g, 2, "Maturity Date",       invFdMaturityPicker);
-                dynRow(g, 3, "Maturity Amount",     invFdMaturityAmtFld);
-                dynRow(g, 4, "Interest Payable",    invFdInterestPayableCb);
+                invFdInterestPayableCb.setButtonCell(invFdInterestPayableCb.getCellFactory().call(null));
+                invFdPayoutAnchorCb = new ComboBox<>();
+                invFdPayoutAnchorCb.getItems().addAll(Transaction.PayoutAnchor.values());
+                invFdPayoutAnchorCb.setValue(Transaction.PayoutAnchor.ANNIVERSARY);
+                invFdPayoutAnchorCb.setMaxWidth(Double.MAX_VALUE);
+                invFdPayoutAnchorCb.setCellFactory(lv -> new ListCell<>() {
+                    @Override protected void updateItem(Transaction.PayoutAnchor a, boolean empty) {
+                        super.updateItem(a, empty);
+                        if (empty || a == null) { setText(null); return; }
+                        setText(switch (a) {
+                            case ANNIVERSARY -> "Anniversary of investment date";
+                            case FIXED_DATE  -> "Fixed calendar date";
+                        });
+                    }
+                });
+                invFdPayoutAnchorCb.setButtonCell(invFdPayoutAnchorCb.getCellFactory().call(null));
+
+                invFdPayoutMonthCb = new ComboBox<>();
+                invFdPayoutMonthCb.getItems().addAll(Month.values());
+                invFdPayoutMonthCb.setPromptText("Month");
+                invFdPayoutMonthCb.setCellFactory(lv -> new ListCell<>() {
+                    @Override protected void updateItem(Month m, boolean empty) {
+                        super.updateItem(m, empty);
+                        setText(empty || m == null ? null : m.getDisplayName(TextStyle.FULL, Locale.ENGLISH));
+                    }
+                });
+                invFdPayoutMonthCb.setButtonCell(invFdPayoutMonthCb.getCellFactory().call(null));
+
+                invFdPayoutDaySp = new Spinner<>(1, 28, 1);
+                invFdPayoutDaySp.setMaxWidth(Double.MAX_VALUE);
+                invFdPayoutDaySp.setEditable(true);
+
+                invFdPayoutDaySp.setPrefWidth(72);
+                invFdPayoutDaySp.setMaxWidth(72);
+                HBox payoutDateBox = new HBox(8, invFdPayoutMonthCb, new Label("Day"), invFdPayoutDaySp);
+                payoutDateBox.setAlignment(Pos.CENTER_LEFT);
+                payoutDateBox.setVisible(false);
+                payoutDateBox.setManaged(false);
+                HBox.setHgrow(invFdPayoutMonthCb, Priority.ALWAYS);
+                invFdPayoutAnchorCb.valueProperty().addListener((obs, old, val) -> {
+                    boolean fixed = val == Transaction.PayoutAnchor.FIXED_DATE;
+                    payoutDateBox.setVisible(fixed);
+                    payoutDateBox.setManaged(fixed);
+                });
+
+                dynStackRow(g, "Reference No",      invFdRefFld);
+                dynStackRow(g, "Interest Rate (%)", invFdRateFld);
+                dynStackRow(g, "Maturity Date",     invFdMaturityPicker);
+                dynStackRow(g, "Maturity Amount",   invFdMaturityAmtFld);
+                dynStackRow(g, "Interest Payable",  invFdInterestPayableCb);
+                dynStackRow(g, "Payout Anchor",     invFdPayoutAnchorCb);
+                dynStackRow(g, "Payout Date",       payoutDateBox);
             }
             case RECURRING_DEPOSIT -> {
                 InvestmentAccount rdAcc = invDestCb.getValue();
@@ -1337,14 +1494,14 @@ public class TransactionDialog extends Dialog<Transaction> {
                     Label err = new Label("No RD schedules found for this account.\nCreate a recurring schedule first.");
                     err.getStyleClass().add("text-error");
                     err.setWrapText(true);
-                    g.add(err, 1, 0);
+                    g.getChildren().add(err);
                 } else {
                     invRdRefCb = new ComboBox<>();
                     invRdRefCb.getItems().addAll(rdRefs);
                     invRdRefCb.setEditable(false);
                     invRdRefCb.setMaxWidth(Double.MAX_VALUE);
                     invRdRefCb.setPromptText("Select RD reference");
-                    dynRow(g, 0, "RD Reference No*", invRdRefCb);
+                    dynStackRow(g, "RD Reference No*", invRdRefCb);
                 }
             }
             default -> { /* PROVIDENT_FUND — no extra fields */ }
@@ -1352,15 +1509,150 @@ public class TransactionDialog extends Dialog<Transaction> {
         invDynamicBox.getChildren().add(g);
     }
 
-    private void dynRow(GridPane g, int row, String label, Node field) {
-        Label lbl = new Label(label);
+    private void dynStackRow(VBox container, String labelText, Node field) {
+        Label lbl = new Label(labelText);
         lbl.getStyleClass().add("form-label");
         if (field instanceof Region r) r.setMaxWidth(Double.MAX_VALUE);
+        VBox wrapper = new VBox(3, lbl, field);
+        container.getChildren().add(wrapper);
+    }
+
+    // ── FD/Bond preview panel ─────────────────────────────────────────────────
+
+    private void recalcFdPreview() {
+        if (invPreviewPanel == null || !invPreviewPanel.isVisible()) return;
+
+        long   principal   = parseAmountSafe(sharedAmt.getText());
+        Double rate        = parseDoubleSafe(invFdRateFld);
+        LocalDate start    = sharedDate.getValue();
+        LocalDate maturity = invFdMaturityPicker != null ? invFdMaturityPicker.getValue() : null;
+        long   matAmt      = invFdMaturityAmtFld != null ? parseAmountSafe(invFdMaturityAmtFld.getText()) : 0;
+        Transaction.InterestPayable freq = invFdInterestPayableCb != null ? invFdInterestPayableCb.getValue() : null;
+        Transaction.PayoutAnchor anchor  = invFdPayoutAnchorCb   != null
+                ? invFdPayoutAnchorCb.getValue() : Transaction.PayoutAnchor.ANNIVERSARY;
+        Month   payoutMonth = invFdPayoutMonthCb != null ? invFdPayoutMonthCb.getValue() : null;
+        Integer payoutDay   = invFdPayoutDaySp   != null ? invFdPayoutDaySp.getValue()   : null;
+
+        // Summary
+        invPrevPrincipal.setText(principal > 0 ? fmtPaise(principal) : "—");
+        long annualInt = (principal > 0 && rate != null && rate > 0)
+                ? Math.round(principal * rate / 100.0) : 0;
+        invPrevAnnualInt.setText(annualInt > 0 ? fmtPaise(annualInt) : "—");
+        long totalInt = matAmt > 0 && principal > 0 ? matAmt - principal : 0;
+        invPrevTotalInt.setText(totalInt > 0 ? fmtPaise(totalInt) : "—");
+
+        if (start != null && maturity != null && !maturity.isBefore(start)) {
+            long days  = java.time.temporal.ChronoUnit.DAYS.between(start, maturity);
+            long yrs   = days / 365;
+            long mos   = (days % 365) / 30;
+            StringBuilder sb = new StringBuilder();
+            if (yrs > 0) sb.append(yrs).append(yrs == 1 ? " yr" : " yrs");
+            if (mos > 0) { if (sb.length() > 0) sb.append(' '); sb.append(mos).append(" mo"); }
+            if (sb.length() == 0) sb.append(days).append(" days");
+            invPrevTenor.setText(sb.toString());
+        } else {
+            invPrevTenor.setText("—");
+        }
+
+        // Payout schedule
+        invPrevScheduleBox.getChildren().clear();
+        if (start == null || maturity == null || freq == null || rate == null
+                || rate <= 0 || principal <= 0) return;
+
+        List<LocalDate> dates = computePayoutDates(start, maturity, freq, anchor,
+                payoutMonth != null ? payoutMonth.getValue() : null, payoutDay);
+        if (dates.isEmpty()) return;
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
+        LocalDate prev = start;
+        for (int i = 0; i < dates.size(); i++) {
+            LocalDate d     = dates.get(i);
+            boolean isLast  = (i == dates.size() - 1);
+            long days       = java.time.temporal.ChronoUnit.DAYS.between(prev, d);
+            long interest   = Math.round(principal * rate / 100.0 * days / 365.0);
+
+            Label dateLbl = new Label(d.format(fmt));
+            dateLbl.getStyleClass().add("text-body-muted");
+            dateLbl.setMinWidth(110);
+
+            Label amtLbl = new Label(fmtPaise(interest) + (isLast ? " + principal" : ""));
+            amtLbl.getStyleClass().addAll(isLast
+                    ? List.of("text-form-value", "text-success") : List.of("text-form-value"));
+
+            invPrevScheduleBox.getChildren().add(new HBox(8, dateLbl, amtLbl));
+            prev = d;
+        }
+    }
+
+    private List<LocalDate> computePayoutDates(
+            LocalDate start, LocalDate maturity,
+            Transaction.InterestPayable freq,
+            Transaction.PayoutAnchor anchor,
+            Integer payoutMonth, Integer payoutDay) {
+        List<LocalDate> dates = new ArrayList<>();
+        if (freq == Transaction.InterestPayable.AT_MATURITY) {
+            dates.add(maturity);
+            return dates;
+        }
+        int months = switch (freq) {
+            case YEARLY    -> 12;
+            case QUARTERLY ->  3;
+            case MONTHLY   ->  1;
+            default        ->  0;
+        };
+        if (months == 0) return dates;
+
+        LocalDate current;
+        if (anchor == Transaction.PayoutAnchor.FIXED_DATE
+                && payoutMonth != null && payoutDay != null) {
+            current = LocalDate.of(start.getYear(), payoutMonth, payoutDay);
+            if (!current.isAfter(start)) current = current.plusMonths(months);
+        } else {
+            current = start.plusMonths(months);
+        }
+        while (!current.isAfter(maturity)) {
+            dates.add(current);
+            current = current.plusMonths(months);
+        }
+        if (dates.isEmpty() || !dates.get(dates.size() - 1).equals(maturity))
+            dates.add(maturity);
+        return dates;
+    }
+
+    private long   parseAmountSafe(String s) {
+        if (s == null || s.isBlank()) return 0;
+        try { return Math.round(Double.parseDouble(s.replace(",", "").replace("₹", "").trim()) * 100); }
+        catch (NumberFormatException e) { return 0; }
+    }
+
+    private Double parseDoubleSafe(TextField tf) {
+        if (tf == null || tf.getText().isBlank()) return null;
+        try { return Double.parseDouble(tf.getText().trim()); }
+        catch (NumberFormatException e) { return null; }
+    }
+
+    private String fmtPaise(long paise) { return String.format("₹%,.0f", paise / 100.0); }
+
+    private Label previewVal() {
+        Label l = new Label("—");
+        l.getStyleClass().add("text-form-value");
+        return l;
+    }
+
+    private void prevRow(GridPane g, int row, String labelText, Label val) {
+        Label lbl = new Label(labelText);
+        lbl.getStyleClass().add("text-body-muted");
         g.add(lbl, 0, row);
-        g.add(field, 1, row);
+        g.add(val, 1, row);
     }
 
     // ── Layout helpers ────────────────────────────────────────────────────────
+
+    private void resizeDialog(double prefWidth) {
+        getDialogPane().setPrefWidth(prefWidth);
+        javafx.stage.Stage stage = (javafx.stage.Stage) getDialogPane().getScene().getWindow();
+        if (stage != null) stage.sizeToScene();
+    }
 
     /** Standard 2-column form GridPane (label 120px | field expands). */
     private GridPane form() {

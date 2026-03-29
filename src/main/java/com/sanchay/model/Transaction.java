@@ -32,6 +32,16 @@ public class Transaction {
         AT_MATURITY, YEARLY, QUARTERLY, MONTHLY
     }
 
+    /**
+     * Controls which date anchors the interest payout schedule.
+     * ANNIVERSARY: payouts fall on the anniversary of the investment date (FD default).
+     * FIXED_DATE:  payouts fall on a fixed calendar date each period (common for bonds).
+     *              When FIXED_DATE, payoutMonth and payoutDay on FdDetails specify the anchor.
+     */
+    public enum PayoutAnchor {
+        ANNIVERSARY, FIXED_DATE
+    }
+
     // ── Sub-object classes ────────────────────────────────────────────────────
 
     public static class Classification {
@@ -73,6 +83,11 @@ public class Transaction {
         private LocalDate        maturityDate;
         private Long             maturityAmountPaise;
         private InterestPayable  interestPayable;
+        // Payout anchor — null / absent means ANNIVERSARY (backward-compatible default)
+        private PayoutAnchor     payoutAnchor;
+        // Only relevant when payoutAnchor == FIXED_DATE
+        private Integer          payoutMonth; // 1–12
+        private Integer          payoutDay;   // 1–28
 
         public String          getRef()                           { return ref; }
         public void            setRef(String r)                   { this.ref = r; }
@@ -84,6 +99,13 @@ public class Transaction {
         public void            setMaturityAmountPaise(Long p)     { this.maturityAmountPaise = p; }
         public InterestPayable getInterestPayable()               { return interestPayable; }
         public void            setInterestPayable(InterestPayable i) { this.interestPayable = i; }
+        /** Returns ANNIVERSARY when absent (data predating this field). */
+        public PayoutAnchor    getPayoutAnchor()                  { return payoutAnchor == null ? PayoutAnchor.ANNIVERSARY : payoutAnchor; }
+        public void            setPayoutAnchor(PayoutAnchor a)    { this.payoutAnchor = a; }
+        public Integer         getPayoutMonth()                   { return payoutMonth; }
+        public void            setPayoutMonth(Integer m)          { this.payoutMonth = m; }
+        public Integer         getPayoutDay()                     { return payoutDay; }
+        public void            setPayoutDay(Integer d)            { this.payoutDay = d; }
     }
 
     public static class InvestmentDetails {
