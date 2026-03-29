@@ -218,96 +218,12 @@ public class AddEditRecurringDialog {
         invDynamicBox.setVisible(false);
         invDynamicBox.setManaged(false);
 
-        // ── Refresh logic ─────────────────────────────────────────────────────
-        Runnable refreshInvFields = () -> {
-            invDynamicBox.getChildren().clear();
-            InvestmentAccount sel = invDestCb.getValue();
-            if (sel == null) {
-                invTypeLbl.setText("—");
-                invDynamicBox.setVisible(false);
-                invDynamicBox.setManaged(false);
-                return;
-            }
-            invTypeLbl.setText(sel.getAccountType());
-            GridPane dg = miniGrid();
-            switch (sel.getInvestmentType()) {
-                case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
-                    formRow(dg, 0, "Scheme / Script", invSchemeFld);
-                    formRow(dg, 1, "Units / NAV",     invUnitsFld);
-                }
-                case FIXED_DEPOSIT -> {
-                    formRow(dg, 0, "FD Reference No",   invFdRefFld);
-                    formRow(dg, 1, "Interest Rate (%)", invFdRateFld);
-                    formRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
-                    formRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
-                }
-                case RECURRING_DEPOSIT -> {
-                    formRow(dg, 0, "RD Reference No*",   invRdRefFld);
-                    formRow(dg, 1, "Interest Rate (%)",  invRdRateFld);
-                    formRow(dg, 2, "Maturity Date",      invRdMaturityPicker);
-                    formRow(dg, 3, "Opening Balance (₹)", invRdOpeningBalFld);
-                    formRow(dg, 4, "Maturity Amount (₹)", invRdMaturityAmtFld);
-                }
-                case PROVIDENT_FUND -> { /* no additional fields */ }
-            }
-            invDynamicBox.getChildren().add(dg);
-            invDynamicBox.setVisible(true);
-            invDynamicBox.setManaged(true);
-        };
+        // ── Account label (needs a reference so refreshToAccount can relabel it) ─
+        Label accountLbl = new Label("From Account");
+        accountLbl.getStyleClass().add("form-label");
+        accountLbl.setMinWidth(145);
 
-        Runnable refreshToAccount = () -> {
-            Transaction.Type t = typeCb.getValue();
-
-            Account prevFrom = accountCb.getValue();
-            accountCb.getItems().clear();
-            if (t == Transaction.Type.EXPENSE) {
-                ds.getBankAccounts().forEach(accountCb.getItems()::add);
-                ds.getCreditCardAccounts().forEach(accountCb.getItems()::add);
-            } else {
-                ds.getBankAccounts().forEach(accountCb.getItems()::add);
-            }
-            if (prevFrom != null && accountCb.getItems().contains(prevFrom)) {
-                accountCb.setValue(prevFrom);
-            } else if (!isNew && existing.getFromAccountId() != null) {
-                accountCb.getItems().stream()
-                        .filter(a -> a.getId().equals(existing.getFromAccountId()))
-                        .findFirst().ifPresent(accountCb::setValue);
-            }
-            if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
-                accountCb.setValue(accountCb.getItems().get(0));
-
-            boolean showTo = t == Transaction.Type.TRANSFER
-                          || t == Transaction.Type.INVESTMENT
-                          || t == Transaction.Type.CC_PAYMENT
-                          || t == Transaction.Type.LOAN_PAYMENT;
-            toAccountSection.getChildren().clear();
-            invDynamicBox.getChildren().clear();
-            invDynamicBox.setVisible(false);
-            invDynamicBox.setManaged(false);
-            invTypeLbl.setText("—");
-            toAccountSection.setVisible(showTo);
-            toAccountSection.setManaged(showTo);
-            if (!showTo) return;
-
-            GridPane tg = miniGrid();
-            if (t == Transaction.Type.TRANSFER) {
-                formRow(tg, 0, "To Account", transferToCb);
-            } else if (t == Transaction.Type.INVESTMENT) {
-                formRow(tg, 0, "To Account",      invDestCb);
-                formRow(tg, 1, "Investment Type", invTypeLbl);
-            } else if (t == Transaction.Type.CC_PAYMENT) {
-                formRow(tg, 0, "To Account", ccpCardCb);
-            } else {
-                formRow(tg, 0, "To Account", loanToCb);
-            }
-            toAccountSection.getChildren().add(tg);
-            if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
-        };
-
-        typeCb.setOnAction(e -> refreshToAccount.run());
-        invDestCb.setOnAction(e -> refreshInvFields.run());
-
-        // ── Category / Sub-category ───────────────────────────────────────────
+        // ── Category / Sub-category (declared here so refreshToAccount can reload them) ──
         List<Category> catMaster = new ArrayList<>(ds.getExpenseCategories());
         List<Category> subMaster = new ArrayList<>();
 
@@ -358,6 +274,110 @@ public class AddEditRecurringDialog {
                 subCatCb.setManaged(false);
             }
         });
+
+        // ── Refresh logic ─────────────────────────────────────────────────────
+        Runnable refreshInvFields = () -> {
+            invDynamicBox.getChildren().clear();
+            InvestmentAccount sel = invDestCb.getValue();
+            if (sel == null) {
+                invTypeLbl.setText("—");
+                invDynamicBox.setVisible(false);
+                invDynamicBox.setManaged(false);
+                return;
+            }
+            invTypeLbl.setText(sel.getAccountType());
+            GridPane dg = miniGrid();
+            switch (sel.getInvestmentType()) {
+                case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
+                    formRow(dg, 0, "Scheme / Script", invSchemeFld);
+                    formRow(dg, 1, "Units / NAV",     invUnitsFld);
+                }
+                case FIXED_DEPOSIT -> {
+                    formRow(dg, 0, "FD Reference No",   invFdRefFld);
+                    formRow(dg, 1, "Interest Rate (%)", invFdRateFld);
+                    formRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
+                    formRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
+                }
+                case RECURRING_DEPOSIT -> {
+                    formRow(dg, 0, "RD Reference No*",   invRdRefFld);
+                    formRow(dg, 1, "Interest Rate (%)",  invRdRateFld);
+                    formRow(dg, 2, "Maturity Date",      invRdMaturityPicker);
+                    formRow(dg, 3, "Opening Balance (₹)", invRdOpeningBalFld);
+                    formRow(dg, 4, "Maturity Amount (₹)", invRdMaturityAmtFld);
+                }
+                case PROVIDENT_FUND -> { /* no additional fields */ }
+            }
+            invDynamicBox.getChildren().add(dg);
+            invDynamicBox.setVisible(true);
+            invDynamicBox.setManaged(true);
+        };
+
+        Runnable refreshToAccount = () -> {
+            Transaction.Type t = typeCb.getValue();
+
+            // Relabel the account field
+            accountLbl.setText(t == Transaction.Type.INCOME ? "To Account" : "From Account");
+
+            // Reload categories for the selected type
+            List<Category> freshCats = t == Transaction.Type.INCOME
+                    ? ds.getIncomeCategories()
+                    : ds.getExpenseCategories();
+            catMaster.clear();
+            catMaster.addAll(freshCats);
+            catCb.getItems().setAll(catMaster);
+            catCb.setValue(null);
+            subCatCb.setValue(null);
+            subCatCb.setVisible(false);
+            subCatCb.setManaged(false);
+
+            Account prevFrom = accountCb.getValue();
+            accountCb.getItems().clear();
+            if (t == Transaction.Type.EXPENSE) {
+                ds.getBankAccounts().forEach(accountCb.getItems()::add);
+                ds.getCreditCardAccounts().forEach(accountCb.getItems()::add);
+            } else {
+                ds.getBankAccounts().forEach(accountCb.getItems()::add);
+            }
+            if (prevFrom != null && accountCb.getItems().contains(prevFrom)) {
+                accountCb.setValue(prevFrom);
+            } else if (!isNew && existing.getFromAccountId() != null) {
+                accountCb.getItems().stream()
+                        .filter(a -> a.getId().equals(existing.getFromAccountId()))
+                        .findFirst().ifPresent(accountCb::setValue);
+            }
+            if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
+                accountCb.setValue(accountCb.getItems().get(0));
+
+            boolean showTo = t == Transaction.Type.TRANSFER
+                          || t == Transaction.Type.INVESTMENT
+                          || t == Transaction.Type.CC_PAYMENT
+                          || t == Transaction.Type.LOAN_PAYMENT;
+            toAccountSection.getChildren().clear();
+            invDynamicBox.getChildren().clear();
+            invDynamicBox.setVisible(false);
+            invDynamicBox.setManaged(false);
+            invTypeLbl.setText("—");
+            toAccountSection.setVisible(showTo);
+            toAccountSection.setManaged(showTo);
+            if (!showTo) return;
+
+            GridPane tg = miniGrid();
+            if (t == Transaction.Type.TRANSFER) {
+                formRow(tg, 0, "To Account", transferToCb);
+            } else if (t == Transaction.Type.INVESTMENT) {
+                formRow(tg, 0, "To Account",      invDestCb);
+                formRow(tg, 1, "Investment Type", invTypeLbl);
+            } else if (t == Transaction.Type.CC_PAYMENT) {
+                formRow(tg, 0, "To Account", ccpCardCb);
+            } else {
+                formRow(tg, 0, "To Account", loanToCb);
+            }
+            toAccountSection.getChildren().add(tg);
+            if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
+        };
+
+        typeCb.setOnAction(e -> refreshToAccount.run());
+        invDestCb.setOnAction(e -> refreshInvFields.run());
 
         if (!isNew && existing.getCategoryId() != null) {
             ds.getCategories().stream()
@@ -465,7 +485,7 @@ public class AddEditRecurringDialog {
         formRow(g, row++, "Amount (₹)",       amtFld);
         VBox numPaymentsBox = new VBox(4, numPaymentsFld, lastPaymentHint);
         formRow(g, row++, "No. of Payments", numPaymentsBox);
-        formRow(g, row++, "From Account",     accountCb);
+        g.add(accountLbl, 0, row); g.add(accountCb, 1, row); GridPane.setFillWidth(accountCb, true); row++;
         g.add(toAccountSection, 0, row++, 2, 1);
         g.add(invDynamicBox,    0, row++, 2, 1);
         formRow(g, row++, "Category",         catCb);

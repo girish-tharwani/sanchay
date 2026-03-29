@@ -1352,23 +1352,26 @@ public class TransactionDialog extends Dialog<Transaction> {
         contextAccountId = acc.getId();
 
         if (acc instanceof LoanAccount) {
+            typeCb.getItems().setAll(Type.LOAN_PAYMENT);
             contextIsSource = false;
             typeCb.setValue(Type.LOAN_PAYMENT);
             lnToCb.getItems().stream()
                     .filter(a -> a.getId().equals(acc.getId()))
                     .findFirst().ifPresent(lnToCb::setValue);
         } else if (acc instanceof InvestmentAccount) {
+            typeCb.getItems().setAll(Type.INVESTMENT, Type.REDEEM);
             contextIsSource = false;
             typeCb.setValue(Type.INVESTMENT);
             invDestCb.getItems().stream()
                     .filter(a -> a.getId().equals(acc.getId()))
                     .findFirst().ifPresent(invDestCb::setValue);
         } else if (acc instanceof CreditCardAccount) {
-            // CC is the "to" side for CC_PAYMENT; for EXPENSE it is also the charge account
+            typeCb.getItems().setAll(Type.EXPENSE, Type.REFUND, Type.CC_PAYMENT);
             contextIsSource = false;
+            typeCb.setValue(Type.EXPENSE);
             setAccount(expAcctCb, acc.getId());
         } else {
-            // BankAccount — source/from for most transaction types
+            // BankAccount — all types available
             contextIsSource = true;
             setAccount(expAcctCb, acc.getId());
         }
@@ -1651,7 +1654,11 @@ public class TransactionDialog extends Dialog<Transaction> {
     private void resizeDialog(double prefWidth) {
         getDialogPane().setPrefWidth(prefWidth);
         javafx.stage.Stage stage = (javafx.stage.Stage) getDialogPane().getScene().getWindow();
-        if (stage != null) stage.sizeToScene();
+        if (stage != null) {
+            // Adjust width only — sizeToScene() also collapses height, which is wrong here
+            double chrome = stage.getWidth() - getDialogPane().getWidth();
+            stage.setWidth(prefWidth + Math.max(chrome, 0));
+        }
     }
 
     /** Standard 2-column form GridPane (label 120px | field expands). */

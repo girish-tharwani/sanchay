@@ -1,3 +1,13 @@
+## v1.0.4 — 2026-03-29
+
+### Fixed
+- New Transaction dialog: Type dropdown now restricts to context-appropriate values when opened from within an account page (CC → Expense/Refund/CC Payment; Loan → Loan Payment; Investment → Investment/Redeem; Bank → all types)
+- New Transaction dialog: switching away from Investment type no longer collapses the dialog height
+- New Recurring Schedule dialog: Category dropdown now correctly loads Income categories when Transaction Type is Income
+- New Recurring Schedule dialog: account field label now changes to "To Account" when Transaction Type is Income
+
+---
+
 ## v1.0.3 — 2026-03-29
 
 ### Added
