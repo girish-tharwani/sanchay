@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanchay – Transactions</title>
+<style>
+  :root{--teal-dark:#0f3d4a;--teal-bright:#2a8a7a;--teal-light:#3db89a;--gold:#f0a500;--sidebar-w:220px;--bg-main:#eef4f5;--bg-card:#fff;--bg-card-hover:#f5fbfa;--text-primary:#0f3d4a;--text-secondary:#4a7a88;--text-muted:#7aa4b0;--border:rgba(42,138,122,0.15);--border-strong:rgba(42,138,122,0.3);--shadow:0 2px 12px rgba(15,61,74,0.08);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg-main);min-height:100vh;display:flex;overflow:hidden;}
+
+  /* ── Sidebar ── */
+  .sidebar{width:var(--sidebar-w);min-height:100vh;background:linear-gradient(180deg,#0f3d4a 0%,#1a5c6e 60%,#1e6b5a 100%);display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:10;}
+  .sidebar::before{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(61,184,154,0.18) 0%,transparent 70%);bottom:80px;right:-60px;pointer-events:none;}
+  .sidebar::after{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(240,165,0,0.12) 0%,transparent 70%);top:40px;left:-30px;pointer-events:none;}
+  .sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px;position:relative;z-index:1;}
+  .logo-icon{width:36px;height:36px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--teal-dark);box-shadow:0 4px 16px rgba(240,165,0,0.4);flex-shrink:0;}
+  .logo-text{font-size:19px;font-weight:600;color:#fff;letter-spacing:0.3px;}
+  .nav{padding:14px 0;flex:1;position:relative;z-index:1;}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 20px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,0.6);cursor:pointer;border-left:3px solid transparent;}
+  .nav-item:hover{color:#fff;background:rgba(255,255,255,0.06);}
+  .nav-item.active{color:#fff;background:rgba(255,255,255,0.1);border-left-color:var(--gold);}
+  .nav-icon{font-size:15px;width:18px;text-align:center;}
+  .nav-bottom{padding:12px 0;border-top:1px solid rgba(255,255,255,0.08);position:relative;z-index:1;}
+
+  /* ── Main ── */
+  .main{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg-main);background-image:radial-gradient(ellipse at 90% 0%,rgba(61,184,154,0.08) 0%,transparent 50%),radial-gradient(ellipse at 10% 100%,rgba(42,138,122,0.05) 0%,transparent 40%);}
+  .fab{position:fixed;bottom:28px;right:28px;width:48px;height:48px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:300;color:var(--teal-dark);cursor:pointer;box-shadow:0 4px 20px rgba(240,165,0,0.5);z-index:100;}
+
+  /* ── Page header ── */
+  .page-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .back-btn{width:30px;height:30px;background:var(--bg-card);border:1px solid var(--border-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;color:var(--text-secondary);flex-shrink:0;}
+  .page-title{font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px;}
+
+  /* ── Filter bar ── */
+  .filter-bar{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .filter-group{display:flex;align-items:center;gap:8px;}
+  .filter-label{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;}
+  .filter-input{background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;padding:6px 10px;color:var(--text-primary);font-size:13px;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+  .cal-btn{padding:6px 8px;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text-muted);}
+  .filter-sep{width:1px;height:24px;background:var(--border);flex-shrink:0;}
+  .search-wrap{flex:1;position:relative;}
+  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text-muted);}
+  .search-input{width:100%;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;padding:6px 10px 6px 30px;color:var(--text-primary);font-size:13px;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+  .search-input::placeholder{color:var(--text-muted);}
+  .pending-toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-muted);cursor:pointer;margin-left:auto;white-space:nowrap;}
+  .toggle-box{width:16px;height:16px;border:1.5px solid var(--border-strong);border-radius:4px;background:#fff;}
+
+  /* ── Transactions table ── */
+  .table-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);background:#f8fbfc;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;}
+  th:hover{color:var(--text-secondary);}
+  th.sorted{color:var(--teal-bright);}
+  td{padding:11px 14px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--bg-card-hover);}
+  .col-date{width:110px;}
+  .col-desc{width:auto;}
+  .col-type{width:120px;}
+  .col-tofrom{width:140px;}
+  .col-cat{width:130px;}
+  .col-subcat{width:130px;}
+  .col-amount{width:130px;text-align:right;}
+  .col-actions{width:68px;text-align:right;}
+  td.amount{text-align:right;font-weight:600;color:var(--text-primary);}
+
+  /* Type badges — fixed width */
+  .badge{display:inline-block;width:100px;text-align:center;padding:3px 0;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+  .badge.expense   {background:#fef2f2;color:#c0392b;border:1px solid #fecaca;}
+  .badge.loan      {background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+  .badge.transfer  {background:#f5f3ff;color:#7c3aed;border:1px solid #e9d5ff;}
+  .badge.income    {background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+
+  /* Row action icons */
+  .row-actions{display:flex;gap:5px;justify-content:flex-end;}
+  .ribtn{width:26px;height:26px;background:#f0f6f7;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:var(--text-muted);}
+  .ribtn.del{background:#fef2f2;border-color:#fecaca;color:#c0392b;}
+  /* Recurring indicator chip */
+  .rec-chip{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+  .rec-chip.r{background:rgba(42,138,122,0.15);color:var(--teal-bright);}
+  .rec-chip.m{background:rgba(240,165,0,0.15);color:#b37800;}
+  .rec-chip.i{background:#f5f3ff;color:#7c3aed;}
+
+  /* ── Footer ── */
+  .table-footer{padding:12px 18px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);background:#f8fbfc;}
+  .hint{font-size:12px;color:var(--text-muted);flex:1;}
+  .btn-csv{padding:6px 14px;background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.35);border-radius:8px;color:#b37800;font-size:12px;font-weight:600;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">₹</div><span class="logo-text">Sanchay</span></div>
+  <nav class="nav">
+    <div class="nav-item"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item active"><span class="nav-icon">🏦</span> Accounts</div>
+    <div class="nav-item"><span class="nav-icon">↻</span> Recurring</div>
+    <div class="nav-item"><span class="nav-icon">📊</span> Reports</div>
+    <div class="nav-item"><span class="nav-icon">⊟</span> Categories</div>
+  </nav>
+  <div class="nav-bottom">
+    <div class="nav-item"><span class="nav-icon">👤</span> Profile</div>
+    <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+    <div class="nav-item"><span class="nav-icon">?</span> Help</div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <div class="page-header">
+    <div class="back-btn">←</div>
+    <div class="page-title">ICICI Main — Transactions</div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">From:</span>
+      <input class="filter-input" value="1/4/2025" style="width:90px">
+      <button class="cal-btn">📅</button>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">To:</span>
+      <input class="filter-input" value="31/3/2026" style="width:90px">
+      <button class="cal-btn">📅</button>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" placeholder="Search description or notes…">
+    </div>
+    <div class="pending-toggle">
+      <div class="toggle-box"></div>
+      Show pending review only
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-date sorted">Date ▾</th>
+          <th class="col-desc">Description</th>
+          <th class="col-type">Type</th>
+          <th class="col-tofrom">To / From Account</th>
+          <th class="col-cat">Category</th>
+          <th class="col-subcat">Sub-category</th>
+          <th class="col-amount">Amount</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>05/02/2026</td>
+          <td>BIL/Home Loan XX47458 EMI Girish T</td>
+          <td><span class="badge loan">Loan Payment</span></td>
+          <td style="color:var(--text-primary)">Jade Home Loan</td>
+          <td>Home Loan</td>
+          <td>Prepayment</td>
+          <td class="amount">(₹1,16,474.00)</td>
+          <td><div class="row-actions"><span class="rec-chip r">R</span><div class="ribtn del">✕</div></div></td>
+        </tr>
+        <tr>
+          <td>05/02/2026</td>
+          <td>test2</td>
+          <td><span class="badge expense">Expense</span></td>
+          <td></td>
+          <td>Food/Dining</td>
+          <td>Restaurants</td>
+          <td class="amount">(₹1,000.00)</td>
+          <td><div class="row-actions"><span class="rec-chip m">M</span><div class="ribtn del">✕</div></div></td>
+        </tr>
+        <tr>
+          <td>04/02/2026</td>
+          <td>UPI/AKASH NADK/bharatpe.9v0u0/Pay to Bha/AXIS BA</td>
+          <td><span class="badge expense">Expense</span></td>
+          <td></td>
+          <td>Miscellaneous</td>
+          <td>Auto/Cab</td>
+          <td class="amount">(₹45.00)</td>
+          <td><div class="row-actions"><span class="rec-chip i">I</span><div class="ribtn del">✕</div></div></td>
+        </tr>
+        <tr>
+          <td>04/02/2026</td>
+          <td>Test1</td>
+          <td><span class="badge expense">Expense</span></td>
+          <td></td>
+          <td>Food/Dining</td>
+          <td>Restaurants</td>
+          <td class="amount">(₹1,000.00)</td>
+          <td><div class="row-actions"><span class="rec-chip r">R</span><div class="ribtn del">✕</div></div></td>
+        </tr>
+        <tr>
+          <td>01/02/2026</td>
+          <td>BIL/NEFT/IN12603221140673/MR ANSH TH/IDFC BANK L</td>
+          <td><span class="badge expense">Expense</span></td>
+          <td></td>
+          <td>Education</td>
+          <td>Miscellaneous</td>
+          <td class="amount">(₹10,000.00)</td>
+          <td><div class="row-actions"><span class="rec-chip r">R</span><div class="ribtn del">✕</div></div></td>
+        </tr>
+        <tr>
+          <td>01/02/2026</td>
+          <td>BIL/INFT/FB17512642/INFT//</td>
+          <td><span class="badge expense">Expense</span></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td class="amount">(₹30,000.00)</td>
+          <td><div class="row-actions"><span class="rec-chip i">I</span><div class="ribtn del">✕</div></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <span class="hint">Double-click a row to edit</span>
+      <button class="btn-csv">Import CSV</button>
+      <button class="btn-csv">Export CSV</button>
+    </div>
+  </div>
+
+</main>
+
+<div class="fab">+</div>
+</body>
+</html>

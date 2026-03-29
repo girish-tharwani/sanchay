@@ -11,8 +11,14 @@ Once requirements are clear, explain your implementation plan:
 - Any UI changes (new screens, dialogs, columns, /badges)
 - Any edge cases or tricky parts you anticipate
 
-Wait for the user to confirm the plan before writing any code.
+Answer user queries:
+- Let user ask queries and answer them
+- Change the plan if needed, as per user conversation
+- Present the revised plan
 
-After writing the code, build is using build.sh to check for compilation errors.
+Once user confirms, Write a detailed step-by-step plan at ./.claude/plans with a suitable file name in .md format for execution later.
 
-Do not try to commit and push the code. Let user ask for it separately. 
+Do not write or update any code
+
+Finish!
+

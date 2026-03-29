@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanchay – Dashboard (First Time)</title>
+<style>
+  :root{
+    --teal-dark:#0f3d4a;--teal-bright:#2a8a7a;--teal-light:#3db89a;
+    --gold:#f0a500;--gold-light:#ffc93c;--sidebar-w:220px;
+    --bg-main:#eef4f5;--bg-card:#fff;--bg-card-hover:#f5fbfa;
+    --text-primary:#0f3d4a;--text-secondary:#4a7a88;--text-muted:#7aa4b0;
+    --border:rgba(42,138,122,0.15);--border-strong:rgba(42,138,122,0.3);
+    --shadow:0 2px 12px rgba(15,61,74,0.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--bg-main);min-height:100vh;display:flex;overflow:hidden;}
+
+  /* ── Sidebar ── */
+  .sidebar{width:var(--sidebar-w);min-height:100vh;background:linear-gradient(180deg,#0f3d4a 0%,#1a5c6e 60%,#1e6b5a 100%);display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:10;}
+  .sidebar::before{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(61,184,154,0.18) 0%,transparent 70%);bottom:80px;right:-60px;pointer-events:none;}
+  .sidebar::after{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(240,165,0,0.12) 0%,transparent 70%);top:40px;left:-30px;pointer-events:none;}
+  .sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px;position:relative;z-index:1;}
+  .logo-icon{width:36px;height:36px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--teal-dark);box-shadow:0 4px 16px rgba(240,165,0,0.4);flex-shrink:0;}
+  .logo-text{font-size:19px;font-weight:600;color:#fff;letter-spacing:0.3px;}
+  .nav{padding:14px 0;flex:1;position:relative;z-index:1;}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 20px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,0.6);cursor:pointer;border-left:3px solid transparent;}
+  .nav-item:hover{color:#fff;background:rgba(255,255,255,0.06);}
+  .nav-item.active{color:#fff;background:rgba(255,255,255,0.1);border-left-color:var(--gold);}
+  .nav-icon{font-size:15px;width:18px;text-align:center;}
+  .nav-bottom{padding:12px 0;border-top:1px solid rgba(255,255,255,0.08);position:relative;z-index:1;}
+
+  /* ── Main ── */
+  .main{flex:1;overflow-y:auto;padding:30px 34px;background:var(--bg-main);background-image:radial-gradient(ellipse at 90% 0%,rgba(61,184,154,0.08) 0%,transparent 50%),radial-gradient(ellipse at 10% 100%,rgba(42,138,122,0.05) 0%,transparent 40%);}
+  .page-title{font-size:24px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px;margin-bottom:20px;}
+  .fab{position:fixed;bottom:28px;right:28px;width:48px;height:48px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:300;color:var(--teal-dark);cursor:pointer;box-shadow:0 4px 20px rgba(240,165,0,0.5);z-index:100;}
+
+  /* ── Onboarding card ── */
+  .onboarding-card{
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-left:4px solid var(--teal-light);
+    border-radius:14px;
+    padding:22px 24px;
+    margin-bottom:22px;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+  .onboarding-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+  .onboarding-title{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--text-primary);}
+  .onboarding-title-icon{font-size:17px;}
+  .dismiss-btn{
+    padding:5px 14px;
+    background:linear-gradient(135deg,var(--teal-bright),var(--teal-light));
+    border:none;border-radius:8px;
+    color:#fff;font-size:12px;font-weight:600;cursor:pointer;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .onboarding-intro{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+
+  /* Steps */
+  .steps{display:flex;flex-direction:column;gap:12px;}
+  .step{display:flex;align-items:flex-start;gap:14px;}
+  .step-num{
+    width:26px;height:26px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--teal-bright),var(--teal-light));
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:#fff;
+    box-shadow:0 2px 8px rgba(42,138,122,0.3);
+    margin-top:1px;
+  }
+  .step-content{}
+  .step-title{font-size:13.5px;font-weight:700;color:var(--text-primary);margin-bottom:3px;}
+  .step-desc{font-size:12.5px;color:var(--text-secondary);line-height:1.55;}
+  .nav-hint{display:inline-flex;align-items:center;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:5px;padding:0px 6px;font-size:11px;font-weight:600;color:var(--teal-bright);white-space:nowrap;}
+
+  /* ── Stat cards ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+  .stats-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  .stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .stat-card::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--teal-light);border-radius:0 2px 2px 0;opacity:0.5;}
+  .stat-card.highlight::before{background:var(--gold);opacity:1;}
+  .stat-card.negative-card::before{background:#e05555;}
+  .stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px;}
+  .stat-card.highlight .stat-label{color:var(--teal-bright);}
+  .stat-value{font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px;}
+  .stat-value.zero{color:var(--text-muted);}
+
+  /* ── Section card ── */
+  .section{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--text-secondary);display:flex;align-items:center;gap:7px;}
+  .section-title .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-light);}
+  .view-all{font-size:12px;font-weight:600;color:var(--teal-bright);cursor:pointer;}
+  .empty-msg{font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:8px;padding:4px 0;}
+  .empty-check{color:var(--teal-light);font-size:15px;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">₹</div><span class="logo-text">Sanchay</span></div>
+  <nav class="nav">
+    <div class="nav-item active"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">🏦</span> Accounts</div>
+    <div class="nav-item"><span class="nav-icon">↻</span> Recurring</div>
+    <div class="nav-item"><span class="nav-icon">📊</span> Reports</div>
+    <div class="nav-item"><span class="nav-icon">⊟</span> Categories</div>
+  </nav>
+  <div class="nav-bottom">
+    <div class="nav-item"><span class="nav-icon">👤</span> Profile</div>
+    <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+    <div class="nav-item"><span class="nav-icon">?</span> Help</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-title">Dashboard</div>
+
+  <!-- Onboarding instruction card -->
+  <div class="onboarding-card">
+    <div class="onboarding-header">
+      <div class="onboarding-title">
+        <span class="onboarding-title-icon">🚀</span>
+        Welcome — let's get you set up
+      </div>
+      <button class="dismiss-btn">Got it — I'll start now</button>
+    </div>
+    <div class="onboarding-intro">Before you start recording transactions, complete these three steps in order:</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Add family members</div>
+          <div class="step-desc">Go to <span class="nav-hint">Profile</span> → <span class="nav-hint">+ Add Member</span>. Add everyone in your household. Don't mark anyone as an earning member yet — you'll do that in step 3.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Add your bank accounts</div>
+          <div class="step-desc">Go to <span class="nav-hint">Accounts</span> → <span class="nav-hint">Bank Accounts</span> → <span class="nav-hint">+ Add</span>. Add the accounts where salaries and income are deposited. You can add credit cards and loans later.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Complete earnings details</div>
+          <div class="step-desc">Return to <span class="nav-hint">Profile</span> and click the <span class="nav-hint">₹</span> button next to each earning member. Mark them as earning and fill in their salary and income details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat cards — all zeros -->
+  <div class="stats-grid">
+    <div class="stat-card highlight">
+      <div class="stat-label">Net Worth</div>
+      <div class="stat-value zero">₹0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bank Balance</div>
+      <div class="stat-value zero">₹0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Monthly Expenses</div>
+      <div class="stat-value zero">₹0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Monthly Income</div>
+      <div class="stat-value zero">₹0.00</div>
+    </div>
+  </div>
+
+  <div class="stats-row2">
+    <div class="stat-card">
+      <div class="stat-label">Credit Card Balance</div>
+      <div class="stat-value zero">₹0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Loans</div>
+      <div class="stat-value zero">0</div>
+    </div>
+  </div>
+
+  <!-- Pending recurring -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="dot"></span> Pending Recurring Transactions</div>
+      <span class="view-all">View All →</span>
+    </div>
+    <div class="empty-msg"><span class="empty-check">✓</span> No pending transactions. You're all caught up!</div>
+  </div>
+
+  <!-- Recent transactions -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="dot" style="background:var(--gold)"></span> Recent Transactions</div>
+    </div>
+    <div class="empty-msg" style="color:var(--text-muted)">No transactions yet. Use the + button to record your first transaction.</div>
+  </div>
+
+</main>
+
+<div class="fab">+</div>
+</body>
+</html>

@@ -27,7 +27,7 @@ replay_pid*
 appdata/
 testdata/
 work-folder/
-ui-reimagined/
+wireframes/
 logs/
 build.sh
 CHANGELOG_v0.2.13.md

@@ -358,7 +358,7 @@ Investment accounts use a **bucket model**: one account represents a broad inves
 | All Mutual Funds | Mutual Funds | This is where you record all your mutual funds transactions. |
 | All Bonds | Debt Bonds | This is where you record all your bonds transactions. |
 
-> **Future enhancement:** Track current market value / NAV for investment accounts.
+> Equity and Mutual Fund accounts support periodic market value snapshots — record a value at any date to track portfolio performance over time.
 
 #### 5.4.2 SIP as Recurring Transactions
 
@@ -1018,7 +1018,7 @@ The following features are explicitly deferred to future versions:
 - Cloud sync or multi-device access
 - Bank statement import via PDF or OFX format
 - FD / RD maturity alerts and push notifications
-- Investment current market value / NAV lookup
+- Automated investment market value / NAV lookup (manual snapshots are supported)
 - Budget planning and budget vs actuals tracking
 - ITR-relevant summaries and 80C tracking
 - Mobile application

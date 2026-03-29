@@ -27,7 +27,8 @@ public class DataStore {
     private final List<ImportMapping>        importMappings = new ArrayList<>();
     private final List<CategoryRule>         categoryRules  = new ArrayList<>();
     private final List<TypeRule>             typeRules      = new ArrayList<>();
-    private final Map<String, List<AmortizationEntry>> loanSchedules = new HashMap<>();
+    private final Map<String, List<AmortizationEntry>> loanSchedules  = new HashMap<>();
+    private final List<MarketValueEntry>               marketValues   = new ArrayList<>();
 
     private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
@@ -62,6 +63,7 @@ public class DataStore {
         categoryRules.clear();
         typeRules.clear();
         loanSchedules.clear();
+        marketValues.clear();
         activeFinancialYear = "FY 2025-26";
         dateFormat  = "DD/MM/YYYY";
         currency    = "INR";
@@ -92,6 +94,49 @@ public class DataStore {
     public List<Account>              getAccounts()            { return Collections.unmodifiableList(accounts); }
     public List<Transaction>          getTransactions()        { return Collections.unmodifiableList(transactions); }
     public List<RecurringTransaction> getRecurring()           { return Collections.unmodifiableList(recurring); }
+    public List<MarketValueEntry>     getMarketValues()        { return Collections.unmodifiableList(marketValues); }
+
+    /** All market value entries for an account, sorted newest-first. */
+    public List<MarketValueEntry> getMarketValuesFor(String accountId) {
+        return marketValues.stream()
+                .filter(e -> accountId.equals(e.getAccountId()))
+                .sorted(Comparator.comparing(MarketValueEntry::getValueDate).reversed())
+                .collect(Collectors.toList());
+    }
+
+    /** Most recent market value entry for an account, or null if none recorded. */
+    public MarketValueEntry getLatestMarketValue(String accountId) {
+        return marketValues.stream()
+                .filter(e -> accountId.equals(e.getAccountId()))
+                .max(Comparator.comparing(MarketValueEntry::getValueDate))
+                .orElse(null);
+    }
+
+    /**
+     * Invested amount for an investment account as of a specific date.
+     * Sums INVESTMENT transactions up to asOf, subtracts REDEEM principal up to asOf,
+     * plus the account opening balance (not date-stamped).
+     */
+    public long getInvestedPaiseAsOf(InvestmentAccount ia, LocalDate asOf) {
+        long invested = getBaseInvestedPaise(ia);
+        for (Transaction t : transactions) {
+            if (t.getDate().isAfter(asOf)) continue;
+            if (t.getType() == Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
+                invested += t.getAmountPaise();
+            if (t.getType() == Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
+                long prin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+                invested -= prin > 0 ? prin : t.getAmountPaise();
+            }
+        }
+        return Math.max(0, invested);
+    }
+
+    public void addMarketValueInternal(MarketValueEntry e) { marketValues.add(e); }
+
+    public void addMarketValue(MarketValueEntry e) {
+        marketValues.add(e);
+        if (persistence != null) persistence.saveMarketValues(this);
+    }
 
     /** Distinct non-blank transaction descriptions, sorted alphabetically. */
     public List<String> getDistinctTransactionDescriptions() {

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanchay – Getting Started</title>
+<style>
+  :root{
+    --teal-dark:#0f3d4a;--teal-bright:#2a8a7a;--teal-light:#3db89a;
+    --gold:#f0a500;
+    --bg-main:#eef4f5;--bg-card:#fff;
+    --text-primary:#0f3d4a;--text-secondary:#4a7a88;--text-muted:#7aa4b0;
+    --border:rgba(42,138,122,0.15);--border-strong:rgba(42,138,122,0.3);
+    --shadow:0 4px 24px rgba(15,61,74,0.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    background:var(--bg-main);
+    background-image:radial-gradient(ellipse at 80% 10%,rgba(61,184,154,0.1) 0%,transparent 50%);
+    min-height:100vh;
+    padding:48px 40px;
+    display:flex;
+    align-items:flex-start;
+  }
+
+  .page-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px;}
+
+  /* ── Dialog shell ── */
+  .dialog{
+    background:var(--bg-card);
+    border:1px solid var(--border-strong);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    width:460px;
+  }
+  .dialog-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:15px 20px;
+    border-bottom:1px solid var(--border);
+    background:#f8fbfc;
+  }
+  .dialog-title-wrap{display:flex;align-items:center;gap:10px;}
+  .dialog-icon{
+    width:28px;height:28px;
+    background:rgba(42,138,122,0.12);border:1px solid var(--border-strong);
+    border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+  }
+  .dialog-title{font-size:14px;font-weight:700;color:var(--text-primary);}
+  .close-btn{
+    width:26px;height:26px;background:#f0f6f7;border:1px solid var(--border);
+    border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:13px;cursor:pointer;color:var(--text-muted);
+  }
+  .dialog-body{padding:24px 22px;}
+  .dialog-footer{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 22px;border-top:1px solid var(--border);background:#f8fbfc;
+  }
+
+  /* ── Hero heading ── */
+  .gs-hero{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .gs-hero-icon{font-size:22px;}
+  .gs-hero-title{font-size:18px;font-weight:700;color:var(--text-primary);}
+  .gs-intro{font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.6;}
+
+  /* ── Steps ── */
+  .steps{display:flex;flex-direction:column;gap:0;}
+  .step{display:flex;gap:16px;padding:16px 0;position:relative;}
+  .step:not(:last-child){border-bottom:1px solid var(--border);}
+
+  /* Number badge */
+  .step-num{
+    width:30px;height:30px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--teal-bright),var(--teal-light));
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;color:#fff;
+    box-shadow:0 2px 8px rgba(42,138,122,0.35);
+    margin-top:1px;
+  }
+  .step-content{}
+  .step-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:5px;}
+  .step-desc{font-size:13px;color:var(--text-secondary);line-height:1.6;}
+
+  /* Inline nav hints */
+  .nav-hint{
+    display:inline-flex;align-items:center;gap:3px;
+    background:#f0f6f7;border:1px solid var(--border-strong);
+    border-radius:5px;padding:1px 7px;
+    font-size:11.5px;font-weight:600;color:var(--teal-bright);
+    white-space:nowrap;
+  }
+  .nav-arrow{color:var(--text-muted);font-size:11px;margin:0 2px;}
+
+  /* About link */
+  .about-link{font-size:13px;color:var(--teal-bright);cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+
+  /* Close button */
+  .btn-cancel{padding:8px 22px;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:9px;color:var(--text-muted);font-size:13px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div>
+  <div class="page-label">Help — Getting Started Dialog</div>
+  <div class="dialog">
+    <div class="dialog-header">
+      <div class="dialog-title-wrap">
+        <div class="dialog-icon">?</div>
+        <div class="dialog-title">Help — Sanchay</div>
+      </div>
+      <div class="close-btn">✕</div>
+    </div>
+    <div class="dialog-body">
+
+      <div class="gs-hero">
+        <span class="gs-hero-icon">🚀</span>
+        <span class="gs-hero-title">Getting started</span>
+      </div>
+      <div class="gs-intro">Before you start recording transactions, complete these three steps in order:</div>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Add family members</div>
+            <div class="step-desc">
+              Go to <span class="nav-hint">Profile</span><span class="nav-arrow">→</span><span class="nav-hint">+ Add Member</span>.
+              Add everyone in your household. Don't mark anyone as an earning member yet — you'll do that in step 3.
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Add your bank accounts</div>
+            <div class="step-desc">
+              Go to <span class="nav-hint">Accounts</span><span class="nav-arrow">→</span><span class="nav-hint">Bank Accounts</span><span class="nav-arrow">→</span><span class="nav-hint">+ Add</span>.
+              Add the accounts where salaries and income are deposited. You can add credit cards and loans later.
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Complete earnings details</div>
+            <div class="step-desc">
+              Return to <span class="nav-hint">Profile</span> and click the <span class="nav-hint">₹</span> button next to each earning member. Mark them as earning and fill in their salary and income details.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <div class="dialog-footer">
+      <span class="about-link">About Sanchay…</span>
+      <button class="btn-cancel">Close</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

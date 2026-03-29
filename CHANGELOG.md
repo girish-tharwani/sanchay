@@ -1,3 +1,11 @@
+## v1.0.5 — 2026-03-29
+
+### Added
+- Market value tracking for Equity and Mutual Fund accounts: record a market value snapshot at any past or present date, view full history in a table, and see the latest market value alongside invested amount on both the account card and account details page
+- Account card for Equity/MF accounts now shows "Invested / Market Value" in the same side-by-side format as credit card Outstanding / Available
+
+---
+
 ## v1.0.4 — 2026-03-29
 
 ### Fixed

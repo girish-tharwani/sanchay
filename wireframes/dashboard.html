@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanchay – Dashboard</title>
+<style>
+  :root {
+    --teal-dark: #0f3d4a;
+    --teal-mid: #1a5c6e;
+    --teal-bright: #2a8a7a;
+    --teal-light: #3db89a;
+    --gold: #f0a500;
+    --gold-light: #ffc93c;
+    --sidebar-w: 220px;
+
+    /* Light main area */
+    --bg-main: #eef4f5;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f5fbfa;
+    --text-primary: #0f3d4a;
+    --text-secondary: #4a7a88;
+    --text-muted: #7aa4b0;
+    --border: rgba(42,138,122,0.15);
+    --border-strong: rgba(42,138,122,0.3);
+    --shadow: 0 2px 12px rgba(15,61,74,0.08);
+    --shadow-md: 0 4px 20px rgba(15,61,74,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-main);
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR (stays dark, brand gradient) ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0f3d4a 0%, #1a5c6e 60%, #1e6b5a 100%);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  /* Subtle decorative circles in sidebar */
+  .sidebar::before {
+    content: '';
+    position: absolute;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(61,184,154,0.18) 0%, transparent 70%);
+    bottom: 80px; right: -60px;
+    pointer-events: none;
+  }
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,165,0,0.12) 0%, transparent 70%);
+    top: 40px; left: -30px;
+    pointer-events: none;
+  }
+  .sidebar-logo {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 12px;
+    position: relative; z-index: 1;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    color: var(--teal-dark);
+    box-shadow: 0 4px 16px rgba(240,165,0,0.4);
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-size: 19px; font-weight: 600;
+    color: #ffffff; letter-spacing: 0.3px;
+  }
+  .nav { padding: 14px 0; flex: 1; position: relative; z-index: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 20px;
+    font-size: 13.5px; font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .nav-item.active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border-left-color: var(--gold);
+  }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .nav-bottom {
+    padding: 12px 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    position: relative; z-index: 1;
+  }
+
+  /* ── MAIN CONTENT (light) ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px 34px;
+    background: var(--bg-main);
+    /* Subtle teal tint in top-right */
+    background-image:
+      radial-gradient(ellipse at 90% 0%, rgba(61,184,154,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 10% 100%, rgba(42,138,122,0.05) 0%, transparent 40%);
+  }
+
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 26px;
+  }
+  .page-title {
+    font-size: 24px; font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .page-date { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .fab {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    width: 48px; height: 48px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 300;
+    color: var(--teal-dark);
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(240,165,0,0.5);
+    z-index: 100;
+  }
+
+  /* ── STAT CARDS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .stats-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 20px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Accent stripe on left edge */
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 3px;
+    background: var(--teal-light);
+    border-radius: 0 2px 2px 0;
+    opacity: 0.5;
+  }
+  .stat-card.highlight::before { background: var(--gold); opacity: 1; }
+  .stat-card.negative-card::before { background: #e05555; }
+
+  .stat-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-size: 20px; font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+  .stat-value.negative { color: #c0392b; }
+  .stat-card.highlight .stat-value { color: var(--teal-dark); }
+  .stat-card.highlight .stat-label { color: var(--teal-bright); }
+
+  /* ── SECTION CARDS ── */
+  .section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.9px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .section-title .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--teal-light);
+  }
+  .view-all {
+    font-size: 12px; font-weight: 600;
+    color: var(--teal-bright); cursor: pointer;
+  }
+
+  /* ── PENDING ITEMS ── */
+  .pending-item {
+    display: flex; align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .pending-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .pending-item:first-child { padding-top: 0; }
+
+  .badge {
+    width: 100px; text-align: center;
+    padding: 3px 0; border-radius: 20px;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .badge.expense { background: #fef2f2; color: #c0392b; border: 1px solid #fecaca; }
+  .badge.loan { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+  .pending-info { flex: 1; }
+  .pending-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+  .pending-due { font-size: 12px; color: var(--text-muted); }
+  .pending-amount { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-right: 10px; }
+
+  .btn-record {
+    padding: 6px 16px;
+    background: linear-gradient(135deg, var(--teal-bright), var(--teal-light));
+    border: none; border-radius: 8px;
+    color: white; font-size: 12px; font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-skip {
+    padding: 6px 12px;
+    background: #f4f7f8;
+    border: 1px solid var(--border-strong); border-radius: 8px;
+    color: var(--text-muted); font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* ── RECENT TRANSACTIONS ── */
+  .txn-row {
+    display: flex; align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .txn-row:last-child { border-bottom: none; }
+  .txn-row:first-child { padding-top: 0; }
+
+  .txn-badge {
+    width: 100px; text-align: center;
+    padding: 2px 0; border-radius: 12px;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+  .txn-badge.expense { background: #fef2f2; color: #c0392b; }
+  .txn-badge.cc { background: #f5f3ff; color: #7c3aed; }
+
+  .txn-date { font-size: 12px; color: var(--text-muted); min-width: 75px; }
+  .txn-desc {
+    flex: 1; font-size: 13px; color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 380px;
+  }
+  .txn-amount { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">₹</div>
+    <span class="logo-text">Sanchay</span>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">🏦</span> Accounts</div>
+    <div class="nav-item"><span class="nav-icon">↻</span> Recurring</div>
+    <div class="nav-item"><span class="nav-icon">📊</span> Reports</div>
+    <div class="nav-item"><span class="nav-icon">⊟</span> Categories</div>
+  </nav>
+  <div class="nav-bottom">
+    <div class="nav-item"><span class="nav-icon">👤</span> Profile</div>
+    <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+    <div class="nav-item"><span class="nav-icon">?</span> Help</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-date">Monday, 23 March 2026</div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card highlight">
+      <div class="stat-label">Net Worth</div>
+      <div class="stat-value">₹51,64,221.93</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bank Balance</div>
+      <div class="stat-value">₹14,83,461.93</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Monthly Expenses</div>
+      <div class="stat-value">₹0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Monthly Income</div>
+      <div class="stat-value">₹0.00</div>
+    </div>
+  </div>
+
+  <div class="stats-row2">
+    <div class="stat-card negative-card">
+      <div class="stat-label">Credit Card Balance</div>
+      <div class="stat-value negative">₹−6,880.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Loans</div>
+      <div class="stat-value">1</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="dot"></span> Pending Recurring Transactions</div>
+      <span class="view-all">View All →</span>
+    </div>
+    <div class="pending-item">
+      <span class="badge expense">Expense</span>
+      <div class="pending-info">
+        <div class="pending-name">Ansh Tharwani</div>
+        <div class="pending-due">Due: 01 Feb 2026</div>
+      </div>
+      <div class="pending-amount">₹10,000.00</div>
+      <button class="btn-record">Record</button>
+      <button class="btn-skip">Skip</button>
+    </div>
+    <div class="pending-item">
+      <span class="badge expense">Expense</span>
+      <div class="pending-info">
+        <div class="pending-name">Vidhi Tharwani</div>
+        <div class="pending-due">Due: 01 Jan 2026</div>
+      </div>
+      <div class="pending-amount">₹30,000.00</div>
+      <button class="btn-record">Record</button>
+      <button class="btn-skip">Skip</button>
+    </div>
+    <div class="pending-item">
+      <span class="badge loan">Loan Payment</span>
+      <div class="pending-info">
+        <div class="pending-name">ICICI Homeloan</div>
+        <div class="pending-due">Due: 05 Feb 2026</div>
+      </div>
+      <div class="pending-amount">₹1,16,400.00</div>
+      <button class="btn-record">Record</button>
+      <button class="btn-skip">Skip</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="dot" style="background:var(--gold)"></span> Recent Transactions</div>
+    </div>
+    <div class="txn-row">
+      <span class="txn-badge cc">CC Payment</span>
+      <span class="txn-date">31 Jan 2026</span>
+      <span class="txn-desc">BIL/INFT/001151987895/CC BillPay-1004/Self</span>
+      <span class="txn-amount">₹6,880.00</span>
+    </div>
+    <div class="txn-row">
+      <span class="txn-badge expense">Expense</span>
+      <span class="txn-date">31 Jan 2026</span>
+      <span class="txn-desc">BIL/INFT/001151989483/Self</span>
+      <span class="txn-amount">₹46,021.44</span>
+    </div>
+    <div class="txn-row">
+      <span class="txn-badge expense">Expense</span>
+      <span class="txn-date">31 Jan 2026</span>
+      <span class="txn-desc">UPI/Mr SHEKHAR/shekhardhende0/UPI/BANK OF MA/603</span>
+      <span class="txn-amount">₹17,000.00</span>
+    </div>
+  </div>
+</main>
+
+<div class="fab">+</div>
+
+</body>
+</html>

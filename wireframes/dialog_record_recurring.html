@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanchay – Record Recurring</title>
+<style>
+  :root{
+    --teal-dark:#0f3d4a;--teal-bright:#2a8a7a;--teal-light:#3db89a;
+    --gold:#f0a500;
+    --bg-main:#eef4f5;--bg-card:#fff;--bg-card-hover:#f5fbfa;
+    --text-primary:#0f3d4a;--text-secondary:#4a7a88;--text-muted:#7aa4b0;
+    --border:rgba(42,138,122,0.15);--border-strong:rgba(42,138,122,0.3);
+    --shadow:0 4px 24px rgba(15,61,74,0.14);
+    --red:#c0392b;--red-bg:#fef2f2;--red-border:#fecaca;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    background:var(--bg-main);
+    background-image:radial-gradient(ellipse at 80% 10%,rgba(61,184,154,0.1) 0%,transparent 50%);
+    min-height:100vh;padding:48px 40px;
+    display:flex;align-items:flex-start;
+  }
+  .dialog{background:var(--bg-card);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+  .dialog-header{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--border);background:#f8fbfc;}
+  .dialog-title-wrap{display:flex;align-items:center;gap:10px;}
+  .dialog-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .dialog-icon.teal{background:rgba(42,138,122,0.12);border:1px solid var(--border-strong);color:var(--teal-bright);}
+  .dialog-icon.danger{background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.25);color:var(--red);}
+  .dialog-title{font-size:14px;font-weight:700;color:var(--text-primary);}
+  .close-btn{width:26px;height:26px;background:#f0f6f7;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:var(--text-muted);}
+  .dialog-body{padding:20px 22px;}
+  .dialog-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border);background:#f8fbfc;}
+  .dialog-footer.three{justify-content:space-between;align-items:center;}
+  .btn-save{padding:8px 22px;background:linear-gradient(135deg,var(--teal-bright),var(--teal-light));border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-cancel{padding:8px 16px;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:9px;color:var(--text-muted);font-size:13px;cursor:pointer;}
+  .btn-danger{padding:8px 22px;background:var(--red);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-outline{padding:8px 18px;background:#fff;border:1px solid var(--border-strong);border-radius:9px;color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;}
+  /* form */
+  .field-row{display:flex;align-items:center;gap:12px;margin-bottom:13px;}
+  .field-row:last-child{margin-bottom:0;}
+  .field-label{font-size:12.5px;font-weight:600;color:var(--text-muted);min-width:120px;text-align:right;flex-shrink:0;}
+  .field-label.req::after{content:' *';color:var(--gold);}
+  .field-input{flex:1;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:13px;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;outline:none;}
+  .field-input:focus{border-color:var(--teal-light);background:#fff;box-shadow:0 0 0 3px rgba(61,184,154,0.12);}
+  .field-input.focused{border-color:var(--teal-light);background:#fff;box-shadow:0 0 0 3px rgba(61,184,154,0.12);}
+  .field-input::placeholder{color:var(--text-muted);}
+  .date-wrap{display:flex;gap:6px;flex:1;}
+  .date-wrap .field-input{flex:1;}
+  .cal-btn{padding:8px 10px;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-muted);}
+  .select-wrap{flex:1;position:relative;}
+  .field-select{width:100%;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;padding:8px 30px 8px 12px;color:var(--text-primary);font-size:13px;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;appearance:none;cursor:pointer;}
+  .select-wrap::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;flex:1;}
+  .cb{width:17px;height:17px;border:1.5px solid var(--border-strong);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0;}
+  .cb-label{font-size:13px;color:var(--text-secondary);}
+  .field-divider{border:none;border-top:1px solid var(--border);margin:4px 0 13px;}
+  .spinner-wrap{flex:1;display:flex;background:#f0f6f7;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;}
+  .spinner-val{flex:1;border:none;background:transparent;padding:8px 12px;font-size:13px;color:var(--text-primary);font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;text-align:center;}
+  .spinner-btns{display:flex;flex-direction:column;border-left:1px solid var(--border);}
+  .sp-btn{width:26px;height:18px;background:#e8f0f2;border:none;cursor:pointer;font-size:9px;color:var(--text-muted);line-height:1;}
+  .sp-btn:first-child{border-bottom:1px solid var(--border);}
+  /* import csv extras */
+  .intro-msg{font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;}
+  .detected-cols{background:#f0f6f7;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:12px;color:var(--text-muted);line-height:1.6;}
+  .detected-cols strong{color:var(--text-secondary);font-weight:600;}
+  .col-pill{display:inline-block;padding:1px 8px;margin:2px 3px;background:#e8f0f2;border:1px solid var(--border-strong);border-radius:12px;font-size:11px;color:var(--text-secondary);font-weight:500;}
+  .radio-group{display:flex;align-items:center;gap:16px;flex:1;}
+  .radio-opt{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--text-secondary);}
+  .radio-circle{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-strong);background:#fff;flex-shrink:0;position:relative;}
+  .radio-circle.checked{border-color:var(--teal-bright);}
+  .radio-circle.checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--teal-bright);}
+  .sub-section{background:#f8fbfc;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:13px;}
+  .sub-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:12px;}
+  .sub-field-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .sub-field-row:last-child{margin-bottom:0;}
+  .sub-label{font-size:12.5px;font-weight:600;color:var(--text-muted);min-width:100px;text-align:right;flex-shrink:0;}
+  .hint-text{font-size:11.5px;color:var(--text-muted);margin-top:10px;}
+  /* match/import extras */
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+  .section-label .dot{width:7px;height:7px;border-radius:50%;}
+  .imported-block{background:#f0f8f6;border:1px solid rgba(42,138,122,0.25);border-radius:10px;padding:12px 16px;margin-bottom:18px;}
+  .imported-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--teal-bright);margin-bottom:6px;}
+  .imported-row{display:flex;align-items:center;gap:14px;}
+  .imported-date{font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;}
+  .imported-amt{font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;}
+  .imported-desc{font-size:12.5px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .match-options{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
+  .match-opt{display:flex;align-items:flex-start;gap:12px;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;background:var(--bg-card);transition:border-color 0.15s,background 0.15s;}
+  .match-opt:hover{border-color:var(--border-strong);background:var(--bg-card-hover);}
+  .match-opt.selected{border-color:var(--teal-bright);background:#f0f8f6;}
+  .radio-c{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border-strong);background:#fff;flex-shrink:0;position:relative;margin-top:2px;}
+  .radio-c.on{border-color:var(--teal-bright);}
+  .radio-c.on::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--teal-bright);}
+  .match-info{flex:1;}
+  .match-main{font-size:13px;font-weight:600;color:var(--text-primary);display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+  .match-name{font-size:13.5px;font-weight:600;color:var(--text-primary);}
+  .match-amt{font-size:13px;font-weight:700;color:var(--text-primary);}
+  .match-date{color:var(--text-muted);font-weight:400;}
+  .match-sub{font-size:12px;color:var(--text-muted);margin-top:3px;}
+  .match-due{font-size:12px;color:var(--text-muted);}
+  .match-cat{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .freq-chip{padding:2px 9px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:rgba(42,138,122,0.12);color:var(--teal-bright);border:1px solid rgba(42,138,122,0.25);}
+  .dialog-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+  .amb-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+  /* delete confirm */
+  .del-question{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;}
+  .del-warn-icon{width:42px;height:42px;border-radius:50%;flex-shrink:0;background:var(--red-bg);border:1px solid var(--red-border);display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .del-headline{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px;}
+  .del-sub{font-size:13px;color:var(--text-muted);}
+  .del-txn-block{background:var(--red-bg);border:1px solid var(--red-border);border-radius:10px;padding:12px 16px;}
+  .del-txn-desc{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:5px;}
+  .del-txn-meta{display:flex;align-items:center;gap:12px;}
+  .del-txn-amt{font-size:14px;font-weight:700;color:var(--red);}
+  .del-txn-sep{width:4px;height:4px;border-radius:50%;background:var(--text-muted);}
+  .del-txn-date{font-size:13px;color:var(--text-muted);}
+  /* record recurring */
+  .record-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+  .info-row{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);gap:12px;}
+  .info-row:last-of-type{border-bottom:none;padding-bottom:0;}
+  .info-label{font-size:12.5px;font-weight:600;color:var(--text-muted);min-width:110px;flex-shrink:0;}
+  .info-value{font-size:13px;color:var(--text-secondary);}
+  .field-row-rec{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+  .field-row-rec:last-of-type{border-bottom:none;padding-bottom:0;}
+  .field-label-rec{font-size:12.5px;font-weight:600;color:var(--text-muted);min-width:110px;flex-shrink:0;}
+  .fields-card{background:#f8fbfc;border:1px solid var(--border);border-radius:10px;padding:4px 14px;}
+  /* import complete */
+  .ic-icon-wrap{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--teal-bright),var(--teal-light));display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;flex-shrink:0;box-shadow:0 4px 14px rgba(42,138,122,0.35);}
+  .ic-content{display:flex;gap:16px;align-items:flex-start;}
+  .ic-lines{flex:1;}
+  .ic-line{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+  .ic-line:last-child{border-bottom:none;}
+  .ic-check{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+  .ic-check.success{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+  .ic-check.skip{background:#f8fbfc;color:var(--text-muted);border:1px solid var(--border);}
+  .ic-count{font-size:22px;font-weight:700;color:var(--text-primary);min-width:24px;text-align:right;}
+  .ic-count.zero{color:var(--text-muted);}
+  .ic-desc{font-size:13px;color:var(--text-secondary);}
+  .ic-footer{display:flex;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border);background:#f8fbfc;}
+</style>
+</head>
+<body>
+
+<div class="dialog" style="width:420px">
+  <div class="dialog-header">
+    <div class="dialog-title-wrap">
+      <div class="dialog-icon teal">↻</div>
+      <div class="dialog-title">Record — Ansh Tharwani</div>
+    </div>
+    <div class="close-btn">✕</div>
+  </div>
+  <div class="dialog-body">
+    <div class="record-subtitle">Confirm details for this occurrence:</div>
+    <div class="fields-card">
+      <div class="info-row">
+        <span class="info-label">Transaction:</span>
+        <span class="info-value" style="font-weight:600;color:var(--text-primary)">Ansh Tharwani</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Type:</span>
+        <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;background:#fef2f2;color:#c0392b;border:1px solid #fecaca;">Expense</span>
+      </div>
+      <div class="field-row-rec">
+        <span class="field-label-rec">Date:</span>
+        <div class="date-wrap">
+          <input class="field-input" value="23/3/2026">
+          <button class="cal-btn">📅</button>
+        </div>
+      </div>
+      <div class="field-row-rec">
+        <span class="field-label-rec">Amount (₹):</span>
+        <input class="field-input" value="10000.00" style="flex:1">
+      </div>
+      <div class="field-row-rec">
+        <span class="field-label-rec">From Account:</span>
+        <div class="select-wrap">
+          <select class="field-select">
+            <option selected>ICICI Main</option>
+            <option>ICICI Savings</option>
+            <option>ICICI Demat</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn-cancel">Cancel</button>
+    <button class="btn-save">Record</button>
+  </div>
+</div>
+
+</body>
+</html>

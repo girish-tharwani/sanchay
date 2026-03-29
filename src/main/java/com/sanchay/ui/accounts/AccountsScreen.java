@@ -194,14 +194,15 @@ public class AccountsScreen {
         txnBtn.setOnAction(e -> showAccountTransactions(acc));
 
         card.getChildren().addAll(info, descLbl, balanceBox, detailsBtn, txnBtn);
+
         return card;
     }
 
     private VBox buildBalanceBox(Account acc) {
         DataStore ds = DataStore.getInstance();
-        String label;
-        String value;
-        String valueColour;
+        String label = "";
+        String value = "";
+        String valueColour = "-brand-dark";
 
         if (acc instanceof BankAccount ba) {
             long bal = computeRunningBalance(ba);
@@ -220,18 +221,26 @@ public class AccountsScreen {
             value = String.format("₹%,.0f", outstanding / 100.0);
             valueColour = outstanding > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof InvestmentAccount ia) {
-            label = "Invested";
-            long invested = ds.getBaseInvestedPaise(ia)
-                    + ds.getTransactions().stream()
-                        .filter(t -> t.getType() == Transaction.Type.INVESTMENT
-                                  && ia.getId().equals(t.getToAccountId()))
-                        .mapToLong(Transaction::getAmountPaise).sum()
-                    - ds.getTransactions().stream()
-                        .filter(t -> t.getType() == Transaction.Type.REDEEM
-                                  && ia.getId().equals(t.getFromAccountId()))
-                        .mapToLong(Transaction::getAmountPaise).sum();
-            value = String.format("₹%,.0f", Math.max(0, invested) / 100.0);
-            valueColour = "-brand-mid";
+            long invested = ds.getInvestedPaiseAsOf(ia, LocalDate.now());
+            if (isMarketValueAccount(ia)) {
+                MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+                if (mv != null) {
+                    long gl = mv.getGainLossPaise();
+                    label = "Invested  /  Market Value";
+                    value = String.format("₹%,.0f  /  ₹%,.0f",
+                            invested / 100.0, mv.getMarketValuePaise() / 100.0);
+                    // Inline required: gain/loss colour is runtime data
+                    valueColour = gl >= 0 ? "#27AE60" : "#C62828";
+                } else {
+                    label = "Invested";
+                    value = String.format("₹%,.0f", invested / 100.0);
+                    valueColour = "-brand-mid";
+                }
+            } else {
+                label = "Invested";
+                value = String.format("₹%,.0f", invested / 100.0);
+                valueColour = "-brand-mid";
+            }
         } else {
             return new VBox();
         }
@@ -321,6 +330,20 @@ public class AccountsScreen {
             addField(fields, "Investment Type",         ia.getAccountType());
             addField(fields, "Account Number",           ia.getFolioAccountNumber());
             addField(fields, "Current Invested Amount", String.format("₹%,.2f", Math.max(0, invested) / 100.0));
+            if (isMarketValueAccount(ia)) {
+                MarketValueEntry mv = DataStore.getInstance().getLatestMarketValue(ia.getId());
+                if (mv != null) {
+                    long gl    = mv.getGainLossPaise();
+                    double pct = invested > 0 ? gl * 100.0 / invested : 0;
+                    addField(fields, "Latest Market Value",
+                            String.format("₹%,.2f  (as of %s)",
+                                    mv.getMarketValuePaise() / 100.0,
+                                    mv.getValueDate().format(dateFmt())));
+                    addField(fields, "Gain / Loss",
+                            String.format("%s₹%,.2f  (%+.2f%%)",
+                                    gl >= 0 ? "+" : "", gl / 100.0, pct));
+                }
+            }
         }
 
         if (acc.getNotes() != null && !acc.getNotes().isBlank())
@@ -336,6 +359,20 @@ public class AccountsScreen {
             schedBtn.getStyleClass().add("btn-gold");
             schedBtn.setOnAction(e -> new LoanScheduleDialog(la).show());
             actionRow.getChildren().add(schedBtn);
+        }
+        if (acc instanceof InvestmentAccount ia && isMarketValueAccount(ia)) {
+            Button recMvBtn = new Button("Record Market Value");
+            recMvBtn.getStyleClass().add("btn-gold");
+            recMvBtn.setOnAction(e -> {
+                new RecordMarketValueDialog(ia).showAndWait().ifPresent(entry -> {
+                    DataStore.getInstance().addMarketValue(entry);
+                    showAccountDetails(acc); // refresh details to show updated market value
+                });
+            });
+            Button histBtn = new Button("Value History");
+            histBtn.getStyleClass().add("btn-gold");
+            histBtn.setOnAction(e -> new MarketValueHistoryDialog(ia).showAndWait());
+            actionRow.getChildren().addAll(recMvBtn, histBtn);
         }
 
         panel.getChildren().addAll(header, fields, actionRow);
@@ -409,6 +446,21 @@ public class AccountsScreen {
                 statLabel  = "Invested";
                 statValue  = "₹" + String.format("%,.0f", Math.max(0, invested) / 100.0);
                 statColour = "#0f3d4a";
+                if (isMarketValueAccount(ia)) {
+                    MarketValueEntry mv = ds2.getLatestMarketValue(ia.getId());
+                    if (mv != null) {
+                        long gl = mv.getGainLossPaise();
+                        String glColor = gl >= 0 ? "#27AE60" : "#C62828";
+                        Region spacer2 = new Region();
+                        HBox.setHgrow(spacer2, Priority.ALWAYS);
+                        header.getChildren().addAll(
+                                spacer2,
+                                ccStat("Market Value", "₹" + String.format("%,.0f", mv.getMarketValuePaise() / 100.0), "#0f3d4a"),
+                                ccStat("Gain / Loss",  (gl >= 0 ? "+" : "") + "₹" + String.format("%,.0f", gl / 100.0), glColor)
+                        );
+                        statLabel = null; // suppress the default single-stat path
+                    }
+                }
             } else {
                 statLabel = statValue = statColour = null;
             }
@@ -832,6 +884,11 @@ public class AccountsScreen {
                 return;
             }
         }
+    }
+
+    private boolean isMarketValueAccount(InvestmentAccount ia) {
+        return ia.getInvestmentType() == InvestmentAccount.InvestmentType.MUTUAL_FUNDS
+                || ia.getInvestmentType() == InvestmentAccount.InvestmentType.EQUITY;
     }
 
     private boolean isForAccount(Transaction t, Account acc) {

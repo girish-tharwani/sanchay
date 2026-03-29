@@ -28,6 +28,7 @@ public class PersistenceService {
     private static final String CATEGORY_RULES   = "category_rules.json";
     private static final String TYPE_RULES       = "type_rules.json";
     private static final String LOAN_SCHEDULES   = "loan_schedules.json";
+    private static final String MARKET_VALUES    = "market_values.json";
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -73,6 +74,7 @@ public class PersistenceService {
         loadCategoryRules(store);
         loadTypeRules(store);
         loadLoanSchedules(store);
+        loadMarketValues(store);
     }
 
     private void loadSettings(DataStore store) {
@@ -270,6 +272,18 @@ public class PersistenceService {
         }
     }
 
+    private void loadMarketValues(DataStore store) {
+        Path p = dataFolder.resolve(MARKET_VALUES);
+        if (!Files.exists(p)) return;
+        try {
+            Type listType = new TypeToken<List<MarketValueEntry>>(){}.getType();
+            List<MarketValueEntry> list = GSON.fromJson(readFile(p), listType);
+            if (list != null) list.forEach(store::addMarketValueInternal);
+        } catch (Exception e) {
+            System.err.println("Sanchay: failed to load " + MARKET_VALUES + ": " + e.getMessage());
+        }
+    }
+
     // ── Save ──────────────────────────────────────────────────────────────────
 
     public void saveAccounts(DataStore store) {
@@ -329,6 +343,10 @@ public class PersistenceService {
         atomicWrite(LOAN_SCHEDULES, GSON.toJson(store.getLoanSchedules()));
     }
 
+    public void saveMarketValues(DataStore store) {
+        atomicWrite(MARKET_VALUES, GSON.toJson(store.getMarketValues()));
+    }
+
     public void saveAll(DataStore store) {
         saveAccounts(store);
         saveTransactions(store);
@@ -339,6 +357,7 @@ public class PersistenceService {
         saveImportMappings(store);
         saveTypeRules(store);
         saveLoanSchedules(store);
+        saveMarketValues(store);
     }
 
     // ── Atomic write ──────────────────────────────────────────────────────────
