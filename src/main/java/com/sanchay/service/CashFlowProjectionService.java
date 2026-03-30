@@ -22,10 +22,10 @@ public class CashFlowProjectionService {
 
     public record ProjectionPoint(LocalDate date, long balancePaise) {}
 
-    public record ForecastedExpense(String categoryId, YearMonth month, 
+    public record ForecastedExpense(String categoryId, String subCategoryId, YearMonth month, 
                                   long amountPaise, double confidence) {}
 
-    public record ExpensePattern(String categoryId, long avgMonthlyPaise, 
+    public record ExpensePattern(String categoryId, String subCategoryId, long avgMonthlyPaise, 
                                Map<Month, Double> seasonalFactors, 
                                double trendSlope, int dataPoints) {}
 
@@ -251,8 +251,8 @@ public class CashFlowProjectionService {
 
             // Apply forecasted expenses for this month
             for (ForecastedExpense forecast : forecastsByMonth.getOrDefault(ym, List.of())) {
-                // Find the most likely account for this expense category based on historical patterns
-                String expenseAccountId = findMostLikelyExpenseAccount(forecast.categoryId());
+                // Find the most likely account for this expense sub-category based on historical patterns
+                String expenseAccountId = findMostLikelyExpenseAccount(forecast.categoryId(), forecast.subCategoryId());
                 if (expenseAccountId != null && includedIds.contains(expenseAccountId)) {
                     balances.merge(expenseAccountId, -forecast.amountPaise(), Long::sum);
                     totalExpensePaise += forecast.amountPaise();
@@ -292,16 +292,17 @@ public class CashFlowProjectionService {
     }
 
     /**
-     * Finds the most likely account for expenses in a given category based on historical patterns.
-     * Returns the account ID that has been most frequently used for this category's expenses.
+     * Finds the most likely account for expenses in a given sub-category based on historical patterns.
+     * Returns the account ID that has been most frequently used for this category and sub-category's expenses.
      */
-    private String findMostLikelyExpenseAccount(String categoryId) {
+    private String findMostLikelyExpenseAccount(String categoryId, String subCategoryId) {
         Map<String, Long> accountUsage = new HashMap<>();
 
-        // Count how many times each account has been used for this category's expenses
+        // Count how many times each account has been used for this sub-category's expenses
         for (Transaction t : ds.getTransactions()) {
             if (t.getType() == Type.EXPENSE && t.getClassification() != null && 
-                Objects.equals(t.getClassification().getCategoryId(), categoryId)) {
+                Objects.equals(t.getClassification().getCategoryId(), categoryId) &&
+                Objects.equals(t.getClassification().getSubCategoryId(), subCategoryId)) {
                 String accountId = t.getFromAccountId();
                 if (accountId != null) {
                     accountUsage.merge(accountId, t.getAmountPaise(), Long::sum);
@@ -309,7 +310,7 @@ public class CashFlowProjectionService {
             }
         }
 
-        // Return the account with the highest total spending for this category
+        // Return the account with the highest total spending for this sub-category
         return accountUsage.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
@@ -319,32 +320,46 @@ public class CashFlowProjectionService {
     // ── Expense Forecasting ──────────────────────────────────────────────────
 
     /**
-     * Analyzes historical expense data to identify spending patterns by category.
+     * Analyzes historical expense data to identify spending patterns by sub-category.
      * Uses the last N months of data (configurable via settings).
+     * Skips transactions without a sub-category (Option B).
      */
     private List<ExpensePattern> analyzeExpensePatterns() {
         int analysisMonths = ds.getExpenseForecastAnalysisMonths();
         LocalDate analysisEnd = LocalDate.now(); // March 30, 2026
         LocalDate analysisStart = analysisEnd.minusMonths(analysisMonths);
 
-        // Group expenses by category and month
-        Map<String, Map<YearMonth, Long>> categoryMonthlyExpenses = new HashMap<>();
+        // Group expenses by (categoryId, subCategoryId) and month
+        // Key: "categoryId|subCategoryId" to uniquely identify sub-category
+        Map<String, Map<YearMonth, Long>> subCategoryMonthlyExpenses = new HashMap<>();
+        Map<String, String> subCatIdMap = new HashMap<>(); // Store (category, subCategory) mapping
 
         for (Transaction t : ds.getTransactions()) {
             if (t.getType() != Type.EXPENSE) continue;
             if (t.getDate().isBefore(analysisStart) || t.getDate().isAfter(analysisEnd)) continue;
             if (t.getClassification() == null || t.getClassification().getCategoryId() == null) continue;
+            // Option B: Skip if sub-category is null/unmapped
+            if (t.getClassification().getSubCategoryId() == null) continue;
+
+            String catId = t.getClassification().getCategoryId();
+            String subCatId = t.getClassification().getSubCategoryId();
+            String key = catId + "|" + subCatId;
 
             YearMonth ym = YearMonth.from(t.getDate());
-            categoryMonthlyExpenses
-                .computeIfAbsent(t.getClassification().getCategoryId(), k -> new HashMap<>())
+            subCategoryMonthlyExpenses
+                .computeIfAbsent(key, k -> new HashMap<>())
                 .merge(ym, t.getAmountPaise(), Long::sum);
+            
+            subCatIdMap.put(key, subCatId); // Store for later reference
         }
 
         List<ExpensePattern> patterns = new ArrayList<>();
 
-        for (Map.Entry<String, Map<YearMonth, Long>> entry : categoryMonthlyExpenses.entrySet()) {
-            String categoryId = entry.getKey();
+        for (Map.Entry<String, Map<YearMonth, Long>> entry : subCategoryMonthlyExpenses.entrySet()) {
+            String key = entry.getKey();
+            String[] parts = key.split("\\|");
+            String categoryId = parts[0];
+            String subCategoryId = parts[1];
             Map<YearMonth, Long> monthlyData = entry.getValue();
 
             if (monthlyData.size() < 3) continue; // Need at least 3 months of data
@@ -374,7 +389,7 @@ public class CashFlowProjectionService {
             // Simple trend calculation (slope of linear regression)
             double trendSlope = calculateTrendSlope(monthlyData);
 
-            patterns.add(new ExpensePattern(categoryId, avgMonthly, seasonalFactors, trendSlope, monthlyData.size()));
+            patterns.add(new ExpensePattern(categoryId, subCategoryId, avgMonthly, seasonalFactors, trendSlope, monthlyData.size()));
         }
 
         return patterns;
@@ -382,11 +397,29 @@ public class CashFlowProjectionService {
 
     /**
      * Generates forecasted expenses for future months based on historical patterns.
+     * Uses pessimistic approach: max(forecast, sum_of_all_recurring_for_subcategory)
+     * to avoid under-projecting and handle growth in spending.
      */
     private List<ForecastedExpense> generateExpenseForecasts(List<ExpensePattern> patterns,
                                                            LocalDate forecastStart, LocalDate forecastEnd) {
         List<ForecastedExpense> forecasts = new ArrayList<>();
         LocalDate currentDate = LocalDate.now(); // March 30, 2026
+
+        // Pre-compute sum of active recurring transactions per (categoryId, subCategoryId)
+        Map<String, Long> recurringBySubCategory = new HashMap<>(); // key: "catId|subCatId"
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getStatus() != RecurringTransaction.Status.ACTIVE) continue;
+            if (rt.getTransactionType() != Type.EXPENSE) continue;
+            if (rt.getCategoryId() == null || rt.getSubCategoryId() == null) continue;
+            
+            String key = rt.getCategoryId() + "|" + rt.getSubCategoryId();
+            // For this year, sum all monthly occurrences of this recurring schedule
+            List<LocalDate> occurrences = getOccurrencesInRange(rt, forecastStart, forecastEnd.plusYears(1));
+            // Approximate monthly amount: sum / months in range
+            int monthsInRange = (int) java.time.temporal.ChronoUnit.MONTHS.between(forecastStart, forecastEnd) + 1;
+            long monthlyRecurring = monthsInRange > 0 ? (rt.getAmountPaise() * occurrences.size()) / monthsInRange : 0;
+            recurringBySubCategory.merge(key, monthlyRecurring, Long::sum);
+        }
 
         // Generate forecasts for each month in the projection range
         YearMonth startMonth = YearMonth.from(forecastStart);
@@ -394,13 +427,6 @@ public class CashFlowProjectionService {
 
         for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
             for (ExpensePattern pattern : patterns) {
-                // Skip if this category already has recurring expenses
-                boolean hasRecurring = ds.getRecurring().stream()
-                    .anyMatch(rt -> rt.getTransactionType() == Type.EXPENSE
-                        && Objects.equals(rt.getCategoryId(), pattern.categoryId()));
-
-                if (hasRecurring) continue;
-
                 // Calculate forecasted amount with seasonal adjustment and trend
                 long baseAmount = pattern.avgMonthlyPaise();
                 double seasonalFactor = pattern.seasonalFactors().getOrDefault(ym.getMonth(), 1.0);
@@ -412,13 +438,18 @@ public class CashFlowProjectionService {
 
                 long forecastedAmount = Math.round(baseAmount * seasonalFactor * trendMultiplier);
 
+                // Pessimistic approach: take max of forecast vs sum of all recurring for this sub-category
+                String subCatKey = pattern.categoryId() + "|" + pattern.subCategoryId();
+                long recurringAmount = recurringBySubCategory.getOrDefault(subCatKey, 0L);
+                long finalAmount = Math.max(forecastedAmount, recurringAmount);
+
                 // Confidence decreases with time and fewer data points
                 double confidence = Math.max(0.3, Math.min(0.9,
                     pattern.dataPoints() / 12.0 * Math.exp(-monthsAhead / 12.0)));
 
                 // Only forecast if amount is significant (> ₹100) and confidence > 30%
-                if (forecastedAmount > 10000 && confidence > 0.3) { // 10000 paise = ₹100
-                    forecasts.add(new ForecastedExpense(pattern.categoryId(), ym, forecastedAmount, confidence));
+                if (finalAmount > 10000 && confidence > 0.3) { // 10000 paise = ₹100
+                    forecasts.add(new ForecastedExpense(pattern.categoryId(), pattern.subCategoryId(), ym, finalAmount, confidence));
                 }
             }
         }
