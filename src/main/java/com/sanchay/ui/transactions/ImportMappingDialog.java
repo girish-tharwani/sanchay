@@ -1,4 +1,4 @@
-package com.sanchay.ui.accounts;
+package com.sanchay.ui.transactions;
 
 import com.sanchay.model.Account;
 import com.sanchay.model.ImportMapping;

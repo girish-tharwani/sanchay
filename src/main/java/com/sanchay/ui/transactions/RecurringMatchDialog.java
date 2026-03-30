@@ -1,5 +1,6 @@
-package com.sanchay.ui.accounts;
+package com.sanchay.ui.transactions;
 
+import com.sanchay.model.RecurringTransaction;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
@@ -13,32 +14,40 @@ import javafx.scene.shape.Circle;
 import java.util.List;
 
 /**
- * Shown when an imported transaction matches more than one existing manual
- * entry for the same account, amount and approximate date.
+ * Shown when an imported transaction matches one or more pending recurring schedules.
  *
  * The user either:
- *   – Selects one candidate → dialog returns that Transaction (reconcile it), or
- *   – Clicks "Add as New" → dialog returns null (import without reconciling).
- *
+ *   – Selects a recurring candidate → dialog returns that RecurringTransaction, or
+ *   – Clicks "Add as New"           → dialog returns ADD_AS_NEW sentinel, or
+ *   – Clicks Cancel                 → dialog returns Optional.empty() (skip silently).
  */
-public class AmbiguousMatchDialog extends Dialog<Transaction> {
+public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
     /**
-     * @param imported   the transaction parsed from the CSV
-     * @param candidates two or more manual transactions that could be the same
+     * Sentinel returned when the user clicks "Add as New".
+     * Callers must check identity: {@code chosen == RecurringMatchDialog.ADD_AS_NEW}.
      */
-    public AmbiguousMatchDialog(Transaction imported, List<Transaction> candidates) {
-        setTitle("Ambiguous Match");
+    public static final RecurringTransaction ADD_AS_NEW =
+            new RecurringTransaction("__ADD_AS_NEW__", Transaction.Type.EXPENSE,
+                    RecurringTransaction.Frequency.MONTHLY, 1, null, 0L);
+
+    /**
+     * @param imported    the transaction parsed from the CSV
+     * @param candidates  one or more recurring schedules that could cover this import
+     */
+    public RecurringMatchDialog(Transaction imported, List<RecurringTransaction> candidates) {
+        setTitle("Recurring Schedule Match");
         setHeaderText(null);
-        getDialogPane().setPrefWidth(560);
+        getDialogPane().setPrefWidth(520);
         UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "?", "Ambiguous Match");
+        UiUtils.setDialogHeader(this, "↺", "Recurring Schedule Match");
 
         DataStore ds = DataStore.getInstance();
 
         // ── Subtitle ─────────────────────────────────────────────────────────
         Label subtitle = new Label(
-                "Multiple existing transactions could match this import. Select one to reconcile.");
+                "This imported transaction matches a recurring schedule. "
+                + "Select the schedule to record against, or add as a new transaction.");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("text-hint");
 
@@ -56,36 +65,49 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         importedBlock.getChildren().addAll(importedChip, importedInfo);
 
         // ── Candidates ────────────────────────────────────────────────────────
-        HBox matchesSecLabel = sectionLabel("Possible matches — select one", "#f0a500");
+        HBox matchesSecLabel = sectionLabel("Matching recurring schedule(s)", "#f0a500");
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);
 
-        for (Transaction c : candidates) {
+        for (RecurringTransaction r : candidates) {
             RadioButton rb = new RadioButton();
             rb.setToggleGroup(tg);
-            rb.setUserData(c);
+            rb.setUserData(r);
 
-            String catName    = ds.getCategoryName(c.getClassification() != null ? c.getClassification().getCategoryId() : null);
-            String subCatName = ds.getCategoryName(c.getClassification() != null ? c.getClassification().getSubCategoryId() : null);
+            String catName    = ds.getCategoryName(r.getCategoryId());
+            String subCatName = ds.getCategoryName(r.getSubCategoryId());
             String catLabel   = catName.isBlank() ? ""
                     : subCatName.isBlank() ? catName : catName + " › " + subCatName;
 
-            VBox cCard = new VBox(3);
-            Label cInfo = new Label(c.getDate() + "   " + c.getAmountInr() + "   " + c.getDescription());
-            cInfo.getStyleClass().add("text-step-title");
-            cInfo.setWrapText(true);
-            cCard.getChildren().add(cInfo);
+            String nextDue = r.getNextDueDate() != null ? r.getNextDueDate().toString() : "—";
+            String freqText = r.getFrequency().name()
+                    .replace('_', ' ')
+                    .toLowerCase();
+            freqText = Character.toUpperCase(freqText.charAt(0)) + freqText.substring(1);
+
+            // Frequency chip
+            Label freqChip = new Label(freqText);
+            freqChip.getStyleClass().add("chip-teal");
+
+            HBox mainRow = new HBox(8);
+            mainRow.setAlignment(Pos.CENTER_LEFT);
+            Label mainLbl = new Label(nextDue + "   " + r.getAmountInr() + "   " + r.getDescription());
+            mainLbl.getStyleClass().add("text-step-title");
+            mainRow.getChildren().addAll(mainLbl, freqChip);
+
+            VBox rCard = new VBox(3);
+            rCard.getChildren().add(mainRow);
             if (!catLabel.isBlank()) {
-                Label cCat = new Label(catLabel);
-                cCat.getStyleClass().add("text-hint");
-                cCard.getChildren().add(cCat);
+                Label catLbl = new Label(catLabel);
+                catLbl.getStyleClass().add("text-hint");
+                rCard.getChildren().add(catLbl);
             }
 
-            HBox rbRow = new HBox(10, rb, cCard);
+            HBox rbRow = new HBox(10, rb, rCard);
             rbRow.getStyleClass().add("match-row");
             rbRow.setAlignment(Pos.CENTER_LEFT);
-            HBox.setHgrow(cCard, Priority.ALWAYS);
+            HBox.setHgrow(rCard, Priority.ALWAYS);
 
             // Highlight selected row via CSS class toggle
             rb.selectedProperty().addListener((obs, o, n) -> {
@@ -94,6 +116,11 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
             });
 
             candidateBox.getChildren().add(rbRow);
+        }
+
+        // Auto-select the only candidate when there's exactly one
+        if (candidates.size() == 1) {
+            tg.getToggles().get(0).setSelected(true);
         }
 
         VBox content = new VBox(14,
@@ -109,25 +136,26 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         getDialogPane().setContent(sp);
 
         // ── Buttons ───────────────────────────────────────────────────────────
-        ButtonType reconcileBt = new ButtonType("Reconcile with Selected",
+        ButtonType reconcileBt = new ButtonType("Record against Schedule",
                 ButtonBar.ButtonData.OK_DONE);
         ButtonType newBt       = new ButtonType("Add as New",
                 ButtonBar.ButtonData.OTHER);
         getDialogPane().getButtonTypes().addAll(reconcileBt, newBt, ButtonType.CANCEL);
 
-        // Reconcile button enabled only when a radio is selected
+        // "Record against Schedule" enabled only when a radio is selected
         Button reconcileBtn = (Button) getDialogPane().lookupButton(reconcileBt);
-        reconcileBtn.setDisable(true);
+        ButtonBar.setButtonUniformSize(reconcileBtn, false);
+        reconcileBtn.setDisable(tg.getSelectedToggle() == null);
         tg.selectedToggleProperty().addListener(
                 (o, p, n) -> reconcileBtn.setDisable(n == null));
 
         setResultConverter(bt -> {
             if (bt == reconcileBt) {
                 Toggle sel = tg.getSelectedToggle();
-                return sel == null ? null : (Transaction) sel.getUserData();
+                return sel == null ? null : (RecurringTransaction) sel.getUserData();
             }
-            if (bt == newBt) return null;   // null signals "add as new"
-            return null;                    // CANCEL — caller checks for empty Optional
+            if (bt == newBt) return ADD_AS_NEW;
+            return null;  // CANCEL → Optional.empty()
         });
     }
 
