@@ -13,6 +13,7 @@ import com.sanchay.ui.recurring.SkipRecurringDialog;
 import com.sanchay.ui.reports.ReportsScreen;
 import com.sanchay.ui.settings.SettingsScreen;
 import com.sanchay.ui.transactions.TransactionDialog;
+import com.sanchay.ui.transactions.TransactionsScreen;
 import com.sanchay.ui.wizard.PreferencesSetupDialog;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -38,6 +39,7 @@ public class MainWindow {
     private SettingsScreen   settingsScreen;
     private ProfileScreen    profileScreen;
     private CategoriesScreen categoriesScreen;
+    private TransactionsScreen transactionsScreen;
 
     // AccountsScreen is NOT cached — always rebuilt on navigation so that
     // navigating back via the sidebar always shows the account list, not a
@@ -261,6 +263,19 @@ public class MainWindow {
 
     public void navigateToRecurring() { navigateTo("Recurring"); }
 
+    public void navigateToTransactions(Account account) {
+        currentScreen = "Transactions";
+        updateSidebarHighlight("Accounts"); // Highlight Accounts since Transactions is a sub-view
+
+        transactionsScreen = new TransactionsScreen(this, account);
+        javafx.scene.Node content = transactionsScreen.getView();
+
+        javafx.scene.Node fab = mainPanelWrapper.getChildren()
+                .get(mainPanelWrapper.getChildren().size() - 1);
+        mainPanelWrapper.getChildren().clear();
+        mainPanelWrapper.getChildren().addAll(content, fab);
+    }
+
     public void refreshDashboard() {
         if (dashboardScreen != null) dashboardScreen.refresh();
         if ("Dashboard".equals(currentScreen)) navigateTo("Dashboard");
@@ -333,6 +348,7 @@ public class MainWindow {
         settingsScreen   = null;
         profileScreen    = null;
         categoriesScreen = null;
+        transactionsScreen = null;
         isFirstRun       = false;
         postTransactionCallback   = null;
         transactionContextAccount = null;
@@ -408,3 +424,4 @@ public class MainWindow {
         scene.addEventFilter(MouseEvent.MOUSE_RELEASED, e -> resizing[0] = false);
     }
 }
+

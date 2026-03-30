@@ -34,6 +34,7 @@ public class DataStore {
     private String dateFormat = "DD/MM/YYYY";
     private String currency   = "INR";
     private String yearFormat = "Indian Financial Year";
+    private int    expenseForecastAnalysisMonths = 12; // Number of months to analyze for expense forecasting
     private final Map<String, Boolean> groupCollapsed = new HashMap<>(
             Map.of("bank", true, "cc", true, "loan", true, "investment", true));
 
@@ -1087,5 +1088,17 @@ public class DataStore {
         groupCollapsed.put("loan", true);
         groupCollapsed.put("investment", true);
         dataFolderPath = "Not configured";
+    }
+
+    public int getExpenseForecastAnalysisMonths() { return expenseForecastAnalysisMonths; }
+
+    public void setExpenseForecastAnalysisMonths(int months) {
+        this.expenseForecastAnalysisMonths = Math.max(3, Math.min(24, months)); // Clamp between 3-24 months
+        if (persistence != null) persistence.saveSettings(this);
+    }
+
+    /** For internal load use only — does not trigger save. */
+    public void setExpenseForecastAnalysisMonthsInternal(int months) {
+        this.expenseForecastAnalysisMonths = months;
     }
 }

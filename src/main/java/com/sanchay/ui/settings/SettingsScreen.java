@@ -155,10 +155,28 @@ public class SettingsScreen {
         yearFormatCb.setOnAction(e -> DataStore.getInstance().setYearFormat(yearFormatCb.getValue()));
         yearFormatRow.getChildren().addAll(yearFormatLbl, yearFormatCb);
 
-        Label hint = new Label("Date format and year format take effect immediately throughout the app.");
+        HBox forecastRow = new HBox(10);
+        forecastRow.setAlignment(Pos.CENTER_LEFT);
+        Label forecastLbl = new Label("Expense Forecast Analysis:");
+        forecastLbl.getStyleClass().add("text-form-value");
+        forecastLbl.setMinWidth(180);
+        ComboBox<String> forecastCb = new ComboBox<>();
+        forecastCb.getItems().addAll("3 months", "6 months", "12 months", "18 months", "24 months");
+        int currentMonths = DataStore.getInstance().getExpenseForecastAnalysisMonths();
+        forecastCb.setValue(currentMonths + " months");
+        forecastCb.setOnAction(e -> {
+            String selected = forecastCb.getValue();
+            if (selected != null) {
+                int months = Integer.parseInt(selected.replace(" months", ""));
+                DataStore.getInstance().setExpenseForecastAnalysisMonths(months);
+            }
+        });
+        forecastRow.getChildren().addAll(forecastLbl, forecastCb);
+
+        Label hint = new Label("Date format and year format take effect immediately throughout the app. Expense forecast analysis period affects cash flow projections.");
         hint.getStyleClass().add("text-hint");
 
-        box.getChildren().addAll(dateRow, currencyRow, yearFormatRow, hint);
+        box.getChildren().addAll(dateRow, currencyRow, yearFormatRow, forecastRow, hint);
         return box;
     }
 
