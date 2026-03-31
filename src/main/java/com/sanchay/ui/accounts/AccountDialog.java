@@ -311,6 +311,10 @@ public class AccountDialog {
                 if (rateChanged) {
                     LocalDate effectiveFrom = askEffectiveFromDate(acc);
                     if (effectiveFrom != null) {
+                        // If this is the first rate change, record the original rate from opening date
+                        if (acc.getRateHistory().isEmpty()) {
+                            acc.getRateHistory().add(new LoanRateChange(acc.getOpeningDate(), origRate, origEmi));
+                        }
                         acc.getRateHistory().add(new LoanRateChange(effectiveFrom, finalNewRate, finalNewEmi));
                         DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
                         List<AmortizationEntry> newSchedule = AmortizationService.generateSchedule(acc);
