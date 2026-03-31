@@ -3,11 +3,13 @@ package com.sanchay.ui.reports;
 import com.sanchay.model.Account;
 import com.sanchay.service.CashFlowProjectionService;
 import com.sanchay.service.DataStore;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -23,6 +25,9 @@ import java.util.Locale;
  * line chart over a user-selected time horizon.
  */
 public class CashFlowForecastTab {
+
+    // Data class for forecast table rows
+    public record ForecastTableRow(String month, String category, String subCategory, String amount, String method) {}
 
     // Series swatch hex colors — index 0 = Total (gold), 1–7 = individual accounts.
     // Inline required: colours are runtime-assigned to legend swatch rectangles from this array.
@@ -53,6 +58,7 @@ public class CashFlowForecastTab {
     private Label                      statIncome;
     private Label                      statExpense;
     private Label                      statNet;
+    private TableView<ForecastTableRow> forecastTable;
     private boolean                    refreshing = false;
 
     public CashFlowForecastTab() {
@@ -126,7 +132,35 @@ public class CashFlowForecastTab {
                 buildStatCard("Net Cash Flow",            statNet));
         for (Node n : statsRow.getChildren()) HBox.setHgrow(n, Priority.ALWAYS);
 
-        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, statsRow);
+        // Table view
+        forecastTable = new TableView<>();
+        forecastTable.getStyleClass().add("forecast-table");
+        forecastTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        TableColumn<ForecastTableRow, String> monthCol = new TableColumn<>("Month");
+        monthCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().month()));
+        monthCol.setPrefWidth(120);
+
+        TableColumn<ForecastTableRow, String> categoryCol = new TableColumn<>("Category");
+        categoryCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().category()));
+        categoryCol.setPrefWidth(120);
+
+        TableColumn<ForecastTableRow, String> subCategoryCol = new TableColumn<>("Sub-Category");
+        subCategoryCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().subCategory()));
+        subCategoryCol.setPrefWidth(120);
+
+        TableColumn<ForecastTableRow, String> amountCol = new TableColumn<>("Amount");
+        amountCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().amount()));
+        amountCol.setPrefWidth(120);
+
+        TableColumn<ForecastTableRow, String> methodCol = new TableColumn<>("Method");
+        methodCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().method()));
+        methodCol.setPrefWidth(120);
+
+        forecastTable.getColumns().addAll(monthCol, categoryCol, subCategoryCol, amountCol, methodCol);
+
+        // Add all to root
+        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, statsRow, forecastTable);
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
@@ -262,6 +296,21 @@ public class CashFlowForecastTab {
 
         statNet.setText(formatPaise(net));
         applyPosNeg(statNet, net);
+
+        // Update table
+        updateForecastTable(result.forecastedExpenses());
+    }
+
+    private void updateForecastTable(List<CashFlowProjectionService.ForecastedExpense> forecasts) {
+        forecastTable.getItems().clear();
+        for (CashFlowProjectionService.ForecastedExpense fe : forecasts) {
+            String month = fe.month().format(MONTH_FMT);
+            String category = getCategoryName(fe.categoryId());
+            String subCategory = getCategoryName(fe.subCategoryId());
+            String amount = formatPaise(fe.amountPaise());
+            String method = fe.method();
+            forecastTable.getItems().add(new ForecastTableRow(month, category, subCategory, amount, method));
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -309,5 +358,14 @@ public class CashFlowForecastTab {
     private void applyPosNeg(Label lbl, long paise) {
         lbl.getStyleClass().removeAll("cash-flow-stat-value-pos", "cash-flow-stat-value-neg");
         lbl.getStyleClass().add(paise >= 0 ? "cash-flow-stat-value-pos" : "cash-flow-stat-value-neg");
+    }
+
+    private String getCategoryName(String categoryId) {
+        if (categoryId == null) return "";
+        return ds.getCategories().stream()
+                .filter(c -> c.getId().equals(categoryId))
+                .map(com.sanchay.model.Category::getName)
+                .findFirst()
+                .orElse("Unknown");
     }
 }

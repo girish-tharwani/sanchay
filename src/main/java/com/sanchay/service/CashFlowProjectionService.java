@@ -23,7 +23,7 @@ public class CashFlowProjectionService {
     public record ProjectionPoint(LocalDate date, long balancePaise) {}
 
     public record ForecastedExpense(String categoryId, String subCategoryId, YearMonth month, 
-                                  long amountPaise, double confidence) {}
+                                  long amountPaise, double confidence, String method) {}
 
     public record ExpensePattern(String categoryId, String subCategoryId, long avgMonthlyPaise, 
                                Map<Month, Double> seasonalFactors, 
@@ -449,7 +449,8 @@ public class CashFlowProjectionService {
 
                 // Only forecast if amount is significant (> ₹100) and confidence > 30%
                 if (finalAmount > 10000 && confidence > 0.3) { // 10000 paise = ₹100
-                    forecasts.add(new ForecastedExpense(pattern.categoryId(), pattern.subCategoryId(), ym, finalAmount, confidence));
+                    String method = (recurringAmount > forecastedAmount) ? "Sum of Recurring Schedule" : "Past Average";
+                    forecasts.add(new ForecastedExpense(pattern.categoryId(), pattern.subCategoryId(), ym, finalAmount, confidence, method));
                 }
             }
         }

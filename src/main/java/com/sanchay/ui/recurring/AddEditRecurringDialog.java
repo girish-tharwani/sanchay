@@ -392,17 +392,6 @@ public class AddEditRecurringDialog {
         typeCb.setOnAction(e -> refreshToAccount.run());
         invDestCb.setOnAction(e -> refreshInvFields.run());
 
-        if (hasDefaults && existing.getCategoryId() != null) {
-            ds.getCategories().stream()
-                    .filter(c -> c.getId().equals(existing.getCategoryId()))
-                    .findFirst().ifPresent(catCb::setValue);
-            if (existing.getSubCategoryId() != null) {
-                subMaster.stream()
-                        .filter(s -> s.getId().equals(existing.getSubCategoryId()))
-                        .findFirst().ifPresent(subCatCb::setValue);
-            }
-        }
-
         // ── Auto-record ───────────────────────────────────────────────────────
         CheckBox autoRecordCb = new CheckBox("Auto-record after");
         Spinner<Integer> autoRecordDaysSp = new Spinner<>(1, 30, 3);
@@ -487,6 +476,17 @@ public class AddEditRecurringDialog {
 
         // Trigger initial state (also populates accountCb)
         refreshToAccount.run();
+
+        if (hasDefaults && existing.getCategoryId() != null) {
+            catMaster.stream()
+                    .filter(c -> c.getId().equals(existing.getCategoryId()))
+                    .findFirst().ifPresent(catCb::setValue);
+            if (existing.getSubCategoryId() != null) {
+                subMaster.stream()
+                        .filter(s -> s.getId().equals(existing.getSubCategoryId()))
+                        .findFirst().ifPresent(subCatCb::setValue);
+            }
+        }
 
         // ── Layout ────────────────────────────────────────────────────────────
         int row = 0;
