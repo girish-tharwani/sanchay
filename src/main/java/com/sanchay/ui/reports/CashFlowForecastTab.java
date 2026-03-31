@@ -74,6 +74,16 @@ public class CashFlowForecastTab {
         VBox root = new VBox(16);
         root.setPadding(new Insets(24));
 
+        // Stat card value labels (created early for use in filter row)
+        statBalance = new Label();
+        statBalance.getStyleClass().add("cash-flow-stat-value");
+        statIncome = new Label();
+        statIncome.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-pos");
+        statExpense = new Label();
+        statExpense.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-neg");
+        statNet = new Label();
+        statNet.getStyleClass().add("cash-flow-stat-value");
+
         // Filter row
         periodPicker = new ComboBox<>();
         periodPicker.setPrefWidth(210);
@@ -83,7 +93,19 @@ public class CashFlowForecastTab {
 
         Label periodLabel = new Label("Time Period:");
         periodLabel.getStyleClass().add("form-label");
-        HBox filterRow = new HBox(10, periodLabel, periodPicker);
+        
+        // Build compact stat cards for filter row
+        HBox statsRow = new HBox(12,
+                buildCompactStatCard("Projected Balance",        statBalance),
+                buildCompactStatCard("Total Projected Income",   statIncome),
+                buildCompactStatCard("Total Projected Expenses", statExpense),
+                buildCompactStatCard("Net Cash Flow",            statNet));
+        for (Node n : statsRow.getChildren()) HBox.setHgrow(n, Priority.ALWAYS);
+        statsRow.setPrefHeight(44);
+        
+        HBox filterRow = new HBox(20, periodLabel, periodPicker);
+        HBox.setHgrow(statsRow, Priority.ALWAYS);
+        filterRow.getChildren().add(statsRow);
         filterRow.setAlignment(Pos.CENTER_LEFT);
 
         // Warning bar — hidden by default
@@ -115,22 +137,6 @@ public class CashFlowForecastTab {
         VBox chartCard = new VBox(4, chart, legendBox);
         chartCard.getStyleClass().add("card-wrapper");
 
-        // Stat card value labels
-        statBalance = new Label();
-        statBalance.getStyleClass().add("cash-flow-stat-value");
-        statIncome = new Label();
-        statIncome.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-pos");
-        statExpense = new Label();
-        statExpense.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-neg");
-        statNet = new Label();
-        statNet.getStyleClass().add("cash-flow-stat-value");
-
-        HBox statsRow = new HBox(12,
-                buildStatCard("Projected Balance",        statBalance),
-                buildStatCard("Total Projected Income",   statIncome),
-                buildStatCard("Total Projected Expenses", statExpense),
-                buildStatCard("Net Cash Flow",            statNet));
-        for (Node n : statsRow.getChildren()) HBox.setHgrow(n, Priority.ALWAYS);
 
         // Table view
         forecastTable = new TableView<>();
@@ -160,7 +166,7 @@ public class CashFlowForecastTab {
         forecastTable.getColumns().addAll(monthCol, categoryCol, subCategoryCol, amountCol, methodCol);
 
         // Add all to root
-        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, statsRow, forecastTable);
+        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, forecastTable);
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
@@ -188,6 +194,15 @@ public class CashFlowForecastTab {
         lbl.getStyleClass().add("cash-flow-stat-label");
         VBox card = new VBox(4, lbl, valueLabel);
         card.getStyleClass().add("cash-flow-stat-card");
+        card.setMaxWidth(Double.MAX_VALUE);
+        return card;
+    }
+
+    private VBox buildCompactStatCard(String label, Label valueLabel) {
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("cash-flow-compact-stat-label");
+        VBox card = new VBox(2, lbl, valueLabel);
+        card.getStyleClass().add("cash-flow-compact-stat-card");
         card.setMaxWidth(Double.MAX_VALUE);
         return card;
     }

@@ -1208,7 +1208,20 @@
     -fx-padding: 16 18 16 22;
     -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.07), 8, 0, 0, 2);
 }
+.cash-flow-compact-stat-card {
+    -fx-background-color: -surface-card;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 12 6 12;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.05), 4, 0, 0, 1);
+}
 .cash-flow-stat-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-muted;
+}
+.cash-flow-compact-stat-label {
     -fx-font-size: 10px;
     -fx-font-weight: bold;
     -fx-text-fill: -text-muted;
@@ -1220,6 +1233,9 @@
 }
 .cash-flow-stat-value-pos { -fx-text-fill: -color-success; }
 .cash-flow-stat-value-neg { -fx-text-fill: -color-error; }
+.cash-flow-compact-stat-card .cash-flow-stat-value {
+    -fx-font-size: 12px;
+}
 .cash-flow-stat-sub {
     -fx-font-size: 10px;
     -fx-text-fill: -text-muted;

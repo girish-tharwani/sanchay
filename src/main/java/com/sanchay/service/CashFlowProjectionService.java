@@ -413,8 +413,8 @@ public class CashFlowProjectionService {
             if (rt.getCategoryId() == null || rt.getSubCategoryId() == null) continue;
             
             String key = rt.getCategoryId() + "|" + rt.getSubCategoryId();
-            // For this year, sum all monthly occurrences of this recurring schedule
-            List<LocalDate> occurrences = getOccurrencesInRange(rt, forecastStart, forecastEnd.plusYears(1));
+            // FIX Issue 1: Calculate occurrences within the actual forecast range (not +1 year)
+            List<LocalDate> occurrences = getOccurrencesInRange(rt, forecastStart, forecastEnd);
             // Approximate monthly amount: sum / months in range
             int monthsInRange = (int) java.time.temporal.ChronoUnit.MONTHS.between(forecastStart, forecastEnd) + 1;
             long monthlyRecurring = monthsInRange > 0 ? (rt.getAmountPaise() * occurrences.size()) / monthsInRange : 0;
