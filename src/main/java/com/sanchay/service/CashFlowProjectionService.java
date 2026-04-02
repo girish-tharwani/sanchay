@@ -22,8 +22,9 @@ public class CashFlowProjectionService {
 
     public record ProjectionPoint(LocalDate date, long balancePaise) {}
 
-    public record ForecastedExpense(String categoryId, String subCategoryId, YearMonth month, 
-                                  long amountPaise, double confidence, String method) {}
+    public record ForecastedExpense(String categoryId, String subCategoryId, YearMonth month,
+                                  long amountPaise, double confidence, String method,
+                                  boolean excluded) {}
 
     public record ExpensePattern(String categoryId, String subCategoryId, long avgMonthlyPaise, 
                                Map<Month, Double> seasonalFactors, 
@@ -42,6 +43,11 @@ public class CashFlowProjectionService {
     // ── Main entry point ──────────────────────────────────────────────────────
 
     public ProjectionResult compute(LocalDate startDate, LocalDate endDate) {
+        return compute(startDate, endDate, List.of());
+    }
+
+    public ProjectionResult compute(LocalDate startDate, LocalDate endDate,
+                                    List<ForecastOverride> overrides) {
 
         // ── Step A: Build candidate accounts ──────────────────────────────────
         List<Account> candidates = new ArrayList<>();
@@ -111,7 +117,7 @@ public class CashFlowProjectionService {
 
         // ── Step C.5: Analyze expense patterns and generate forecasts ────────
         List<ExpensePattern> expensePatterns = analyzeExpensePatterns();
-        List<ForecastedExpense> forecastedExpenses = generateExpenseForecasts(expensePatterns, startDate, endDate);
+        List<ForecastedExpense> forecastedExpenses = generateExpenseForecasts(expensePatterns, startDate, endDate, overrides);
 
         // Group forecasts by month for efficient lookup
         Map<YearMonth, List<ForecastedExpense>> forecastsByMonth = forecastedExpenses.stream()
@@ -262,7 +268,10 @@ public class CashFlowProjectionService {
             // Pattern averages are trained on all historical expenses, which includes amounts
             // already covered by recurring schedules. Subtract recurring coverage to avoid
             // double-counting; only apply what exceeds the scheduled amount.
+            // Excluded forecasts are kept in the list for UI display but not applied.
             for (ForecastedExpense forecast : forecastsByMonth.getOrDefault(ym, List.of())) {
+                if (forecast.excluded()) continue;
+
                 String catKey = forecast.categoryId() + "|" + forecast.subCategoryId();
                 long recurringCovered = recurringExpenseByCatKey.getOrDefault(catKey, 0L);
                 long discretionary = Math.max(0, forecast.amountPaise() - recurringCovered);
@@ -417,11 +426,14 @@ public class CashFlowProjectionService {
      * Generates forecasted expenses for future months based on historical patterns.
      * Uses pessimistic approach: max(forecast, sum_of_all_recurring_for_subcategory)
      * to avoid under-projecting and handle growth in spending.
+     * User overrides (corrections and exclusions) are applied per month.
      */
     private List<ForecastedExpense> generateExpenseForecasts(List<ExpensePattern> patterns,
-                                                           LocalDate forecastStart, LocalDate forecastEnd) {
+                                                             LocalDate forecastStart,
+                                                             LocalDate forecastEnd,
+                                                             List<ForecastOverride> overrides) {
         List<ForecastedExpense> forecasts = new ArrayList<>();
-        LocalDate currentDate = LocalDate.now(); // March 30, 2026
+        LocalDate currentDate = LocalDate.now();
 
         // Pre-compute sum of active recurring transactions per (categoryId, subCategoryId)
         Map<String, Long> recurringBySubCategory = new HashMap<>(); // key: "catId|subCatId"
@@ -429,53 +441,81 @@ public class CashFlowProjectionService {
             if (rt.getStatus() != RecurringTransaction.Status.ACTIVE) continue;
             if (rt.getTransactionType() != Type.EXPENSE) continue;
             if (rt.getCategoryId() == null || rt.getSubCategoryId() == null) continue;
-            
+
             String key = rt.getCategoryId() + "|" + rt.getSubCategoryId();
-            // FIX Issue 1: Calculate occurrences within the actual forecast range (not +1 year)
             List<LocalDate> occurrences = getOccurrencesInRange(rt, forecastStart, forecastEnd);
-            // Approximate monthly amount: sum / months in range
             int monthsInRange = (int) java.time.temporal.ChronoUnit.MONTHS.between(forecastStart, forecastEnd) + 1;
             long monthlyRecurring = monthsInRange > 0 ? (rt.getAmountPaise() * occurrences.size()) / monthsInRange : 0;
             recurringBySubCategory.merge(key, monthlyRecurring, Long::sum);
         }
 
-        // Generate forecasts for each month in the projection range
         YearMonth startMonth = YearMonth.from(forecastStart);
-        YearMonth endMonth = YearMonth.from(forecastEnd);
+        YearMonth endMonth   = YearMonth.from(forecastEnd);
 
         for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
             for (ExpensePattern pattern : patterns) {
-                // Calculate forecasted amount with seasonal adjustment and trend
-                long baseAmount = pattern.avgMonthlyPaise();
+                long baseAmount    = pattern.avgMonthlyPaise();
                 double seasonalFactor = pattern.seasonalFactors().getOrDefault(ym.getMonth(), 1.0);
 
-                // Apply trend (simple linear extrapolation), capped to ±50% to prevent
-                // unbounded growth on long projections with a persistent positive slope.
-                long monthsAhead = ym.getYear() * 12 + ym.getMonthValue() -
-                                 (currentDate.getYear() * 12 + currentDate.getMonthValue());
+                long monthsAhead = ym.getYear() * 12L + ym.getMonthValue()
+                        - (currentDate.getYear() * 12L + currentDate.getMonthValue());
                 double trendMultiplier = Math.min(1.5, Math.max(0.5,
                         1.0 + (pattern.trendSlope() * monthsAhead)));
 
                 long forecastedAmount = Math.round(baseAmount * seasonalFactor * trendMultiplier);
 
-                // Pessimistic approach: take max of forecast vs sum of all recurring for this sub-category
-                String subCatKey = pattern.categoryId() + "|" + pattern.subCategoryId();
+                String subCatKey     = pattern.categoryId() + "|" + pattern.subCategoryId();
                 long recurringAmount = recurringBySubCategory.getOrDefault(subCatKey, 0L);
-                long finalAmount = Math.max(forecastedAmount, recurringAmount);
+                long finalAmount     = Math.max(forecastedAmount, recurringAmount);
 
-                // Confidence decreases with time and fewer data points
                 double confidence = Math.max(0.3, Math.min(0.9,
-                    pattern.dataPoints() / 12.0 * Math.exp(-monthsAhead / 12.0)));
+                        pattern.dataPoints() / 12.0 * Math.exp(-monthsAhead / 12.0)));
 
-                // Only forecast if amount is significant (> ₹100) and confidence > 30%
-                if (finalAmount > 10000 && confidence > 0.3) { // 10000 paise = ₹100
-                    String method = (recurringAmount > forecastedAmount) ? "Sum of Recurring Schedule" : "Past Average";
-                    forecasts.add(new ForecastedExpense(pattern.categoryId(), pattern.subCategoryId(), ym, finalAmount, confidence, method));
+                if (finalAmount <= 10000 || confidence <= 0.3) continue; // < ₹100 or low confidence
+
+                String method = (recurringAmount > forecastedAmount) ? "Sum of Recurring Schedule" : "Past Average";
+
+                // ── Apply user override (month-specific wins over all-months) ──────
+                ForecastOverride applicable = findOverride(overrides,
+                        pattern.categoryId(), pattern.subCategoryId(), ym);
+
+                boolean excluded = false;
+                if (applicable != null) {
+                    if (applicable.isExcluded()) {
+                        excluded = true;
+                    } else if (applicable.getOverrideAmountPaise() != null) {
+                        finalAmount = applicable.getOverrideAmountPaise();
+                        method      = "Manual Override";
+                    }
+                    // inclusion marker (!excluded, no amount) → use computed finalAmount as-is
                 }
+
+                forecasts.add(new ForecastedExpense(
+                        pattern.categoryId(), pattern.subCategoryId(),
+                        ym, finalAmount, confidence, method, excluded));
             }
         }
 
         return forecasts;
+    }
+
+    /**
+     * Finds the applicable override for a given (categoryId, subCategoryId, month).
+     * Month-specific overrides take priority over all-months overrides.
+     */
+    private ForecastOverride findOverride(List<ForecastOverride> overrides,
+                                          String categoryId, String subCategoryId,
+                                          YearMonth ym) {
+        ForecastOverride allMonths    = null;
+        ForecastOverride monthSpecific = null;
+        String ymStr = ym.toString();
+        for (ForecastOverride o : overrides) {
+            if (!Objects.equals(o.getCategoryId(),    categoryId))    continue;
+            if (!Objects.equals(o.getSubCategoryId(), subCategoryId)) continue;
+            if (ymStr.equals(o.getMonth()))  { monthSpecific = o; break; }
+            if (o.isAllMonths())               allMonths = o;
+        }
+        return monthSpecific != null ? monthSpecific : allMonths;
     }
 
     /**

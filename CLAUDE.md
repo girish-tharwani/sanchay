@@ -15,9 +15,11 @@ com.sanchay/
   MainApp.java
   model/          — Account, BankAccount, CreditCardAccount, LoanAccount,
                     InvestmentAccount, Transaction, RecurringTransaction,
-                    Category, FamilyMember, ImportMapping, CategoryRule
+                    Category, FamilyMember, ImportMapping, CategoryRule,
+                    ForecastOverride
   service/        — DataStore (singleton), PersistenceService, AppConfig,
-                    ImportService
+                    ImportService, CashFlowProjectionService,
+                    ForecastStateService (forecast_overrides.json)
   ui/
     MainWindow.java
     wizard/       — FirstRunWizard
@@ -111,7 +113,7 @@ Internal (code-generated, not shown in type picker): `GAIN`, `LOSE` — created 
 Left sidebar (fixed, non-collapsible): Dashboard → Accounts → Recurring → Reports → Categories | Profile → Settings. No standalone Transactions screen — accessed via account card → Transactions button. Floating `+` button on every screen opens the New Transaction dialog.
 
 ## Current version
-`v1.1.0-MVP1` (pom.xml)
+`v1.1.1-MVP1` (pom.xml)
 
 ## Out of scope (initial version)
 Cloud sync, PDF/OFX import, push notifications, budgeting, ITR summaries, mobile app, multi-user login.

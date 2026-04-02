@@ -1,23 +1,26 @@
 package com.sanchay.ui.reports;
 
-import com.sanchay.model.Account;
+import com.sanchay.model.*;
 import com.sanchay.service.CashFlowProjectionService;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.ForecastStateService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.StageStyle;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.Locale;
 
 /**
@@ -26,10 +29,21 @@ import java.util.Locale;
  */
 public class CashFlowForecastTab {
 
-    // Data class for forecast table rows
-    public record ForecastTableRow(String month, String category, String subCategory, String amount, String method) {}
+    // ── Table row model ───────────────────────────────────────────────────────
 
-    // Series swatch hex colors — index 0 = Total (gold), 1–7 = individual accounts.
+    public record ForecastTableRow(
+            String   month,
+            String   category,
+            String   subCategory,
+            String   amount,
+            String   method,
+            boolean  excluded,
+            String   categoryId,
+            String   subCategoryId,
+            YearMonth yearMonth
+    ) {}
+
+    // ── Series swatch colours ─────────────────────────────────────────────────
     // Inline required: colours are runtime-assigned to legend swatch rectangles from this array.
     private static final String[] SERIES_COLORS = {
         "#f0a500",  // 0 — Total (gold)
@@ -42,26 +56,43 @@ public class CashFlowForecastTab {
         "#f59e0b",  // 7
     };
 
+    // Group-level colours for summarised view (>5 accounts)
+    // Inline required: same runtime-assignment reason as SERIES_COLORS.
+    private static final Map<String, String> GROUP_COLORS = Map.of(
+        "Bank Accounts", "#2a8a7a",
+        "Credit Cards",  "#e05555",
+        "Investments",   "#f59e0b"
+    );
+
     private static final DateTimeFormatter MONTH_FMT =
             DateTimeFormatter.ofPattern("MMM yy", Locale.ENGLISH);
 
-    private final DataStore ds = DataStore.getInstance();
-    private final CashFlowProjectionService projService = new CashFlowProjectionService();
+    // ── Fields ────────────────────────────────────────────────────────────────
+
+    private final DataStore                  ds            = DataStore.getInstance();
+    private final CashFlowProjectionService  projService   = new CashFlowProjectionService();
+    private final ForecastStateService       forecastState;
 
     private final ScrollPane view;
-    private ComboBox<String>           periodPicker;
-    private LineChart<String, Number>  chart;
-    private HBox                       legendBox;
-    private Label                      summaryStrip;
-    private Label                      warningBar;
-    private Label                      statBalance;
-    private Label                      statIncome;
-    private Label                      statExpense;
-    private Label                      statNet;
+
+    private ComboBox<String>            periodPicker;
+    private ToggleButton                detailToggle;
+    private LineChart<String, Number>   chart;
+    private FlowPane                    legendPane;
+    private Label                       summaryStrip;
+    private Label                       warningBar;
+    private Label                       statBalance;
+    private Label                       statIncome;
+    private Label                       statExpense;
+    private Label                       statNet;
     private TableView<ForecastTableRow> forecastTable;
-    private boolean                    refreshing = false;
+    private boolean                     refreshing           = false;
+    private boolean                     showDetailedAccounts = false;
+
+    // ── Construction ─────────────────────────────────────────────────────────
 
     public CashFlowForecastTab() {
+        forecastState = new ForecastStateService(ds.getDataFolderPath());
         view = buildView();
         refresh();
     }
@@ -84,7 +115,7 @@ public class CashFlowForecastTab {
         statNet = new Label();
         statNet.getStyleClass().add("cash-flow-stat-value");
 
-        // Filter row
+        // Period picker
         periodPicker = new ComboBox<>();
         periodPicker.setPrefWidth(210);
         populatePeriodPicker();
@@ -93,20 +124,34 @@ public class CashFlowForecastTab {
 
         Label periodLabel = new Label("Time Period:");
         periodLabel.getStyleClass().add("form-label");
-        
-        // Build compact stat cards for filter row
+
+        // Detail toggle — only shown when >5 accounts
+        detailToggle = new ToggleButton("Show Details");
+        detailToggle.getStyleClass().add("btn-gold");
+        detailToggle.setVisible(false);
+        detailToggle.setManaged(false);
+        detailToggle.setOnAction(e -> {
+            showDetailedAccounts = detailToggle.isSelected();
+            detailToggle.setText(showDetailedAccounts ? "Show Summary" : "Show Details");
+            if (!refreshing) refresh();
+        });
+
+        // Regenerate Projections button
+        Button regenerateBtn = new Button("Regenerate Projections");
+        regenerateBtn.getStyleClass().add("btn-gold");
+        regenerateBtn.setOnAction(e -> onRegenerateClicked());
+
+        HBox filterRow = new HBox(12, periodLabel, periodPicker, detailToggle, regenerateBtn);
+        filterRow.setAlignment(Pos.CENTER_LEFT);
+
+        // Stat cards on a dedicated second row — equal width, full span
         HBox statsRow = new HBox(12,
                 buildCompactStatCard("Projected Balance",        statBalance),
                 buildCompactStatCard("Total Projected Income",   statIncome),
                 buildCompactStatCard("Total Projected Expenses", statExpense),
                 buildCompactStatCard("Net Cash Flow",            statNet));
         for (Node n : statsRow.getChildren()) HBox.setHgrow(n, Priority.ALWAYS);
-        statsRow.setPrefHeight(44);
-        
-        HBox filterRow = new HBox(20, periodLabel, periodPicker);
-        HBox.setHgrow(statsRow, Priority.ALWAYS);
-        filterRow.getChildren().add(statsRow);
-        filterRow.setAlignment(Pos.CENTER_LEFT);
+        statsRow.setMaxWidth(Double.MAX_VALUE);
 
         // Warning bar — hidden by default
         warningBar = new Label();
@@ -130,49 +175,62 @@ public class CashFlowForecastTab {
         chart.setLegendVisible(false);
         chart.setPrefHeight(420);
 
-        legendBox = new HBox(16);
-        legendBox.setPadding(new Insets(4, 12, 8, 12));
-        legendBox.setAlignment(Pos.CENTER_LEFT);
+        legendPane = new FlowPane(8, 8);
+        legendPane.setPadding(new Insets(4, 12, 8, 12));
 
-        VBox chartCard = new VBox(4, chart, legendBox);
+        VBox chartCard = new VBox(4, chart, legendPane);
         chartCard.getStyleClass().add("card-wrapper");
 
+        // "Forecasted Expenses" section title
+        Label tableTitle = new Label("Forecasted Expenses");
+        tableTitle.getStyleClass().add("forecast-section-title");
 
-        // Table view
-        forecastTable = new TableView<>();
-        forecastTable.getStyleClass().add("forecast-table");
-        forecastTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        // Forecast table
+        forecastTable = buildForecastTable();
 
-        TableColumn<ForecastTableRow, String> monthCol = new TableColumn<>("Month");
-        monthCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().month()));
-        monthCol.setPrefWidth(120);
-
-        TableColumn<ForecastTableRow, String> categoryCol = new TableColumn<>("Category");
-        categoryCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().category()));
-        categoryCol.setPrefWidth(120);
-
-        TableColumn<ForecastTableRow, String> subCategoryCol = new TableColumn<>("Sub-Category");
-        subCategoryCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().subCategory()));
-        subCategoryCol.setPrefWidth(120);
-
-        TableColumn<ForecastTableRow, String> amountCol = new TableColumn<>("Amount");
-        amountCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().amount()));
-        amountCol.setPrefWidth(120);
-
-        TableColumn<ForecastTableRow, String> methodCol = new TableColumn<>("Method");
-        methodCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().method()));
-        methodCol.setPrefWidth(120);
-
-        forecastTable.getColumns().addAll(monthCol, categoryCol, subCategoryCol, amountCol, methodCol);
-
-        // Add all to root
-        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, forecastTable);
+        root.getChildren().addAll(filterRow, statsRow, warningBar, summaryStrip, chartCard, tableTitle, forecastTable);
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
         sp.setFitToHeight(false);
         sp.getStyleClass().add("edge-to-edge");
         return sp;
+    }
+
+    private TableView<ForecastTableRow> buildForecastTable() {
+        TableView<ForecastTableRow> table = new TableView<>();
+        table.getStyleClass().add("forecast-table");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setEditable(false);
+
+        TableColumn<ForecastTableRow, String> monthCol = new TableColumn<>("Month");
+        monthCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().month()));
+        monthCol.setPrefWidth(100);
+
+        TableColumn<ForecastTableRow, String> categoryCol = new TableColumn<>("Category");
+        categoryCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().category()));
+        categoryCol.setPrefWidth(140);
+
+        TableColumn<ForecastTableRow, String> subCategoryCol = new TableColumn<>("Sub-Category");
+        subCategoryCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().subCategory()));
+        subCategoryCol.setPrefWidth(140);
+
+        TableColumn<ForecastTableRow, String> amountCol = new TableColumn<>("Amount");
+        amountCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().amount()));
+        amountCol.setPrefWidth(120);
+        amountCol.setCellFactory(col -> new AmountCell());
+
+        TableColumn<ForecastTableRow, String> methodCol = new TableColumn<>("Method");
+        methodCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().method()));
+        methodCol.setPrefWidth(180);
+        methodCol.setCellFactory(col -> buildExcludedAwareCell());
+
+        TableColumn<ForecastTableRow, Void> actionCol = new TableColumn<>("Action");
+        actionCol.setPrefWidth(100);
+        actionCol.setCellFactory(col -> new ActionCell());
+
+        table.getColumns().addAll(monthCol, categoryCol, subCategoryCol, amountCol, methodCol, actionCol);
+        return table;
     }
 
     private NumberAxis buildYAxis() {
@@ -189,15 +247,6 @@ public class CashFlowForecastTab {
         return yAxis;
     }
 
-    private VBox buildStatCard(String label, Label valueLabel) {
-        Label lbl = new Label(label.toUpperCase());
-        lbl.getStyleClass().add("cash-flow-stat-label");
-        VBox card = new VBox(4, lbl, valueLabel);
-        card.getStyleClass().add("cash-flow-stat-card");
-        card.setMaxWidth(Double.MAX_VALUE);
-        return card;
-    }
-
     private VBox buildCompactStatCard(String label, Label valueLabel) {
         Label lbl = new Label(label);
         lbl.getStyleClass().add("cash-flow-compact-stat-label");
@@ -209,7 +258,7 @@ public class CashFlowForecastTab {
 
     private Node buildLegendEntry(String name, String hexColor) {
         Rectangle swatch = new Rectangle(24, 10);
-        // Inline required: colour is runtime data — dynamically assigned from SERIES_COLORS array
+        // Inline required: colour is runtime data — dynamically assigned from colour arrays
         swatch.setFill(Color.web(hexColor));
         swatch.setArcWidth(3);
         swatch.setArcHeight(3);
@@ -244,7 +293,7 @@ public class CashFlowForecastTab {
         LocalDate   endDate   = range[1];
 
         CashFlowProjectionService.ProjectionResult result =
-                projService.compute(startDate, endDate);
+                projService.compute(startDate, endDate, forecastState.getOverrides());
 
         // Summary strip
         summaryStrip.setText("Cash flow forecast: " + selected
@@ -260,41 +309,13 @@ public class CashFlowForecastTab {
             warningBar.setVisible(true);
         }
 
-        // Rebuild chart series
-        chart.getData().clear();
+        // Show/hide detail toggle based on account count
+        boolean manyAccounts = result.accounts().size() > 5;
+        detailToggle.setVisible(manyAccounts);
+        detailToggle.setManaged(manyAccounts);
 
-        // Series 0: Total (always added first so CSS .series0 applies)
-        XYChart.Series<String, Number> totalSeries = new XYChart.Series<>();
-        totalSeries.setName("Total");
-        for (CashFlowProjectionService.ProjectionPoint p : result.totalSeries()) {
-            totalSeries.getData().add(
-                    new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
-        }
-        chart.getData().add(totalSeries);
-
-        // Series 1..N: individual accounts
-        List<Account> accounts = result.accounts();
-        for (Account acc : accounts) {
-            XYChart.Series<String, Number> series = new XYChart.Series<>();
-            series.setName(acc.getName());
-            List<CashFlowProjectionService.ProjectionPoint> pts =
-                    result.accountSeries().get(acc.getId());
-            if (pts != null) {
-                for (CashFlowProjectionService.ProjectionPoint p : pts) {
-                    series.getData().add(
-                            new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
-                }
-            }
-            chart.getData().add(series);
-        }
-
-        // Rebuild legend
-        legendBox.getChildren().clear();
-        legendBox.getChildren().add(buildLegendEntry("Total of Accounts", SERIES_COLORS[0]));
-        for (int i = 0; i < accounts.size(); i++) {
-            String color = SERIES_COLORS[(i + 1) % SERIES_COLORS.length];
-            legendBox.getChildren().add(buildLegendEntry(accounts.get(i).getName(), color));
-        }
+        // Build chart
+        rebuildChart(result);
 
         // Stat cards
         long lastTotal = result.totalSeries().isEmpty() ? 0
@@ -305,27 +326,292 @@ public class CashFlowForecastTab {
 
         statBalance.setText(formatPaise(lastTotal));
         applyPosNeg(statBalance, lastTotal);
-
         statIncome.setText(formatPaise(income));
         statExpense.setText(formatPaise(expense));
-
         statNet.setText(formatPaise(net));
         applyPosNeg(statNet, net);
 
-        // Update table
+        // Forecast table
         updateForecastTable(result.forecastedExpenses());
     }
+
+    // ── Chart building ────────────────────────────────────────────────────────
+
+    private void rebuildChart(CashFlowProjectionService.ProjectionResult result) {
+        chart.getData().clear();
+        legendPane.getChildren().clear();
+
+        // Series 0: Total (always first so CSS .series0 applies)
+        XYChart.Series<String, Number> totalSeries = new XYChart.Series<>();
+        totalSeries.setName("Total");
+        for (CashFlowProjectionService.ProjectionPoint p : result.totalSeries()) {
+            totalSeries.getData().add(
+                    new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
+        }
+        chart.getData().add(totalSeries);
+        legendPane.getChildren().add(buildLegendEntry("Total of Accounts", SERIES_COLORS[0]));
+
+        List<Account> accounts = result.accounts();
+        boolean grouped = accounts.size() > 5 && !showDetailedAccounts;
+
+        if (grouped) {
+            buildGroupedSeries(accounts, result.accountSeries());
+        } else {
+            buildDetailedSeries(accounts, result.accountSeries());
+        }
+    }
+
+    private void buildDetailedSeries(List<Account> accounts,
+                                     Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries) {
+        for (int i = 0; i < accounts.size(); i++) {
+            Account acc = accounts.get(i);
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName(acc.getName());
+            List<CashFlowProjectionService.ProjectionPoint> pts = accountSeries.get(acc.getId());
+            if (pts != null) {
+                for (CashFlowProjectionService.ProjectionPoint p : pts) {
+                    series.getData().add(
+                            new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
+                }
+            }
+            chart.getData().add(series);
+            String color = SERIES_COLORS[(i + 1) % SERIES_COLORS.length];
+            legendPane.getChildren().add(buildLegendEntry(acc.getName(), color));
+        }
+    }
+
+    private void buildGroupedSeries(List<Account> accounts,
+                                    Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries) {
+        // Assign each account to a named group
+        Map<String, List<String>> groupToIds = new LinkedHashMap<>();
+        groupToIds.put("Bank Accounts", new ArrayList<>());
+        groupToIds.put("Credit Cards",  new ArrayList<>());
+        groupToIds.put("Investments",   new ArrayList<>());
+
+        for (Account acc : accounts) {
+            if      (acc instanceof BankAccount)         groupToIds.get("Bank Accounts").add(acc.getId());
+            else if (acc instanceof CreditCardAccount)   groupToIds.get("Credit Cards").add(acc.getId());
+            else                                         groupToIds.get("Investments").add(acc.getId());
+        }
+
+        // Determine the date spine from the first non-empty series
+        List<String> dateLabels = accountSeries.values().stream()
+                .filter(pts -> pts != null && !pts.isEmpty())
+                .findFirst()
+                .map(pts -> pts.stream()
+                        .map(p -> p.date().format(MONTH_FMT))
+                        .collect(Collectors.toList()))
+                .orElse(List.of());
+
+        int n = dateLabels.size();
+
+        for (Map.Entry<String, List<String>> entry : groupToIds.entrySet()) {
+            String groupName = entry.getKey();
+            List<String> ids = entry.getValue();
+            if (ids.isEmpty()) continue;
+
+            long[] sums = new long[n];
+            for (String id : ids) {
+                List<CashFlowProjectionService.ProjectionPoint> pts = accountSeries.get(id);
+                if (pts == null) continue;
+                for (int i = 0; i < Math.min(n, pts.size()); i++) {
+                    sums[i] += pts.get(i).balancePaise();
+                }
+            }
+
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName(groupName);
+            for (int i = 0; i < n; i++) {
+                series.getData().add(new XYChart.Data<>(dateLabels.get(i), sums[i] / 100.0));
+            }
+            chart.getData().add(series);
+
+            String color = GROUP_COLORS.getOrDefault(groupName, SERIES_COLORS[1]);
+            legendPane.getChildren().add(buildLegendEntry(groupName, color));
+        }
+    }
+
+    // ── Forecast table ────────────────────────────────────────────────────────
 
     private void updateForecastTable(List<CashFlowProjectionService.ForecastedExpense> forecasts) {
         forecastTable.getItems().clear();
         for (CashFlowProjectionService.ForecastedExpense fe : forecasts) {
-            String month = fe.month().format(MONTH_FMT);
-            String category = getCategoryName(fe.categoryId());
-            String subCategory = getCategoryName(fe.subCategoryId());
-            String amount = formatPaise(fe.amountPaise());
-            String method = fe.method();
-            forecastTable.getItems().add(new ForecastTableRow(month, category, subCategory, amount, method));
+            forecastTable.getItems().add(new ForecastTableRow(
+                    fe.month().format(MONTH_FMT),
+                    getCategoryName(fe.categoryId()),
+                    getCategoryName(fe.subCategoryId()),
+                    formatPaise(fe.amountPaise()),
+                    fe.excluded() ? "Excluded" : fe.method(),
+                    fe.excluded(),
+                    fe.categoryId(),
+                    fe.subCategoryId(),
+                    fe.month()
+            ));
         }
+    }
+
+    // ── Custom table cells ────────────────────────────────────────────────────
+
+    /** Cell that applies greyed-out styling to excluded rows. */
+    private TableCell<ForecastTableRow, String> buildExcludedAwareCell() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().remove("forecast-cell-excluded");
+                if (empty || item == null) { setText(null); return; }
+                setText(item);
+                ForecastTableRow row = getTableView().getItems().get(getIndex());
+                if (row.excluded()) getStyleClass().add("forecast-cell-excluded");
+            }
+        };
+    }
+
+    /** Amount cell — double-click opens a correction dialog. Excluded rows are not editable. */
+    private class AmountCell extends TableCell<ForecastTableRow, String> {
+        AmountCell() {
+            setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && !isEmpty()) {
+                    ForecastTableRow row = getTableView().getItems().get(getIndex());
+                    if (!row.excluded()) promptAmountCorrection(row);
+                }
+            });
+        }
+
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            getStyleClass().remove("forecast-cell-excluded");
+            if (empty || item == null) { setText(null); setTooltip(null); return; }
+            setText(item);
+            ForecastTableRow row = getTableView().getItems().get(getIndex());
+            if (row.excluded()) {
+                getStyleClass().add("forecast-cell-excluded");
+            } else {
+                setTooltip(new Tooltip("Double-click to correct this amount"));
+            }
+        }
+    }
+
+    /** Renders the Exclude or Include action button. */
+    private class ActionCell extends TableCell<ForecastTableRow, Void> {
+        private final Button btn = new Button();
+
+        ActionCell() {
+            btn.setOnAction(e -> {
+                ForecastTableRow row = getTableView().getItems().get(getIndex());
+                if (row.excluded()) promptInclusion(row);
+                else                promptExclusion(row);
+            });
+        }
+
+        @Override
+        protected void updateItem(Void item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty) { setGraphic(null); return; }
+            ForecastTableRow row = getTableView().getItems().get(getIndex());
+            btn.getStyleClass().setAll(row.excluded() ? "forecast-btn-include" : "forecast-btn-exclude");
+            btn.setText(row.excluded() ? "Include" : "Exclude");
+            setGraphic(btn);
+        }
+    }
+
+    // ── Override interaction ──────────────────────────────────────────────────
+
+    private void promptAmountCorrection(ForecastTableRow row) {
+        TextInputDialog input = new TextInputDialog(row.amount().replace("₹", "").replace(",", "").trim());
+        input.setTitle("Correct Forecast Amount");
+        input.setHeaderText(row.subCategory() + " — " + row.month());
+        input.setContentText("Enter corrected amount (₹):");
+        input.getDialogPane().getStylesheets().addAll(
+                forecastTable.getScene().getStylesheets());
+
+        Optional<String> result = input.showAndWait();
+        if (result.isEmpty()) return;
+
+        long correctedPaise;
+        try {
+            correctedPaise = Math.round(Double.parseDouble(result.get().replace(",", "")) * 100);
+        } catch (NumberFormatException ex) {
+            showError("Invalid amount. Please enter a number (e.g. 5000).");
+            return;
+        }
+
+        boolean allMonths = askScope("Apply Correction",
+                "Apply this correction to:", row.subCategory(), row.month());
+
+        YearMonth targetMonth = allMonths ? null : row.yearMonth();
+        forecastState.saveOverride(ForecastOverride.correction(
+                row.categoryId(), row.subCategoryId(), targetMonth, correctedPaise));
+        refresh();
+    }
+
+    private void promptExclusion(ForecastTableRow row) {
+        boolean allMonths = askScope("Exclude Sub-Category",
+                "Exclude from forecast:", row.subCategory(), row.month());
+
+        YearMonth targetMonth = allMonths ? null : row.yearMonth();
+        forecastState.saveOverride(ForecastOverride.exclusion(
+                row.categoryId(), row.subCategoryId(), targetMonth));
+        refresh();
+    }
+
+    private void promptInclusion(ForecastTableRow row) {
+        boolean allMonths = askScope("Include Sub-Category",
+                "Include back in forecast:", row.subCategory(), row.month());
+
+        YearMonth targetMonth = allMonths ? null : row.yearMonth();
+        forecastState.saveOverride(ForecastOverride.inclusionMarker(
+                row.categoryId(), row.subCategoryId(), targetMonth));
+        refresh();
+    }
+
+    /**
+     * Shows a two-choice dialog: "This month only" vs "All future months".
+     * Returns true if the user chose "All future months".
+     */
+    private boolean askScope(String title, String headerPrefix,
+                              String subCatName, String monthLabel) {
+        ButtonType thisMonth   = new ButtonType("This month only",    ButtonBar.ButtonData.LEFT);
+        ButtonType allMonths   = new ButtonType("All future months",  ButtonBar.ButtonData.RIGHT);
+        ButtonType cancel      = new ButtonType("Cancel",             ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        Alert dlg = new Alert(Alert.AlertType.NONE);
+        dlg.setTitle(title);
+        dlg.setHeaderText(headerPrefix);
+        dlg.setContentText(subCatName + "\n\nShould this apply to " + monthLabel
+                + " only, or to all future months?");
+        dlg.getButtonTypes().setAll(thisMonth, allMonths, cancel);
+        dlg.getDialogPane().getStylesheets().addAll(
+                forecastTable.getScene().getStylesheets());
+
+        Optional<ButtonType> result = dlg.showAndWait();
+        if (result.isEmpty() || result.get() == cancel) return false;
+        return result.get() == allMonths;
+    }
+
+    private void onRegenerateClicked() {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.initStyle(StageStyle.UNDECORATED);
+        confirm.setTitle("Regenerate Projections");
+        confirm.setHeaderText("Regenerate projections?");
+        confirm.setContentText("Are you sure you want to regenerate the projections? "
+                + "This will overwrite any manual corrections you have made to the forecasted expenses.");
+        confirm.getDialogPane().getStylesheets().addAll(
+                forecastTable.getScene().getStylesheets());
+
+        confirm.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.OK) {
+                forecastState.clearAllOverrides();
+                refresh();
+            }
+        });
+    }
+
+    private void showError(String message) {
+        Alert err = new Alert(Alert.AlertType.ERROR, message, ButtonType.OK);
+        err.getDialogPane().getStylesheets().addAll(forecastTable.getScene().getStylesheets());
+        err.showAndWait();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -339,7 +625,6 @@ public class CashFlowForecastTab {
         if (current != null && periodPicker.getItems().contains(current)) {
             periodPicker.setValue(current);
         } else if (current != null) {
-            // FY/CY label changed — keep the intent but update the label
             boolean wasFyCy = current.startsWith("This ");
             periodPicker.setValue(wasFyCy ? fyLabel : "Next 12 Months");
         }
@@ -360,13 +645,13 @@ public class CashFlowForecastTab {
     }
 
     private String formatPaise(long paise) {
-        long   abs    = Math.abs(paise);
-        double absR   = abs / 100.0;
+        long   abs  = Math.abs(paise);
+        double absR = abs / 100.0;
         String formatted;
         if      (absR >= 1_00_00_000) formatted = String.format("%.2fCr", absR / 1_00_00_000.0);
         else if (absR >= 1_00_000)    formatted = String.format("%.2fL",  absR / 1_00_000.0);
         else if (absR >= 1_000)       formatted = String.format("%.1fK",  absR / 1_000.0);
-        else                          formatted = String.format("%.0f",    absR);
+        else                          formatted = String.format("%.0f",   absR);
         return (paise < 0 ? "(₹" : "₹") + formatted + (paise < 0 ? ")" : "");
     }
 

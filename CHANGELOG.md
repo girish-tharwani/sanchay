@@ -1,3 +1,24 @@
+## v1.1.1 — 2026-04-02
+
+### Added
+- Cash Flow Forecast: "Forecasted Expenses" section title above the breakdown table
+- Cash Flow Forecast: manual amount corrections to forecasted expense rows (double-click Amount cell); scope dialog lets user apply the correction to this month only or all future months
+- Cash Flow Forecast: Exclude / Include action buttons per forecast row; excluded rows stay visible greyed-out with strikethrough; scope dialog same as corrections
+- Cash Flow Forecast: manual corrections and exclusions persisted to `forecast_overrides.json` and restored across app restarts
+- Cash Flow Forecast: "Regenerate Projections" gold button clears all manual overrides and recomputes from scratch after confirmation
+- Cash Flow Forecast: account grouping when more than 5 accounts are projected — default view shows Bank Accounts / Credit Cards / Investments group series; "Show Details / Show Summary" toggle restores per-account view
+- Cash Flow Forecast: legend switched to FlowPane so it wraps to multiple lines when there are many series
+
+### Changed
+- Cash Flow Forecast: stat cards moved to a dedicated second row and given equal width so the filter row is no longer crowded
+- Cash Flow Forecast: manual corrections and exclusions are preserved when the user changes the forecast period
+- Part-Prepayment dialog: removed native OS title bar; removed the redundant "Hide Details" toggle button; button order fixed to Reduce Tenure → Reduce EMI → Cancel; "Reduce Tenure" button widened to avoid truncation
+
+### Fixed
+- Cash Flow Forecast: expense forecast significantly overestimated due to three compounding bugs: (1) recurring expenses were applied twice — once via the recurring schedule loop and again via pattern-based forecasts trained on the same data; (2) monthly average was divided by months-with-data rather than the full analysis window, inflating irregular expenses; (3) trend multiplier was unbounded, compounding overestimates on 12–24 month projections
+
+---
+
 ## v1.0.9 — 2026-03-29
 
 ### Added

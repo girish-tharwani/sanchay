@@ -1278,3 +1278,52 @@
     -fx-font-size: 12px;
     -fx-text-fill: -text-primary;
 }
+
+/* Section title above the forecast table */
+.forecast-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-primary;
+    -fx-padding: 4 0 0 0;
+}
+
+/* Excluded row cells — greyed out */
+.forecast-cell-excluded {
+    -fx-text-fill: -text-muted;
+    -fx-opacity: 0.55;
+    -fx-strikethrough: true;
+}
+
+/* Exclude action button — red tint */
+.forecast-btn-exclude {
+    -fx-background-color: rgba(224,85,85,0.10);
+    -fx-border-color: rgba(224,85,85,0.35);
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-text-fill: #c0392b;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 2 10 2 10;
+}
+.forecast-btn-exclude:hover {
+    -fx-background-color: rgba(224,85,85,0.22);
+}
+
+/* Include action button — green tint */
+.forecast-btn-include {
+    -fx-background-color: rgba(22,163,74,0.10);
+    -fx-border-color: rgba(22,163,74,0.35);
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-text-fill: #15803d;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 2 10 2 10;
+}
+.forecast-btn-include:hover {
+    -fx-background-color: rgba(22,163,74,0.22);
+}
