@@ -10,6 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -788,17 +789,25 @@ public class TransactionDialog extends Dialog<Transaction> {
         }
         t.setNotes(nullIfBlank(sharedNotes.getText()));
 
-        // Store principal portion for accurate outstanding calculation
-        String prinText = lnPrincipalFld != null ? lnPrincipalFld.getText() : null;
-        if (prinText != null && !prinText.isBlank()) {
-            try {
-                long prin = Math.round(Double.parseDouble(prinText.replace(",", "")) * 100);
-                if (prin > 0 && prin <= amt) {
-                    Transaction.RedeemDetails rd = new Transaction.RedeemDetails();
-                    rd.setPrincipalPaise(prin);
-                    t.setRedeemDetails(rd);
-                }
-            } catch (NumberFormatException ignored) {}
+        // Store actual principal for accurate outstanding calculation.
+        // Derived as total payment minus the scheduled interest for this month so that
+        // prepayments (amount > EMI) are recorded correctly — the principal field in the
+        // UI is a display hint and may still show the scheduled principal when the user
+        // hasn't manually updated it.
+        List<AmortizationEntry> lnSchedule = ds.getSchedule(to.getId());
+        long scheduledInterest = 0;
+        for (AmortizationEntry ae : lnSchedule) {
+            if (ae.getPaymentDate().getYear()  == date.getYear()
+             && ae.getPaymentDate().getMonth() == date.getMonth()) {
+                scheduledInterest = ae.getInterestPaymentPaise();
+                break;
+            }
+        }
+        long actualPrincipal = Math.max(0, amt - scheduledInterest);
+        if (actualPrincipal > 0) {
+            Transaction.RedeemDetails rd = new Transaction.RedeemDetails();
+            rd.setPrincipalPaise(actualPrincipal);
+            t.setRedeemDetails(rd);
         }
 
         Transaction saved = persistTransaction(t);
@@ -827,11 +836,13 @@ public class TransactionDialog extends Dialog<Transaction> {
         }
         if (entryIndex < 0) return;
 
-        AmortizationEntry entry           = schedule.get(entryIndex);
-        long              scheduledPrin   = entry.getPrincipalRepaymentPaise();
-        long              actualPrin      = (t.getRedeemDetails() != null)
-                                                ? t.getRedeemDetails().getPrincipalPaise() : 0;
-        long              extraPrin       = actualPrin - scheduledPrin;
+        AmortizationEntry entry         = schedule.get(entryIndex);
+        long              scheduledPrin = entry.getPrincipalRepaymentPaise();
+        // Derive actual principal from the total payment minus the fixed interest for the month.
+        // Interest is determined by opening balance × rate, not by what the user typed in the
+        // principal field — so this correctly detects prepayments even when the field is unchanged.
+        long              actualPrin    = Math.max(0, t.getAmountPaise() - entry.getInterestPaymentPaise());
+        long              extraPrin     = actualPrin - scheduledPrin;
         if (extraPrin <= 0) return; // no prepayment
 
         // Determine mode — use saved default or ask the user
@@ -888,27 +899,32 @@ public class TransactionDialog extends Dialog<Transaction> {
      * Returns the chosen mode, or null if the dialog was cancelled.
      */
     private LoanAccount.PrepaymentMode promptPrepaymentMode(LoanAccount loan) {
-        ButtonType reduceTenure = new ButtonType("Reduce Tenure", ButtonBar.ButtonData.LEFT);
-        ButtonType reduceEmi    = new ButtonType("Reduce EMI",    ButtonBar.ButtonData.RIGHT);
+        ButtonType reduceTenure = new ButtonType("Reduce Tenure", ButtonBar.ButtonData.OTHER);
+        ButtonType reduceEmi    = new ButtonType("Reduce EMI",    ButtonBar.ButtonData.OTHER);
         ButtonType cancel       = new ButtonType("Cancel",        ButtonBar.ButtonData.CANCEL_CLOSE);
 
-        Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.initOwner(getDialogPane().getScene().getWindow());
-        dlg.setTitle("Part-Prepayment Detected");
-        dlg.setHeaderText("This payment includes an extra principal amount.");
-        dlg.setContentText(
+        Label bodyLabel = new Label(
                 "How should the amortization schedule be recalculated?\n\n" +
                 "• Reduce Tenure — keep the same EMI, fewer months remaining.\n" +
-                "• Reduce EMI    — keep the same tenure, lower monthly EMI.\n");
+                "• Reduce EMI    — keep the same tenure, lower monthly EMI.");
+        bodyLabel.setWrapText(true);
 
         CheckBox rememberChk = new CheckBox("Remember my choice for this loan");
         rememberChk.getStyleClass().add("form-label");
-        dlg.getDialogPane().setExpandableContent(rememberChk);
-        dlg.getDialogPane().setExpanded(true);
 
+        VBox content = new VBox(12, bodyLabel, rememberChk);
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.initOwner(getDialogPane().getScene().getWindow());
+        dlg.initStyle(StageStyle.UNDECORATED);
+        dlg.setHeaderText("This payment includes an extra principal amount.");
+        dlg.getDialogPane().setContent(content);
         dlg.getDialogPane().getButtonTypes().addAll(reduceTenure, reduceEmi, cancel);
-        dlg.getDialogPane().getStylesheets().addAll(
-                getDialogPane().getStylesheets());
+        dlg.getDialogPane().getStylesheets().addAll(getDialogPane().getStylesheets());
+
+        // Widen the Reduce Tenure button so it is not truncated
+        Button reduceTenureBtn = (Button) dlg.getDialogPane().lookupButton(reduceTenure);
+        reduceTenureBtn.setMinWidth(150);
 
         Optional<ButtonType> result = dlg.showAndWait();
         if (result.isEmpty() || result.get() == cancel) return null;

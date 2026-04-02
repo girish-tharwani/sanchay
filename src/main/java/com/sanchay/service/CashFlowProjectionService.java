@@ -173,6 +173,10 @@ public class CashFlowProjectionService {
             LocalDate monthStart = ym.atDay(1);
             LocalDate monthEnd   = ym.atEndOfMonth();
 
+            // Track recurring EXPENSE amount per (categoryId|subCategoryId) so we can
+            // subtract it from pattern-based forecasts and avoid double-counting.
+            Map<String, Long> recurringExpenseByCatKey = new HashMap<>();
+
             // Apply recurring schedules for this month
             for (RecurringTransaction rt : ds.getRecurring()) {
                 if (rt.getAmountPaise() == 0) continue; // variable / CC reminders — skip
@@ -195,6 +199,11 @@ public class CashFlowProjectionService {
                         if (fromId != null && includedIds.contains(fromId)) {
                             balances.merge(fromId, -amt, Long::sum);
                             totalExpensePaise += amt;
+                        }
+                        // Record against sub-category key so forecasts can deduct this coverage
+                        if (rt.getCategoryId() != null && rt.getSubCategoryId() != null) {
+                            String catKey = rt.getCategoryId() + "|" + rt.getSubCategoryId();
+                            recurringExpenseByCatKey.merge(catKey, amt, Long::sum);
                         }
                     }
                     case INVESTMENT -> {
@@ -249,13 +258,20 @@ public class CashFlowProjectionService {
                 totalIncomePaise += me.matAmtPaise();
             }
 
-            // Apply forecasted expenses for this month
+            // Apply forecasted expenses for this month — discretionary portion only.
+            // Pattern averages are trained on all historical expenses, which includes amounts
+            // already covered by recurring schedules. Subtract recurring coverage to avoid
+            // double-counting; only apply what exceeds the scheduled amount.
             for (ForecastedExpense forecast : forecastsByMonth.getOrDefault(ym, List.of())) {
-                // Find the most likely account for this expense sub-category based on historical patterns
+                String catKey = forecast.categoryId() + "|" + forecast.subCategoryId();
+                long recurringCovered = recurringExpenseByCatKey.getOrDefault(catKey, 0L);
+                long discretionary = Math.max(0, forecast.amountPaise() - recurringCovered);
+                if (discretionary == 0) continue;
+
                 String expenseAccountId = findMostLikelyExpenseAccount(forecast.categoryId(), forecast.subCategoryId());
                 if (expenseAccountId != null && includedIds.contains(expenseAccountId)) {
-                    balances.merge(expenseAccountId, -forecast.amountPaise(), Long::sum);
-                    totalExpensePaise += forecast.amountPaise();
+                    balances.merge(expenseAccountId, -discretionary, Long::sum);
+                    totalExpensePaise += discretionary;
                 }
             }
 
@@ -364,9 +380,11 @@ public class CashFlowProjectionService {
 
             if (monthlyData.size() < 3) continue; // Need at least 3 months of data
 
-            // Calculate average monthly spending
+            // Calculate average monthly spending over the full analysis window.
+            // Dividing by monthlyData.size() (months-with-data) would inflate the average
+            // for irregular expenses; use analysisMonths (the full window) instead.
             long totalSpent = monthlyData.values().stream().mapToLong(Long::longValue).sum();
-            long avgMonthly = totalSpent / monthlyData.size();
+            long avgMonthly = totalSpent / analysisMonths;
 
             // Calculate seasonal factors (how much each month deviates from average)
             Map<Month, List<Long>> monthlyAmounts = new HashMap<>();
@@ -431,10 +449,12 @@ public class CashFlowProjectionService {
                 long baseAmount = pattern.avgMonthlyPaise();
                 double seasonalFactor = pattern.seasonalFactors().getOrDefault(ym.getMonth(), 1.0);
 
-                // Apply trend (simple linear extrapolation)
+                // Apply trend (simple linear extrapolation), capped to ±50% to prevent
+                // unbounded growth on long projections with a persistent positive slope.
                 long monthsAhead = ym.getYear() * 12 + ym.getMonthValue() -
                                  (currentDate.getYear() * 12 + currentDate.getMonthValue());
-                double trendMultiplier = 1.0 + (pattern.trendSlope() * monthsAhead);
+                double trendMultiplier = Math.min(1.5, Math.max(0.5,
+                        1.0 + (pattern.trendSlope() * monthsAhead)));
 
                 long forecastedAmount = Math.round(baseAmount * seasonalFactor * trendMultiplier);
 

@@ -317,7 +317,22 @@ public class AccountDialog {
                         }
                         acc.getRateHistory().add(new LoanRateChange(effectiveFrom, finalNewRate, finalNewEmi));
                         DataStore.getInstance().getPersistence().saveAccounts(DataStore.getInstance());
-                        List<AmortizationEntry> newSchedule = AmortizationService.generateSchedule(acc);
+                        // Preserve manual overrides before effectiveFrom — recalculate only from
+                        // the first entry on or after the effective date, not the whole schedule.
+                        List<AmortizationEntry> savedSchedule = DataStore.getInstance().getSchedule(acc.getId());
+                        List<AmortizationEntry> newSchedule;
+                        if (savedSchedule.isEmpty()) {
+                            newSchedule = AmortizationService.generateSchedule(acc);
+                        } else {
+                            int fromIndex = savedSchedule.size(); // default: nothing to recalculate
+                            for (int i = 0; i < savedSchedule.size(); i++) {
+                                if (!savedSchedule.get(i).getPaymentDate().isBefore(effectiveFrom)) {
+                                    fromIndex = i;
+                                    break;
+                                }
+                            }
+                            newSchedule = AmortizationService.recalculateFrom(savedSchedule, fromIndex, acc);
+                        }
                         DataStore.getInstance().saveSchedule(acc.getId(), newSchedule);
                         if (origEmi != finalNewEmi) offerEmiSync(acc, origEmi, finalNewEmi);
                     } else {

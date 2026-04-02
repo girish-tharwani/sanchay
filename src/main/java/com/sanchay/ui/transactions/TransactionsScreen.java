@@ -13,6 +13,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import java.io.*;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -145,8 +146,23 @@ public class TransactionsScreen {
         search.setMaxWidth(Double.MAX_VALUE);
 
         DataStore ds = DataStore.getInstance();
-        DatePicker fromPicker = new DatePicker(ds.getActiveFYStart());
-        DatePicker toPicker   = new DatePicker(ds.getActiveFYEnd());
+        //DatePicker fromPicker = new DatePicker(ds.getActiveFYStart());
+        //DatePicker toPicker   = new DatePicker(ds.getActiveFYEnd());
+        // Get today's date
+        LocalDate today = LocalDate.now();
+
+        // From date: 6 months before current month, first day
+        YearMonth fromMonth = YearMonth.from(today).minusMonths(6);
+        LocalDate fromDate = fromMonth.atDay(1);
+
+        // To date: 3 months after current month, last day
+        YearMonth toMonth = YearMonth.from(today).plusMonths(3);
+        LocalDate toDate = toMonth.atEndOfMonth();
+
+        // Create DatePickers
+        DatePicker fromPicker = new DatePicker(fromDate);
+        DatePicker toPicker   = new DatePicker(toDate);
+
         fromPicker.setPrefWidth(130);
         toPicker.setPrefWidth(130);
         fromPicker.getStyleClass().add("filter-field");

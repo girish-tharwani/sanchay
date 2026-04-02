@@ -37,7 +37,8 @@
       "Bash(find /d/Projects/sanchay/src/main/java -type f -name \"*.java\" -exec grep -l \"TableView\\\\|TableColumn\\\\|getCellData\\\\|transaction\" {})",
       "Bash(grep -v \"^\\\\[ERROR\\\\] $\\\\|Help\\\\|switch\\\\|articles\")",
       "Bash(grep -E \"\\\\.\\(java|xml\\)$\")",
-      "Bash(grep \"\\\\.java$\")"
+      "Bash(grep \"\\\\.java$\")",
+      "Bash(node:*)"
     ]
   }
 }

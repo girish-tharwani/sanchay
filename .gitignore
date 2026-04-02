@@ -24,13 +24,14 @@ hs_err_pid*
 replay_pid*
 
 # my working folders
-appdata/
-testdata/
+app-data/
+test-data/
 work-folder/
 wireframes/
 logs/
 build.sh
 CHANGELOG_v0.2.13.md
+AGENTS.md
 
 
 # IntelliJ IDEA
