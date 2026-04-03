@@ -1358,8 +1358,8 @@
     -fx-min-height: 34;
 }
 .fp-param-key {
-    -fx-font-size: 12px;
-    -fx-text-fill: -text-muted;
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -text-secondary;
 }
 .fp-param-value {
     -fx-font-size: 12.5px;
@@ -1386,10 +1386,16 @@
     -fx-border-width: 1 0 1 0;
     -fx-padding: 7 10 7 10;
 }
+.fp-table-row-comment {
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 0 0;
+    -fx-padding: 7 10 7 10;
+}
 .fp-table-label       { -fx-font-size: 12.5px; -fx-text-fill: -text-secondary; }
 .fp-table-label-total { -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: -text-primary; }
+.fp-table-label-comment  { -fx-font-size: 12.5px; -fx-text-fill: -text-secondary; -fx-font-style: italic;}
 .fp-table-value       { -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: -text-primary; -fx-alignment: CENTER_RIGHT; }
-.fp-table-value-total { -fx-text-fill: -brand-mid; }
+.fp-table-value-total { -fx-text-fill: -brand-mid; -fx-font-weight: 700}
 .fp-table-value-negative { -fx-text-fill: -color-error; }
 
 /* ── Major Events card ──────────────────────────────────────────────────── */

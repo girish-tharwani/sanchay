@@ -1,6 +1,8 @@
 package com.sanchay.ui.planning;
 
 import com.sanchay.model.FamilyMember;
+import com.sanchay.model.InvestmentAccount;
+import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.PlanParameters;
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
@@ -45,6 +47,14 @@ public class FinancialPlanningScreen {
     private Label yearsToRetireLbl;
     private Label yearsInRetireLbl;
     private Label retirementYearLbl;   // also reused in KPI strip
+
+    // ── Corpus breakdown (computed once per buildView) ────────────────────────
+    private record CorpusBreakdown(
+            long bankPaise, long equityPaise, long mfPaise,
+            long bondsPaise, long fdPaise, long rdPaise,
+            long pfPaise, long totalPaise) {}
+
+    private CorpusBreakdown corpusBreakdown;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private TextField  retirementAgeFld;
@@ -101,6 +111,7 @@ public class FinancialPlanningScreen {
 
         initFields();
         updateDerivedLabels();
+        corpusBreakdown = computeCorpusBreakdown();
 
         VBox content = new VBox(20);
         content.getStyleClass().add("main-panel");
@@ -266,8 +277,8 @@ public class FinancialPlanningScreen {
         col.setPercentWidth(33.33);
         grid.getColumnConstraints().addAll(col, copy(col), copy(col));
 
-        grid.add(kpiCard("Current Corpus",               "₹3.40 Cr",  "-brand-mid",    false, false), 0, 0);
-        grid.add(kpiCard("Future Earnings (Total)",      "₹5.38 Cr",  "-brand-light",  false, false), 1, 0);
+        grid.add(kpiCard("Current Corpus",               formatCorpusDisplay(corpusBreakdown.totalPaise()),  "-brand-mid",    false, false), 0, 0);
+        grid.add(kpiCard("Future Earnings",              "₹5.38 Cr",  "-brand-light",  false, false), 1, 0);
         grid.add(kpiCard("Forecasted Retirement Corpus", "₹5.29 Cr",  "-brand-accent", true,  false), 2, 0);
         grid.add(kpiCard("Major Events (Forecast)",      "₹3.00 Cr",  "-brand-light",  false, false), 0, 1);
         grid.add(kpiCard("Corpus Gap",                   "₹89 L",     "#e05555",       false, true),  1, 1);
@@ -408,17 +419,23 @@ public class FinancialPlanningScreen {
     private Region buildCorpusCard() {
         VBox card = startSectionCard("Current Corpus Breakdown", "-brand-mid");
 
-        String[][] rows = {
-            { "Bank Accounts (net of CCs)",           "₹34,00,000"    },
-            { "Equities (90% of market value)",        "₹28,00,000"   },
-            { "Mutual Funds (90% of market value)",    "₹90,00,000"   },
-            { "Bonds (invested value)",                "₹50,00,000"   },
-            { "Fixed Deposits",                        "₹32,00,000"   },
-            { "Recurring Deposits",                    "₹3,00,000"    },
-            { "Provident Fund",                        "₹1,03,72,000" },
+        addTableRow(card, "Bank Accounts",      formatRupees(corpusBreakdown.bankPaise()),   false, false);
+        addTableRow(card, "Equities",           formatRupees(corpusBreakdown.equityPaise()), false, false);
+        addTableRow(card, "Mutual Funds",       formatRupees(corpusBreakdown.mfPaise()),     false, false);
+        addTableRow(card, "Bonds",              formatRupees(corpusBreakdown.bondsPaise()),  false, false);
+        addTableRow(card, "Fixed Deposits",     formatRupees(corpusBreakdown.fdPaise()),     false, false);
+        addTableRow(card, "Recurring Deposits", formatRupees(corpusBreakdown.rdPaise()),     false, false);
+        addTableRow(card, "Provident Fund",     formatRupees(corpusBreakdown.pfPaise()),     false, false);
+        addTableRow(card, "Total Corpus",       formatRupees(corpusBreakdown.totalPaise()),  true,  false);
+
+        String[][] comment_rows = {
+                { "* Bank accounts amount excluding credit card balances" },
+                { "* Equities and Mutual Funds valued at 90% of last recorded market value" },
+                { "* Bonds, FDs and RDs valued as per their invested amount" },
+                { "* Provident Fund as per account balance" },
         };
-        for (String[] r : rows) addTableRow(card, r[0], r[1], false, false);
-        addTableRow(card, "Total Corpus", "₹3,40,72,000", true, false);
+        for (String[] r : comment_rows) addTableCommentRow(card, r[0]);
+
         return card;
     }
 
@@ -429,10 +446,10 @@ public class FinancialPlanningScreen {
 
         addTableSubHeader(card, "Earnings");
         String[][] earnings = {
-            { "Post-tax Salary",         "₹3,78,00,000" },
+            { "Post-tax Income",         "₹3,78,00,000" },
             { "PF Contributions",        "₹60,40,000"   },
             { "Gratuity at Retirement",  "₹20,00,000"   },
-            { "PF Interest (projected)", "₹80,00,000"   },
+            { "PF Interest",             "₹80,00,000"   },
         };
         for (String[] r : earnings) addTableRow(card, r[0], r[1], false, false);
         addTableRow(card, "Subtotal – Earnings", "₹5,38,40,000", true, false);
@@ -746,14 +763,46 @@ public class FinancialPlanningScreen {
         parent.getChildren().add(row);
     }
 
+    private void addTableCommentRow(VBox parent, String label) {
+        HBox row = new HBox();
+        row.getStyleClass().add("fp-table-row-comment");
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setMaxWidth(Double.MAX_VALUE);
+
+        Label lblNode = new Label(label);
+        lblNode.getStyleClass().add("fp-table-label-comment");
+        lblNode.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(lblNode, Priority.ALWAYS);
+
+        row.getChildren().addAll(lblNode);
+        parent.getChildren().add(row);
+    }
+
     // ── Layout helpers ────────────────────────────────────────────────────────
 
-    private HBox buildTwoCol(Region left, Region right) {
+    /*private HBox buildTwoCol(Region left, Region right) {
         HBox row = new HBox(16, left, right);
         HBox.setHgrow(left,  Priority.ALWAYS);
         HBox.setHgrow(right, Priority.ALWAYS);
         left.setMaxWidth(Double.MAX_VALUE);
         right.setMaxWidth(Double.MAX_VALUE);
+        return row;
+    }*/
+
+    private HBox buildTwoCol(Region left, Region right) {
+        HBox row = new HBox(16, left, right);
+        HBox.setHgrow(left, Priority.ALWAYS);
+        HBox.setHgrow(right, Priority.ALWAYS);
+        left.setMaxWidth(Double.MAX_VALUE);
+        right.setMaxWidth(Double.MAX_VALUE);
+
+        // Bind widths to half of the row width
+        row.widthProperty().addListener((obs, oldVal, newVal) -> {
+            double half = newVal.doubleValue() / 2.0;
+            left.setPrefWidth(half);
+            right.setPrefWidth(half);
+        });
+
         return row;
     }
 
@@ -791,6 +840,56 @@ public class FinancialPlanningScreen {
         fld.setPrefWidth(130);
         fld.setMaxWidth(160);
         return fld;
+    }
+
+    // ── Corpus computation ────────────────────────────────────────────────────
+
+    private CorpusBreakdown computeCorpusBreakdown() {
+        DataStore ds = DataStore.getInstance();
+        LocalDate today = LocalDate.now();
+        final long ROUND = 1_000_000L; // 10,000 rupees in paise
+
+        long bank = Math.floorDiv(
+                ds.getTotalBankBalancePaise() - ds.getTotalCreditCardOutstandingPaise(), ROUND) * ROUND;
+
+        long equity = 0, mf = 0, bonds = 0, fd = 0, rd = 0, pf = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
+            long value;
+            switch (ia.getInvestmentType()) {
+                case EQUITY -> {
+                    MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+                    value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
+                                       : ds.getInvestedPaiseAsOf(ia, today);
+                    equity += Math.floorDiv(value, ROUND) * ROUND;
+                }
+                case MUTUAL_FUNDS -> {
+                    MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+                    value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
+                                       : ds.getInvestedPaiseAsOf(ia, today);
+                    mf += Math.floorDiv(value, ROUND) * ROUND;
+                }
+                case DEBT_BONDS        -> bonds += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+                case FIXED_DEPOSIT     -> fd    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+                case RECURRING_DEPOSIT -> rd    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+                case PROVIDENT_FUND    -> pf    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+            }
+        }
+
+        return new CorpusBreakdown(bank, equity, mf, bonds, fd, rd, pf,
+                bank + equity + mf + bonds + fd + rd + pf);
+    }
+
+    /** Formats a paise value as a human-readable corpus amount: ₹3.40 Cr, ₹50 Lakh, etc. */
+    private String formatCorpusDisplay(long paise) {
+        long rupees = paise / 100;
+        if (rupees >= 1_00_00_000L) {
+            return String.format("₹%.2f Cr", rupees / 1_00_00_000.00);
+        } else if (rupees >= 1_00_000L) {
+            return "₹" + Math.round(rupees / 1_00_000.00) + " Lakh";
+        } else {
+            return String.format("₹%,.0f", (double) rupees);
+        }
     }
 
     // ── Format / parse helpers ────────────────────────────────────────────────
