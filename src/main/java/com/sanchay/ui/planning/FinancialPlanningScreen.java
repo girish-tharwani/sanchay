@@ -78,8 +78,8 @@ public class FinancialPlanningScreen {
             long fdInterestPaise,
             long rdInterestPaise,
             long realizedRoiSubtotalPaise,
-            long equityFvPaise,
-            long mfFvPaise,
+            long equityApprecPaise,
+            long mfApprecPaise,
             long unrealizedRoiSubtotalPaise,
             long totalPaise) {}
 
@@ -94,6 +94,9 @@ public class FinancialPlanningScreen {
     private VBox  majorEventsListBox;
     private Label majorEventsForecastTotalLbl;
     private Label majorEventsActualTotalLbl;
+
+    // ── Expenses + Forecast card (live-updatable) ─────────────────────────────
+    private VBox forecastCard;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private DatePicker retirementDatePicker;
@@ -482,7 +485,7 @@ public class FinancialPlanningScreen {
     // ── Current Corpus Breakdown ──────────────────────────────────────────────
 
     private Region buildCorpusCard() {
-        VBox card = startSectionCard("Current Corpus Breakdown", "-brand-mid");
+        VBox card = startSectionCard("Current Corpus", "-brand-mid");
 
         addTableRow(card, "Bank Accounts",      formatRupees(corpusBreakdown.bankPaise()),   false, false);
         addTableRow(card, "Equities",           formatRupees(corpusBreakdown.equityPaise()), false, false);
@@ -507,7 +510,7 @@ public class FinancialPlanningScreen {
     // ── Future Earnings ───────────────────────────────────────────────────────
 
     private Region buildEarningsCard() {
-        earningsCard = startSectionCard("Future Earnings Until Retirement", "-brand-accent");
+        earningsCard = startSectionCard("Future Earnings", "-brand-accent");
         populateEarningsCard(earningsCard);
         return earningsCard;
     }
@@ -527,8 +530,8 @@ public class FinancialPlanningScreen {
         addTableRow(card, "Total Realized ROI", formatRupees(futureEarnings.realizedRoiSubtotalPaise()), true, false);
 
         addTableSubHeader(card, "Unrealized ROI (Appreciation)");
-        addTableRow(card, "Equity Appreciation", formatRupees(futureEarnings.equityFvPaise()), false, false);
-        addTableRow(card, "MF Appreciation",     formatRupees(futureEarnings.mfFvPaise()),     false, false);
+        addTableRow(card, "Equity Appreciation", formatRupees(futureEarnings.equityApprecPaise()), false, false);
+        addTableRow(card, "MF Appreciation",     formatRupees(futureEarnings.mfApprecPaise()),     false, false);
         addTableRow(card, "Total Unrealized ROI", formatRupees(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
     }
 
@@ -541,6 +544,7 @@ public class FinancialPlanningScreen {
             earningsCard.getChildren().subList(2, earningsCard.getChildren().size()).clear();
             populateEarningsCard(earningsCard);
         }
+        refreshForecastCard();
     }
 
     // ── Major Events ──────────────────────────────────────────────────────────
@@ -772,22 +776,33 @@ public class FinancialPlanningScreen {
     // ── Expenses + Forecasted Corpus ──────────────────────────────────────────
 
     private Region buildExpensesAndForecastCard() {
-        VBox card = startSectionCard("Expenses Until Retirement", "#f87171");
+        forecastCard = startSectionCard("Expenses Until Retirement", "#f87171");
+        populateForecastCard(forecastCard);
+        return forecastCard;
+    }
 
+    private void populateForecastCard(VBox card) {
         LocalDate retireDate = getRetirementDate();
         LocalDate today      = LocalDate.now();
 
         // ── Expenses ──────────────────────────────────────────────────────────
-        double yearsToRetire  = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
-        long   costOfLiving   = Math.round(params.costOfLivingPaise * yearsToRetire);
-        long   loanPayments   = computeLoanPayments(retireDate);
-        long   majorEventsNet = computeMajorEventsKpi();
-        long   totalExpenses  = costOfLiving + loanPayments + majorEventsNet;
+        double yearsToRetire = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
 
-        addTableRow(card, "Loan Payments",  formatRupees(loanPayments),  false, true);
-        addTableRow(card, "Cost of Living", formatRupees(costOfLiving),  false, true);
+        // Cost of living inflated: sum of growing annuity C × [(1+r)^n − 1] / r
+        double inflationRate = params.inflationPct / 100.0;
+        long costOfLiving = (inflationRate == 0 || yearsToRetire <= 0)
+                ? Math.round(params.costOfLivingPaise * yearsToRetire)
+                : Math.round(params.costOfLivingPaise
+                        * (Math.pow(1 + inflationRate, yearsToRetire) - 1) / inflationRate);
+
+        long loanPayments   = computeLoanPayments(retireDate);
+        long majorEventsNet = computeMajorEventsKpi();
+        long totalExpenses  = costOfLiving + loanPayments + majorEventsNet;
+
+        addTableRow(card, "Loan Payments",  formatRupees(loanPayments),   false, true);
+        addTableRow(card, "Cost of Living", formatRupees(costOfLiving),   false, true);
         addTableRow(card, "Major Events",   formatRupees(majorEventsNet), false, true);
-        addTableRow(card, "Total Expenses", formatRupees(totalExpenses), true,  true);
+        addTableRow(card, "Total Expenses", formatRupees(totalExpenses),  true,  true);
 
         Region spacer = new Region();
         spacer.setPrefHeight(16);
@@ -804,14 +819,14 @@ public class FinancialPlanningScreen {
                        + futureEarnings.pfContribPaise()
                        + futureEarnings.pfInterestPaise();
 
-        // equityFvPaise / mfFvPaise contain appreciation only (SIP principal was subtracted
+        // equityApprecPaise / mfApprecPaise contain appreciation only (SIP principal was subtracted
         // during computation); add the SIP principals back here to get the full bucket value.
-        long stocksMf  = corpusBreakdown.equityPaise()
-                       + corpusBreakdown.mfPaise()
-                       + futureEarnings.equityFvPaise()
-                       + params.monthlySipEquityPaise * totalMonths
-                       + futureEarnings.mfFvPaise()
-                       + params.monthlySipMfPaise * totalMonths;
+        long stocksMf = corpusBreakdown.equityPaise()
+                      + corpusBreakdown.mfPaise()
+                      + futureEarnings.equityApprecPaise()
+                      + params.monthlySipEquityPaise * totalMonths
+                      + futureEarnings.mfApprecPaise()
+                      + params.monthlySipMfPaise * totalMonths;
 
         long cashBondsFds = corpusBreakdown.bankPaise()
                           + corpusBreakdown.bondsPaise()
@@ -821,10 +836,10 @@ public class FinancialPlanningScreen {
                           + futureEarnings.fdInterestPaise()
                           + futureEarnings.rdInterestPaise()
                           + futureEarnings.postTaxIncomePaise()
-                          + futureEarnings.gratuityPaise();
+                          + futureEarnings.gratuityPaise()
+                          - totalExpenses;
 
-        long grossCorpus     = pfBalance + stocksMf + cashBondsFds;
-        long totalForecasted = grossCorpus - totalExpenses;
+        long totalForecasted     = pfBalance + stocksMf + cashBondsFds;
 
         addTableRow(card, "PF Balance",            formatRupees(pfBalance),    false, false);
         addTableRow(card, "Stocks & MF",           formatRupees(stocksMf),     false, false);
@@ -832,7 +847,7 @@ public class FinancialPlanningScreen {
         addTableRow(card, "Total Forecasted Corpus",
                 formatRupees(totalForecasted), true, totalForecasted < 0);
 
-        // ── Surplus / shortfall pill ──────────────────────────────────────────
+        /*// ── Surplus / shortfall pill ──────────────────────────────────────────
         boolean shortfall = totalForecasted < 0;
         String pillText = shortfall
                 ? "⚠  Corpus shortfall: " + formatCorpusDisplay(Math.abs(totalForecasted))
@@ -841,9 +856,14 @@ public class FinancialPlanningScreen {
         gapPill.getStyleClass().add(shortfall ? "fp-gap-pill-warn" : "fp-gap-pill-ok");
         HBox pillRow = new HBox(gapPill);
         pillRow.setPadding(new Insets(10, 0, 0, 0));
-        card.getChildren().add(pillRow);
+        card.getChildren().add(pillRow);*/
+    }
 
-        return card;
+    private void refreshForecastCard() {
+        if (forecastCard == null) return;
+        // Keep header+divider (indices 0,1) and replace all content rows
+        forecastCard.getChildren().subList(2, forecastCard.getChildren().size()).clear();
+        populateForecastCard(forecastCard);
     }
 
     /** Sum of all remaining LOAN_PAYMENT recurring instalment amounts until {@code retireDate}. */
@@ -1302,7 +1322,7 @@ public class FinancialPlanningScreen {
             equityPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
         }
         double equityRate = params.rorEquitiesPct / 100.0;
-        long equityFv = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
+        long equityApprec = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
                 + computeSipFv(params.monthlySipEquityPaise, equityRate, totalMonths)
                 - equityPv
                 - params.monthlySipEquityPaise * totalMonths;
@@ -1316,7 +1336,7 @@ public class FinancialPlanningScreen {
             mfPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
         }
         double mfRate = params.rorMfPct / 100.0;
-        long mfFv = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
+        long mfApprec = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
                 + computeSipFv(params.monthlySipMfPaise, mfRate, totalMonths)
                 - mfPv
                 - params.monthlySipMfPaise * totalMonths;
@@ -1329,18 +1349,18 @@ public class FinancialPlanningScreen {
         long rBondsInt  = floorRound(Math.max(0, bondsInterest), ROUND);
         long rFdInt     = floorRound(Math.max(0, fdInterest),    ROUND);
         long rRdInt     = floorRound(Math.max(0, rdInterest),    ROUND);
-        long rEquityFv  = floorRound(Math.max(0, equityFv),      ROUND);
-        long rMfFv      = floorRound(Math.max(0, mfFv),          ROUND);
+        long rEquityApprec  = floorRound(Math.max(0, equityApprec),      ROUND);
+        long rMfApprec      = floorRound(Math.max(0, mfApprec),          ROUND);
 
         long earnSub     = rIncome + rPfContrib + rGratuity + rPfInt;
         long realizedSub = rBondsInt + rFdInt + rRdInt;
-        long unrlzdSub   = rEquityFv + rMfFv;
+        long unrlzdSub   = rEquityApprec + rMfApprec;
         long total       = earnSub + realizedSub + unrlzdSub;
 
         return new FutureEarningsBreakdown(
                 rIncome, rPfContrib, rGratuity, rPfInt, earnSub,
                 rBondsInt, rFdInt, rRdInt, realizedSub,
-                rEquityFv, rMfFv, unrlzdSub, total);
+                rEquityApprec, rMfApprec, unrlzdSub, total);
     }
 
     private Set<String> collectEarningScheduleIds(DataStore ds) {
