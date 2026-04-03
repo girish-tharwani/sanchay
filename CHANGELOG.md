@@ -1,3 +1,10 @@
+## v1.1.6 — 2026-04-03
+
+### Changed
+- Moved `HelpDialog` and `SingleInputDialog` to `ui/common/` sub-package; `MainWindow`, `SplashScreen`, and `UiUtils` remain at `ui/` root
+
+---
+
 ## v1.1.5 — 2026-04-03
 
 ### Added
