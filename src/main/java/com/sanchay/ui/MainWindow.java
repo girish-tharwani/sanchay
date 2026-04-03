@@ -10,6 +10,7 @@ import com.sanchay.ui.profile.ProfileScreen;
 import com.sanchay.ui.recurring.RecordRecurringDialog;
 import com.sanchay.ui.recurring.RecurringScreen;
 import com.sanchay.ui.recurring.SkipRecurringDialog;
+import com.sanchay.ui.planning.FinancialPlanningScreen;
 import com.sanchay.ui.reports.ReportsScreen;
 import com.sanchay.ui.settings.SettingsScreen;
 import com.sanchay.ui.transactions.TransactionDialog;
@@ -39,6 +40,7 @@ public class MainWindow {
     private SettingsScreen   settingsScreen;
     private ProfileScreen    profileScreen;
     private CategoriesScreen categoriesScreen;
+    private FinancialPlanningScreen financialPlanningScreen;
     private TransactionsScreen transactionsScreen;
 
     // AccountsScreen is NOT cached — always rebuilt on navigation so that
@@ -159,8 +161,9 @@ public class MainWindow {
                 buildNavButton("Dashboard",  "🏠  Dashboard"),
                 buildNavButton("Accounts",   "🏦  Accounts"),
                 buildNavButton("Recurring",  "🔁  Recurring"),
-                buildNavButton("Reports",    "📊  Reports"),
-                buildNavButton("Categories", "🗂️  Categories")
+                buildNavButton("Reports",         "📊  Reports"),
+                buildNavButton("FinancialPlan",   "🌐  Financial Plan"),
+                buildNavButton("Categories",      "🗂️  Categories")
         );
 
         Region spacer = new Region();
@@ -236,6 +239,13 @@ public class MainWindow {
                 if (reportsScreen == null) reportsScreen = new ReportsScreen();
                 reportsScreen.refresh();
                 yield reportsScreen.getView();
+            }
+            case "FinancialPlan" -> {
+                if (financialPlanningScreen == null)
+                    financialPlanningScreen = new FinancialPlanningScreen(() -> navigateTo("Profile"));
+                else
+                    financialPlanningScreen.refresh();
+                yield financialPlanningScreen.getView();
             }
             case "Categories" -> {
                 if (categoriesScreen == null) categoriesScreen = new CategoriesScreen();
@@ -348,6 +358,7 @@ public class MainWindow {
         settingsScreen   = null;
         profileScreen    = null;
         categoriesScreen = null;
+        financialPlanningScreen = null;
         transactionsScreen = null;
         isFirstRun       = false;
         postTransactionCallback   = null;

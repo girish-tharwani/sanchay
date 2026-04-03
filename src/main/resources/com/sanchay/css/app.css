@@ -1327,3 +1327,166 @@
 .forecast-btn-include:hover {
     -fx-background-color: rgba(22,163,74,0.22);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Financial Planning Screen
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Header warning badge — amber pill */
+.fp-sample-badge {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-border-width: 1;
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-padding: 5 12 5 12;
+}
+
+/* KPI value colour modifiers (applied alongside card-value) */
+.fp-kpi-value-accent   { -fx-text-fill: -brand-mid; }
+.fp-kpi-value-negative { -fx-text-fill: -color-error; }
+
+/* ── Plan Parameters grid ───────────────────────────────────────────────── */
+/* Each cell (label side or value side) shares this class */
+.fp-param-row {
+    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 7 10 7 10;
+    -fx-min-height: 34;
+}
+.fp-param-key {
+    -fx-font-size: 12px;
+    -fx-text-fill: -text-muted;
+}
+.fp-param-value {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-primary;
+}
+
+/* ── Inner data-table rows (corpus, earnings, expenses cards) ─────────────
+   No outer border — uses card's own border.
+   Rows separated by 1px teal bottom rule; total row has top rule too.   */
+.fp-table-header-label {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-muted;
+}
+.fp-table-row {
+    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 7 10 7 10;
+}
+.fp-table-row-total {
+    -fx-background-color: -surface-hover;
+    -fx-border-color: rgba(42,138,122,0.18) transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-width: 1 0 1 0;
+    -fx-padding: 7 10 7 10;
+}
+.fp-table-label       { -fx-font-size: 12.5px; -fx-text-fill: -text-secondary; }
+.fp-table-label-total { -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: -text-primary; }
+.fp-table-value       { -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: -text-primary; -fx-alignment: CENTER_RIGHT; }
+.fp-table-value-total { -fx-text-fill: -brand-mid; }
+.fp-table-value-negative { -fx-text-fill: -color-error; }
+
+/* ── Major Events card ──────────────────────────────────────────────────── */
+.fp-event-col-header {
+    -fx-border-color: transparent transparent rgba(42,138,122,0.22) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 4 10 6 10;
+}
+.fp-event-row {
+    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 8 10 8 10;
+}
+.fp-col-actual     { -fx-min-width: 90; }
+.fp-event-name     { -fx-font-size: 12.5px; -fx-text-fill: -text-secondary; }
+.fp-event-forecast { -fx-font-size: 12px;   -fx-font-weight: 700; -fx-text-fill: -text-muted; }
+.fp-event-actual   { -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: -brand-mid; }
+.fp-event-actual-zero { -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: -text-muted; }
+
+/* Events total row — subtle teal surface like table-footer */
+.fp-events-total-row {
+    -fx-background-color: -surface-hover;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 8 10 8 10;
+}
+
+/* ── Warnings / pills ───────────────────────────────────────────────────── */
+.fp-gap-pill-warn {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-border-width: 1;
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 5 12 5 12;
+}
+.fp-depletion-warning {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-border-width: 1;
+    -fx-text-fill: #92400e;
+    -fx-font-size: 12px;
+    -fx-padding: 10 14 10 14;
+}
+
+/* ── Post-retirement bar chart ──────────────────────────────────────────── */
+.fp-bar-year {
+    -fx-font-size: 11px;
+    -fx-text-fill: -text-muted;
+    -fx-min-width: 36;
+    -fx-max-width: 36;
+    -fx-alignment: CENTER_RIGHT;
+}
+.fp-bar-track {
+    -fx-background-color: #eef4f5;
+    -fx-background-radius: 4;
+    -fx-min-height: 14;
+    -fx-max-height: 14;
+    -fx-pref-height: 14;
+}
+.fp-bar-fill-healthy {
+    -fx-background-color: linear-gradient(to right, -brand-mid, -brand-light);
+    -fx-background-radius: 4;
+}
+.fp-bar-fill-low {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #fbbf24);
+    -fx-background-radius: 4;
+}
+.fp-bar-fill-depleted {
+    -fx-background-color: linear-gradient(to right, #ef4444, #f87171);
+    -fx-background-radius: 4;
+}
+.fp-bar-value {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -text-primary;
+    -fx-min-width: 72;
+    -fx-max-width: 72;
+    -fx-alignment: CENTER_RIGHT;
+}
+.fp-bar-value-negative { -fx-text-fill: -color-error; }
+
+/* ── Projection legend ──────────────────────────────────────────────────── */
+.fp-legend-dot {
+    -fx-min-width: 10; -fx-max-width: 10;
+    -fx-min-height: 10; -fx-max-height: 10;
+    -fx-background-radius: 2;
+}
+/* Colour variant — suffix derived from token name with hyphens stripped */
+.fp-legend-dot-brandmid    { -fx-background-color: -brand-mid; }
+.fp-legend-dot-brandaccent { -fx-background-color: #f59e0b; }
+.fp-legend-dot-colorerror  { -fx-background-color: -color-error; }
+.fp-legend-label { -fx-font-size: 11px; -fx-text-fill: -text-muted; }
