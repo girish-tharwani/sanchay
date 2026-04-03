@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -355,8 +356,15 @@ public class TransactionsScreen {
                         applyFilter.run();
                         Platform.runLater(() -> restoreSelection(table, saved.getId()));
                     });
-
                 }
+            } else if (e.getCode() == KeyCode.V && e.isControlDown()
+                    && (account instanceof BankAccount || account instanceof CreditCardAccount)) {
+                String clip = Clipboard.getSystemClipboard().getString();
+                if (clip == null || clip.isBlank()) return;
+                List<String[]> rows = ImportService.parseText(clip);
+                if (rows.isEmpty() || rows.get(0).length < 2) return;
+                doImportRows(rows, null, applyFilter);
+                e.consume();
             }
         });
 
@@ -457,7 +465,10 @@ public class TransactionsScreen {
         HBox footerRow = new HBox(8);
         footerRow.getStyleClass().add("table-footer");
         footerRow.setAlignment(Pos.CENTER_LEFT);
-        Label hintLbl = UiUtils.hintLabel("Double-click a row to edit");
+        Label hintLbl = UiUtils.hintLabel(
+                (account instanceof BankAccount || account instanceof CreditCardAccount)
+                ? "Double-click a row to edit  ·  Ctrl+V to paste from Excel / CSV"
+                : "Double-click a row to edit");
         Region footerSpacer = new Region();
         HBox.setHgrow(footerSpacer, Priority.ALWAYS);
         footerRow.getChildren().addAll(hintLbl, footerSpacer);
@@ -637,25 +648,35 @@ public class TransactionsScreen {
         File file = fc.showOpenDialog(null);
         if (file == null) return;
 
-        // Parse
         List<String[]> rows;
         try { rows = ImportService.parseCsv(file); }
         catch (IOException ex) { info("Import Failed", "Could not read file:\n" + ex.getMessage()); return; }
 
         if (rows.isEmpty()) { info("Import Failed", "The file is empty."); return; }
 
+        String importDir = file.getParentFile() != null ? file.getParentFile().getAbsolutePath() : null;
+        doImportRows(rows, importDir, refreshTable);
+    }
+
+    /**
+     * Core import flow shared by file import and clipboard paste.
+     * {@code importDir} is the directory of the source file (used to remember the last import
+     * path); pass {@code null} when importing from the clipboard.
+     */
+    private void doImportRows(List<String[]> rows, String importDir, Runnable refreshTable) {
+        DataStore ds = DataStore.getInstance();
+
         // Validate header
         if (!ImportService.isLikelyHeader(rows.get(0))) {
             info("Import Rejected",
                     "The first row does not look like a header row.\n"
-                    + "Please ensure the CSV has column headers in row 1.");
+                    + "Please ensure the data has column headers in the first row.");
             return;
         }
 
         ImportMapping saved = ImportService.findMapping(account.getId(), ds.getImportMappings());
-        String importDir    = file.getParentFile() != null ? file.getParentFile().getAbsolutePath() : null;
-        String snapshot     = String.join(",", rows.get(0));
-        boolean snapshotOk  = saved != null && snapshot.equals(saved.getHeaderSnapshot());
+        String snapshot    = String.join(",", rows.get(0));
+        boolean snapshotOk = saved != null && snapshot.equals(saved.getHeaderSnapshot());
 
         // Always show mapping dialog — pre-filled when snapshot matches
         ImportMappingDialog dlg = new ImportMappingDialog(account, rows.get(0),
@@ -759,7 +780,6 @@ public class TransactionsScreen {
         }
 
         refreshTable.run();
-
         showImportCompleteDialog(result);
     }
 

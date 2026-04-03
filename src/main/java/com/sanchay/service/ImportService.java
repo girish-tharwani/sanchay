@@ -53,6 +53,37 @@ public class ImportService {
     // ── CSV parsing ───────────────────────────────────────────────────────────
 
     /**
+     * Parses clipboard text (CSV or tab-delimited) into rows.
+     * Detects the delimiter from the first non-blank line: if tab count >= comma count,
+     * uses tab (Excel paste); otherwise uses comma.
+     */
+    public static List<String[]> parseText(String text) {
+        if (text == null || text.isBlank()) return Collections.emptyList();
+        String[] lines = text.split("\\r?\\n", -1);
+        char delimiter = ',';
+        for (String line : lines) {
+            if (!line.isBlank()) {
+                long tabs   = line.chars().filter(c -> c == '\t').count();
+                long commas = line.chars().filter(c -> c == ',').count();
+                if (tabs > 0 && tabs >= commas) delimiter = '\t';
+                break;
+            }
+        }
+        List<String[]> rows = new ArrayList<>();
+        for (String line : lines) {
+            if (line.isBlank()) continue;
+            rows.add(delimiter == '\t' ? splitTab(line) : parseLine(line));
+        }
+        return rows;
+    }
+
+    private static String[] splitTab(String line) {
+        String[] parts = line.split("\t", -1);
+        for (int i = 0; i < parts.length; i++) parts[i] = parts[i].strip();
+        return parts;
+    }
+
+    /**
      * Reads a CSV file and returns all non-blank rows as String arrays.
      * Handles RFC-4180 quoting (double-quote escaping inside quoted fields).
      */
