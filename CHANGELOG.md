@@ -1,3 +1,17 @@
+## v1.1.2 — 2026-04-03
+
+### Added
+- Financial Planning screen: Current Corpus Breakdown card and Current Corpus KPI tile now computed from live account data (bank net of CC outstanding, equities/MF at 90% of last market value, bonds/FD/RD/PF at invested value; all rounded down to nearest ₹10,000)
+- Financial Planning screen: Future Earnings Until Retirement card and Future Earnings KPI tile now computed from live data — post-tax income, PF contributions, gratuity, PF interest (month-by-month simulation), bonds/FD/RD realized ROI, and equity/MF future value with SIP projections
+- Financial Planning screen: Recalculate button now recomputes and refreshes the Future Earnings card and KPI tile in-place without rebuilding the screen
+
+### Changed
+- Financial Planning screen: Current Age in Plan Parameters now shows two decimal places (e.g. 30.58) for more precise earnings projection
+- Financial Planning screen: Retirement Age input replaced with Retirement Date picker; retirement age is derived from DOB and the selected date with two decimal precision; all projection calculations use the exact date
+- Financial Planning screen: "Retirement Year" KPI tile renamed to "Retirement Age" and now shows the computed decimal retirement age
+
+---
+
 ## v1.1.1 — 2026-04-02
 
 ### Added
