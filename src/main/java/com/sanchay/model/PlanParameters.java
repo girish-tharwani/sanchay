@@ -8,6 +8,7 @@ package com.sanchay.model;
 public class PlanParameters {
 
     public int    retirementAge         = 60;
+    public String retirementDate        = null;  // ISO "YYYY-MM-DD"; preferred over retirementAge when set
     public int    lifeExpectancy        = 80;
     public double preRetireTaxPct       = 30.0;
     public double postRetireTaxPct      = 20.0;

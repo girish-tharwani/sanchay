@@ -46,13 +46,14 @@ public class FinancialPlanningScreen {
 
     private PlanParamsService paramsService;
     private PlanParameters    params;
-    private int               currentAge;
+    private double            currentAgeDecimal;
+    private LocalDate         selfDob;
 
     // ── Derived (read-only) labels — updated live ─────────────────────────────
     private Label currentAgeLbl;
     private Label yearsToRetireLbl;
     private Label yearsInRetireLbl;
-    private Label retirementYearLbl;   // also reused in KPI strip
+    private Label retirementAgeLbl;    // also reused in KPI strip
 
     // ── Corpus breakdown (computed once per buildView) ────────────────────────
     private record CorpusBreakdown(
@@ -80,8 +81,12 @@ public class FinancialPlanningScreen {
 
     private FutureEarningsBreakdown futureEarnings;
 
+    // ── Live-updatable UI handles ─────────────────────────────────────────────
+    private VBox  earningsCard;
+    private Label futureEarningsKpiLbl;
+
     // ── Editable fields ───────────────────────────────────────────────────────
-    private TextField  retirementAgeFld;
+    private DatePicker retirementDatePicker;
     private TextField  lifeExpectancyFld;
     private TextField  preRetireTaxFld;
     private TextField  postRetireTaxFld;
@@ -127,7 +132,9 @@ public class FinancialPlanningScreen {
             return;
         }
 
-        currentAge = Period.between(self.getDateOfBirth(), LocalDate.now()).getYears();
+        selfDob = self.getDateOfBirth();
+        Period agePeriod  = Period.between(selfDob, LocalDate.now());
+        currentAgeDecimal = agePeriod.getYears() + agePeriod.getMonths() / 12.0;
 
         AppConfig.Config cfg = AppConfig.read();
         paramsService = new PlanParamsService(cfg.dataFolderPath);
@@ -161,14 +168,13 @@ public class FinancialPlanningScreen {
     /** Creates all field instances, populates from loaded params, and wires listeners. */
     private void initFields() {
         // Derived labels
-        currentAgeLbl     = derivedLabel(String.valueOf(currentAge));
-        yearsToRetireLbl  = derivedLabel("");
-        yearsInRetireLbl  = derivedLabel("");
-        retirementYearLbl = derivedLabel("");
-        retirementYearLbl.getStyleClass().add("card-value");
+        currentAgeLbl    = derivedLabel(String.format("%.2f", currentAgeDecimal));
+        yearsToRetireLbl = derivedLabel("");
+        yearsInRetireLbl = derivedLabel("");
+        retirementAgeLbl = derivedLabel("");
+        retirementAgeLbl.getStyleClass().add("card-value");
 
         // Editable text fields
-        retirementAgeFld  = intField(params.retirementAge);
         lifeExpectancyFld = intField(params.lifeExpectancy);
         preRetireTaxFld   = pctField(params.preRetireTaxPct);
         postRetireTaxFld  = pctField(params.postRetireTaxPct);
@@ -181,32 +187,43 @@ public class FinancialPlanningScreen {
         sipMfFld          = rupeesField(params.monthlySipMfPaise);
         sipEquityFld      = rupeesField(params.monthlySipEquityPaise);
 
-        // Date picker for employment start — uses the app's date format from settings
+        // Date pickers — retirement date and employment start; share the app date format
         DateTimeFormatter dtFmt = DataStore.getInstance().getDateFormatter();
-        employmentStartPicker = new DatePicker();
-        employmentStartPicker.setPrefWidth(130);
-        employmentStartPicker.setConverter(new StringConverter<>() {
-            @Override public String toString(LocalDate d) {
-                return d == null ? "" : dtFmt.format(d);
-            }
+        StringConverter<LocalDate> dateConverter = new StringConverter<>() {
+            @Override public String toString(LocalDate d)   { return d == null ? "" : dtFmt.format(d); }
             @Override public LocalDate fromString(String s) {
                 if (s == null || s.isBlank()) return null;
                 try { return LocalDate.parse(s, dtFmt); } catch (Exception e) { return null; }
             }
-        });
+        };
+
+        retirementDatePicker = new DatePicker();
+        retirementDatePicker.setPrefWidth(130);
+        retirementDatePicker.setConverter(dateConverter);
+        // Prefer stored retirementDate; fall back to retirementAge years from DOB
+        if (params.retirementDate != null) {
+            try { retirementDatePicker.setValue(LocalDate.parse(params.retirementDate)); }
+            catch (Exception ignored) { retirementDatePicker.setValue(selfDob.plusYears(params.retirementAge)); }
+        } else {
+            retirementDatePicker.setValue(selfDob.plusYears(params.retirementAge));
+        }
+        retirementDatePicker.valueProperty().addListener((obs, o, n) -> { updateDerivedLabels(); collectAndSave(); });
+
+        employmentStartPicker = new DatePicker();
+        employmentStartPicker.setPrefWidth(130);
+        employmentStartPicker.setConverter(dateConverter);
         if (params.employmentStartDate != null) {
             try { employmentStartPicker.setValue(LocalDate.parse(params.employmentStartDate)); }
             catch (Exception ignored) {}
         }
         employmentStartPicker.valueProperty().addListener((obs, o, n) -> collectAndSave());
 
-        // Live-update derived labels whenever the age/life-expectancy fields change
-        retirementAgeFld.textProperty().addListener((obs, o, n)  -> updateDerivedLabels());
+        // Live-update derived labels when life-expectancy changes
         lifeExpectancyFld.textProperty().addListener((obs, o, n) -> updateDerivedLabels());
 
         // Auto-save on focus lost for all text fields
         for (TextField fld : new TextField[] {
-                retirementAgeFld, lifeExpectancyFld,
+                lifeExpectancyFld,
                 preRetireTaxFld, postRetireTaxFld, inflationFld,
                 rorEquityFld, rorMfFld, rorPfFld, rorPostRetireFld,
                 costOfLivingFld, sipMfFld, sipEquityFld }) {
@@ -219,15 +236,19 @@ public class FinancialPlanningScreen {
     // ── Derived-label computation ─────────────────────────────────────────────
 
     private void updateDerivedLabels() {
-        int retAge   = parseIntSafe(retirementAgeFld.getText(), params.retirementAge);
-        int lifeExp  = parseIntSafe(lifeExpectancyFld.getText(), params.lifeExpectancy);
-        int toRetire = Math.max(0, retAge - currentAge);
-        int inRetire = Math.max(0, lifeExp - retAge);
-        int retYear  = LocalDate.now().getYear() + toRetire;
+        LocalDate retDate = retirementDatePicker != null ? retirementDatePicker.getValue() : null;
+        int lifeExp = parseIntSafe(lifeExpectancyFld != null ? lifeExpectancyFld.getText() : "",
+                                   params.lifeExpectancy);
 
-        yearsToRetireLbl.setText(String.valueOf(toRetire));
-        yearsInRetireLbl.setText(String.valueOf(inRetire));
-        retirementYearLbl.setText(String.valueOf(retYear));
+        if (retDate != null && selfDob != null) {
+            double retireAge = ChronoUnit.DAYS.between(selfDob, retDate) / 365.25;
+            double toRetire  = Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), retDate) / 365.25);
+            double inRetire  = Math.max(0, lifeExp - retireAge);
+
+            yearsToRetireLbl.setText(String.valueOf((int) toRetire));
+            yearsInRetireLbl.setText(String.valueOf((int) inRetire));
+            retirementAgeLbl.setText(String.format("%.2f", retireAge));
+        }
     }
 
     // ── Collect, format, and save ─────────────────────────────────────────────
@@ -235,7 +256,6 @@ public class FinancialPlanningScreen {
     private void collectAndSave() {
         if (paramsService == null || params == null) return;
 
-        params.retirementAge         = parseIntSafe(retirementAgeFld.getText(), params.retirementAge);
         params.lifeExpectancy        = parseIntSafe(lifeExpectancyFld.getText(), params.lifeExpectancy);
         params.preRetireTaxPct       = parsePctSafe(preRetireTaxFld.getText(), params.preRetireTaxPct);
         params.postRetireTaxPct      = parsePctSafe(postRetireTaxFld.getText(), params.postRetireTaxPct);
@@ -248,12 +268,17 @@ public class FinancialPlanningScreen {
         params.monthlySipMfPaise     = parseRupeesSafe(sipMfFld.getText(), params.monthlySipMfPaise);
         params.monthlySipEquityPaise = parseRupeesSafe(sipEquityFld.getText(), params.monthlySipEquityPaise);
 
+        if (retirementDatePicker.getValue() != null) {
+            params.retirementDate = retirementDatePicker.getValue().toString();
+            // Keep retirementAge in sync (rounded) for backward compatibility with other consumers
+            params.retirementAge  = (int) Math.round(
+                    ChronoUnit.DAYS.between(selfDob, retirementDatePicker.getValue()) / 365.25);
+        }
         if (employmentStartPicker.getValue() != null) {
             params.employmentStartDate = employmentStartPicker.getValue().toString();
         }
 
         // Reformat fields for consistent display (auto-append % / ₹ if stripped by user)
-        setIfDifferent(retirementAgeFld,  String.valueOf(params.retirementAge));
         setIfDifferent(lifeExpectancyFld, String.valueOf(params.lifeExpectancy));
         setIfDifferent(preRetireTaxFld,   formatPct(params.preRetireTaxPct));
         setIfDifferent(postRetireTaxFld,  formatPct(params.postRetireTaxPct));
@@ -303,12 +328,15 @@ public class FinancialPlanningScreen {
         grid.getColumnConstraints().addAll(col, copy(col), copy(col));
 
         grid.add(kpiCard("Current Corpus",               formatCorpusDisplay(corpusBreakdown.totalPaise()),  "-brand-mid",    false, false), 0, 0);
-        grid.add(kpiCard("Future Earnings",              formatCorpusDisplay(futureEarnings.totalPaise()),  "-brand-light",  false, false), 1, 0);
+        // Future Earnings KPI uses a live-updatable label (refreshed on Recalculate)
+        futureEarningsKpiLbl = new Label(formatCorpusDisplay(futureEarnings.totalPaise()));
+        futureEarningsKpiLbl.getStyleClass().add("card-value");
+        grid.add(kpiCardWithLabel("Future Earnings", futureEarningsKpiLbl, "-brand-light"), 1, 0);
         grid.add(kpiCard("Forecasted Retirement Corpus", "₹5.29 Cr",  "-brand-accent", true,  false), 2, 0);
         grid.add(kpiCard("Major Events (Forecast)",      "₹3.00 Cr",  "-brand-light",  false, false), 0, 1);
         grid.add(kpiCard("Corpus Gap",                   "₹89 L",     "#e05555",       false, true),  1, 1);
-        // Retirement Year uses the live-computed label
-        grid.add(kpiCardWithLabel("Retirement Year", retirementYearLbl, "-brand-light"), 2, 1);
+        // Retirement Age uses the live-computed label
+        grid.add(kpiCardWithLabel("Retirement Age", retirementAgeLbl, "-brand-light"), 2, 1);
 
         return grid;
     }
@@ -358,7 +386,7 @@ public class FinancialPlanningScreen {
 
         Button recalcBtn = new Button("Recalculate");
         recalcBtn.getStyleClass().add("btn-gold");
-        recalcBtn.setOnAction(e -> collectAndSave());
+        recalcBtn.setOnAction(e -> { collectAndSave(); refreshEarningsCard(); });
 
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
@@ -395,8 +423,8 @@ public class FinancialPlanningScreen {
         grid.getColumnConstraints().addAll(labelCol, fieldCol, gapCol, labelCol, fieldCol);
 
         // ── Left column ───────────────────────────────────────────────────────
-        addParamRow(grid, 0, "Current Age",           currentAgeLbl,     0);
-        addParamRow(grid, 1, "Retirement Age",        retirementAgeFld,  0);
+        addParamRow(grid, 0, "Current Age",            currentAgeLbl,         0);
+        addParamRow(grid, 1, "Retirement Date",       retirementDatePicker,  0);
         addParamRow(grid, 2, "Life Expectancy",       lifeExpectancyFld, 0);
         addParamRow(grid, 3, "Years to Retirement",   yearsToRetireLbl,  0);
         addParamRow(grid, 4, "Years in Retirement",   yearsInRetireLbl,  0);
@@ -467,8 +495,12 @@ public class FinancialPlanningScreen {
     // ── Future Earnings ───────────────────────────────────────────────────────
 
     private Region buildEarningsCard() {
-        VBox card = startSectionCard("Future Earnings Until Retirement", "-brand-accent");
+        earningsCard = startSectionCard("Future Earnings Until Retirement", "-brand-accent");
+        populateEarningsCard(earningsCard);
+        return earningsCard;
+    }
 
+    private void populateEarningsCard(VBox card) {
         addTableSubHeader(card, "Earnings");
         addTableRow(card, "Post-tax Income",        formatRupees(futureEarnings.postTaxIncomePaise()), false, false);
         addTableRow(card, "PF Contributions",       formatRupees(futureEarnings.pfContribPaise()),     false, false);
@@ -486,8 +518,17 @@ public class FinancialPlanningScreen {
         addTableRow(card, "Equity Appreciation + Future SIP", formatRupees(futureEarnings.equityFvPaise()), false, false);
         addTableRow(card, "MF Appreciation + Future SIP",     formatRupees(futureEarnings.mfFvPaise()),     false, false);
         addTableRow(card, "Total Unrealized ROI", formatRupees(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
+    }
 
-        return card;
+    private void refreshEarningsCard() {
+        futureEarnings = computeFutureEarnings();
+        if (futureEarningsKpiLbl != null)
+            futureEarningsKpiLbl.setText(formatCorpusDisplay(futureEarnings.totalPaise()));
+        if (earningsCard != null) {
+            // Keep header+divider (indices 0,1) and replace all content rows
+            earningsCard.getChildren().subList(2, earningsCard.getChildren().size()).clear();
+            populateEarningsCard(earningsCard);
+        }
     }
 
     // ── Major Events ──────────────────────────────────────────────────────────
@@ -899,10 +940,14 @@ public class FinancialPlanningScreen {
     // ── Future earnings computation ───────────────────────────────────────────
 
     private FutureEarningsBreakdown computeFutureEarnings() {
-        DataStore ds          = DataStore.getInstance();
-        LocalDate today       = LocalDate.now();
-        int  yearsToRetire    = Math.max(0, params.retirementAge - currentAge);
-        LocalDate retireDate  = today.plusYears(yearsToRetire);
+        DataStore ds         = DataStore.getInstance();
+        LocalDate today      = LocalDate.now();
+        LocalDate retireDate = (params.retirementDate != null)
+                ? LocalDate.parse(params.retirementDate)
+                : selfDob.plusYears(params.retirementAge);   // fallback for legacy data
+        if (retireDate.isBefore(today)) retireDate = today;
+        double yearsToRetire  = ChronoUnit.DAYS.between(today, retireDate) / 365.25;
+        long   totalMonths    = ChronoUnit.MONTHS.between(today, retireDate);
         final long ROUND      = 1_000_000L;
 
         // ── Post-tax Income ───────────────────────────────────────────────────
@@ -963,14 +1008,13 @@ public class FinancialPlanningScreen {
             if (ia.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND)
                 pfBalance += ds.getInvestedPaiseAsOf(ia, today);
         }
-        long pfStartBalance   = pfBalance;
-        long totalPfMonths    = (long) yearsToRetire * 12;
-        double pfMonthlyRate  = params.rorPfPct / 100.0 / 12.0;
-        for (long mo = 0; mo < totalPfMonths; mo++) {
+        long pfStartBalance  = pfBalance;
+        double pfMonthlyRate = params.rorPfPct / 100.0 / 12.0;
+        for (long mo = 0; mo < totalMonths; mo++) {
             pfBalance += Math.round(pfBalance * pfMonthlyRate); // interest first
             pfBalance += monthlyPfDeposit;                       // then deposit
         }
-        long pfInterest = Math.max(0, pfBalance - pfStartBalance - (monthlyPfDeposit * totalPfMonths));
+        long pfInterest = Math.max(0, pfBalance - pfStartBalance - (monthlyPfDeposit * totalMonths));
 
         // ── Bonds Interest ────────────────────────────────────────────────────
         long bondsInterest = 0;
@@ -1047,7 +1091,7 @@ public class FinancialPlanningScreen {
         }
         double equityRate = params.rorEquitiesPct / 100.0;
         long equityFv = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
-                + computeSipFv(params.monthlySipEquityPaise, equityRate, yearsToRetire);
+                + computeSipFv(params.monthlySipEquityPaise, equityRate, totalMonths);
 
         // ── MF Future Value ───────────────────────────────────────────────────
         long mfPv = 0;
@@ -1059,7 +1103,7 @@ public class FinancialPlanningScreen {
         }
         double mfRate = params.rorMfPct / 100.0;
         long mfFv = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
-                + computeSipFv(params.monthlySipMfPaise, mfRate, yearsToRetire);
+                + computeSipFv(params.monthlySipMfPaise, mfRate, totalMonths);
 
         // ── Round and assemble ────────────────────────────────────────────────
         long rIncome    = floorRound(postTaxIncome,              ROUND);
@@ -1120,12 +1164,11 @@ public class FinancialPlanningScreen {
     }
 
     /** Future value of a monthly SIP annuity: FV = PMT × [(1+r)^n − 1] / r */
-    private long computeSipFv(long monthlyPaise, double annualRate, int years) {
-        if (monthlyPaise <= 0 || years <= 0) return 0;
+    private long computeSipFv(long monthlyPaise, double annualRate, long months) {
+        if (monthlyPaise <= 0 || months <= 0) return 0;
         double r = annualRate / 12.0;
-        int    n = years * 12;
-        if (r == 0) return monthlyPaise * n;
-        return Math.round(monthlyPaise * (Math.pow(1 + r, n) - 1) / r);
+        if (r == 0) return monthlyPaise * months;
+        return Math.round(monthlyPaise * (Math.pow(1 + r, months) - 1) / r);
     }
 
     private long floorRound(long value, long unit) {
