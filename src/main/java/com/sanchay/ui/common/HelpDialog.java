@@ -1,5 +1,7 @@
-package com.sanchay.ui;
+package com.sanchay.ui.common;
 
+import com.sanchay.ui.SplashScreen;
+import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

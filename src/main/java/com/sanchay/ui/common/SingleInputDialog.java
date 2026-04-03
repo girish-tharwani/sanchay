@@ -1,5 +1,6 @@
-package com.sanchay.ui;
+package com.sanchay.ui.common;
 
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
