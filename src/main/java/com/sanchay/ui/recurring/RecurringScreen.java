@@ -264,6 +264,7 @@ public class RecurringScreen {
         return switch (f) {
             case MONTHLY        -> "Monthly";
             case QUARTERLY      -> "Quarterly";
+            case HALF_YEARLY    -> "Half Yearly";
             case ANNUALLY       -> "Annually";
             case ALTERNATE_YEAR -> "Alternate Year";
         };

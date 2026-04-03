@@ -9,7 +9,7 @@ import java.util.UUID;
  */
 public class RecurringTransaction {
 
-    public enum Frequency { MONTHLY, QUARTERLY, ANNUALLY, ALTERNATE_YEAR }
+    public enum Frequency { MONTHLY, QUARTERLY, HALF_YEARLY, ANNUALLY, ALTERNATE_YEAR }
     public enum Status    { ACTIVE, PAUSED, COMPLETED }
 
     private String id;
@@ -101,6 +101,7 @@ public class RecurringTransaction {
         return switch (frequency) {
             case MONTHLY        -> from.plusMonths(1);
             case QUARTERLY      -> from.plusMonths(3);
+            case HALF_YEARLY    -> from.plusMonths(6);
             case ANNUALLY       -> from.plusYears(1);
             case ALTERNATE_YEAR -> from.plusYears(2);
         };

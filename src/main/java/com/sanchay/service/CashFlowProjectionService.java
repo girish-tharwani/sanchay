@@ -581,6 +581,7 @@ public class CashFlowProjectionService {
         return switch (freq) {
             case MONTHLY        -> from.plusMonths(1);
             case QUARTERLY      -> from.plusMonths(3);
+            case HALF_YEARLY    -> from.plusMonths(6);
             case ANNUALLY       -> from.plusYears(1);
             case ALTERNATE_YEAR -> from.plusYears(2);
         };

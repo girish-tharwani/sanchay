@@ -445,4 +445,17 @@ public final class UiUtils {
         // so this inline style is the only reliable way to ensure visibility.
         dp.getEditor().setStyle("-fx-text-fill: -brand-dark;");
     }
+
+    /**
+     * Compact rupee display used on KPI tiles across screens.
+     * ≥ ₹1 Cr  → "₹1.25 Cr"
+     * ≥ ₹1 L   → "₹45 Lakh"
+     * otherwise → "₹12,500"
+     */
+    public static String formatCorpusDisplay(long paise) {
+        long rupees = paise / 100;
+        if (rupees >= 1_00_00_000L) return String.format("₹%.2f Cr", rupees / 1_00_00_000.00);
+        if (rupees >= 1_00_000L)    return "₹" + Math.round(rupees / 1_00_000.00) + " Lakh";
+        return String.format("₹%,.0f", (double) rupees);
+    }
 }

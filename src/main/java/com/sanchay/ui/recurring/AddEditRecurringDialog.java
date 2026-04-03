@@ -434,6 +434,7 @@ public class AddEditRecurringDialog {
                 for (int i = 1; i < n; i++) d = switch (freq) {
                     case MONTHLY        -> d.plusMonths(1);
                     case QUARTERLY      -> d.plusMonths(3);
+                    case HALF_YEARLY    -> d.plusMonths(6);
                     case ANNUALLY       -> d.plusYears(1);
                     case ALTERNATE_YEAR -> d.plusYears(2);
                 };
@@ -731,6 +732,7 @@ public class AddEditRecurringDialog {
         return switch (f) {
             case MONTHLY        -> "Monthly";
             case QUARTERLY      -> "Quarterly";
+            case HALF_YEARLY    -> "Half Yearly";
             case ANNUALLY       -> "Annually";
             case ALTERNATE_YEAR -> "Alternate Year";
         };

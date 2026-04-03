@@ -85,6 +85,7 @@ public class EarningSource {
             return switch (freq) {
                 case MONTHLY        -> net;
                 case QUARTERLY      -> net / 3;
+                case HALF_YEARLY    -> net / 6;
                 case ANNUALLY       -> net / 12;
                 case ALTERNATE_YEAR -> net / 24;
             };

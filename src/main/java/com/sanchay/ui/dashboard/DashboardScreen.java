@@ -1,5 +1,7 @@
 package com.sanchay.ui.dashboard;
 
+import com.sanchay.model.InvestmentAccount;
+import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.RecurringTransaction;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
@@ -13,7 +15,10 @@ import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -113,10 +118,10 @@ public class DashboardScreen {
         HBox row = new HBox(14);
         row.setFillHeight(true);
         row.getChildren().addAll(
-                summaryCard("Net Worth",        fmtInr(ds.getNetWorthPaise()),        "-brand-accent"),
-                summaryCard("Bank Balance",     fmtInr(ds.getTotalBankBalancePaise()), "-brand-light"),
-                summaryCard("Monthly Expenses", fmtInr(ds.getMonthlyExpensesPaise()),  "-brand-light"),
-                summaryCard("Monthly Income",   fmtInr(ds.getMonthlyIncomePaise()),    "-brand-light")
+                summaryCard("Net Worth",        UiUtils.formatCorpusDisplay(computeCurrentCorpusPaise()),      "-brand-accent"),
+                summaryCard("Bank Balance",     UiUtils.formatCorpusDisplay(ds.getTotalBankBalancePaise()),    "-brand-light"),
+                summaryCard("Monthly Expenses", UiUtils.formatCorpusDisplay(computeAvgMonthlyExpensesPaise()), "-brand-light"),
+                summaryCard("Monthly Income",   UiUtils.formatCorpusDisplay(computeAvgMonthlyIncomePaise()),   "-brand-light")
         );
         return row;
     }
@@ -340,9 +345,113 @@ public class DashboardScreen {
         return header;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Computation helpers ───────────────────────────────────────────────────
 
-    private String fmtInr(long paise) {
+    /**
+     * Corpus value using the same method as the "Current Corpus" tile on the
+     * Financial Planning screen: bank (net of CC) + equity/MF at 90% market value
+     * (or invested amount if no market value recorded) + bonds/FD/RD/PF at cost.
+     * Amounts rounded down to the nearest ₹10,000 per bucket.
+     */
+    private long computeCurrentCorpusPaise() {
+        DataStore ds    = DataStore.getInstance();
+        LocalDate today = LocalDate.now();
+        final long ROUND = 1_000_000L; // 10,000 rupees in paise
+
+        long bank = Math.floorDiv(
+                ds.getTotalBankBalancePaise() - ds.getTotalCreditCardOutstandingPaise(), ROUND) * ROUND;
+
+        long equity = 0, mf = 0, bonds = 0, fd = 0, rd = 0, pf = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
+            long value;
+            switch (ia.getInvestmentType()) {
+                case EQUITY -> {
+                    MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+                    value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
+                                      : ds.getInvestedPaiseAsOf(ia, today);
+                    equity += Math.floorDiv(value, ROUND) * ROUND;
+                }
+                case MUTUAL_FUNDS -> {
+                    MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+                    value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
+                                      : ds.getInvestedPaiseAsOf(ia, today);
+                    mf += Math.floorDiv(value, ROUND) * ROUND;
+                }
+                case DEBT_BONDS        -> bonds += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+                case FIXED_DEPOSIT     -> fd    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+                case RECURRING_DEPOSIT -> rd    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+                case PROVIDENT_FUND    -> pf    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
+            }
+        }
+        return bank + equity + mf + bonds + fd + rd + pf;
+    }
+
+    /**
+     * Average monthly expenses over up to the last 12 complete months (current month excluded).
+     * Denominator = months between the earliest transaction and the end of last month, capped at 12.
+     */
+    private long computeAvgMonthlyExpensesPaise() {
+        DataStore ds = DataStore.getInstance();
+        YearMonth prevMonth   = YearMonth.from(LocalDate.now()).minusMonths(1);
+        YearMonth windowStart = prevMonth.minusMonths(11);
+
+        YearMonth effectiveStart = ds.getTransactions().stream()
+                .map(t -> YearMonth.from(t.getDate()))
+                .min(Comparator.naturalOrder())
+                .map(earliest -> earliest.isAfter(windowStart) ? earliest : windowStart)
+                .orElse(null);
+        if (effectiveStart == null || effectiveStart.isAfter(prevMonth)) return 0;
+
+        long months = ChronoUnit.MONTHS.between(effectiveStart, prevMonth) + 1;
+
+        long expenses = ds.getTransactions().stream()
+                .filter(t -> t.getType() == Transaction.Type.EXPENSE && inWindow(t.getDate(), effectiveStart, prevMonth))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        long refunds = ds.getTransactions().stream()
+                .filter(t -> t.getType() == Transaction.Type.REFUND && inWindow(t.getDate(), effectiveStart, prevMonth))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        return Math.max(0, (expenses - refunds) / months);
+    }
+
+    /**
+     * Average monthly income over up to the last 12 complete months (current month excluded).
+     * Denominator = months between the earliest transaction and the end of last month, capped at 12.
+     */
+    private long computeAvgMonthlyIncomePaise() {
+        DataStore ds = DataStore.getInstance();
+        YearMonth prevMonth   = YearMonth.from(LocalDate.now()).minusMonths(1);
+        YearMonth windowStart = prevMonth.minusMonths(11);
+
+        YearMonth effectiveStart = ds.getTransactions().stream()
+                .map(t -> YearMonth.from(t.getDate()))
+                .min(Comparator.naturalOrder())
+                .map(earliest -> earliest.isAfter(windowStart) ? earliest : windowStart)
+                .orElse(null);
+        if (effectiveStart == null || effectiveStart.isAfter(prevMonth)) return 0;
+
+        long months = ChronoUnit.MONTHS.between(effectiveStart, prevMonth) + 1;
+
+        long income = ds.getTransactions().stream()
+                .filter(t -> t.getType() == Transaction.Type.INCOME && inWindow(t.getDate(), effectiveStart, prevMonth))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        long gain = ds.getTransactions().stream()
+                .filter(t -> t.getType() == Transaction.Type.GAIN && inWindow(t.getDate(), effectiveStart, prevMonth))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        long lose = ds.getTransactions().stream()
+                .filter(t -> t.getType() == Transaction.Type.LOSE && inWindow(t.getDate(), effectiveStart, prevMonth))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        return Math.max(0, (income + gain - lose) / months);
+    }
+
+    private static boolean inWindow(LocalDate date, YearMonth start, YearMonth end) {
+        YearMonth ym = YearMonth.from(date);
+        return !ym.isBefore(start) && !ym.isAfter(end);
+    }
+
+    // ── Format helpers ────────────────────────────────────────────────────────
+
+    private static String fmtInr(long paise) {
         return String.format("₹%,.2f", paise / 100.0);
     }
 }

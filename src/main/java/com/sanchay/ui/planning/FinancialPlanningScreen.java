@@ -11,6 +11,7 @@ import com.sanchay.model.Transaction;
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.PlanParamsService;
+import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -88,6 +89,7 @@ public class FinancialPlanningScreen {
     // ── Live-updatable UI handles ─────────────────────────────────────────────
     private VBox  earningsCard;
     private Label futureEarningsKpiLbl;
+    private Label forecastedCorpusKpiLbl;
 
     // ── Major Events (live-updatable) ─────────────────────────────────────────
     private Label majorEventsKpiLbl;
@@ -95,8 +97,11 @@ public class FinancialPlanningScreen {
     private Label majorEventsForecastTotalLbl;
     private Label majorEventsActualTotalLbl;
 
-    // ── Expenses + Forecast card (live-updatable) ─────────────────────────────
-    private VBox forecastCard;
+    // ── Expenses card (live-updatable expense rows) ───────────────────────────
+    private VBox expenseRowsContainer;
+
+    // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
+    private VBox corpusCard;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private DatePicker retirementDatePicker;
@@ -166,7 +171,7 @@ public class FinancialPlanningScreen {
                 buildKpiGrid(),
                 buildParamsCard(),
                 buildTwoCol(buildCorpusCard(), buildEarningsCard()),
-                buildTwoCol(buildMajorEventsCard(), buildExpensesAndForecastCard()),
+                buildTwoCol(buildExpensesCard(), buildForecastedCorpusCard()),
                 buildPostRetirementCard()
         );
 
@@ -333,25 +338,22 @@ public class FinancialPlanningScreen {
     private Node buildKpiGrid() {
         GridPane grid = new GridPane();
         grid.setHgap(14);
-        grid.setVgap(14);
 
         ColumnConstraints col = new ColumnConstraints();
         col.setHgrow(Priority.ALWAYS);
         col.setPercentWidth(33.33);
         grid.getColumnConstraints().addAll(col, copy(col), copy(col));
 
-        grid.add(kpiCard("Current Corpus",               formatCorpusDisplay(corpusBreakdown.totalPaise()),  "-brand-mid",    false, false), 0, 0);
-        // Future Earnings KPI uses a live-updatable label (refreshed on Recalculate)
-        futureEarningsKpiLbl = new Label(formatCorpusDisplay(futureEarnings.totalPaise()));
+        grid.add(kpiCard("Current Corpus", UiUtils.formatCorpusDisplay(corpusBreakdown.totalPaise()), "-brand-mid", false, false), 0, 0);
+
+        futureEarningsKpiLbl = new Label(UiUtils.formatCorpusDisplay(futureEarnings.totalPaise()));
         futureEarningsKpiLbl.getStyleClass().add("card-value");
         grid.add(kpiCardWithLabel("Future Earnings", futureEarningsKpiLbl, "-brand-light"), 1, 0);
-        grid.add(kpiCard("Forecasted Retirement Corpus", "₹5.29 Cr",  "-brand-accent", true,  false), 2, 0);
-        majorEventsKpiLbl = new Label(formatCorpusDisplay(computeMajorEventsKpi()));
-        majorEventsKpiLbl.getStyleClass().add("card-value");
-        grid.add(kpiCardWithLabel("Major Events", majorEventsKpiLbl, "-brand-light"), 0, 1);
-        grid.add(kpiCard("Corpus Gap",                   "₹89 L",     "#e05555",       false, true),  1, 1);
-        // Retirement Age uses the live-computed label
-        grid.add(kpiCardWithLabel("Retirement Age", retirementAgeLbl, "-brand-light"), 2, 1);
+
+        // Initialised with "" — populateCorpusCard() sets the real value immediately after buildView()
+        forecastedCorpusKpiLbl = new Label("");
+        forecastedCorpusKpiLbl.getStyleClass().addAll("card-value", "fp-kpi-value-accent");
+        grid.add(kpiCardWithLabel("Forecasted Retirement Corpus", forecastedCorpusKpiLbl, "-brand-accent"), 2, 0);
 
         return grid;
     }
@@ -538,7 +540,7 @@ public class FinancialPlanningScreen {
     private void refreshEarningsCard() {
         futureEarnings = computeFutureEarnings();
         if (futureEarningsKpiLbl != null)
-            futureEarningsKpiLbl.setText(formatCorpusDisplay(futureEarnings.totalPaise()));
+            futureEarningsKpiLbl.setText(UiUtils.formatCorpusDisplay(futureEarnings.totalPaise()));
         if (earningsCard != null) {
             // Keep header+divider (indices 0,1) and replace all content rows
             earningsCard.getChildren().subList(2, earningsCard.getChildren().size()).clear();
@@ -547,12 +549,28 @@ public class FinancialPlanningScreen {
         refreshForecastCard();
     }
 
-    // ── Major Events ──────────────────────────────────────────────────────────
+    // ── Expenses card (Expenses table + Major Events table) ──────────────────
 
-    private Region buildMajorEventsCard() {
+    private Region buildExpensesCard() {
         if (params.majorEvents == null) params.majorEvents = new ArrayList<>();
 
-        VBox card = startSectionCard("Major Events", "#a78bfa");
+        VBox card = startSectionCard("Expenses Until Retirement", "#f87171");
+
+        // ── Expense rows (refreshable sub-container) ──────────────────────────
+        expenseRowsContainer = new VBox(0);
+        card.getChildren().add(expenseRowsContainer);
+        populateExpenseRows();
+
+        Region divider = new Region();
+        divider.getStyleClass().add("content-divider");
+        divider.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(divider, new Insets(12, 0, 10, 0));
+        card.getChildren().add(divider);
+
+        // ── Major Events section ──────────────────────────────────────────────
+        Label eventsTitle = new Label("MAJOR EVENTS");
+        eventsTitle.getStyleClass().add("section-group-label");
+        card.getChildren().add(eventsTitle);
 
         Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions. Double-click an event to edit.");
         hint.getStyleClass().add("text-hint");
@@ -652,7 +670,10 @@ public class FinancialPlanningScreen {
         if (majorEventsActualTotalLbl != null)
             majorEventsActualTotalLbl.setText(formatRupees(actualTotal));
         if (majorEventsKpiLbl != null)
-            majorEventsKpiLbl.setText(formatCorpusDisplay(computeMajorEventsKpi()));
+            majorEventsKpiLbl.setText(UiUtils.formatCorpusDisplay(computeMajorEventsKpi()));
+        // Expense rows include a "Major Events" line driven by computeMajorEventsKpi(); refresh it too
+        populateExpenseRows();
+        populateCorpusCard();
     }
 
     private HBox createEventRow(MajorEvent event) {
@@ -773,47 +794,60 @@ public class FinancialPlanningScreen {
         return retireDate.isBefore(LocalDate.now()) ? LocalDate.now() : retireDate;
     }
 
-    // ── Expenses + Forecasted Corpus ──────────────────────────────────────────
+    // ── Expense rows (refreshable sub-container) ─────────────────────────────
 
-    private Region buildExpensesAndForecastCard() {
-        forecastCard = startSectionCard("Expenses Until Retirement", "#f87171");
-        populateForecastCard(forecastCard);
-        return forecastCard;
-    }
+    private void populateExpenseRows() {
+        if (expenseRowsContainer == null) return;
+        expenseRowsContainer.getChildren().clear();
 
-    private void populateForecastCard(VBox card) {
         LocalDate retireDate = getRetirementDate();
         LocalDate today      = LocalDate.now();
-
-        // ── Expenses ──────────────────────────────────────────────────────────
         double yearsToRetire = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
 
         // Cost of living inflated: sum of growing annuity C × [(1+r)^n − 1] / r
         double inflationRate = params.inflationPct / 100.0;
-        long costOfLiving = (inflationRate == 0 || yearsToRetire <= 0)
+        long costOfLiving = roundUpTo10k((inflationRate == 0 || yearsToRetire <= 0)
                 ? Math.round(params.costOfLivingPaise * yearsToRetire)
                 : Math.round(params.costOfLivingPaise
-                        * (Math.pow(1 + inflationRate, yearsToRetire) - 1) / inflationRate);
+                        * (Math.pow(1 + inflationRate, yearsToRetire) - 1) / inflationRate));
 
-        long loanPayments   = computeLoanPayments(retireDate);
-        long majorEventsNet = computeMajorEventsKpi();
+        long loanPayments   = roundUpTo10k(computeLoanPayments(retireDate));
+        long majorEventsNet = roundUpTo10k(computeMajorEventsKpi());
         long totalExpenses  = costOfLiving + loanPayments + majorEventsNet;
+        addTableSubHeader(expenseRowsContainer, "EXPENSES");
+        addTableRow(expenseRowsContainer, "Loan Payments",  formatRupees(loanPayments),   false, true);
+        addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(costOfLiving),   false, true);
+        addTableRow(expenseRowsContainer, "Major Events",   formatRupees(majorEventsNet), false, true);
+        addTableRow(expenseRowsContainer, "Total Expenses", formatRupees(totalExpenses),  true,  true);
+    }
 
-        addTableRow(card, "Loan Payments",  formatRupees(loanPayments),   false, true);
-        addTableRow(card, "Cost of Living", formatRupees(costOfLiving),   false, true);
-        addTableRow(card, "Major Events",   formatRupees(majorEventsNet), false, true);
-        addTableRow(card, "Total Expenses", formatRupees(totalExpenses),  true,  true);
+    // ── Forecasted Corpus card ────────────────────────────────────────────────
 
-        Region spacer = new Region();
-        spacer.setPrefHeight(16);
-        card.getChildren().add(spacer);
+    private Region buildForecastedCorpusCard() {
+        corpusCard = startSectionCard("Forecasted Corpus at Retirement", "#86efac");
+        populateCorpusCard();
+        return corpusCard;
+    }
 
-        Label subTitle = new Label("Forecasted Corpus at Retirement");
-        subTitle.getStyleClass().add("text-section-title");
-        card.getChildren().add(subTitle);
+    private void populateCorpusCard() {
+        if (corpusCard == null) return;
+        // Keep header+divider (indices 0,1) and replace all content rows
+        corpusCard.getChildren().subList(2, corpusCard.getChildren().size()).clear();
 
-        // ── Corpus buckets ────────────────────────────────────────────────────
-        long totalMonths = java.time.temporal.ChronoUnit.MONTHS.between(today, retireDate);
+        LocalDate retireDate = getRetirementDate();
+        LocalDate today      = LocalDate.now();
+        long totalMonths     = java.time.temporal.ChronoUnit.MONTHS.between(today, retireDate);
+
+        // Recompute total expenses for the corpus net-of-expenses calculation (same rounding as expense card)
+        double yearsToRetire = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
+        double inflationRate = params.inflationPct / 100.0;
+        long costOfLiving = roundUpTo10k((inflationRate == 0 || yearsToRetire <= 0)
+                ? Math.round(params.costOfLivingPaise * yearsToRetire)
+                : Math.round(params.costOfLivingPaise
+                        * (Math.pow(1 + inflationRate, yearsToRetire) - 1) / inflationRate));
+        long totalExpenses = costOfLiving
+                + roundUpTo10k(computeLoanPayments(retireDate))
+                + roundUpTo10k(computeMajorEventsKpi());
 
         long pfBalance = corpusBreakdown.pfPaise()
                        + futureEarnings.pfContribPaise()
@@ -839,31 +873,21 @@ public class FinancialPlanningScreen {
                           + futureEarnings.gratuityPaise()
                           - totalExpenses;
 
-        long totalForecasted     = pfBalance + stocksMf + cashBondsFds;
+        long totalForecasted = pfBalance + stocksMf + cashBondsFds;
 
-        addTableRow(card, "PF Balance",            formatRupees(pfBalance),    false, false);
-        addTableRow(card, "Stocks & MF",           formatRupees(stocksMf),     false, false);
-        addTableRow(card, "Cash, Bonds, FDs etc.", formatRupees(cashBondsFds), false, false);
-        addTableRow(card, "Total Forecasted Corpus",
+        if (forecastedCorpusKpiLbl != null)
+            forecastedCorpusKpiLbl.setText(UiUtils.formatCorpusDisplay(totalForecasted));
+
+        addTableRow(corpusCard, "PF Balance",            formatRupees(pfBalance),    false, false);
+        addTableRow(corpusCard, "Stocks & MF",           formatRupees(stocksMf),     false, false);
+        addTableRow(corpusCard, "Cash, Bonds, FDs etc.", formatRupees(cashBondsFds), false, false);
+        addTableRow(corpusCard, "Total Forecasted Corpus",
                 formatRupees(totalForecasted), true, totalForecasted < 0);
-
-        /*// ── Surplus / shortfall pill ──────────────────────────────────────────
-        boolean shortfall = totalForecasted < 0;
-        String pillText = shortfall
-                ? "⚠  Corpus shortfall: " + formatCorpusDisplay(Math.abs(totalForecasted))
-                : "✓  Corpus surplus: "   + formatCorpusDisplay(totalForecasted);
-        Label gapPill = new Label(pillText);
-        gapPill.getStyleClass().add(shortfall ? "fp-gap-pill-warn" : "fp-gap-pill-ok");
-        HBox pillRow = new HBox(gapPill);
-        pillRow.setPadding(new Insets(10, 0, 0, 0));
-        card.getChildren().add(pillRow);*/
     }
 
     private void refreshForecastCard() {
-        if (forecastCard == null) return;
-        // Keep header+divider (indices 0,1) and replace all content rows
-        forecastCard.getChildren().subList(2, forecastCard.getChildren().size()).clear();
-        populateForecastCard(forecastCard);
+        populateExpenseRows();
+        populateCorpusCard();
     }
 
     /** Sum of all remaining LOAN_PAYMENT recurring instalment amounts until {@code retireDate}. */
@@ -1389,6 +1413,7 @@ public class FinancialPlanningScreen {
         long count = switch (rt.getFrequency()) {
             case MONTHLY        -> ChronoUnit.MONTHS.between(from, effectiveEnd);
             case QUARTERLY      -> ChronoUnit.MONTHS.between(from, effectiveEnd) / 3;
+            case HALF_YEARLY    -> ChronoUnit.MONTHS.between(from, effectiveEnd) / 6;
             case ANNUALLY       -> ChronoUnit.YEARS.between(from, effectiveEnd);
             case ALTERNATE_YEAR -> ChronoUnit.YEARS.between(from, effectiveEnd) / 2;
         };
@@ -1412,17 +1437,6 @@ public class FinancialPlanningScreen {
     }
 
     /** Formats a paise value as a human-readable corpus amount: ₹3.40 Cr, ₹50 Lakh, etc. */
-    private String formatCorpusDisplay(long paise) {
-        long rupees = paise / 100;
-        if (rupees >= 1_00_00_000L) {
-            return String.format("₹%.2f Cr", rupees / 1_00_00_000.00);
-        } else if (rupees >= 1_00_000L) {
-            return "₹" + Math.round(rupees / 1_00_000.00) + " Lakh";
-        } else {
-            return String.format("₹%,.0f", (double) rupees);
-        }
-    }
-
     // ── Format / parse helpers ────────────────────────────────────────────────
 
     private String formatPct(double pct) {
@@ -1433,6 +1447,13 @@ public class FinancialPlanningScreen {
 
     private String formatRupees(long paise) {
         return String.format("₹%,.0f", paise / 100.0);
+    }
+
+    /** Ceiling to the nearest ₹10,000 (= 1,000,000 paise). Zero stays zero. */
+    private static long roundUpTo10k(long paise) {
+        if (paise <= 0) return 0;
+        final long UNIT = 1_000_000L; // ₹10,000 in paise
+        return ((paise + UNIT - 1) / UNIT) * UNIT;
     }
 
     private int parseIntSafe(String text, int fallback) {
