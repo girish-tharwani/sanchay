@@ -1,3 +1,15 @@
+## v1.1.3 — 2026-04-03
+
+### Added
+- Redeem transaction: "Reference No." dropdown shown when From Account is a Fixed Deposit account; populated from INVESTMENT transactions linked to that account; stored as `orgnlFDRef` on all three group transactions (investment-side REDEEM, bank-side REDEEM, GAIN/LOSE); restored correctly when editing an existing REDEEM
+
+### Changed
+- Financial Planning: FD Interest now excludes FDs that have already been redeemed (matched by `orgnlFDRef` on REDEEM transactions); result reduced by pre-retirement tax rate
+- Financial Planning: RD Interest rewritten to use recurring INVESTMENT schedules targeting RECURRING_DEPOSIT accounts; formula is `maturityAmount − (numberOfPayments × instalment)`; result reduced by pre-retirement tax rate
+- Financial Planning: Equity and MF projections now show appreciation only — total future value minus current corpus (PV) minus total planned SIP contributions
+
+---
+
 ## v1.1.2 — 2026-04-03
 
 ### Added

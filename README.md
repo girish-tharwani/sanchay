@@ -1,6 +1,6 @@
 # Personal Finance Tracking and Management Application
 ## Product Requirements Specification
-**Updated:** March 2026 | **Platform:** Windows 11+ | **Currency:** INR
+**Updated:** April 2026 | **Platform:** Windows 11+ | **Currency:** INR
 
 ---
 
@@ -17,8 +17,9 @@
 10. [Data Management](#10-data-management)
 11. [Settings](#11-settings)
 12. [Profile](#12-profile)
-13. [Out of Scope — Initial Version](#13-out-of-scope--initial-version)
-14. [UI and Visual Design Standards](#14-ui-and-visual-design-standards)
+13. [Financial Planning](#13-financial-planning)
+14. [Out of Scope — Initial Version](#14-out-of-scope--initial-version)
+15. [UI and Visual Design Standards](#15-ui-and-visual-design-standards)
 
 ---
 
@@ -127,6 +128,7 @@ The main window is a single resizable frame divided into three permanent zones t
 │  Recurring   │                                              │
 │  Reports     │                                              │
 │  Categories  │                                              │
+│  Planning    │                                              │
 │              │                                              │
 │  ──────────  │                                              │
 │  Profile     │                                              │
@@ -154,6 +156,7 @@ The sidebar is **fixed width** (not collapsible) and displays each navigation it
 | 3 | Recurring | Repeat / cycle | Recurring schedules screen |
 | 4 | Reports | Bar chart | Reports screen |
 | 5 | Categories | Tag / label | Categories screen |
+| 6 | Planning | Chart / target | Financial Planning screen |
 | — | *(spacer)* | — | — |
 | Bottom (1) | Profile | Person / silhouette | Profile screen |
 | Bottom (2) | Settings | Gear | Settings screen |
@@ -329,6 +332,12 @@ Credit cards are modelled as liability accounts. Spending on a credit card is re
 
 > When a Loan Payment transaction includes a principal amount exceeding the scheduled EMI principal, the app detects it as a part-prepayment and prompts the user to choose between **Reduce Tenure** (same EMI, fewer months) or **Reduce EMI** (same tenure, lower monthly payment). The amortization schedule is recalculated from that point forward. The chosen mode can be saved as the default for the loan to skip the prompt on future prepayments.
 
+**Amortization schedule and recurring payment setup:**
+- Each loan's detail screen shows the full amortization schedule (EMI breakdown by month into principal and interest)
+- A **Setup Payments** button on the amortization schedule generates a new recurring Loan Payment schedule pre-populated with the EMI amount, due day, start date, and remaining payment count
+- If a payment schedule already exists for the loan, the button is disabled and an **Edit** link is shown instead — preventing duplicate schedules
+- When an EMI changes (rate change or prepayment in Reduce EMI mode), the app offers to update the linked recurring schedule amount automatically
+
 ---
 
 ### 5.4 Investment Accounts
@@ -358,7 +367,7 @@ Investment accounts use a **bucket model**: one account represents a broad inves
 | All Mutual Funds | Mutual Funds | This is where you record all your mutual funds transactions. |
 | All Bonds | Debt Bonds | This is where you record all your bonds transactions. |
 
-> Equity and Mutual Fund accounts support periodic market value snapshots — record a value at any date to track portfolio performance over time.
+> **Market value tracking for Equity and Mutual Fund accounts:** Record a market value snapshot at any past or present date. The full snapshot history is viewable in a table on the account details page. The latest market value is shown alongside the invested amount on both the account card and account details page. The account card displays "Invested / Market Value" in a side-by-side format. If no market value snapshot exists, the invested amount is used as a fallback.
 
 #### 5.4.2 SIP as Recurring Transactions
 
@@ -549,6 +558,23 @@ Records money moved from a bank account into an investment bucket account. The f
 - When the user selects a **To Investment Account**, the type-specific additional fields appear immediately below; they replace whatever fields were shown for the previously selected type
 - All additional fields are optional — saving with only the base fields populated is valid
 - FD-specific fields (`fdRef`, `fdInterestRate`, `fdMaturityDate`, `fdMaturityAmountPaise`) are stored as dedicated typed fields on the Transaction record; the `notes` field carries only the user's freeform note
+
+### 6.8 Redeem Transaction
+
+Records the redemption of an investment — e.g., FD maturity, mutual fund withdrawal, or equity sale. The redemption is stored as a set of three linked transactions sharing a `groupTransactionId`: an investment-side REDEEM (debit from the investment account), a bank-side REDEEM (credit to the bank account), and a GAIN or LOSE transaction (the difference between total received and principal).
+
+| Field | Type / Format | Notes |
+|-------|--------------|-------|
+| Date | Date | Date of redemption |
+| Description | Text | |
+| Total Amount (₹) | Currency (INR) | Total proceeds received |
+| From Account | Dropdown | Investment account being redeemed |
+| Reference No. | Dropdown | Visible only when From Account is a Fixed Deposit; populated with FD reference numbers linked to that account; stored as `orgnlFDRef` on all three group transactions |
+| To Account | Dropdown | Bank account receiving the proceeds |
+| Principal (₹) | Currency (INR) | Original invested amount |
+| Gain / Loss | Computed | Total Amount − Principal; posted as GAIN (credit to bank) or LOSE (debit from bank) |
+| Category | Dropdown | Applicable when a LOSE is recorded (expense category for the loss) |
+| Notes | Text (multi-line) | Optional |
 
 ### 6.6 Credit Card Payment
 
@@ -809,7 +835,33 @@ Available from within each account's detail screen. Shows a chronological list o
 
 For credit card accounts the running balance reflects the **outstanding amount owed** — increasing with expenses, decreasing with payments.
 
-### 9.4 Future Reports (Planned)
+### 9.4 Cash Flow Forecast
+
+A dedicated tab in the Reports module that projects account balances month-by-month over a selectable future period.
+
+**Period selector:** Next 6 Months / Next 12 Months / Next 24 Months / This Financial Year / This Calendar Year.
+
+**Stat cards (second row):**
+- Projected End Balance — total balance across all included accounts at period end
+- Total Projected Income — sum of all income events in the period
+- Total Projected Expenses — sum of all expense events in the period
+- Net Cash Flow — income minus expenses
+
+**Chart:**
+- Multi-series line chart; one series per account (or per group when account grouping is active)
+- Includes all active bank accounts, credit cards, and FD / RD / Bond investment accounts
+- When more than 5 accounts are projected, the default view shows grouped series: Bank Accounts / Credit Cards / Investments; a **Show Details / Show Summary** toggle switches between per-account and grouped view
+- FD and RD maturity events are applied at the correct month: the maturity amount is credited to the source bank account and the investment account closes to zero at that point
+- A warning bar is shown when active loans have no recurring EMI schedule set up (they are excluded from the projection)
+
+**Forecasted Expenses breakdown table:**
+- Shows each projected expense category / recurring item as a row with its estimated monthly amount
+- **Manual corrections:** double-click the Amount cell to override the forecasted value; a scope dialog lets the user apply the correction to this month only or all future months
+- **Exclude / Include:** per-row toggle buttons; excluded rows remain visible in a greyed-out strikethrough style; same scope dialog as corrections
+- All overrides are persisted to `forecast_overrides.json` and restored across app restarts
+- **Regenerate Projections** button (gold): clears all manual overrides after confirmation and recomputes from scratch
+
+### 9.5 Future Reports (Planned)
 
 - Net worth over time
 - Investment portfolio performance and current market valuation
@@ -1015,7 +1067,60 @@ Removing an earning member cascade-deletes all linked income and PF recurring sc
 
 ---
 
-## 13. Out of Scope — Initial Version
+## 13. Financial Planning
+
+The **Financial Planning** screen is a dedicated top-level screen accessible from the left sidebar (labelled "Planning"). It provides a long-range retirement and wealth projection view based on current assets and configured plan parameters.
+
+### 13.1 Current Corpus
+
+The header tile shows a human-readable summary of total current corpus (e.g., "₹3.40 Cr", "₹50 Lakh"). All component values are rounded down to the nearest ₹10,000.
+
+**Corpus breakdown card:**
+
+| Component | Calculation |
+|-----------|-------------|
+| Bank | Sum of all active bank account balances minus total credit card outstanding |
+| Equities / Mutual Funds | 90% of latest market value snapshot (falls back to invested amount if no snapshot exists) |
+| Bonds / FD / RD | Invested amount across all active Debt Bond, Fixed Deposit, and Recurring Deposit accounts |
+| Provident Fund | Balance of all active Provident Fund accounts |
+
+### 13.2 Future Earnings Until Retirement
+
+The header KPI tile shows total projected earnings until retirement as a human-readable figure. The breakdown card shows each component.
+
+**Earnings breakdown:**
+
+| Component | Calculation |
+|-----------|-------------|
+| Post-tax Income | Sum of all active INCOME recurring schedules × occurrence count until retirement date; pre-retirement tax rate applied |
+| PF Contributions | Total deposits from each earning member's PF schedule until retirement date |
+| Gratuity | (Basic+DA / 12) × 15 × years of service (capped at ₹20 lakh); only for earning sources with `gratuityEnabled = true` |
+| PF Interest | Month-by-month simulation: interest accrues on running PF balance at configured PF rate; monthly contributions added |
+| FD Interest | `(maturityAmount − principal)` for each non-redeemed active FD; FDs already redeemed (matched via `orgnlFDRef` on REDEEM transactions) are excluded; post-tax at pre-retirement tax rate |
+| RD Interest | `(maturityAmount − numberOfPayments × instalmentAmount)` per active RD recurring schedule; post-tax at pre-retirement tax rate |
+| Equity Appreciation | FV of current equity corpus + SIP contributions over remaining years, minus principal and total SIP contributions (growth only) |
+| MF Appreciation | Same formula applied to Mutual Fund accounts and monthly MF SIP amount |
+
+### 13.3 Plan Parameters
+
+Editable inputs that drive both corpus and earnings projections. Saved automatically on change; **Recalculate** button forces a full re-projection of the Future Earnings card.
+
+| Parameter | Type | Notes |
+|-----------|------|-------|
+| Current Age | Read-only | Computed from Self member's date of birth; shown to 2 decimal places |
+| Retirement Date | Date picker | Drives all "until retirement" calculations; retirement age KPI tile derived from this |
+| Retirement Age | KPI tile (read-only) | Decimal age at configured retirement date (e.g., 58.42) |
+| Rate of Return — Equities | Decimal % | Annual expected return for equity accounts |
+| Rate of Return — Mutual Funds | Decimal % | Annual expected return for MF accounts |
+| Rate of Return — PF | Decimal % | Annual PF interest rate |
+| Monthly SIP — Equity | Currency (INR) | Planned future monthly equity SIP (may differ from current recurring schedules) |
+| Monthly SIP — MF | Currency (INR) | Planned future monthly MF SIP |
+| Pre-retirement Tax Rate | Decimal % | Applied to FD interest, RD interest, and income recurring schedules |
+| Employment Start Date | Date | Used to compute years of service for gratuity |
+
+---
+
+## 14. Out of Scope — Initial Version
 
 The following features are explicitly deferred to future versions:
 
@@ -1032,7 +1137,7 @@ The following features are explicitly deferred to future versions:
 
 ---
 
-## 14. UI and Visual Design Standards
+## 15. UI and Visual Design Standards
 
 This section captures binding visual design rules that apply across the entire application. These rules take precedence over any implicit or conventional defaults in the UI framework.
 
