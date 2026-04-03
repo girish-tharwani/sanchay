@@ -21,4 +21,6 @@ public class PlanParameters {
     public String employmentStartDate   = null;           // ISO "YYYY-MM-DD"
     public long   monthlySipMfPaise     = 1_000_000L;    // ₹10,000 default
     public long   monthlySipEquityPaise = 500_000L;      // ₹5,000 default
+
+    public java.util.List<MajorEvent> majorEvents = new java.util.ArrayList<>();
 }

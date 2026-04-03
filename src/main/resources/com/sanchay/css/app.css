@@ -1437,6 +1437,17 @@
     -fx-font-weight: 700;
     -fx-padding: 5 12 5 12;
 }
+.fp-gap-pill-ok {
+    -fx-background-color: #f0fdf4;
+    -fx-border-color: #86efac;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-border-width: 1;
+    -fx-text-fill: #15803d;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 5 12 5 12;
+}
 .fp-depletion-warning {
     -fx-background-color: #fff7ed;
     -fx-border-color: #fed7aa;

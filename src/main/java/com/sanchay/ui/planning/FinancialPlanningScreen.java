@@ -3,6 +3,7 @@ package com.sanchay.ui.planning;
 import com.sanchay.model.EarningSource;
 import com.sanchay.model.FamilyMember;
 import com.sanchay.model.InvestmentAccount;
+import com.sanchay.model.MajorEvent;
 import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.PlanParameters;
 import com.sanchay.model.RecurringTransaction;
@@ -24,7 +25,9 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -85,6 +88,12 @@ public class FinancialPlanningScreen {
     // ── Live-updatable UI handles ─────────────────────────────────────────────
     private VBox  earningsCard;
     private Label futureEarningsKpiLbl;
+
+    // ── Major Events (live-updatable) ─────────────────────────────────────────
+    private Label majorEventsKpiLbl;
+    private VBox  majorEventsListBox;
+    private Label majorEventsForecastTotalLbl;
+    private Label majorEventsActualTotalLbl;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private DatePicker retirementDatePicker;
@@ -334,7 +343,9 @@ public class FinancialPlanningScreen {
         futureEarningsKpiLbl.getStyleClass().add("card-value");
         grid.add(kpiCardWithLabel("Future Earnings", futureEarningsKpiLbl, "-brand-light"), 1, 0);
         grid.add(kpiCard("Forecasted Retirement Corpus", "₹5.29 Cr",  "-brand-accent", true,  false), 2, 0);
-        grid.add(kpiCard("Major Events (Forecast)",      "₹3.00 Cr",  "-brand-light",  false, false), 0, 1);
+        majorEventsKpiLbl = new Label(formatCorpusDisplay(computeMajorEventsKpi()));
+        majorEventsKpiLbl.getStyleClass().add("card-value");
+        grid.add(kpiCardWithLabel("Major Events", majorEventsKpiLbl, "-brand-light"), 0, 1);
         grid.add(kpiCard("Corpus Gap",                   "₹89 L",     "#e05555",       false, true),  1, 1);
         // Retirement Age uses the live-computed label
         grid.add(kpiCardWithLabel("Retirement Age", retirementAgeLbl, "-brand-light"), 2, 1);
@@ -516,8 +527,8 @@ public class FinancialPlanningScreen {
         addTableRow(card, "Total Realized ROI", formatRupees(futureEarnings.realizedRoiSubtotalPaise()), true, false);
 
         addTableSubHeader(card, "Unrealized ROI (Appreciation)");
-        addTableRow(card, "Equity Appreciation + Future SIP", formatRupees(futureEarnings.equityFvPaise()), false, false);
-        addTableRow(card, "MF Appreciation + Future SIP",     formatRupees(futureEarnings.mfFvPaise()),     false, false);
+        addTableRow(card, "Equity Appreciation", formatRupees(futureEarnings.equityFvPaise()), false, false);
+        addTableRow(card, "MF Appreciation",     formatRupees(futureEarnings.mfFvPaise()),     false, false);
         addTableRow(card, "Total Unrealized ROI", formatRupees(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
     }
 
@@ -535,10 +546,13 @@ public class FinancialPlanningScreen {
     // ── Major Events ──────────────────────────────────────────────────────────
 
     private Region buildMajorEventsCard() {
+        if (params.majorEvents == null) params.majorEvents = new ArrayList<>();
+
         VBox card = startSectionCard("Major Events", "#a78bfa");
 
-        Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions");
+        Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions. Double-click an event to edit.");
         hint.getStyleClass().add("text-hint");
+        hint.setWrapText(true);
         card.getChildren().add(hint);
 
         // Column headers — widths must match data row column widths exactly
@@ -560,68 +574,199 @@ public class FinancialPlanningScreen {
         colHeader.getChildren().addAll(nameHdr, forecastHdr, actualHdr);
         card.getChildren().add(colHeader);
 
-        Object[][] events = {
-            { "Education",         "₹50,00,000",   "₹11,78,325", true  },
-            { "Travel / Vacation", "₹1,00,00,000", "₹10,69,571", true  },
-            { "Emergency Fund",    "₹50,00,000",   "₹0",         false },
-            { "Home Renovation",   "₹20,00,000",   "₹0",         false },
-            { "Wedding Fund",      "₹50,00,000",   "₹0",         false },
-        };
-        for (Object[] ev : events) {
-            addEventRow(card, (String) ev[0], (String) ev[1],
-                        (String) ev[2], (boolean) ev[3]);
-        }
+        // Dynamic event rows container
+        majorEventsListBox = new VBox();
+        card.getChildren().add(majorEventsListBox);
 
-        // Total row
+        // Total row — two live labels for forecast and actual totals
         HBox totalRow = new HBox();
         totalRow.getStyleClass().add("fp-events-total-row");
         VBox.setMargin(totalRow, new Insets(8, 0, 0, 0));
-        Label totalLbl = new Label("Total Forecast");
+        Label totalLbl = new Label("Total");
         totalLbl.getStyleClass().add("fp-table-label-total");
         totalLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(totalLbl, Priority.ALWAYS);
-        Label totalVal = new Label("₹2,70,00,000");
-        totalVal.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
-        totalRow.getChildren().addAll(totalLbl, totalVal);
+        majorEventsForecastTotalLbl = new Label("₹0");
+        majorEventsForecastTotalLbl.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
+        majorEventsForecastTotalLbl.setPrefWidth(110);
+        majorEventsForecastTotalLbl.setAlignment(Pos.CENTER_RIGHT);
+        majorEventsActualTotalLbl = new Label("₹0");
+        majorEventsActualTotalLbl.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
+        majorEventsActualTotalLbl.setPrefWidth(110);
+        majorEventsActualTotalLbl.setAlignment(Pos.CENTER_RIGHT);
+        totalRow.getChildren().addAll(totalLbl, majorEventsForecastTotalLbl, majorEventsActualTotalLbl);
         card.getChildren().add(totalRow);
 
-        // "Add Event" button
+        // "Add Major Event" button
         Button addBtn = new Button("+ Add Major Event");
         addBtn.getStyleClass().add("btn-gold");
-        addBtn.setOnAction(e -> { /* TODO: open add-event dialog */ });
+        addBtn.setOnAction(e -> {
+            MajorEventDialog dlg = new MajorEventDialog(null);
+            if (dlg.show() == MajorEventDialog.Outcome.SAVED) {
+                params.majorEvents.add(dlg.getResult());
+                paramsService.save(params);
+                refreshMajorEventsList();
+            }
+        });
         HBox btnRow = new HBox(addBtn);
         btnRow.setAlignment(Pos.CENTER_RIGHT);
         btnRow.setPadding(new Insets(8, 0, 0, 0));
         card.getChildren().add(btnRow);
 
+        refreshMajorEventsList();
         return card;
     }
 
-    private void addEventRow(VBox parent, String name,
-                              String forecast, String actual, boolean hasActual) {
+    private void refreshMajorEventsList() {
+        if (majorEventsListBox == null) return;
+        if (params.majorEvents == null) params.majorEvents = new ArrayList<>();
+
+        majorEventsListBox.getChildren().clear();
+
+        if (params.majorEvents.isEmpty()) {
+            Label emptyLbl = new Label("No major events added yet.");
+            emptyLbl.getStyleClass().add("text-hint");
+            VBox.setMargin(emptyLbl, new Insets(6, 0, 2, 0));
+            majorEventsListBox.getChildren().add(emptyLbl);
+        } else {
+            for (MajorEvent event : params.majorEvents) {
+                HBox row = createEventRow(event);
+                row.setOnMouseClicked(e -> {
+                    if (e.getClickCount() == 2) openEditDialog(event);
+                });
+                majorEventsListBox.getChildren().add(row);
+            }
+        }
+
+        long forecastTotal = params.majorEvents.stream()
+                .mapToLong(this::computeEventForecast).sum();
+        long actualTotal = params.majorEvents.stream()
+                .mapToLong(this::computeEventActual).sum();
+
+        if (majorEventsForecastTotalLbl != null)
+            majorEventsForecastTotalLbl.setText(formatRupees(forecastTotal));
+        if (majorEventsActualTotalLbl != null)
+            majorEventsActualTotalLbl.setText(formatRupees(actualTotal));
+        if (majorEventsKpiLbl != null)
+            majorEventsKpiLbl.setText(formatCorpusDisplay(computeMajorEventsKpi()));
+    }
+
+    private HBox createEventRow(MajorEvent event) {
+        long forecast = computeEventForecast(event);
+        long actual   = computeEventActual(event);
+
         HBox row = new HBox();
         row.getStyleClass().add("fp-event-row");
         row.setAlignment(Pos.CENTER_LEFT);
         row.setMaxWidth(Double.MAX_VALUE);
+        row.setCursor(javafx.scene.Cursor.HAND);
 
-        Label nameLbl = new Label(name);
+        Label nameLbl = new Label(event.getName());
         nameLbl.getStyleClass().add("fp-event-name");
         nameLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nameLbl, Priority.ALWAYS);
 
         // Fixed column widths must match the column header widths above
-        Label forecastLbl = new Label(forecast);
+        Label forecastLbl = new Label(formatRupees(forecast));
         forecastLbl.getStyleClass().add("fp-event-forecast");
         forecastLbl.setPrefWidth(110);
         forecastLbl.setAlignment(Pos.CENTER_RIGHT);
 
-        Label actualLbl = new Label(actual);
-        actualLbl.getStyleClass().add(hasActual ? "fp-event-actual" : "fp-event-actual-zero");
+        Label actualLbl = new Label(formatRupees(actual));
+        actualLbl.getStyleClass().add(actual > 0 ? "fp-event-actual" : "fp-event-actual-zero");
         actualLbl.setPrefWidth(110);
         actualLbl.setAlignment(Pos.CENTER_RIGHT);
 
         row.getChildren().addAll(nameLbl, forecastLbl, actualLbl);
-        parent.getChildren().add(row);
+        return row;
+    }
+
+    private void openEditDialog(MajorEvent event) {
+        MajorEventDialog dlg = new MajorEventDialog(event);
+        MajorEventDialog.Outcome outcome = dlg.show();
+        if (outcome == MajorEventDialog.Outcome.SAVED) {
+            // event was mutated in place by MajorEventDialog.validate()
+            paramsService.save(params);
+            refreshMajorEventsList();
+        } else if (outcome == MajorEventDialog.Outcome.DELETED) {
+            params.majorEvents.remove(event);
+            paramsService.save(params);
+            refreshMajorEventsList();
+        }
+    }
+
+    // ── Major Event computations ──────────────────────────────────────────────
+
+    /**
+     * Total forecasted spend for the event from max(today, startDate) until endDate (or retirement).
+     * ONE_TIME events return their stored amountPaise directly.
+     * RECURRING events multiply amountPaise by the number of occurrences remaining.
+     * If endDate is set on a RECURRING event it is used as-is, even if it extends beyond retirement.
+     */
+    private long computeEventForecast(MajorEvent event) {
+        if (event.getType() == MajorEvent.EventType.ONE_TIME) {
+            return event.getAmountPaise();
+        }
+        // RECURRING — upper bound: endDate if set (even beyond retirement), otherwise retirement date
+        LocalDate upperBound = getRetirementDate();
+        if (event.getEndDate() != null) {
+            try { upperBound = LocalDate.parse(event.getEndDate()); }
+            catch (Exception ignored) {}
+        }
+        LocalDate from = LocalDate.now();
+        if (event.getStartDate() != null) {
+            try {
+                LocalDate sd = LocalDate.parse(event.getStartDate());
+                if (sd.isAfter(from)) from = sd;
+            } catch (Exception ignored) {}
+        }
+        if (!from.isBefore(upperBound)) return 0;
+        long occurrences = switch (event.getFrequency() != null
+                ? event.getFrequency() : MajorEvent.Frequency.MONTHLY) {
+            case MONTHLY   -> java.time.temporal.ChronoUnit.MONTHS.between(from, upperBound);
+            case QUARTERLY -> java.time.temporal.ChronoUnit.MONTHS.between(from, upperBound) / 3;
+            case YEARLY    -> java.time.temporal.ChronoUnit.YEARS.between(from, upperBound);
+        };
+        return Math.max(0, occurrences) * event.getAmountPaise();
+    }
+
+    /**
+     * Cumulative actual spend for the event: sum of EXPENSE transactions matching
+     * the event's category (and sub-category if set) from the event's start date onwards.
+     */
+    private long computeEventActual(MajorEvent event) {
+        if (event.getCategoryId() == null) return 0;
+        LocalDate startDate = null;
+        if (event.getStartDate() != null) {
+            try { startDate = LocalDate.parse(event.getStartDate()); }
+            catch (Exception ignored) {}
+        }
+        final LocalDate from = startDate;
+        return DataStore.getInstance().getTransactions().stream()
+                .filter(t -> t.getType() == Transaction.Type.EXPENSE)
+                .filter(t -> t.getClassification() != null)
+                .filter(t -> event.getCategoryId().equals(t.getClassification().getCategoryId()))
+                .filter(t -> event.getSubCategoryId() == null
+                        || event.getSubCategoryId().equals(t.getClassification().getSubCategoryId()))
+                .filter(t -> from == null || !t.getDate().isBefore(from))
+                .mapToLong(Transaction::getAmountPaise)
+                .sum();
+    }
+
+    /** Net remaining major-events budget: total forecast minus total actual. */
+    private long computeMajorEventsKpi() {
+        if (params == null || params.majorEvents == null) return 0;
+        long forecast = params.majorEvents.stream().mapToLong(this::computeEventForecast).sum();
+        long actual   = params.majorEvents.stream().mapToLong(this::computeEventActual).sum();
+        return Math.max(0, forecast - actual);
+    }
+
+    /** Retirement date derived from plan parameters; never before today. */
+    private LocalDate getRetirementDate() {
+        LocalDate retireDate = (params.retirementDate != null)
+                ? LocalDate.parse(params.retirementDate)
+                : selfDob.plusYears(params.retirementAge);
+        return retireDate.isBefore(LocalDate.now()) ? LocalDate.now() : retireDate;
     }
 
     // ── Expenses + Forecasted Corpus ──────────────────────────────────────────
@@ -629,37 +774,87 @@ public class FinancialPlanningScreen {
     private Region buildExpensesAndForecastCard() {
         VBox card = startSectionCard("Expenses Until Retirement", "#f87171");
 
-        String[][] expenses = {
-            { "Loan Payments",  "₹26,80,000"   },
-            { "Cost of Living", "₹1,16,00,000" },
-        };
-        for (String[] r : expenses) addTableRow(card, r[0], r[1], false, true);
-        addTableRow(card, "Total Expenses", "₹1,42,80,000", true, true);
+        LocalDate retireDate = getRetirementDate();
+        LocalDate today      = LocalDate.now();
 
-        Region gap = new Region();
-        gap.setPrefHeight(16);
-        card.getChildren().add(gap);
+        // ── Expenses ──────────────────────────────────────────────────────────
+        double yearsToRetire  = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
+        long   costOfLiving   = Math.round(params.costOfLivingPaise * yearsToRetire);
+        long   loanPayments   = computeLoanPayments(retireDate);
+        long   majorEventsNet = computeMajorEventsKpi();
+        long   totalExpenses  = costOfLiving + loanPayments + majorEventsNet;
+
+        addTableRow(card, "Loan Payments",  formatRupees(loanPayments),  false, true);
+        addTableRow(card, "Cost of Living", formatRupees(costOfLiving),  false, true);
+        addTableRow(card, "Major Events",   formatRupees(majorEventsNet), false, true);
+        addTableRow(card, "Total Expenses", formatRupees(totalExpenses), true,  true);
+
+        Region spacer = new Region();
+        spacer.setPrefHeight(16);
+        card.getChildren().add(spacer);
 
         Label subTitle = new Label("Forecasted Corpus at Retirement");
         subTitle.getStyleClass().add("text-section-title");
         card.getChildren().add(subTitle);
 
-        String[][] corpus = {
-            { "PF Balance",            "₹2,44,00,000" },
-            { "Stocks & MF",           "₹2,03,00,000" },
-            { "Cash (incl. Gratuity)", "₹82,00,000"   },
-        };
-        for (String[] r : corpus) addTableRow(card, r[0], r[1], false, false);
-        addTableRow(card, "Gross Corpus", "₹5,29,00,000", true, false);
+        // ── Corpus buckets ────────────────────────────────────────────────────
+        long totalMonths = java.time.temporal.ChronoUnit.MONTHS.between(today, retireDate);
 
-        // Gap pill
-        Label gapPill = new Label("⚠  Corpus shortfall: ₹89 L");
-        gapPill.getStyleClass().add("fp-gap-pill-warn");
+        long pfBalance = corpusBreakdown.pfPaise()
+                       + futureEarnings.pfContribPaise()
+                       + futureEarnings.pfInterestPaise();
+
+        // equityFvPaise / mfFvPaise contain appreciation only (SIP principal was subtracted
+        // during computation); add the SIP principals back here to get the full bucket value.
+        long stocksMf  = corpusBreakdown.equityPaise()
+                       + corpusBreakdown.mfPaise()
+                       + futureEarnings.equityFvPaise()
+                       + params.monthlySipEquityPaise * totalMonths
+                       + futureEarnings.mfFvPaise()
+                       + params.monthlySipMfPaise * totalMonths;
+
+        long cashBondsFds = corpusBreakdown.bankPaise()
+                          + corpusBreakdown.bondsPaise()
+                          + corpusBreakdown.fdPaise()
+                          + corpusBreakdown.rdPaise()
+                          + futureEarnings.bondsInterestPaise()
+                          + futureEarnings.fdInterestPaise()
+                          + futureEarnings.rdInterestPaise()
+                          + futureEarnings.postTaxIncomePaise()
+                          + futureEarnings.gratuityPaise();
+
+        long grossCorpus     = pfBalance + stocksMf + cashBondsFds;
+        long totalForecasted = grossCorpus - totalExpenses;
+
+        addTableRow(card, "PF Balance",            formatRupees(pfBalance),    false, false);
+        addTableRow(card, "Stocks & MF",           formatRupees(stocksMf),     false, false);
+        addTableRow(card, "Cash, Bonds, FDs etc.", formatRupees(cashBondsFds), false, false);
+        addTableRow(card, "Total Forecasted Corpus",
+                formatRupees(totalForecasted), true, totalForecasted < 0);
+
+        // ── Surplus / shortfall pill ──────────────────────────────────────────
+        boolean shortfall = totalForecasted < 0;
+        String pillText = shortfall
+                ? "⚠  Corpus shortfall: " + formatCorpusDisplay(Math.abs(totalForecasted))
+                : "✓  Corpus surplus: "   + formatCorpusDisplay(totalForecasted);
+        Label gapPill = new Label(pillText);
+        gapPill.getStyleClass().add(shortfall ? "fp-gap-pill-warn" : "fp-gap-pill-ok");
         HBox pillRow = new HBox(gapPill);
         pillRow.setPadding(new Insets(10, 0, 0, 0));
         card.getChildren().add(pillRow);
 
         return card;
+    }
+
+    /** Sum of all remaining LOAN_PAYMENT recurring instalment amounts until {@code retireDate}. */
+    private long computeLoanPayments(LocalDate retireDate) {
+        long total = 0;
+        for (RecurringTransaction rt : DataStore.getInstance().getRecurring()) {
+            if (rt.getTransactionType() != Transaction.Type.LOAN_PAYMENT) continue;
+            long occ = countOccurrences(rt, retireDate);
+            total += rt.getAmountPaise() * occ;
+        }
+        return total;
     }
 
     // ── Post-Retirement Projection ────────────────────────────────────────────
