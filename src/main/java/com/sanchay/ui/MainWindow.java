@@ -5,6 +5,7 @@ import com.sanchay.service.DataStore;
 import com.sanchay.service.PersistenceService;
 import com.sanchay.ui.accounts.AccountsScreen;
 import com.sanchay.ui.categories.CategoriesScreen;
+import com.sanchay.ui.common.HelpDialog;
 import com.sanchay.ui.dashboard.DashboardScreen;
 import com.sanchay.ui.profile.ProfileScreen;
 import com.sanchay.ui.recurring.RecordRecurringDialog;
@@ -25,8 +26,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-
-import java.util.*;
 
 /** Three-zone shell: Top Bar | Sidebar | Main Panel + FAB. */
 public class MainWindow {

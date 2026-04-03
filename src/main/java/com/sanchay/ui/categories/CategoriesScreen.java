@@ -3,7 +3,7 @@ package com.sanchay.ui.categories;
 import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
-import com.sanchay.ui.SingleInputDialog;
+import com.sanchay.ui.common.SingleInputDialog;
 import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.transactions.TransactionDialog;
 import javafx.geometry.Insets;
