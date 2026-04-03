@@ -1,9 +1,12 @@
 package com.sanchay.ui.planning;
 
+import com.sanchay.model.EarningSource;
 import com.sanchay.model.FamilyMember;
 import com.sanchay.model.InvestmentAccount;
 import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.PlanParameters;
+import com.sanchay.model.RecurringTransaction;
+import com.sanchay.model.Transaction;
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.PlanParamsService;
@@ -20,6 +23,9 @@ import javafx.util.StringConverter;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Financial Planning screen — long-range retirement and wealth projection.
@@ -55,6 +61,24 @@ public class FinancialPlanningScreen {
             long pfPaise, long totalPaise) {}
 
     private CorpusBreakdown corpusBreakdown;
+
+    // ── Future earnings breakdown (computed once per buildView) ───────────────
+    private record FutureEarningsBreakdown(
+            long postTaxIncomePaise,
+            long pfContribPaise,
+            long gratuityPaise,
+            long pfInterestPaise,
+            long earningsSubtotalPaise,
+            long bondsInterestPaise,
+            long fdInterestPaise,
+            long rdInterestPaise,
+            long realizedRoiSubtotalPaise,
+            long equityFvPaise,
+            long mfFvPaise,
+            long unrealizedRoiSubtotalPaise,
+            long totalPaise) {}
+
+    private FutureEarningsBreakdown futureEarnings;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private TextField  retirementAgeFld;
@@ -112,6 +136,7 @@ public class FinancialPlanningScreen {
         initFields();
         updateDerivedLabels();
         corpusBreakdown = computeCorpusBreakdown();
+        futureEarnings  = computeFutureEarnings();
 
         VBox content = new VBox(20);
         content.getStyleClass().add("main-panel");
@@ -278,7 +303,7 @@ public class FinancialPlanningScreen {
         grid.getColumnConstraints().addAll(col, copy(col), copy(col));
 
         grid.add(kpiCard("Current Corpus",               formatCorpusDisplay(corpusBreakdown.totalPaise()),  "-brand-mid",    false, false), 0, 0);
-        grid.add(kpiCard("Future Earnings",              "₹5.38 Cr",  "-brand-light",  false, false), 1, 0);
+        grid.add(kpiCard("Future Earnings",              formatCorpusDisplay(futureEarnings.totalPaise()),  "-brand-light",  false, false), 1, 0);
         grid.add(kpiCard("Forecasted Retirement Corpus", "₹5.29 Cr",  "-brand-accent", true,  false), 2, 0);
         grid.add(kpiCard("Major Events (Forecast)",      "₹3.00 Cr",  "-brand-light",  false, false), 0, 1);
         grid.add(kpiCard("Corpus Gap",                   "₹89 L",     "#e05555",       false, true),  1, 1);
@@ -445,31 +470,22 @@ public class FinancialPlanningScreen {
         VBox card = startSectionCard("Future Earnings Until Retirement", "-brand-accent");
 
         addTableSubHeader(card, "Earnings");
-        String[][] earnings = {
-            { "Post-tax Income",         "₹3,78,00,000" },
-            { "PF Contributions",        "₹60,40,000"   },
-            { "Gratuity at Retirement",  "₹20,00,000"   },
-            { "PF Interest",             "₹80,00,000"   },
-        };
-        for (String[] r : earnings) addTableRow(card, r[0], r[1], false, false);
-        addTableRow(card, "Subtotal – Earnings", "₹5,38,40,000", true, false);
+        addTableRow(card, "Post-tax Income",        formatRupees(futureEarnings.postTaxIncomePaise()), false, false);
+        addTableRow(card, "PF Contributions",       formatRupees(futureEarnings.pfContribPaise()),     false, false);
+        addTableRow(card, "Gratuity at Retirement", formatRupees(futureEarnings.gratuityPaise()),      false, false);
+        addTableRow(card, "PF Interest",            formatRupees(futureEarnings.pfInterestPaise()),    false, false);
+        addTableRow(card, "Subtotal – Earnings",    formatRupees(futureEarnings.earningsSubtotalPaise()), true, false);
 
         addTableSubHeader(card, "Realized ROI");
-        String[][] roi = {
-            { "Bonds Interest", "₹4,60,000" },
-            { "FDs Interest",   "₹2,60,000" },
-            { "RDs Interest",   "₹1,00,000" },
-        };
-        for (String[] r : roi) addTableRow(card, r[0], r[1], false, false);
-        addTableRow(card, "Total Realized ROI", "₹8,20,000", true, false);
+        addTableRow(card, "Bonds Interest", formatRupees(futureEarnings.bondsInterestPaise()), false, false);
+        addTableRow(card, "FDs Interest",   formatRupees(futureEarnings.fdInterestPaise()),    false, false);
+        addTableRow(card, "RDs Interest",   formatRupees(futureEarnings.rdInterestPaise()),    false, false);
+        addTableRow(card, "Total Realized ROI", formatRupees(futureEarnings.realizedRoiSubtotalPaise()), true, false);
 
         addTableSubHeader(card, "Unrealized ROI (Appreciation)");
-        String[][] unrealized = {
-            { "Equity Appreciation + Future SIP", "₹3,00,000"  },
-            { "MF Appreciation + Future SIP",     "₹46,00,000" },
-        };
-        for (String[] r : unrealized) addTableRow(card, r[0], r[1], false, false);
-        addTableRow(card, "Total Unrealized ROI", "₹49,00,000", true, false);
+        addTableRow(card, "Equity Appreciation + Future SIP", formatRupees(futureEarnings.equityFvPaise()), false, false);
+        addTableRow(card, "MF Appreciation + Future SIP",     formatRupees(futureEarnings.mfFvPaise()),     false, false);
+        addTableRow(card, "Total Unrealized ROI", formatRupees(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
 
         return card;
     }
@@ -878,6 +894,242 @@ public class FinancialPlanningScreen {
 
         return new CorpusBreakdown(bank, equity, mf, bonds, fd, rd, pf,
                 bank + equity + mf + bonds + fd + rd + pf);
+    }
+
+    // ── Future earnings computation ───────────────────────────────────────────
+
+    private FutureEarningsBreakdown computeFutureEarnings() {
+        DataStore ds          = DataStore.getInstance();
+        LocalDate today       = LocalDate.now();
+        int  yearsToRetire    = Math.max(0, params.retirementAge - currentAge);
+        LocalDate retireDate  = today.plusYears(yearsToRetire);
+        final long ROUND      = 1_000_000L;
+
+        // ── Post-tax Income ───────────────────────────────────────────────────
+        Set<String> earningSchedIds = collectEarningScheduleIds(ds);
+        long postTaxIncome = 0;
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
+            long occ = countOccurrences(rt, retireDate);
+            if (occ <= 0) continue;
+            long perOcc = earningSchedIds.contains(rt.getId())
+                    ? rt.getAmountPaise()
+                    : Math.round(rt.getAmountPaise() * (1.0 - params.preRetireTaxPct / 100.0));
+            postTaxIncome += perOcc * occ;
+        }
+
+        // ── PF Contributions ──────────────────────────────────────────────────
+        long pfContrib        = 0;
+        long monthlyPfDeposit = 0;
+        for (FamilyMember m : ds.getFamilyMembers()) {
+            if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
+            for (EarningSource es : m.getEarningSources()) {
+                if (es.getType() != FamilyMember.EarningType.SALARY) continue;
+                if (es.getPfScheduleId() == null) continue;
+                RecurringTransaction pfSched = ds.getRecurring().stream()
+                        .filter(r -> es.getPfScheduleId().equals(r.getId()))
+                        .findFirst().orElse(null);
+                if (pfSched == null || pfSched.getAmountPaise() <= 0) continue;
+                long occ = countOccurrences(pfSched, retireDate);
+                pfContrib        += pfSched.getAmountPaise() * occ;
+                monthlyPfDeposit += pfSched.getAmountPaise(); // PF schedules are monthly
+            }
+        }
+
+        // ── Gratuity ──────────────────────────────────────────────────────────
+        long gratuity = 0;
+        if (params.employmentStartDate != null) {
+            try {
+                LocalDate empStart   = LocalDate.parse(params.employmentStartDate);
+                long serviceYears    = ChronoUnit.YEARS.between(empStart, retireDate);
+                if (serviceYears > 0) {
+                    for (FamilyMember m : ds.getFamilyMembers()) {
+                        if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
+                        for (EarningSource es : m.getEarningSources()) {
+                            if (es.getType() != FamilyMember.EarningType.SALARY) continue;
+                            if (!es.isGratuityEnabled()) continue;
+                            long monthlyBasic = es.getBasicDaPaise() / 12;
+                            long g = Math.round(monthlyBasic * 15.0 * serviceYears / 26.0);
+                            gratuity += Math.min(g, 200_000_000L); // capped at ₹20 lakh in paise
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // ── PF Interest (month-by-month simulation) ───────────────────────────
+        long pfBalance = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND)
+                pfBalance += ds.getInvestedPaiseAsOf(ia, today);
+        }
+        long pfStartBalance   = pfBalance;
+        long totalPfMonths    = (long) yearsToRetire * 12;
+        double pfMonthlyRate  = params.rorPfPct / 100.0 / 12.0;
+        for (long mo = 0; mo < totalPfMonths; mo++) {
+            pfBalance += Math.round(pfBalance * pfMonthlyRate); // interest first
+            pfBalance += monthlyPfDeposit;                       // then deposit
+        }
+        long pfInterest = Math.max(0, pfBalance - pfStartBalance - (monthlyPfDeposit * totalPfMonths));
+
+        // ── Bonds Interest ────────────────────────────────────────────────────
+        long bondsInterest = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.DEBT_BONDS) continue;
+            // Maturity gain from INVESTMENT transactions
+            for (Transaction t : ds.getTransactions()) {
+                if (t.getType() != Transaction.Type.INVESTMENT) continue;
+                if (!ia.getId().equals(t.getToAccountId())) continue;
+                if (t.getInvestmentDetails() == null) continue;
+                Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
+                if (fd == null || fd.getMaturityAmountPaise() == null) continue;
+                if (fd.getMaturityDate() != null && fd.getMaturityDate().isAfter(retireDate)) continue;
+                bondsInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
+            }
+            // Interest income recurring schedules directed to this account
+            for (RecurringTransaction rt : ds.getRecurring()) {
+                if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
+                if (!ia.getId().equals(rt.getToAccountId())) continue;
+                bondsInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
+            }
+        }
+
+        // ── FD Interest ───────────────────────────────────────────────────────
+        long fdInterest = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.FIXED_DEPOSIT) continue;
+            // Maturity gain from INVESTMENT transactions
+            for (Transaction t : ds.getTransactions()) {
+                if (t.getType() != Transaction.Type.INVESTMENT) continue;
+                if (!ia.getId().equals(t.getToAccountId())) continue;
+                if (t.getInvestmentDetails() == null) continue;
+                Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
+                if (fd == null || fd.getMaturityAmountPaise() == null) continue;
+                if (fd.getMaturityDate() != null && fd.getMaturityDate().isAfter(retireDate)) continue;
+                fdInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
+            }
+            // Interest income recurring schedules directed to this account
+            for (RecurringTransaction rt : ds.getRecurring()) {
+                if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
+                if (!ia.getId().equals(rt.getToAccountId())) continue;
+                fdInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
+            }
+        }
+
+        // ── RD Interest ───────────────────────────────────────────────────────
+        long rdInterest = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.RECURRING_DEPOSIT) continue;
+            for (RecurringTransaction rt : ds.getRecurring()) {
+                if (!ia.getId().equals(rt.getToAccountId())) continue;
+                if (rt.getRdMaturityAmountPaise() <= 0) continue;
+                if (rt.getMaturityDate() != null && rt.getMaturityDate().isAfter(retireDate)) continue;
+                // Total principal = opening balance + planned instalments
+                long instalments = 0;
+                if (rt.getNumberOfPayments() != null && rt.getNumberOfPayments() > 0) {
+                    instalments = rt.getAmountPaise() * rt.getNumberOfPayments();
+                } else if (rt.getStartDate() != null && rt.getMaturityDate() != null) {
+                    long months = ChronoUnit.MONTHS.between(rt.getStartDate(), rt.getMaturityDate());
+                    instalments = rt.getAmountPaise() * months;
+                }
+                long principal = rt.getRdOpeningBalancePaise() + instalments;
+                rdInterest += Math.max(0, rt.getRdMaturityAmountPaise() - principal);
+            }
+        }
+
+        // ── Equity Future Value ───────────────────────────────────────────────
+        long equityPv = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.EQUITY) continue;
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
+            MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+            equityPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
+        }
+        double equityRate = params.rorEquitiesPct / 100.0;
+        long equityFv = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
+                + computeSipFv(params.monthlySipEquityPaise, equityRate, yearsToRetire);
+
+        // ── MF Future Value ───────────────────────────────────────────────────
+        long mfPv = 0;
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.MUTUAL_FUNDS) continue;
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
+            MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
+            mfPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
+        }
+        double mfRate = params.rorMfPct / 100.0;
+        long mfFv = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
+                + computeSipFv(params.monthlySipMfPaise, mfRate, yearsToRetire);
+
+        // ── Round and assemble ────────────────────────────────────────────────
+        long rIncome    = floorRound(postTaxIncome,              ROUND);
+        long rPfContrib = floorRound(pfContrib,                  ROUND);
+        long rGratuity  = floorRound(gratuity,                   ROUND);
+        long rPfInt     = floorRound(pfInterest,                 ROUND);
+        long rBondsInt  = floorRound(Math.max(0, bondsInterest), ROUND);
+        long rFdInt     = floorRound(Math.max(0, fdInterest),    ROUND);
+        long rRdInt     = floorRound(Math.max(0, rdInterest),    ROUND);
+        long rEquityFv  = floorRound(Math.max(0, equityFv),      ROUND);
+        long rMfFv      = floorRound(Math.max(0, mfFv),          ROUND);
+
+        long earnSub     = rIncome + rPfContrib + rGratuity + rPfInt;
+        long realizedSub = rBondsInt + rFdInt + rRdInt;
+        long unrlzdSub   = rEquityFv + rMfFv;
+        long total       = earnSub + realizedSub + unrlzdSub;
+
+        return new FutureEarningsBreakdown(
+                rIncome, rPfContrib, rGratuity, rPfInt, earnSub,
+                rBondsInt, rFdInt, rRdInt, realizedSub,
+                rEquityFv, rMfFv, unrlzdSub, total);
+    }
+
+    private Set<String> collectEarningScheduleIds(DataStore ds) {
+        Set<String> ids = new HashSet<>();
+        for (FamilyMember m : ds.getFamilyMembers()) {
+            if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
+            for (EarningSource es : m.getEarningSources()) {
+                if (es.getRecurringScheduleId() != null)
+                    ids.add(es.getRecurringScheduleId());
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Counts future occurrences of a recurring schedule from today until {@code until}.
+     * Respects endDate, numberOfPayments, and active status.
+     */
+    private long countOccurrences(RecurringTransaction rt, LocalDate until) {
+        if (rt.getStatus() != RecurringTransaction.Status.ACTIVE) return 0;
+        if (rt.getAmountPaise() <= 0) return 0;
+        LocalDate from          = LocalDate.now();
+        LocalDate effectiveEnd  = (rt.getEndDate() != null && rt.getEndDate().isBefore(until))
+                                  ? rt.getEndDate() : until;
+        if (from.isAfter(effectiveEnd)) return 0;
+        long count = switch (rt.getFrequency()) {
+            case MONTHLY        -> ChronoUnit.MONTHS.between(from, effectiveEnd);
+            case QUARTERLY      -> ChronoUnit.MONTHS.between(from, effectiveEnd) / 3;
+            case ANNUALLY       -> ChronoUnit.YEARS.between(from, effectiveEnd);
+            case ALTERNATE_YEAR -> ChronoUnit.YEARS.between(from, effectiveEnd) / 2;
+        };
+        if (rt.getNumberOfPayments() != null) {
+            long remaining = Math.max(0L, rt.getNumberOfPayments() - rt.getPaymentsMade());
+            count = Math.min(count, remaining);
+        }
+        return Math.max(0, count);
+    }
+
+    /** Future value of a monthly SIP annuity: FV = PMT × [(1+r)^n − 1] / r */
+    private long computeSipFv(long monthlyPaise, double annualRate, int years) {
+        if (monthlyPaise <= 0 || years <= 0) return 0;
+        double r = annualRate / 12.0;
+        int    n = years * 12;
+        if (r == 0) return monthlyPaise * n;
+        return Math.round(monthlyPaise * (Math.pow(1 + r, n) - 1) / r);
+    }
+
+    private long floorRound(long value, long unit) {
+        return Math.floorDiv(value, unit) * unit;
     }
 
     /** Formats a paise value as a human-readable corpus amount: ₹3.40 Cr, ₹50 Lakh, etc. */
