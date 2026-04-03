@@ -122,10 +122,13 @@ public class Transaction {
     }
 
     public static class RedeemDetails {
-        private long principalPaise;
+        private long   principalPaise;
+        private String orgnlFDRef;
 
-        public long getPrincipalPaise()         { return principalPaise; }
-        public void setPrincipalPaise(long p)   { this.principalPaise = p; }
+        public long   getPrincipalPaise()         { return principalPaise; }
+        public void   setPrincipalPaise(long p)   { this.principalPaise = p; }
+        public String getOrgnlFDRef()             { return orgnlFDRef; }
+        public void   setOrgnlFDRef(String r)     { this.orgnlFDRef = r; }
     }
 
     // ── Root fields ───────────────────────────────────────────────────────────

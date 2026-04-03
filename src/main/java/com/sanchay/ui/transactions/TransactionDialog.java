@@ -83,6 +83,8 @@ public class TransactionDialog extends Dialog<Transaction> {
     // ── Redeem-specific ───────────────────────────────────────────────────────
     private ComboBox<InvestmentAccount> rdeFromCb;
     private ComboBox<Account>           rdeToCb;
+    private ComboBox<String>            rdeFdRefCb;
+    private Label                       rdeFdRefRowLbl;
     private TextField                   rdePrincipalFld;
     private Label                       rdeGainLossLbl;
     private ComboBox<Category>          rdeCatCb, rdeSubCatCb;
@@ -527,6 +529,18 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         rdeToCb = accountCombo(false); // bank accounts only
 
+        // FD reference number — visible only when From Account is a Fixed Deposit
+        rdeFdRefRowLbl = new Label("Reference No.");
+        rdeFdRefRowLbl.getStyleClass().add("form-label");
+        rdeFdRefCb = new ComboBox<>();
+        rdeFdRefCb.setMaxWidth(Double.MAX_VALUE);
+        rdeFdRefCb.setPromptText("Select FD reference");
+        rdeFdRefRowLbl.setVisible(false);
+        rdeFdRefRowLbl.setManaged(false);
+        rdeFdRefCb.setVisible(false);
+        rdeFdRefCb.setManaged(false);
+        rdeFromCb.valueProperty().addListener((obs, old, ia) -> refreshFdRefRow(ia));
+
         rdePrincipalFld = tf("Original invested amount being returned");
         rdeGainLossLbl  = new Label("—");
         rdeGainLossLbl.getStyleClass().add("text-hint");
@@ -538,13 +552,15 @@ public class TransactionDialog extends Dialog<Transaction> {
         });
 
         GridPane g = panelGrid();
-        int r = 0;
-        row(g, r++, "From Account*", rdeFromCb);
-        row(g, r++, "To Account*",   rdeToCb);
-        row(g, r++, "Principal (₹)*",     rdePrincipalFld);
-        row(g, r++, "Gain / Loss",        rdeGainLossLbl);
-        row(g, r++, "Category",           rdeCatCb);
-        row(g, r,   "Sub-category",       rdeSubCatCb);
+        row(g, 0, "From Account*",  rdeFromCb);
+        row(g, 1, "To Account*",    rdeToCb);
+        // Row 2: FD reference — hidden by default, shown for Fixed Deposit accounts
+        g.add(rdeFdRefRowLbl, 0, 2);
+        g.add(rdeFdRefCb,     1, 2);
+        row(g, 3, "Principal (₹)*", rdePrincipalFld);
+        row(g, 4, "Gain / Loss",    rdeGainLossLbl);
+        row(g, 5, "Category",       rdeCatCb);
+        row(g, 6, "Sub-category",   rdeSubCatCb);
         return g;
     }
 
@@ -562,6 +578,29 @@ public class TransactionDialog extends Dialog<Transaction> {
         } catch (NumberFormatException e) {
             rdeGainLossLbl.setText("—");
             rdeGainLossLbl.setStyle(""); // clears inline; text-hint class applies
+        }
+    }
+
+    private void refreshFdRefRow(InvestmentAccount ia) {
+        boolean isFd = ia != null
+                && ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT;
+        rdeFdRefRowLbl.setVisible(isFd);
+        rdeFdRefRowLbl.setManaged(isFd);
+        rdeFdRefCb.setVisible(isFd);
+        rdeFdRefCb.setManaged(isFd);
+        if (isFd) {
+            List<String> refs = ds.getTransactions().stream()
+                    .filter(t -> t.getType() == Transaction.Type.INVESTMENT
+                              && ia.getId().equals(t.getToAccountId())
+                              && t.getInvestmentDetails() != null
+                              && t.getInvestmentDetails().getFd() != null
+                              && t.getInvestmentDetails().getFd().getRef() != null
+                              && !t.getInvestmentDetails().getFd().getRef().isBlank())
+                    .map(t -> t.getInvestmentDetails().getFd().getRef())
+                    .distinct().sorted()
+                    .collect(java.util.stream.Collectors.toList());
+            rdeFdRefCb.getItems().setAll(refs);
+            rdeFdRefCb.setValue(null);
         }
     }
 
@@ -1086,6 +1125,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         //    throw new IllegalArgumentException("Principal cannot exceed total redemption amount.");
 
         String  notes    = nullIfBlank(sharedNotes.getText());
+        String  fdRef    = rdeFdRefCb.isVisible() ? rdeFdRefCb.getValue() : null;
         String  groupId  = UUID.randomUUID().toString();
         long    gainLoss = total - principal;
 
@@ -1094,6 +1134,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         invTxn.setFromAccountId(from.getId());
         Transaction.RedeemDetails invRd = new Transaction.RedeemDetails();
         invRd.setPrincipalPaise(principal);
+        invRd.setOrgnlFDRef(fdRef);
         invTxn.setRedeemDetails(invRd);
         invTxn.setGroupTransactionId(groupId);
         invTxn.setNotes(notes);
@@ -1106,6 +1147,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         bankPrincipal.setToAccountId(to.getId());
         Transaction.RedeemDetails bankRd = new Transaction.RedeemDetails();
         bankRd.setPrincipalPaise(principal);
+        bankRd.setOrgnlFDRef(fdRef);
         bankPrincipal.setRedeemDetails(bankRd);
         bankPrincipal.setGroupTransactionId(groupId);
         bankPrincipal.setNotes(notes);
@@ -1126,6 +1168,11 @@ public class TransactionDialog extends Dialog<Transaction> {
             gainLossTxn.setFromAccountId(to.getId());
         }
         if (gainLossTxn != null) {
+            if (fdRef != null) {
+                Transaction.RedeemDetails glRd = new Transaction.RedeemDetails();
+                glRd.setOrgnlFDRef(fdRef);
+                gainLossTxn.setRedeemDetails(glRd);
+            }
             gainLossTxn.setGroupTransactionId(groupId);
             gainLossTxn.setNotes(notes);
             if (existingWasImported) {
@@ -1372,6 +1419,11 @@ public class TransactionDialog extends Dialog<Transaction> {
                         .filter(ia -> ia.getId().equals(invTxn.getFromAccountId()))
                         .findFirst().ifPresent(rdeFromCb::setValue);
 
+            // FD reference (only visible/relevant for FIXED_DEPOSIT accounts; refreshFdRefRow populates combo)
+            if (invTxn != null && invTxn.getRedeemDetails() != null
+                    && invTxn.getRedeemDetails().getOrgnlFDRef() != null)
+                rdeFdRefCb.setValue(invTxn.getRedeemDetails().getOrgnlFDRef());
+
             // Bank account (from the bank-side REDEEM or the GAIN/LOSE transaction)
             String bankId = bankTxn != null ? bankTxn.getToAccountId()
                     : gainLossTxn != null && gainLossTxn.getType() == Type.GAIN
@@ -1406,6 +1458,9 @@ public class TransactionDialog extends Dialog<Transaction> {
             long rdePrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
             if (rdePrin > 0)
                 rdePrincipalFld.setText(String.format("%.2f", rdePrin / 100.0));
+            // Restore FD reference if present
+            if (t.getRedeemDetails() != null && t.getRedeemDetails().getOrgnlFDRef() != null)
+                rdeFdRefCb.setValue(t.getRedeemDetails().getOrgnlFDRef());
             // sharedAmt already set from t.getAmountPaise() = total for old format
             prefillCat(rdeCatCb, rdeSubCatCb, t);
         }

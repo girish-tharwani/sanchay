@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Financial Planning screen — long-range retirement and wealth projection.
@@ -301,17 +302,17 @@ public class FinancialPlanningScreen {
         Label title = new Label("Financial Plan");
         title.getStyleClass().add("screen-title");
 
-        Label subtitle = new Label("Retirement & wealth projection · illustrative data");
+        Label subtitle = new Label("Retirement & wealth projection");
         subtitle.getStyleClass().add("dialog-subtitle");
 
-        Label badge = new Label("⚠  Sample data — connect your profile to compute actuals");
-        badge.getStyleClass().add("fp-sample-badge");
+        //Label badge = new Label("⚠  Sample data — connect your profile to compute actuals");
+        //badge.getStyleClass().add("fp-sample-badge");
 
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(new VBox(2, title, subtitle), spacer, badge);
+        header.getChildren().addAll(new VBox(2, title, subtitle), spacer);
         return header;
     }
 
@@ -1039,6 +1040,13 @@ public class FinancialPlanningScreen {
         }
 
         // ── FD Interest ───────────────────────────────────────────────────────
+        // Collect FD ref numbers that have already been redeemed
+        Set<String> redeemedFdRefs = ds.getTransactions().stream()
+                .filter(tx -> tx.getRedeemDetails() != null
+                        && tx.getRedeemDetails().getOrgnlFDRef() != null)
+                .map(tx -> tx.getRedeemDetails().getOrgnlFDRef())
+                .collect(Collectors.toSet());
+
         long fdInterest = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
             if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.FIXED_DEPOSIT) continue;
@@ -1049,7 +1057,8 @@ public class FinancialPlanningScreen {
                 if (t.getInvestmentDetails() == null) continue;
                 Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
                 if (fd == null || fd.getMaturityAmountPaise() == null) continue;
-                if (fd.getMaturityDate() != null && fd.getMaturityDate().isAfter(retireDate)) continue;
+                // Skip if this FD has already been redeemed
+                if (fd.getRef() != null && redeemedFdRefs.contains(fd.getRef())) continue;
                 fdInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
             }
             // Interest income recurring schedules directed to this account
@@ -1059,27 +1068,35 @@ public class FinancialPlanningScreen {
                 fdInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
             }
         }
+        // Apply pre-retirement tax rate to FD interest (taxable as income)
+        fdInterest = Math.round(fdInterest * (1.0 - params.preRetireTaxPct / 100.0));
 
         // ── RD Interest ───────────────────────────────────────────────────────
+        // ── RD Interest ───────────────────────────────────────────────────────
+        Set<String> rdAccountIds = ds.getInvestmentAccounts().stream()
+                .filter(ia -> ia.getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT
+                        && ia.getInvestmentStatus() != InvestmentAccount.InvestmentStatus.REDEEMED)
+                .map(InvestmentAccount::getId)
+                .collect(Collectors.toSet());
+
         long rdInterest = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.RECURRING_DEPOSIT) continue;
-            for (RecurringTransaction rt : ds.getRecurring()) {
-                if (!ia.getId().equals(rt.getToAccountId())) continue;
-                if (rt.getRdMaturityAmountPaise() <= 0) continue;
-                if (rt.getMaturityDate() != null && rt.getMaturityDate().isAfter(retireDate)) continue;
-                // Total principal = opening balance + planned instalments
-                long instalments = 0;
-                if (rt.getNumberOfPayments() != null && rt.getNumberOfPayments() > 0) {
-                    instalments = rt.getAmountPaise() * rt.getNumberOfPayments();
-                } else if (rt.getStartDate() != null && rt.getMaturityDate() != null) {
-                    long months = ChronoUnit.MONTHS.between(rt.getStartDate(), rt.getMaturityDate());
-                    instalments = rt.getAmountPaise() * months;
-                }
-                long principal = rt.getRdOpeningBalancePaise() + instalments;
-                rdInterest += Math.max(0, rt.getRdMaturityAmountPaise() - principal);
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getTransactionType() != Transaction.Type.INVESTMENT) continue;
+            if (!rdAccountIds.contains(rt.getToAccountId())) continue;
+            if (rt.getRdMaturityAmountPaise() <= 0) continue;
+            long numPayments;
+            if (rt.getNumberOfPayments() != null && rt.getNumberOfPayments() > 0) {
+                numPayments = rt.getNumberOfPayments();
+            } else if (rt.getStartDate() != null && rt.getMaturityDate() != null) {
+                numPayments = ChronoUnit.MONTHS.between(rt.getStartDate(), rt.getMaturityDate());
+            } else {
+                continue; // cannot determine principal without payment count
             }
+            long totalPrincipal = numPayments * rt.getAmountPaise();
+            rdInterest += Math.max(0, rt.getRdMaturityAmountPaise() - totalPrincipal);
         }
+        // Apply pre-retirement tax rate to RD interest (taxable as income)
+        rdInterest = Math.round(rdInterest * (1.0 - params.preRetireTaxPct / 100.0));
 
         // ── Equity Future Value ───────────────────────────────────────────────
         long equityPv = 0;
@@ -1091,7 +1108,9 @@ public class FinancialPlanningScreen {
         }
         double equityRate = params.rorEquitiesPct / 100.0;
         long equityFv = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
-                + computeSipFv(params.monthlySipEquityPaise, equityRate, totalMonths);
+                + computeSipFv(params.monthlySipEquityPaise, equityRate, totalMonths)
+                - equityPv
+                - params.monthlySipEquityPaise * totalMonths;
 
         // ── MF Future Value ───────────────────────────────────────────────────
         long mfPv = 0;
@@ -1103,7 +1122,9 @@ public class FinancialPlanningScreen {
         }
         double mfRate = params.rorMfPct / 100.0;
         long mfFv = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
-                + computeSipFv(params.monthlySipMfPaise, mfRate, totalMonths);
+                + computeSipFv(params.monthlySipMfPaise, mfRate, totalMonths)
+                - mfPv
+                - params.monthlySipMfPaise * totalMonths;
 
         // ── Round and assemble ────────────────────────────────────────────────
         long rIncome    = floorRound(postTaxIncome,              ROUND);
