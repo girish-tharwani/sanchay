@@ -1,3 +1,12 @@
+## v1.1.4 — 2026-04-03
+
+### Added
+- Financial Planning: Major Events section in the Expenses card — user-defined one-time or recurring financial events with forecasted cost tracked against actual spend via category matching; add/edit/delete via double-click dialog
+- Financial Planning: "Forecasted Retirement Corpus" KPI tile — dynamically computed from future earnings minus expenses minus major event costs
+- Dashboard: "Net Worth" summary card — corpus value computed using the same methodology as the Financial Planning screen (bank net of CC, equity/MF at 90% market value, bonds/FD/RD/PF at cost, rounded to ₹10,000 buckets)
+
+---
+
 ## v1.1.3 — 2026-04-03
 
 ### Added
