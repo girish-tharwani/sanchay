@@ -1,3 +1,11 @@
+## v1.1.5 — 2026-04-03
+
+### Added
+- Transactions screen: Ctrl+V pastes tabular data (from Excel or a CSV file) directly into the import flow — same mapping dialog and reconciliation logic as the Import CSV button; auto-detects tab-delimited (Excel) vs comma-delimited format
+- Transactions screen: footer hint shows "Ctrl+V to paste from Excel / CSV" for Bank and Credit Card accounts
+
+---
+
 ## v1.1.4 — 2026-04-03
 
 ### Added
