@@ -1,3 +1,15 @@
+## v1.1.8 — 2026-04-04
+
+### Added
+- `MoneyFormatter` utility: single formatting gateway for all monetary amounts — `format()`, `formatNoDecimal()`, `formatCompact()`, `formatTableCompact()`, `formatSigned()`, `parseAmount()`, `parseAmountSafe()`
+- `CurrencyConfig` service: single source of truth for the active currency symbol (currently ₹)
+
+### Changed
+- All 21 files migrated to use `MoneyFormatter` — no inline `String.format("₹...")` or scattered symbol literals remain
+- Indian number grouping (10,00,000 style) applied consistently across the entire app; previously Western grouping (1,000,000) was used everywhere
+
+---
+
 ## v1.1.7 — 2026-04-04
 
 ### Added
