@@ -60,13 +60,9 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         this.prefilled = prefilled;
         this.sampleRow = sampleRow;
 
-        UiUtils.applyStylesheet(this);
-        setTitle("Import CSV — " + account.getName());
-        setHeaderText(null);
-        UiUtils.setDialogHeader(this, "⇌", "Import CSV — " + account.getName(),
+        UiUtils.initDialog(this, "Import CSV — " + account.getName(), "⇌", 520,
                 "Map CSV columns to transaction fields."
                 + (prefilled != null ? "  Pre-filled from saved mapping — please confirm." : ""));
-        getDialogPane().setPrefWidth(520);
 
         getDialogPane().setContent(buildContent());
 
@@ -135,23 +131,19 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         VBox detectedBox = new VBox(6, detectedLbl, pillBox);
         detectedBox.getStyleClass().add("info-box");
 
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(160);
         g.setPadding(new Insets(14, 0, 4, 0));
-        ColumnConstraints c1 = new ColumnConstraints(160);
-        ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
         int row = 0;
 
         // Date column
         dateCb = colCombo(true);
-        addRow(g, row++, "Date column *", dateCb);
+        UiUtils.addFormRow(g, row++, "Date column *", dateCb);
         if (prefilled != null) dateCb.setValue(prefilled.getColumnDate());
 
         // Description column
         descCb = colCombo(true);
-        addRow(g, row++, "Description column *", descCb);
+        UiUtils.addFormRow(g, row++, "Description column *", descCb);
         if (prefilled != null) descCb.setValue(prefilled.getColumnDescription());
 
         // Amount type toggle
@@ -176,7 +168,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         HBox.setHgrow(amtCb, Priority.ALWAYS);
         if (prefilled != null && !prefilled.isAmountSplit() && prefilled.getColumnAmount() != null)
             amtCb.setValue(prefilled.getColumnAmount());
-        addRow(g, row++, "Amount column *", singleRow);
+        UiUtils.addFormRow(g, row++, "Amount column *", singleRow);
 
         // ── Split amount sub-section ──────────────────────────────────────────
         debitCb = colCombo(false);
@@ -193,8 +185,8 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         ColumnConstraints sg1 = new ColumnConstraints(130);
         ColumnConstraints sg2 = new ColumnConstraints(); sg2.setHgrow(Priority.ALWAYS);
         splitGrid.getColumnConstraints().addAll(sg1, sg2);
-        addRow(splitGrid, 0, "Debit column", debitCb);
-        addRow(splitGrid, 1, "Credit column", creditCb);
+        UiUtils.addFormRow(splitGrid, 0, "Debit column", debitCb);
+        UiUtils.addFormRow(splitGrid, 1, "Credit column", creditCb);
 
         Label splitTitle = new Label("AMOUNT COLUMNS");
         splitTitle.getStyleClass().add("section-group-label");
@@ -223,7 +215,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         fmtCb.setMaxWidth(Double.MAX_VALUE);
         if (prefilled != null && prefilled.getDateFormat() != null)
             fmtCb.setValue(prefilled.getDateFormat());
-        addRow(g, row++, "Date format *", fmtCb);
+        UiUtils.addFormRow(g, row++, "Date format *", fmtCb);
 
         // When the user picks the date column, try to auto-detect the format from the first data row.
         Runnable autoDetectFmt = () -> {
@@ -259,13 +251,6 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         cb.getItems().addAll(Arrays.asList(headers));
         cb.setMaxWidth(Double.MAX_VALUE);
         return cb;
-    }
-
-    private void addRow(GridPane g, int row, String label, javafx.scene.Node control) {
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("form-label");
-        g.add(lbl, 0, row);
-        g.add(control, 1, row);
     }
 
     private void updateAmountRows(boolean single) {

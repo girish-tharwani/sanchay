@@ -138,19 +138,8 @@ public class FinancialPlanningScreen {
                 .findFirst().orElse(null);
 
         if (self == null || self.getDateOfBirth() == null) {
-            // Show error on next pulse (after the view is placed in the scene graph)
-            Platform.runLater(() -> {
-                Dialog<ButtonType> dlg = new Dialog<>();
-                UiUtils.applyStylesheet(dlg);
-                UiUtils.setDialogHeader(dlg, "!", "Profile Incomplete");
-                Label msg = new Label("Financial planning requires your date of birth.\nPlease set it in your Profile before continuing.");
-                msg.getStyleClass().add("text-body-muted");
-                msg.setWrapText(true);
-                dlg.getDialogPane().setContent(msg);
-                dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
-                dlg.showAndWait();
-                navigateToProfile.run();
-            });
+            // Defer until the view is placed in the scene graph, then show error and redirect
+            Platform.runLater(this::showProfileIncompleteError);
             view = new ScrollPane(new Label(""));
             return;
         }
@@ -1558,5 +1547,22 @@ public class FinancialPlanningScreen {
     /** Sets the field text only if the new value differs, to avoid spurious listener firing. */
     private void setIfDifferent(TextField fld, String newText) {
         if (!newText.equals(fld.getText())) fld.setText(newText);
+    }
+
+    /**
+     * Shows a styled error dialog when the user's profile lacks a date of birth,
+     * then redirects to the Profile screen via the injected callback.
+     * Called via Platform.runLater so the view is already in the scene graph.
+     */
+    private void showProfileIncompleteError() {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        UiUtils.initDialog(dlg, "Profile Incomplete", "!", 400);
+        Label msg = new Label("Financial planning requires your date of birth.\nPlease set it in your Profile before continuing.");
+        msg.getStyleClass().add("text-body-muted");
+        msg.setWrapText(true);
+        dlg.getDialogPane().setContent(msg);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dlg.showAndWait();
+        navigateToProfile.run();
     }
 }

@@ -1,6 +1,6 @@
 ---
 name: javafx-refactor
-description: Use this skill whenever the user wants to refactor, restructure, clean up, or improve the architecture of a Java or JavaFX application. Triggers include requests to eliminate code duplication, remove dead code, fix inconsistent patterns, extract dialog classes, separate UI from business logic, create utility classes, standardize wiring between classes, or improve overall code organization. Also use when the user asks to audit or review a JavaFX codebase for structural issues, apply MVC/MVP patterns, or bring consistency to how screens and dialogs are organized. If the user mentions messy code, spaghetti code, tech debt, or inherited codebases in the context of Java/JavaFX, use this skill.
+description: Use this skill whenever the user wants to refactor, restructure, clean up, or improve the architecture of a Java or JavaFX application. Triggers include requests to eliminate code duplication, remove dead code, fix inconsistent patterns, extract dialog classes, separate UI from business logic, create utility classes, standardize wiring between classes, improve overall code organization, clean up comments, or improve README documentation. Also use when the user asks to audit or review a JavaFX codebase for structural issues, apply MVC/MVP patterns, or bring consistency to how screens and dialogs are organized. If the user mentions messy code, spaghetti code, tech debt, or inherited codebases in the context of Java/JavaFX, use this skill.
 ---
 
 # JavaFX Application Refactoring Skill
@@ -10,15 +10,22 @@ You are helping the user refactor a Java/JavaFX application that works correctly
 ## Core Principles
 
 1. **Never break what works.** Every refactoring step must preserve existing behavior. If you aren't sure whether a change is safe, flag it and ask.
-2. **One concern at a time.** Don't try to fix duplication, dead code, and wiring in a single pass. Work in focused phases.
-3. **Respect the existing style.** The app already has CSS-based styling that works. Don't touch FXML layout or CSS unless the user explicitly asks. Refactoring is about the Java code structure.
-4. **Small, verifiable steps.** Each change should be compilable and testable on its own. Avoid large-scale rewrites that make it impossible to tell what broke if something goes wrong.
+2. **Do NOT change behavior, only structure.** Do not change business logic, method signatures, or public API contracts.
+3. **Do NOT rename public methods or variables.** Renaming breaks external contracts and callers you may not see.
+4. **One concern at a time.** Don't try to fix duplication, dead code, and wiring in a single pass. Work in focused phases.
+5. **Respect the existing style.** The app already has CSS-based styling that works. Don't touch FXML layout or CSS unless the user explicitly asks.
+6. **Small, verifiable steps.** Each change should be compilable and testable on its own. Avoid large-scale rewrites that make it impossible to tell what broke if something goes wrong.
+7. **Keep changes scoped.** Don't refactor beyond what's asked. Don't add new dependencies or libraries.
 
 ---
 
 ## Phase 0: Audit and Catalog
 
 Before changing anything, build a complete picture of the codebase. This phase produces a written report — no code changes.
+
+### What to exclude from analysis
+
+Use the `.gitignore` file at the project root as a guide for what to exclude from learning and analysis (build output, generated files, local config, etc.).
 
 ### Step 0.1 — Map the class structure
 
@@ -75,7 +82,16 @@ Also look for:
 - Static mutable state used to pass data between screens
 - Singleton controllers or "god objects" that accumulate responsibilities
 
-### Step 0.6 — Produce the audit report
+### Step 0.6 — Flag logic issues and stubs (do not fix yet)
+
+While reading the code, note but do not act on:
+- **Logic bugs**: any code that appears to produce incorrect results or handle edge cases wrong
+- **Missing feature implementations**: placeholders, TODO comments, or methods with empty/stub bodies
+- **Stubbed code**: methods that return hardcoded/dummy values
+
+These are flagged for the user's awareness, not resolved during the refactoring.
+
+### Step 0.7 — Produce the audit report
 
 Compile all findings into a single structured report with these sections:
 1. **Class inventory** (from 0.1)
@@ -83,11 +99,12 @@ Compile all findings into a single structured report with these sections:
 3. **Duplication clusters** (from 0.3)
 4. **Dead code candidates** (from 0.4)
 5. **Wiring problems** (from 0.5)
-6. **Recommended refactoring order** — prioritize by risk (low-risk first) and impact (high-impact first). Typically: dead code removal → duplication extraction → dialog extraction → wiring cleanup.
+6. **Flagged logic issues / stubs** (from 0.6)
+7. **Recommended refactoring order** — prioritize by risk (low-risk first) and impact (high-impact first). Typically: dead code removal → duplication extraction → dialog extraction → wiring cleanup.
 
 Present this report to the user and get confirmation before proceeding to any code changes.
 
-From here on, the application code should be compilable and testable after completion of each phase. 
+From here on, the application code should be compilable and testable after completion of each phase.
 
 ---
 
@@ -111,7 +128,7 @@ This is the safest starting point because removing unused code cannot change beh
 
 ---
 
-## Phase 2: Extract Duplicated Code
+## Phase 2: Extract Duplicated Code and Improve Code Quality
 
 ### 2.1 — Decide where extracted code should live
 
@@ -143,6 +160,14 @@ Follow the existing project's naming conventions. If there are none, default to:
 - Helper classes: `XxxHelper` (e.g., `TableHelper`, `FormHelper`)
 - Service classes: `XxxService` (e.g., `ExportService`, `DataService`)
 - Package structure: mirror what already exists — don't introduce a radically different package layout
+
+### 2.4 — Improve code clarity (private methods only)
+
+Within private implementation details (not public API), also address:
+- **Long methods**: extract long private methods into smaller, well-named private helpers
+- **Poor variable/method naming**: rename private variables and methods to better express their intent — do NOT rename public or package-visible members
+- **Deep conditionals**: simplify deeply nested if/else chains using early returns, guard clauses, or extracted boolean methods
+- **Single responsibility**: if a private method is doing two unrelated things, split it
 
 ---
 
@@ -222,9 +247,13 @@ After all structural changes:
 1. **Standardize access modifiers.** Methods that are only used within their own class should be `private`. Methods used by other classes in the same package should be package-private. Only make things `public` if they genuinely need to be.
 2. **Standardize method ordering within classes.** A reasonable convention: constructors and `initialize()` first, then public methods, then private methods, then inner classes. Match whatever the codebase already leans toward.
 3. **Ensure consistent error handling.** If some screens show errors via alerts and others via inline labels, note the inconsistency and ask the user which they prefer. Then standardize.
-4. **Verify CSS still applies correctly.** Load every screen and dialog, confirm they look the same as before the refactoring.
-5. **Update any comments or Javadoc** that reference old class names, removed methods, or changed wiring.
+4. **Clean up comments.** Keep only comments that are significant — those explaining non-obvious decisions, gotchas, or intent. Remove trivial comments that restate what the code already says clearly (e.g., `// increment counter` above `count++`). Remove all references to previous versions, bug numbers, changelog entries, and enhancement numbers from comments.
+5. **Improve README.md.** Remove all references to previous versions, changelogs, bug reports, and enhancement numbers. Update it to accurately reflect the current project functionality, architecture, and how to build/run the application.
+6. **Verify CSS still applies correctly.** Load every screen and dialog, confirm they look the same as before the refactoring.
+7. **Update any comments or Javadoc** that reference old class names, removed methods, or changed wiring.
 
+## Phase 6: Update CLAUDE.md and README.MD with new relevant information
+1. As this will require review of whole code structure and potentially some structural changes in the code, update CLAUDE.MD and README.md with pertinent information.
 ---
 
 ## How to Apply This Skill
@@ -267,3 +296,4 @@ When producing refactored code:
 - Include a brief changelog at the top of each response summarizing what changed and why.
 - If you create a new utility or helper class, provide the complete class with appropriate package declaration and imports.
 - Preserve existing license headers, copyright notices, and file-level comments.
+- Flag any logic issues, bugs, or stubs encountered during the refactor — do not fix them silently.

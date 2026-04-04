@@ -308,11 +308,7 @@ public class RecurringScreen {
 
     private boolean showDeleteScheduleConfirm(RecurringTransaction r) {
         Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.setTitle("Delete Schedule");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(420);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "⚠", "Delete Schedule");
+        UiUtils.initDialog(dlg, "Delete Schedule", "⚠", 420);
 
         VBox body = new VBox(14);
         body.setPadding(new Insets(16));

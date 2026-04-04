@@ -268,12 +268,9 @@ public class ProfileScreen {
 
     private void openMemberForm(FamilyMember existing) {
         boolean isNew = (existing == null);
+        String dlgTitle = isNew ? "Add Family Member" : "Edit Family Member";
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle(isNew ? "Add Family Member" : "Edit Family Member");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, isNew ? "+" : "✎", isNew ? "Add Family Member" : "Edit Family Member");
+        UiUtils.initDialog(dlg, dlgTitle, isNew ? "+" : "✎", 380);
 
         GridPane g = new GridPane();
         g.setHgap(12);
@@ -290,11 +287,8 @@ public class ProfileScreen {
         nameFld.setMaxWidth(Double.MAX_VALUE);
 
         // Date of Birth
-        DatePicker dobPicker = new DatePicker();
+        DatePicker dobPicker = UiUtils.createDatePicker(null);
         dobPicker.setPromptText("dd/MM/yyyy");
-        dobPicker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.applySmartDateConverter(dobPicker);
-        UiUtils.styleOnShow(dobPicker);
         if (!isNew && existing.getDateOfBirth() != null) dobPicker.setValue(existing.getDateOfBirth());
 
         // Relationship

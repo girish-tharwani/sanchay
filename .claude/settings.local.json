@@ -45,7 +45,11 @@
       "Bash(sed -n '450,460p' src/main/java/com/sanchay/ui/dashboard/DashboardScreen.java)",
       "Bash(java -version)",
       "Bash(where wix:*)",
-      "Bash(where candle:*)"
+      "Bash(where candle:*)",
+      "Bash(grep -rE \"^\\\\s*\\\\}\\\\s*$\" \"D:\\\\Projects\\\\sanchay\\\\src\\\\main\\\\java\\\\com\\\\sanchay\" --include=\"*.java\" -B 3)",
+      "Bash(grep -E \"^\\\\s*\\(public|private|protected\\).*\\\\{$\" -A 3)",
+      "Bash(grep:*)",
+      "Bash(sed:*)"
     ]
   },
   "enabledPlugins": {

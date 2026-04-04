@@ -43,10 +43,7 @@ public class AccountDialog {
         statusCb.getItems().addAll("Active", "Closed");
         statusCb.setValue(isNew ? "Active" : (existing.isActive() ? "Active" : "Closed"));
         statusCb.setMaxWidth(Double.MAX_VALUE);
-        DatePicker openDate = new DatePicker(isNew ? LocalDate.now() : existing.getOpeningDate());
-        openDate.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.applySmartDateConverter(openDate);
-        UiUtils.styleOnShow(openDate);
+        DatePicker openDate = UiUtils.createDatePicker(isNew ? LocalDate.now() : existing.getOpeningDate());
         TextField openBalFld = tf(isNew ? "0.00"
                 : String.format("%.2f", existing.getOpeningBalancePaise() / 100.0), "Opening balance");
 
@@ -61,22 +58,21 @@ public class AccountDialog {
             secondHolderCb.setManaged(n);
         });
 
-        addRow(g,  0, "Name*",           nameFld);
-        addRow(g,  1, "Description",     descFld);
-        addRow(g,  2, "Bank*",           bankFld);
-        addRow(g,  3, "Account Holder*", holderCb);
-        addRow(g,  4, "Account Number",  acctNoFld);
-        addRow(g,  5, "Sub-Type",        subtypeCb);
-        addRow(g,  6, "Currency",        currencyFld);
-        addRow(g,  7, "Status",          statusCb);
-        addRow(g,  8, "Opening Date",    openDate);
-        addRow(g,  9, "Opening Balance", openBalFld);
-        addRow(g, 10, "Joint Account",   jointCb);
-        addRow(g, 11, "Second Holder",   secondHolderCb);
+        UiUtils.addFormRow(g,  0, "Name*",           nameFld);
+        UiUtils.addFormRow(g,  1, "Description",     descFld);
+        UiUtils.addFormRow(g,  2, "Bank*",           bankFld);
+        UiUtils.addFormRow(g,  3, "Account Holder*", holderCb);
+        UiUtils.addFormRow(g,  4, "Account Number",  acctNoFld);
+        UiUtils.addFormRow(g,  5, "Sub-Type",        subtypeCb);
+        UiUtils.addFormRow(g,  6, "Currency",        currencyFld);
+        UiUtils.addFormRow(g,  7, "Status",          statusCb);
+        UiUtils.addFormRow(g,  8, "Opening Date",    openDate);
+        UiUtils.addFormRow(g,  9, "Opening Balance", openBalFld);
+        UiUtils.addFormRow(g, 10, "Joint Account",   jointCb);
+        UiUtils.addFormRow(g, 11, "Second Holder",   secondHolderCb);
 
         dlg.getDialogPane().setContent(scrolled(g));
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
         dlg.setResultConverter(bt -> {
             if (bt != saveBtn) return null;
             String name = nameFld.getText().trim();
@@ -143,22 +139,21 @@ public class AccountDialog {
         statusCb.setValue(isNew ? "Active" : formatCardStatus(existing.getCardStatus()));
         statusCb.setMaxWidth(Double.MAX_VALUE);
 
-        addRow(g,  0, "Name*",              nameFld);
-        addRow(g,  1, "Description",        descFld);
-        addRow(g,  2, "Issuer*",            issuerFld);
-        addRow(g,  3, "Card Holder*",       holderCb);
-        addRow(g,  4, "Card Number",        cardNoFld);
-        addRow(g,  5, "Credit Limit*",      limitFld);
-        addRow(g,  6, "Currency",           currencyFld);
-        addRow(g,  7, "Status",             statusCb);
-        addRow(g,  8, "Billing Date",       billDay);
-        addRow(g,  9, "Payment Due (days)", dueDays);
-        addRow(g, 10, "Add-on Card",        addOnCb);
-        addRow(g, 11, "Add-on Card Holder", addOnHolderCb);
+        UiUtils.addFormRow(g,  0, "Name*",              nameFld);
+        UiUtils.addFormRow(g,  1, "Description",        descFld);
+        UiUtils.addFormRow(g,  2, "Issuer*",            issuerFld);
+        UiUtils.addFormRow(g,  3, "Card Holder*",       holderCb);
+        UiUtils.addFormRow(g,  4, "Card Number",        cardNoFld);
+        UiUtils.addFormRow(g,  5, "Credit Limit*",      limitFld);
+        UiUtils.addFormRow(g,  6, "Currency",           currencyFld);
+        UiUtils.addFormRow(g,  7, "Status",             statusCb);
+        UiUtils.addFormRow(g,  8, "Billing Date",       billDay);
+        UiUtils.addFormRow(g,  9, "Payment Due (days)", dueDays);
+        UiUtils.addFormRow(g, 10, "Add-on Card",        addOnCb);
+        UiUtils.addFormRow(g, 11, "Add-on Card Holder", addOnHolderCb);
 
         dlg.getDialogPane().setContent(scrolled(g));
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
         dlg.setResultConverter(bt -> {
             if (bt != saveBtn) return null;
             String name = nameFld.getText().trim();
@@ -244,26 +239,25 @@ public class AccountDialog {
         statusCb.setValue(isNew ? "Active" : formatLoanStatus(existing.getLoanStatus()));
         statusCb.setMaxWidth(Double.MAX_VALUE);
 
-        addRow(g,  0, "Name*",                      nameFld);
-        addRow(g,  1, "Description",                descFld);
-        addRow(g,  2, "Loan Type",                  typeCb);
-        addRow(g,  3, "Currency",                   currencyFld);
-        addRow(g,  4, "Status",                     statusCb);
-        addRow(g,  5, "Lender",                     lenderFld);
-        addRow(g,  6, "Account No.",                acctNoFld);
-        addRow(g,  7, "Loan Amount*",               loanAmtFld);
-        addRow(g,  8, "Interest Rate",              rateFld);
-        addRow(g,  9, "Tenure (months)",            tenureFld);
-        addRow(g, 10, "EMI Amount",                 emiFld);
-        addRow(g, 11, "EMI Due Day",                emiDay);
-        addRow(g, 12, "Opening Balance",            outFld);
-        addRow(g, 13, "Opening Date",               openDatePicker);
-        addRow(g, 14, "Joint Account",              jointCb);
-        addRow(g, 15, "Co-applicant",               coApplicantCb);
+        UiUtils.addFormRow(g,  0, "Name*",                      nameFld);
+        UiUtils.addFormRow(g,  1, "Description",                descFld);
+        UiUtils.addFormRow(g,  2, "Loan Type",                  typeCb);
+        UiUtils.addFormRow(g,  3, "Currency",                   currencyFld);
+        UiUtils.addFormRow(g,  4, "Status",                     statusCb);
+        UiUtils.addFormRow(g,  5, "Lender",                     lenderFld);
+        UiUtils.addFormRow(g,  6, "Account No.",                acctNoFld);
+        UiUtils.addFormRow(g,  7, "Loan Amount*",               loanAmtFld);
+        UiUtils.addFormRow(g,  8, "Interest Rate",              rateFld);
+        UiUtils.addFormRow(g,  9, "Tenure (months)",            tenureFld);
+        UiUtils.addFormRow(g, 10, "EMI Amount",                 emiFld);
+        UiUtils.addFormRow(g, 11, "EMI Due Day",                emiDay);
+        UiUtils.addFormRow(g, 12, "Opening Balance",            outFld);
+        UiUtils.addFormRow(g, 13, "Opening Date",               openDatePicker);
+        UiUtils.addFormRow(g, 14, "Joint Account",              jointCb);
+        UiUtils.addFormRow(g, 15, "Co-applicant",               coApplicantCb);
 
         dlg.getDialogPane().setContent(scrolled(g));
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
         // Capture original values to detect rate/EMI changes on edit
         final double origRate = isNew ? 0 : existing.getInterestRate();
         final long   origEmi  = isNew ? 0 : existing.getEmiAmountPaise();
@@ -377,17 +371,16 @@ public class AccountDialog {
         statusCb.setValue(isNew ? "Active" : formatInvestmentStatus(existing.getInvestmentStatus()));
         statusCb.setMaxWidth(Double.MAX_VALUE);
 
-        addRow(g, 0, "Name*",                    nameFld);
-        addRow(g, 1, "Description",              descFld);
-        addRow(g, 2, "Investment Type",          typeCb);
-        addRow(g, 3, "Currency",                 currencyFld);
-        addRow(g, 4, "Status",                   statusCb);
-        addRow(g, 5, "Account Number",           folioFld);
-        addRow(g, 6, "Opening Invested Amount*", invAmtFld);
+        UiUtils.addFormRow(g, 0, "Name*",                    nameFld);
+        UiUtils.addFormRow(g, 1, "Description",              descFld);
+        UiUtils.addFormRow(g, 2, "Investment Type",          typeCb);
+        UiUtils.addFormRow(g, 3, "Currency",                 currencyFld);
+        UiUtils.addFormRow(g, 4, "Status",                   statusCb);
+        UiUtils.addFormRow(g, 5, "Account Number",           folioFld);
+        UiUtils.addFormRow(g, 6, "Opening Invested Amount*", invAmtFld);
 
         dlg.getDialogPane().setContent(scrolled(g));
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
         dlg.setResultConverter(bt -> {
             if (bt != saveBtn) return null;
             String name = nameFld.getText().trim();
@@ -489,13 +482,8 @@ public class AccountDialog {
     // ── Form helpers ──────────────────────────────────────────────────────────
 
     private static GridPane formGrid() {
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(160);
         g.setPadding(new Insets(16));
-        ColumnConstraints c1 = new ColumnConstraints(160);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
         return g;
     }
 
@@ -509,11 +497,7 @@ public class AccountDialog {
 
     private static Dialog<Void> dialog(String title) {
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle(title);
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(500);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, title.startsWith("Edit") ? "✎" : "+", title);
+        UiUtils.initDialog(dlg, title, title.startsWith("Edit") ? "✎" : "+", 500);
         return dlg;
     }
 
@@ -534,14 +518,6 @@ public class AccountDialog {
         return tf;
     }
 
-    private static void addRow(GridPane g, int row, String lbl, Node ctrl) {
-        Label l = new Label(lbl);
-        l.getStyleClass().add("form-label");
-        l.setMinWidth(155);
-        g.add(l, 0, row);
-        g.add(ctrl, 1, row);
-        GridPane.setFillWidth(ctrl, true);
-    }
 
     private static String nvl(String s) { return s != null ? s : ""; }
 
@@ -580,24 +556,12 @@ public class AccountDialog {
      */
     static LocalDate askEffectiveFromDate(LoanAccount acc) {
         Dialog<LocalDate> dlg = new Dialog<>();
-        dlg.setTitle("Rate / EMI Change");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "✎", "Rate / EMI Change");
+        UiUtils.initDialog(dlg, "Rate / EMI Change", "✎", 380);
 
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(140);
         g.setPadding(new Insets(16));
-        ColumnConstraints c1 = new ColumnConstraints(140);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
-        DatePicker picker = new DatePicker(LocalDate.now());
-        picker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.applySmartDateConverter(picker);
-        UiUtils.styleOnShow(picker);
+        DatePicker picker = UiUtils.createDatePicker(LocalDate.now());
 
         Label hint = new Label("The new rate/EMI will apply from this date onwards in the schedule.");
         hint.setWrapText(true);

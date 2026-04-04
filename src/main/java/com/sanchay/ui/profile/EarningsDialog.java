@@ -57,18 +57,13 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     public EarningsDialog(FamilyMember member) {
         this.member = member;
-        setTitle("Earnings — " + member.getName());
-        setHeaderText(null);
-        getDialogPane().setPrefWidth(950);
+        UiUtils.initDialog(this, "Earnings — " + member.getName(), MoneyFormatter.symbol(), 950);
         getDialogPane().setPrefHeight(680);
-        UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, MoneyFormatter.symbol(), "Earnings — " + member.getName());
 
         TabPane tabs = buildTabPane();
         getDialogPane().setContent(tabs);
 
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        ButtonType saveBtn = UiUtils.addSaveCancel(getDialogPane());
 
         // Intercept Save click: validate, keep dialog open on error (same pattern as TransactionDialog)
         Platform.runLater(() -> {
@@ -168,11 +163,7 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private void showAddSourceDialog(TabPane tabs, Tab addTab) {
         Dialog<EarningSource> dlg = new Dialog<>();
-        dlg.setTitle("Add Income Source");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "+", "Add Income Source");
+        UiUtils.initDialog(dlg, "Add Income Source", "+", 380);
 
         GridPane g = new GridPane();
         g.setHgap(12); g.setVgap(12);
@@ -587,12 +578,8 @@ public class EarningsDialog extends Dialog<Boolean> {
     // ── UI helpers ────────────────────────────────────────────────────────────
 
     private GridPane formGrid() {
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(160);
         g.setPadding(new Insets(16));
-        ColumnConstraints c1 = new ColumnConstraints(160);
-        ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
         return g;
     }
 
@@ -754,18 +741,10 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private InvestmentAccount showCreatePfDialog() {
         Dialog<InvestmentAccount> dlg = new Dialog<>();
-        dlg.setTitle("Add PF Account");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(360);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "+", "Add PF Account");
+        UiUtils.initDialog(dlg, "Add PF Account", "+", 360);
 
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(130);
         g.setPadding(new Insets(16));
-        ColumnConstraints c1 = new ColumnConstraints(130);
-        ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
         TextField nameFld = new TextField(); nameFld.setPromptText("e.g. EPF — Employer"); nameFld.setMaxWidth(Double.MAX_VALUE);
         TextField uanFld  = new TextField(); uanFld.setPromptText("UAN number (optional)"); uanFld.setMaxWidth(Double.MAX_VALUE);
@@ -798,11 +777,7 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private void showError(String msg) {
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle("Validation Error");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "⚠", "Validation Error");
+        UiUtils.initDialog(dlg, "Validation Error", "⚠", 380);
 
         HBox iconRow = new HBox(14);
         iconRow.setAlignment(Pos.CENTER_LEFT);

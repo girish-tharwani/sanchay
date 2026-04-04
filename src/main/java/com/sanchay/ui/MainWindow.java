@@ -222,6 +222,9 @@ public class MainWindow {
     // ── Navigation ────────────────────────────────────────────────────────────
 
     public void navigateTo(String screen) {
+        // Clear account-specific FAB context on every navigation; AccountsScreen re-sets it when needed.
+        postTransactionCallback   = null;
+        transactionContextAccount = null;
         currentScreen = screen;
         updateSidebarHighlight(screen);
 
@@ -264,7 +267,7 @@ public class MainWindow {
                 yield profileScreen.getView();
             }
             case "Settings" -> {
-                if (settingsScreen == null) settingsScreen = new SettingsScreen(this);
+                if (settingsScreen == null) settingsScreen = new SettingsScreen(this::reloadDataFolder);
                 else settingsScreen.refresh();
                 yield settingsScreen.getView();
             }

@@ -22,6 +22,11 @@ mvn shade:shade
 ### Coding Style
 README.md at project root contains coding commandments for UI styling and functional coding.
 
+### JavaFX CSS Gotchas
+- **CSS priority**: Bean setters (`setBackground()`, `setFont()`, etc.) have *lower* priority than author stylesheets and will be silently overridden once CSS loads. Only `.setStyle()` (inline style) beats author CSS. Any background or color that must survive stylesheet loading must be expressed as a CSS class.
+- **Dialog scenes**: JavaFX dialogs open in a separate scene and never inherit the main window's stylesheets. Every `Dialog`/`Alert` must call `UiUtils.applyStylesheet()` explicitly, otherwise design tokens and component styles won't resolve.
+- **Tokens in inline styles**: CSS looked-up colour tokens (e.g. `-brand-dark`, `-color-error`) work inside `.setStyle()` strings, so data-driven inline styles can reference design tokens instead of raw hex literals.
+
 ### Testing Framework
 No test framework or linter is configured.
 

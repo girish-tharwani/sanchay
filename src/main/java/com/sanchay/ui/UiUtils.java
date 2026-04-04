@@ -8,6 +8,8 @@ import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.DatePicker;
@@ -31,6 +33,8 @@ import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
 import javafx.util.StringConverter;
 
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -511,5 +515,93 @@ public final class UiUtils {
      */
     public static String formatCorpusDisplay(long paise) {
         return MoneyFormatter.formatCompact(paise);
+    }
+
+    // ── Dialog / form boilerplate helpers ────────────────────────────────────
+
+    /**
+     * Configures a freshly created Dialog with the standard app chrome:
+     * title, no native header, preferred width, stylesheet, and branded header bar.
+     * Call immediately after {@code new Dialog<>()}, before adding content.
+     *
+     * <pre>
+     *   Dialog&lt;MyType&gt; dlg = new Dialog&lt;&gt;();
+     *   UiUtils.initDialog(dlg, "Edit Account", "✎", 500);
+     * </pre>
+     */
+    public static void initDialog(Dialog<?> dlg, String title, String icon, double prefWidth) {
+        dlg.setTitle(title);
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(prefWidth);
+        applyStylesheet(dlg);
+        setDialogHeader(dlg, icon, title);
+    }
+
+    /** Overload for dialogs that need a subtitle beneath the title in the header. */
+    public static void initDialog(Dialog<?> dlg, String title, String icon, double prefWidth, String subtitle) {
+        dlg.setTitle(title);
+        dlg.setHeaderText(null);
+        dlg.getDialogPane().setPrefWidth(prefWidth);
+        applyStylesheet(dlg);
+        setDialogHeader(dlg, icon, title, subtitle);
+    }
+
+    /**
+     * Adds a "Save" OK button and a Cancel button to {@code pane}, and returns
+     * the Save {@link ButtonType} so the caller can wire {@code setResultConverter}.
+     *
+     * <pre>
+     *   ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
+     *   dlg.setResultConverter(bt -> bt == saveBtn ? result : null);
+     * </pre>
+     */
+    public static ButtonType addSaveCancel(DialogPane pane) {
+        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        pane.getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        return saveBtn;
+    }
+
+    /**
+     * Creates a styled DatePicker with the smart date converter and calendar popup
+     * header styling applied. Sets maxWidth to Double.MAX_VALUE so it fills its
+     * grid column.
+     *
+     * Use for any date picker where the user types or picks a date. Do NOT use for
+     * display-only or programmatically-set date pickers.
+     */
+    public static DatePicker createDatePicker(LocalDate initial) {
+        DatePicker dp = new DatePicker(initial);
+        dp.setMaxWidth(Double.MAX_VALUE);
+        applySmartDateConverter(dp);
+        styleOnShow(dp);
+        return dp;
+    }
+
+    /**
+     * Creates the standard 2-column form GridPane used in all dialog forms.
+     * hgap=12, vgap=10; column 0 fixed at {@code labelColWidth} px; column 1 expands.
+     * Callers set their own padding (varies per dialog).
+     */
+    public static GridPane buildFormGrid(int labelColWidth) {
+        GridPane g = new GridPane();
+        g.setHgap(12);
+        g.setVgap(10);
+        ColumnConstraints c1 = new ColumnConstraints(labelColWidth);
+        ColumnConstraints c2 = new ColumnConstraints();
+        c2.setHgrow(Priority.ALWAYS);
+        g.getColumnConstraints().addAll(c1, c2);
+        return g;
+    }
+
+    /**
+     * Adds a label+control row to a form GridPane.
+     * The label gets the "form-label" style class; the control fills column 1.
+     */
+    public static void addFormRow(GridPane g, int row, String label, Node control) {
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("form-label");
+        g.add(lbl, 0, row);
+        g.add(control, 1, row);
+        GridPane.setFillWidth(control, true);
     }
 }

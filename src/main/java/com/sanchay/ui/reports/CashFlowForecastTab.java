@@ -514,8 +514,7 @@ public class CashFlowForecastTab {
         input.setTitle("Correct Forecast Amount");
         input.setHeaderText(row.subCategory() + " — " + row.month());
         input.setContentText("Enter corrected amount (₹):");
-        input.getDialogPane().getStylesheets().addAll(
-                forecastTable.getScene().getStylesheets());
+        UiUtils.applyStylesheet(input);
 
         Optional<String> result = input.showAndWait();
         if (result.isEmpty()) return;

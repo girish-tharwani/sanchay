@@ -19,12 +19,7 @@ import java.util.List;
 public class MarketValueHistoryDialog extends Dialog<Void> {
 
     public MarketValueHistoryDialog(InvestmentAccount account) {
-        setTitle("Market Value History");
-        setHeaderText(null);
-        getDialogPane().setPrefWidth(620);
-        getDialogPane().getStyleClass().add("dialog-pane");
-        UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "📊", "Market Value History — " + account.getName());
+        UiUtils.initDialog(this, "Market Value History — " + account.getName(), "📊", 620);
 
         DataStore ds = DataStore.getInstance();
         List<MarketValueEntry> entries = ds.getMarketValuesFor(account.getId());

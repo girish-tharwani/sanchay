@@ -34,11 +34,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
      * @param candidates  one or more recurring schedules that could cover this import
      */
     public RecurringMatchDialog(Transaction imported, List<RecurringTransaction> candidates) {
-        setTitle("Recurring Schedule Match");
-        setHeaderText(null);
-        getDialogPane().setPrefWidth(520);
-        UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "↺", "Recurring Schedule Match");
+        UiUtils.initDialog(this, "Recurring Schedule Match", "↺", 520);
 
         DataStore ds = DataStore.getInstance();
 

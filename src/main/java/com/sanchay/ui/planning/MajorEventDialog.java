@@ -52,13 +52,9 @@ class MajorEventDialog {
     MajorEventDialog(MajorEvent existing) {
         boolean isEdit = existing != null;
 
+        String dlgTitle = isEdit ? "Edit Major Event" : "Add Major Event";
         dlg = new Dialog<>();
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(520);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg,
-                isEdit ? "✎" : "+",
-                isEdit ? "Edit Major Event" : "Add Major Event");
+        UiUtils.initDialog(dlg, dlgTitle, isEdit ? "✎" : "+", 520);
 
         // ── Form fields ───────────────────────────────────────────────────────
 
@@ -127,11 +123,8 @@ class MajorEventDialog {
 
         // ── Start date ────────────────────────────────────────────────────────
 
-        startPicker = new DatePicker();
-        startPicker.setMaxWidth(Double.MAX_VALUE);
+        startPicker = UiUtils.createDatePicker(null);
         startPicker.setPromptText("dd/mm/yyyy (optional)");
-        UiUtils.applySmartDateConverter(startPicker);
-        UiUtils.styleOnShow(startPicker);
         if (isEdit && existing.getStartDate() != null) {
             try { startPicker.setValue(LocalDate.parse(existing.getStartDate())); }
             catch (Exception ignored) {}
@@ -139,11 +132,8 @@ class MajorEventDialog {
 
         // ── End date (recurring only) ─────────────────────────────────────────
 
-        endPicker = new DatePicker();
-        endPicker.setMaxWidth(Double.MAX_VALUE);
+        endPicker = UiUtils.createDatePicker(null);
         endPicker.setPromptText("dd/mm/yyyy (defaults to retirement date)");
-        UiUtils.applySmartDateConverter(endPicker);
-        UiUtils.styleOnShow(endPicker);
         if (isEdit && existing.getEndDate() != null) {
             try { endPicker.setValue(LocalDate.parse(existing.getEndDate())); }
             catch (Exception ignored) {}

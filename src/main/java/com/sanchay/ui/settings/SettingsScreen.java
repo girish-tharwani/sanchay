@@ -2,8 +2,9 @@ package com.sanchay.ui.settings;
 
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
-import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.wizard.PreferencesSetupDialog;
+
+import java.util.function.BiConsumer;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -20,11 +21,11 @@ import java.util.zip.*;
 /** Settings screen. */
 public class SettingsScreen {
 
-    private final MainWindow mainWindow;
+    private final BiConsumer<String, PreferencesSetupDialog.Result> onDataFolderChanged;
     private ScrollPane view;
 
-    public SettingsScreen(MainWindow mainWindow) {
-        this.mainWindow = mainWindow;
+    public SettingsScreen(BiConsumer<String, PreferencesSetupDialog.Result> onDataFolderChanged) {
+        this.onDataFolderChanged = onDataFolderChanged;
         buildView();
     }
 
@@ -106,7 +107,7 @@ public class SettingsScreen {
                     && !new File(newPath, "transactions.json").exists()
                     && !new File(newPath, "categories.json").exists();
             PreferencesSetupDialog.Result prefs = isEmpty ? PreferencesSetupDialog.show() : null;
-            mainWindow.reloadDataFolder(newPath, prefs);
+            onDataFolderChanged.accept(newPath, prefs);
         });
         pathRow.getChildren().addAll(pathLbl, pathField, browseBtn);
 

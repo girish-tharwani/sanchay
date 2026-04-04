@@ -37,20 +37,12 @@ public class AddEditRecurringDialog {
     private static void showInternal(RecurringTransaction existing, boolean forceNew) {
         boolean isNew = (existing == null || forceNew);
         boolean hasDefaults = (existing != null);
+        String dlgTitle = isNew ? "New Recurring Schedule" : "Edit Recurring Schedule";
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle(isNew ? "New Recurring Schedule" : "Edit Recurring Schedule");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(520);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, isNew ? "+" : "✎", isNew ? "New Recurring Schedule" : "Edit Recurring Schedule");
+        UiUtils.initDialog(dlg, dlgTitle, isNew ? "+" : "✎", 520);
 
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(150);
         g.setPadding(new Insets(16));
-        ColumnConstraints c1 = new ColumnConstraints(150);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
         // ── Description ───────────────────────────────────────────────────────
         TextField descFld = new TextField(!hasDefaults ? "" : existing.getDescription());
@@ -97,11 +89,8 @@ public class AddEditRecurringDialog {
         daySpinner.setMaxWidth(Double.MAX_VALUE);
 
         // ── Start date ────────────────────────────────────────────────────────
-        DatePicker startPicker = new DatePicker(!hasDefaults ? LocalDate.now()
+        DatePicker startPicker = UiUtils.createDatePicker(!hasDefaults ? LocalDate.now()
                 : (existing.getStartDate() != null ? existing.getStartDate() : LocalDate.now()));
-        startPicker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.applySmartDateConverter(startPicker);
-        UiUtils.styleOnShow(startPicker);
 
         // ── Amount ────────────────────────────────────────────────────────────
         TextField amtFld = new TextField(!hasDefaults ? ""
@@ -169,11 +158,8 @@ public class AddEditRecurringDialog {
         invFdRateFld.setPromptText("Annual interest rate, e.g. 6.5");
         invFdRateFld.setMaxWidth(Double.MAX_VALUE);
 
-        DatePicker invFdMaturityPicker = new DatePicker();
+        DatePicker invFdMaturityPicker = UiUtils.createDatePicker(null);
         invFdMaturityPicker.setPromptText("Maturity date");
-        invFdMaturityPicker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.styleOnShow(invFdMaturityPicker);
-        UiUtils.applySmartDateConverter(invFdMaturityPicker);
 
         TextField invFdMaturityAmtFld = new TextField();
         invFdMaturityAmtFld.setPromptText("Expected maturity amount (optional)");
@@ -187,11 +173,8 @@ public class AddEditRecurringDialog {
         invRdRateFld.setPromptText("Annual interest rate, e.g. 7.0");
         invRdRateFld.setMaxWidth(Double.MAX_VALUE);
 
-        DatePicker invRdMaturityPicker = new DatePicker();
+        DatePicker invRdMaturityPicker = UiUtils.createDatePicker(null);
         invRdMaturityPicker.setPromptText("Maturity date");
-        invRdMaturityPicker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.styleOnShow(invRdMaturityPicker);
-        UiUtils.applySmartDateConverter(invRdMaturityPicker);
 
         TextField invRdOpeningBalFld = new TextField();
         invRdOpeningBalFld.setPromptText("Total instalments paid before setup (optional)");
@@ -303,21 +286,21 @@ public class AddEditRecurringDialog {
             GridPane dg = miniGrid();
             switch (sel.getInvestmentType()) {
                 case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
-                    formRow(dg, 0, "Scheme / Script", invSchemeFld);
-                    formRow(dg, 1, "Units / NAV",     invUnitsFld);
+                    UiUtils.addFormRow(dg, 0, "Scheme / Script", invSchemeFld);
+                    UiUtils.addFormRow(dg, 1, "Units / NAV",     invUnitsFld);
                 }
                 case FIXED_DEPOSIT -> {
-                    formRow(dg, 0, "FD Reference No",   invFdRefFld);
-                    formRow(dg, 1, "Interest Rate (%)", invFdRateFld);
-                    formRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
-                    formRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
+                    UiUtils.addFormRow(dg, 0, "FD Reference No",   invFdRefFld);
+                    UiUtils.addFormRow(dg, 1, "Interest Rate (%)", invFdRateFld);
+                    UiUtils.addFormRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
+                    UiUtils.addFormRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
                 }
                 case RECURRING_DEPOSIT -> {
-                    formRow(dg, 0, "RD Reference No*",   invRdRefFld);
-                    formRow(dg, 1, "Interest Rate (%)",  invRdRateFld);
-                    formRow(dg, 2, "Maturity Date",      invRdMaturityPicker);
-                    formRow(dg, 3, "Opening Balance (₹)", invRdOpeningBalFld);
-                    formRow(dg, 4, "Maturity Amount (₹)", invRdMaturityAmtFld);
+                    UiUtils.addFormRow(dg, 0, "RD Reference No*",   invRdRefFld);
+                    UiUtils.addFormRow(dg, 1, "Interest Rate (%)",  invRdRateFld);
+                    UiUtils.addFormRow(dg, 2, "Maturity Date",      invRdMaturityPicker);
+                    UiUtils.addFormRow(dg, 3, "Opening Balance (₹)", invRdOpeningBalFld);
+                    UiUtils.addFormRow(dg, 4, "Maturity Amount (₹)", invRdMaturityAmtFld);
                 }
                 case PROVIDENT_FUND -> { /* no additional fields */ }
             }
@@ -377,14 +360,14 @@ public class AddEditRecurringDialog {
 
             GridPane tg = miniGrid();
             if (t == Transaction.Type.TRANSFER) {
-                formRow(tg, 0, "To Account", transferToCb);
+                UiUtils.addFormRow(tg, 0, "To Account", transferToCb);
             } else if (t == Transaction.Type.INVESTMENT) {
-                formRow(tg, 0, "To Account",      invDestCb);
-                formRow(tg, 1, "Investment Type", invTypeLbl);
+                UiUtils.addFormRow(tg, 0, "To Account",      invDestCb);
+                UiUtils.addFormRow(tg, 1, "Investment Type", invTypeLbl);
             } else if (t == Transaction.Type.CC_PAYMENT) {
-                formRow(tg, 0, "To Account", ccpCardCb);
+                UiUtils.addFormRow(tg, 0, "To Account", ccpCardCb);
             } else {
-                formRow(tg, 0, "To Account", loanToCb);
+                UiUtils.addFormRow(tg, 0, "To Account", loanToCb);
             }
             toAccountSection.getChildren().add(tg);
             if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
@@ -492,19 +475,19 @@ public class AddEditRecurringDialog {
 
         // ── Layout ────────────────────────────────────────────────────────────
         int row = 0;
-        formRow(g, row++, "Description*",     descFld);
-        formRow(g, row++, "Type",             typeCb);
-        formRow(g, row++, "Frequency",        freqCb);
-        formRow(g, row++, "Due Day of Month", daySpinner);
-        formRow(g, row++, "Start Date",       startPicker);
-        formRow(g, row++, "Amount (₹)",       amtFld);
+        UiUtils.addFormRow(g, row++, "Description*",     descFld);
+        UiUtils.addFormRow(g, row++, "Type",             typeCb);
+        UiUtils.addFormRow(g, row++, "Frequency",        freqCb);
+        UiUtils.addFormRow(g, row++, "Due Day of Month", daySpinner);
+        UiUtils.addFormRow(g, row++, "Start Date",       startPicker);
+        UiUtils.addFormRow(g, row++, "Amount (₹)",       amtFld);
         VBox numPaymentsBox = new VBox(4, numPaymentsFld, lastPaymentHint);
-        formRow(g, row++, "No. of Payments", numPaymentsBox);
+        UiUtils.addFormRow(g, row++, "No. of Payments", numPaymentsBox);
         g.add(accountLbl, 0, row); g.add(accountCb, 1, row); GridPane.setFillWidth(accountCb, true); row++;
         g.add(toAccountSection, 0, row++, 2, 1);
         g.add(invDynamicBox,    0, row++, 2, 1);
-        formRow(g, row++, "Category",         catCb);
-        formRow(g, row++, "Sub-category",     subCatCb);
+        UiUtils.addFormRow(g, row++, "Category",         catCb);
+        UiUtils.addFormRow(g, row++, "Sub-category",     subCatCb);
         g.add(autoRecordBox,    0, row,   2, 1);
 
         ScrollPane sp = new ScrollPane(g);
@@ -513,8 +496,7 @@ public class AddEditRecurringDialog {
         sp.getStyleClass().add("scroll-transparent");
         dlg.getDialogPane().setContent(sp);
 
-        ButtonType saveBtn = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, ButtonType.CANCEL);
+        ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
 
         // Validate on Save click — consume event to keep dialog open on failure
         Platform.runLater(() -> {
@@ -719,14 +701,6 @@ public class AddEditRecurringDialog {
         try { return Double.parseDouble(s.trim()); } catch (NumberFormatException e) { return null; }
     }
 
-    private static void formRow(GridPane g, int rowIdx, String labelText, Node control) {
-        Label lbl = new Label(labelText);
-        lbl.getStyleClass().add("form-label");
-        lbl.setMinWidth(145);
-        g.add(lbl,     0, rowIdx);
-        g.add(control, 1, rowIdx);
-        GridPane.setFillWidth(control, true);
-    }
 
     private static String formatFrequency(RecurringTransaction.Frequency f) {
         if (f == null) return "—";

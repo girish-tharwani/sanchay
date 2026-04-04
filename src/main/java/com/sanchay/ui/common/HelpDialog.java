@@ -21,10 +21,7 @@ public class HelpDialog {
     public void show() {
         Dialog<Void> dlg = new Dialog<>();
         dlg.initOwner(owner);
-        dlg.setTitle("Help — Sanchay");
-        dlg.getDialogPane().setPrefWidth(460);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "?", "Help — Sanchay");
+        UiUtils.initDialog(dlg, "Help — Sanchay", "?", 460);
 
         // Body
         VBox body = new VBox();

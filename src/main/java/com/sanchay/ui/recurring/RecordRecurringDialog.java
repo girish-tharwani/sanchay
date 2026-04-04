@@ -26,34 +26,22 @@ public class RecordRecurringDialog {
 
     public void show(Runnable onComplete, Runnable postRefresh) {
         Dialog<Boolean> dlg = new Dialog<>();
-        dlg.setTitle("Record — " + r.getDescription());
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(420);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "↺", "Record — " + r.getDescription());
+        UiUtils.initDialog(dlg, "Record — " + r.getDescription(), "↺", 420);
 
         Label subtitle = new Label("Confirm the details for this occurrence:");
         subtitle.getStyleClass().add("dialog-subtitle");
         subtitle.setWrapText(true);
 
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(10);
+        GridPane g = UiUtils.buildFormGrid(140);
         g.setPadding(new Insets(12, 14, 12, 14));
         g.getStyleClass().add("info-box");
-        ColumnConstraints c1 = new ColumnConstraints(140);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
         int row = 0;
 
         addDialogLabel(g, "Transaction:", r.getDescription(), row++);
         addDialogField(g, "Type:",        UiUtils.typeBadge(r.getTransactionType()), row++);
 
-        DatePicker datePicker = new DatePicker(LocalDate.now());
-        datePicker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.applySmartDateConverter(datePicker);
-        UiUtils.styleOnShow(datePicker);
+        DatePicker datePicker = UiUtils.createDatePicker(LocalDate.now());
         addDialogField(g, "Date:", datePicker, row++);
 
         TextField amtFld = new TextField(
@@ -179,11 +167,7 @@ public class RecordRecurringDialog {
 
     private static void showStyledError(String message) {
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle("Validation Error");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "⚠", "Validation Error");
+        UiUtils.initDialog(dlg, "Validation Error", "⚠", 380);
 
         VBox body = new VBox(10);
         body.setPadding(new Insets(16));

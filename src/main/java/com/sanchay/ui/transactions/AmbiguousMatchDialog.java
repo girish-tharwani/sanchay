@@ -26,11 +26,7 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
      * @param candidates two or more manual transactions that could be the same
      */
     public AmbiguousMatchDialog(Transaction imported, List<Transaction> candidates) {
-        setTitle("Ambiguous Match");
-        setHeaderText(null);
-        getDialogPane().setPrefWidth(560);
-        UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "?", "Ambiguous Match");
+        UiUtils.initDialog(this, "Ambiguous Match", "?", 560);
 
         DataStore ds = DataStore.getInstance();
 

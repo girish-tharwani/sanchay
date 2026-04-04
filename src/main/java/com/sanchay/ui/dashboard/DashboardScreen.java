@@ -134,7 +134,7 @@ public class DashboardScreen {
 
         String ccStripe = ccOutstanding > 0 ? "#e05555" : "-brand-light";
         String ccValue  = ccOutstanding > 0
-                ? MoneyFormatter.symbol() + "−" + MoneyFormatter.format(ccOutstanding).substring(MoneyFormatter.symbol().length())
+                ? MoneyFormatter.symbol() + MoneyFormatter.format(ccOutstanding).substring(MoneyFormatter.symbol().length())
                 : MoneyFormatter.format(0);
 
         HBox row = new HBox(14);

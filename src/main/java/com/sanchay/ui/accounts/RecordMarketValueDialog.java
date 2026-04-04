@@ -18,20 +18,12 @@ import java.time.LocalDate;
 public class RecordMarketValueDialog extends Dialog<MarketValueEntry> {
 
     public RecordMarketValueDialog(InvestmentAccount account) {
-        setTitle("Record Market Value");
-        setHeaderText(null);
-        getDialogPane().setPrefWidth(440);
-        getDialogPane().getStyleClass().add("dialog-pane");
-        UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "📈", "Record Market Value");
+        UiUtils.initDialog(this, "Record Market Value", "📈", 440);
 
         DataStore ds = DataStore.getInstance();
 
         // ── Fields ────────────────────────────────────────────────────────────
-        DatePicker valueDatePicker = new DatePicker(LocalDate.now());
-        valueDatePicker.setMaxWidth(Double.MAX_VALUE);
-        UiUtils.applySmartDateConverter(valueDatePicker);
-        UiUtils.styleOnShow(valueDatePicker);
+        DatePicker valueDatePicker = UiUtils.createDatePicker(LocalDate.now());
 
         TextField marketValueFld = new TextField();
         marketValueFld.setPromptText("e.g. 1,50,000");
@@ -51,24 +43,18 @@ public class RecordMarketValueDialog extends Dialog<MarketValueEntry> {
         refreshInvested.run();
 
         // ── Layout ────────────────────────────────────────────────────────────
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(12);
+        GridPane g = UiUtils.buildFormGrid(140);
+        g.setVgap(12);
         g.setPadding(new Insets(20));
-        ColumnConstraints c1 = new ColumnConstraints(140);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
         int row = 0;
-        addRow(g, row++, "Value Date*",     valueDatePicker);
-        addRow(g, row++, "Market Value (" + MoneyFormatter.symbol() + ")*", marketValueFld);
+        UiUtils.addFormRow(g, row++, "Value Date*",     valueDatePicker);
+        UiUtils.addFormRow(g, row++, "Market Value (" + MoneyFormatter.symbol() + ")*", marketValueFld);
         g.add(investedLbl, 1, row);
 
         getDialogPane().setContent(g);
 
-        ButtonType saveBtn   = new ButtonType("Save",   ButtonBar.ButtonData.OK_DONE);
-        ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-        getDialogPane().getButtonTypes().addAll(saveBtn, cancelBtn);
+        ButtonType saveBtn = UiUtils.addSaveCancel(getDialogPane());
 
         // Validate on save
         javafx.application.Platform.runLater(() -> {
@@ -94,14 +80,6 @@ public class RecordMarketValueDialog extends Dialog<MarketValueEntry> {
             long invested  = ds.getInvestedPaiseAsOf(account, date);
             return new MarketValueEntry(account.getId(), date, mv, invested);
         });
-    }
-
-    private void addRow(GridPane g, int row, String label, javafx.scene.Node field) {
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("form-label");
-        g.add(lbl, 0, row);
-        g.add(field, 1, row);
-        GridPane.setFillWidth(field, true);
     }
 
     private long parseAmount(String s) {

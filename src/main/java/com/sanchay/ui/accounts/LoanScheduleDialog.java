@@ -38,13 +38,9 @@ public class LoanScheduleDialog {
         DataStore ds = DataStore.getInstance();
 
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle("Repayment Schedule");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(820);
+        UiUtils.initDialog(dlg, "Repayment Schedule — " + loan.getName(), "≡", 820);
         dlg.getDialogPane().setPrefHeight(640);
         dlg.initModality(Modality.APPLICATION_MODAL);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "≡", "Repayment Schedule — " + loan.getName());
 
         // ── Table ──────────────────────────────────────────────────────────────
         TableView<AmortizationEntry> table = new TableView<>();

@@ -131,12 +131,8 @@ public class TransactionDialog extends Dialog<Transaction> {
     // ─────────────────────────────────────────────────────────────────────────
 
     public TransactionDialog() {
-        setTitle("New Transaction");
-        setHeaderText(null);
-        getDialogPane().setPrefWidth(560);
         getDialogPane().getStyleClass().add("dialog-pane");
-        UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "+", "New Transaction");
+        UiUtils.initDialog(this, "New Transaction", "+", 560);
 
         // Shared fields
         sharedDate  = new DatePicker(LocalDate.now());
@@ -2047,11 +2043,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private void showError(String msg) {
         Dialog<Void> dlg = new Dialog<>();
-        dlg.setTitle("Validation Error");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(380);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "⚠", "Validation Error");
+        UiUtils.initDialog(dlg, "Validation Error", "⚠", 380);
 
         VBox body = new VBox(10);
         body.setPadding(new Insets(16));

@@ -24,11 +24,7 @@ public class SkipRecurringDialog {
 
     public void show(Runnable onComplete, Runnable postRefresh) {
         Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.setTitle("Skip Occurrence");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(400);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "↷", "Skip Occurrence");
+        UiUtils.initDialog(dlg, "Skip Occurrence", "↷", 400);
 
         VBox body = new VBox(14);
         body.setPadding(new Insets(16));

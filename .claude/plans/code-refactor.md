@@ -1,449 +1,170 @@
-# Sanchay — Code Refactoring Plan
+# Code Refactoring Plan — Sanchay JavaFX Application
 
-## Context
-
-The Sanchay codebase has a sound layered architecture (model → service → UI) but has accumulated
-structural debt through organic growth: several screen classes have become very large by hosting
-inline dialog code, a few utility methods are defined in the wrong class causing spurious
-cross-package dependencies, and two "Get Started" guide blocks are copy-pasted rather than shared.
-
-This plan addresses those issues in five phases — auditing first, then removing dead code,
-extracting duplicated code, standardising dialog implementation (the largest chunk), and finally
-fixing cross-class wiring and doing a cleanup pass. No behaviour changes are intended; every step
-must leave the app compiling and running correctly.
-
-**Constraints**
-- No FXML (all UI is programmatic — keep it that way)
-- No new Maven dependencies
-- No DI framework
-- CSS is untouched
-- Existing dialog pattern: `Dialog<T>` with programmatic UI construction → continue this pattern
+**Prepared:** 2026-04-04  
+**Scope:** Structural cleanup only — no behavior changes, no visual/CSS changes  
+**Approach:** Phases from lowest-risk to highest-risk; compilable after each phase
 
 ---
 
-## Phase 0 — Audit Summary (complete — no code changes needed)
+## Audit Summary
 
-Key findings:
+The codebase has a solid three-layer architecture (model / service / ui) and the service layer is clean (no JavaFX dependencies). The main structural debt is concentrated in the UI layer:
 
-| File | Lines | Primary Issue |
-|------|-------|---------------|
-| `ui/accounts/AccountsScreen.java` | 1,648 | Massive: 3 concerns; static `lastExportDir`; `typeBadge()` called by other packages |
-| `ui/transactions/TransactionDialog.java` | 1,431 | Massive: 8 type panels, 40+ fields, repeated wireCatSubCat pattern ×5 |
-| `ui/recurring/RecurringScreen.java` | 867 | Inline add/edit form (~480 lines) |
-| `ui/categories/CategoriesScreen.java` | 836 | Inline `styledInput()` dialog builder |
-| `ui/MainWindow.java` | 500+ | `recordRecurring()` + `skipRecurring()` ~150 lines inline |
-| `service/DataStore.java` | 832 | God object: queries, mutations, rules, calculations all mixed |
-| `ui/HelpDialog.java` | 137 | `buildSteps()` duplicates `DashboardScreen.buildGetStartedCard()` |
-| `ui/dashboard/DashboardScreen.java` | 373 | `buildGetStartedCard()` duplicates HelpDialog step code |
+- **~700 LOC** of dialog code embedded inline in parent screen classes (CategoriesScreen, TransactionsScreen, FinancialPlanningScreen)
+- **~450–600 LOC** of repeated boilerplate across 20+ dialog classes (GridPane setup, dialog initialization, date pickers, amount fields, button/result-converter pattern)
+- **Two monolithic dialog classes**: TransactionDialog (2074 LOC), EarningsDialog (822 LOC)
+- **MainWindow god-object** wiring: screens communicate through static mutable fields on MainWindow; no event/callback abstraction
+- **Small amount of dead/stub code** (~50–100 LOC)
 
-**Dialog hosting inconsistencies**
+---
 
-| Trigger | Dialog | Hosting |
-|---------|--------|---------|
-| Dashboard / RecurringScreen | Record recurring | **INLINE** in `MainWindow.java` (~110 lines) |
-| Dashboard / RecurringScreen | Skip recurring | **INLINE** in `MainWindow.java` (~40 lines) |
-| AccountsScreen | Add / edit account | **INLINE** in `AccountsScreen.java` (~350 lines) |
-| RecurringScreen | Add / edit schedule | **INLINE** in `RecurringScreen.java` (~480 lines) |
-| CategoriesScreen | Single-field input | **INLINE** via `styledInput()` (~40 lines) |
-| AccountsScreen (import) | Ambiguous match, ImportMapping, RecurringMatch | Separate class ✓ |
-| TransactionDialog, EarningsDialog | All transaction / earnings types | Separate class ✓ |
+## Phase 0 — Full Audit (COMPLETE)
 
-**Cross-class wiring issues**
-
-1. `MainWindow` calls `AccountsScreen.typeBadge()` — static UI utility method in the wrong class.
-2. `CategoriesScreen` also calls `AccountsScreen.typeBadge()` — same problem.
-3. `MainWindow.recordRecurring()` is called by both `DashboardScreen` and `RecurringScreen`; the
-   dialog should not live in the navigation shell.
-
-**Duplication clusters**
-
-1. 3-step "Get Started" guide: ~28 lines duplicated between `HelpDialog` and `DashboardScreen`.
-2. `wireCatSubCat` + `UiUtils.wireAutoComplete` triple-call repeated 5× in `TransactionDialog`.
-3. Private `makeAutoComplete()` wrapper in `TransactionDialog` is a 1-line delegate to
-   `UiUtils.wireAutoComplete()` — needless indirection.
-
-**Dead code**: None significant detected.
+Findings have been catalogued above. No code changes in this phase.
 
 ---
 
 ## Phase 1 — Dead Code Removal
+*Risk: Very Low | Impact: Low | Prerequisite: None*
 
-### Step 1.1 — Remove `makeAutoComplete` wrapper in TransactionDialog
+Remove definitively unused code that cannot affect behavior.
 
-**What:** Delete the private `makeAutoComplete(ComboBox<Category>, List<Category>)` method in
-`TransactionDialog` (it is a 1-liner delegating to `UiUtils.wireAutoComplete`). Replace all 10
-call sites with direct calls to `UiUtils.wireAutoComplete(combo, masterList)`.
+1. ~~**Remove `Transaction.groupTransactionId`**~~ — **RETRACTED.** This field is actively used to link the three transactions in a REDEEM group (REDEEM + GAIN/LOSE + bank principal). `DataStore.deleteTransaction()` uses it to cascade-delete the whole group; `TransactionDialog` sets and reads it for edit/prefill; `TransactionsScreen` uses it to resolve counterpart account names. Do not remove.
+2. ~~**Remove `RecurringTransaction.persistenceSaveHook`**~~ — **RETRACTED.** `markRecorded()` calls this hook to trigger a save without holding a `DataStore` reference. `markRecorded()` is called from `RecordRecurringDialog`, `SkipRecurringDialog`, `DataStore.autoRecordDueRecurring()`, and `ImportService.reconcileWithRecurring()`. The hook is an intentional design decoupling pattern.
+3. ~~**Remove `LoanAccount.defaultPrepaymentMode`**~~ — **RETRACTED.** `TransactionDialog` reads it to skip the prepayment-mode prompt when the user has already chosen a preference, and writes it when the user checks "Remember my choice". It is user-preference persistence.
+4. ~~**Remove `EarningSource.computeMonthlyInHandPaise()`**~~ — **RETRACTED.** `FamilyMember.computeInHandPaise()` calls it via a stream to sum total household monthly in-hand income. It is not superseded.
 
-**Why:** Needless indirection; makes the code at each call site read as if a local (non-standard)
-thing is happening when it is just the shared wire method.
-
-**Files:** `ui/transactions/TransactionDialog.java`
-**Risk:** None — mechanical substitution.
-**After:** App compiles and runs correctly.
+> **Phase 1 result: No dead code found that is safe to remove.** The audit tool produced false positives on all four candidates. Phase 1 is effectively a no-op — proceed directly to Phase 2.
 
 ---
 
-## Phase 2 — Extract Duplicated Code
+## Phase 2 — Extract Shared UI Boilerplate to Utilities
+*Risk: Low | Impact: High | Prerequisite: Phase 1 complete*
 
-### Step 2.1 — Move `typeBadge()` from AccountsScreen to UiUtils
+Add utility methods to `UiUtils` (already exists at ~515 LOC) or a new `DialogUtils` class to eliminate the most widespread copy-paste patterns. Each extraction step: add the utility method → replace all call sites → confirm compilation.
 
-**What:** `AccountsScreen.java` defines:
-```java
-public static Label typeBadge(Transaction.Type type) {
-    Label lbl = new Label(UiUtils.badgeText(type));
-    lbl.getStyleClass().addAll(UiUtils.badgeStyle(type), "badge-sm");
-    return lbl;
-}
-```
-Add this identical method as `public static` in `UiUtils.java`. Update every call site:
-- `MainWindow.java` — `AccountsScreen.typeBadge(...)` → `UiUtils.typeBadge(...)`
-- `CategoriesScreen.java` — same replacement
-- `AccountsScreen.java` internal usage — same replacement
-
-Then delete the method from `AccountsScreen`. Remove `import com.sanchay.ui.accounts.AccountsScreen`
-from `MainWindow` and `CategoriesScreen` (now unused).
-
-**Why:** `AccountsScreen` is a screen, not a utility library. Having other packages import it just
-for a badge factory creates spurious coupling. `UiUtils` already owns `badgeText()` and `badgeStyle()`.
-
-**Files:** `ui/UiUtils.java`, `ui/MainWindow.java`, `ui/categories/CategoriesScreen.java`,
-`ui/accounts/AccountsScreen.java`
-**Risk:** Verify CSS class `"badge-sm"` exists in `app.css` (it must already exist since the code
-currently works — this is just a sanity check).
-**After:** App compiles and runs correctly.
+6. **`UiUtils.createStyledDialog(String title, String iconCode)`** — extract the 7-line dialog initialization block (title, setHeaderText(null), setPrefWidth, applyStylesheet, setDialogHeader) that appears in every dialog class (~25 instances).
+7. **`UiUtils.addSaveCancel(DialogPane pane)` → returns the Save ButtonType** — extract the 4-line Button/ButtonType + addAll pattern repeated in every dialog.
+8. **`UiUtils.createStyledDatePicker()`** — extract the 3-line DatePicker + applySmartDateConverter + styleOnShow pattern repeated in 20+ dialogs.
+9. **`UiUtils.createAmountField(String promptText)` → returns TextField** — extract the amount-field setup pattern (prompt, numeric-only listener, currency symbol) duplicated across 10+ dialogs.
+10. **`UiUtils.buildFormGrid()`** — extract the standard GridPane construction (hgap=12, vgap=10, two-column ColumnConstraints) duplicated in every form-based dialog.
+11. **`UiUtils.populateAccountCombo(ComboBox<Account> cb, Predicate<Account> filter)`** — extract account-list population pattern duplicated across TransactionDialog, RecordRecurringDialog, AddEditRecurringDialog, and AccountDialog.
+12. **`UiUtils.wireCategorySubCategoryCombo(ComboBox<Category> catCb, ComboBox<Category> subCatCb)`** — extract the category→sub-category listener pattern that appears in TransactionDialog, EarningsDialog, and CategoriesScreen. **Caveat:** the CategoriesScreen version has extra filtering logic (excludes source category, only shows subs of selected parent) while TransactionDialog filters by transaction type. Verify during implementation that a single method with parameters can handle all cases cleanly; if not, extract only the TransactionDialog/EarningsDialog variant.
+13. **`UiUtils.addValidationFilter(Dialog<?> dlg, ButtonType btn, BooleanSupplier isValid, String errorMessage)`** — extract the Platform.runLater → lookupButton → addEventFilter(ACTION) validation pattern repeated in 3–4 dialogs.
 
 ---
 
-### Step 2.2 — Unify "Get Started" guide steps via UiUtils
+## Phase 3 — Extract Inline Dialogs to Own Classes
+*Risk: Medium | Impact: Medium | Prerequisite: Phase 2 complete (utility methods available)*
 
-**What:** Add `public static VBox buildGetStartedSteps()` to `UiUtils.java` returning the three
-step rows (HBox each containing icon, title, nav hint). The method uses the full (HelpDialog)
-step descriptions.
+For each inline dialog, create a dedicated class, move all dialog code into it, and replace the inline block in the parent screen with: instantiate → pass data via constructor → showAndWait() → handle result.
 
-Add `static Text navArrow()` to `UiUtils.java` as well (both `HelpDialog.arrow()` and
-`DashboardScreen.navArrow()` are identical 1-liners).
+14. ~~**Extract `CategoriesScreen` inline "Edit Category" dialog**~~ — **RETRACTED.** There is no inline Dialog<> for edit/rename. Renames go through `SingleInputDialog.show()`, which is already the correct pattern. No extraction needed.
+15. ~~**Extract `CategoriesScreen` inline "Delete Category" dialog**~~ — **RETRACTED.** Deletes use `Alert.CONFIRMATION`, which is already the correct pattern for simple confirmations. No extraction needed.
+16. **Extract `CategoriesScreen.showReassignDialog()`** → `ReassignCategoryDialog` class (~105 LOC of actual Dialog<> code). Takes source category, type, usageCount, confirmLabel, and an `onComplete` Runnable via constructor. Returns Boolean result via `setResultConverter`.
+17. **Extract `CategoriesScreen.showMoveSubCategoryDialog()`** → `MoveSubCategoryDialog` class (~70 LOC). Takes sub-category, currentParent, and type via constructor. Parent caller handles the `ds.moveSubCategoryParent()` call after `showAndWait()`.
+18. **Extract `CategoriesScreen.showTransactionsForCategory()`** → `CategoryTransactionsDialog` class (~130 LOC). Currently inline in CategoriesScreen; takes the Category and the list of category IDs via constructor. Opens a read/edit transaction list. *(This dialog was missed by the initial audit.)*
+19. **Extract `TransactionsScreen.showImportCompleteDialog()`** → `ImportCompleteDialog` class (~75 LOC). Takes `ImportService.ImportResult` via constructor; read-only summary display.
+20. **FinancialPlanningScreen inline profile-incomplete dialog** — do NOT simplify to `UiUtils.showError()`. The dialog calls `navigateToProfile.run()` after OK, which `showError()` cannot do. Leave the dialog inline but move it into a private `showProfileIncompleteError()` method with a clear comment. No class extraction warranted.
+21. **Extract `CashFlowForecastTab` override-edit inline `TextInputDialog`** → investigate and decide during this step whether a `UiUtils.showInputDialog()` helper or a small `EditOverrideDialog` class is appropriate.
 
-Update `HelpDialog.show()` to call `UiUtils.buildGetStartedSteps()` and delete the private methods
-`buildSteps()`, `stepRow()`, `divider()`, `arrow()` from `HelpDialog`.
+*(Step numbers have shifted — steps 14 and 15 retracted; a new step 18 added for the missed dialog.)*
 
-Update `DashboardScreen.buildGetStartedCard()` to call `UiUtils.buildGetStartedSteps()` and
-delete `navArrow()` from `DashboardScreen`.
-
-**Design decision:** Dashboard currently shows slightly shorter step descriptions than HelpDialog.
-Unify to the HelpDialog (full) descriptions — they remain concise and fit the welcome card.
-
-**Why:** The 3-step setup guide is domain knowledge; duplicating it means any edit must happen in
-two places.
-
-**Files:** `ui/UiUtils.java`, `ui/HelpDialog.java`, `ui/dashboard/DashboardScreen.java`
-**Risk:** Low — layout difference: HelpDialog adds `Region` separators between steps; DashboardScreen
-uses VBox spacing. The shared method returns only step rows; callers add separators themselves.
-**After:** App compiles and runs. Both Help dialog and Dashboard welcome banner show the same steps.
+*Pattern to follow for each extraction:*
+- New class receives all required data via constructor (no reference back to the parent screen)
+- Data flows out via `setResultConverter()` returning a typed result object, or via a getter after `showAndWait()`
+- Dialog must call `UiUtils.applyStylesheet()` in its constructor
+- Parent screen handles all model mutations in response to the returned result
 
 ---
 
-## Phase 3 — Extract Inline Dialogs
+## Phase 4 — Reduce Monolithic Dialog Classes
+*Risk: Medium-High | Impact: Medium | Prerequisite: Phase 3 complete*
 
-All five extractions follow the same pattern as the existing `AmbiguousMatchDialog`,
-`ImportMappingDialog`, and `RecurringMatchDialog`: a standalone class, `Dialog<T>` or a static
-`show()` method, programmatic UI construction, no back-reference to the parent screen.
+The two oversized dialogs are candidates for decomposition into sub-components.
 
----
+21. **Split `TransactionDialog` (2074 LOC) by type group.** The type-dropdown currently shows 10+ types with a large conditional visibility block. Proposed approach:
+    - Keep `TransactionDialog` as the top-level coordinator (type selector + shared fields)
+    - Extract each type-specific sub-form panel into a private inner class or a package-private `*Panel` class: `ExpenseIncomePanel`, `TransferPanel`, `InvestmentPanel`, `LoanPaymentPanel`, `CCPaymentPanel`
+    - `TransactionDialog` swaps the active panel when the type dropdown changes
+    - This is a pure refactoring: same fields, same validation, same save path — just reorganized
 
-### Step 3.1 — Extract `RecordRecurringDialog` from MainWindow
+22. **Simplify `EarningsDialog` (822 LOC).** The SIMPLE/SALARY toggle and nested investment-account creation are the main complexity drivers:
+    - Extract the PF account selection inner flow into a private helper method or a small `SelectPFAccountDialog`
+    - Extract the SALARY deduction table into a `SalaryDeductionPanel` private inner class
+    - Keep `EarningsDialog` as the coordinator
 
-**What:** Create `ui/recurring/RecordRecurringDialog.java` in package `com.sanchay.ui.recurring`.
-
-Move all dialog code currently in `MainWindow.recordRecurring()` (~110 lines) into the new class.
-Constructor receives `RecurringTransaction r`. A `show(Runnable onComplete, Runnable postRefresh)`
-method builds and shows the dialog, calls `DataStore` directly, invokes both runnables on success.
-
-The three private helpers used exclusively by this method — `showStyledError()`, `addDialogLabel()`,
-`addDialogField()` — move into the new class as private static methods. After Step 2.1 the
-`UiUtils.typeBadge()` call in this dialog resolves correctly.
-
-Update `MainWindow.recordRecurring(RecurringTransaction, Runnable)` to a 2-line delegation:
-```java
-public void recordRecurring(RecurringTransaction r, Runnable onComplete) {
-    new RecordRecurringDialog(r).show(onComplete, this::refreshDashboard);
-}
-```
-
-**Why:** Navigation shell code should not contain transaction-recording UI logic. After extraction,
-any change to the record dialog is isolated to `RecordRecurringDialog.java`.
-
-**Files:** `ui/recurring/RecordRecurringDialog.java` (NEW), `ui/MainWindow.java`
-**Risk:** Pass `this::refreshDashboard` as `Runnable` so the dialog has no MainWindow import.
-**After:** Record button on Dashboard and RecurringScreen works correctly.
+*Note: Both steps in this phase require careful testing — the dialogs contain dense business logic. Proceed only with user sign-off.*
 
 ---
 
-### Step 3.2 — Extract `SkipRecurringDialog` from MainWindow
+## Phase 5 — Fix Cross-Class Wiring in MainWindow
+*Risk: High | Impact: Medium | Prerequisite: Phase 3 complete*
 
-**What:** Create `ui/recurring/SkipRecurringDialog.java`. Move `MainWindow.skipRecurring()` body
-(~40 lines) into the new class following the same pattern as Step 3.1.
+Address the two anti-pattern fields on `MainWindow` that couple `AccountsScreen` to the FAB behavior.
 
-Update MainWindow:
-```java
-public void skipRecurring(RecurringTransaction r, Runnable onComplete) {
-    new SkipRecurringDialog(r).show(onComplete, this::refreshDashboard);
-}
-```
+23. **Fix stale `postTransactionCallback` / `transactionContextAccount` in `MainWindow`.** `AccountsScreen.buildList()` already clears both fields (lines 48–49), but they are NOT cleared when the user navigates to any other screen (Dashboard, Recurring, etc.). If the FAB is clicked after navigating away from a transaction list, it still uses the old account context and callback. **Fix:** at the top of `navigateTo()`, clear both fields unconditionally before switching screens. This is a 2-line change, not a new interface — the existing `Runnable` / `Account` types are already correct. No new class or interface is needed.
 
-After this step the private helpers `showStyledError()`, `addDialogLabel()`, `addDialogField()`
-have no remaining callers in `MainWindow`. Delete them from `MainWindow`.
+24. **Decouple `SettingsScreen` → `MainWindow`.** `SettingsScreen` currently holds a direct `MainWindow` reference and calls `mainWindow.reloadDataFolder(newPath, prefs)`. Replace the `MainWindow` field with a `BiConsumer<String, PreferencesSetupDialog.Result>` callback passed into the constructor. `MainWindow` provides the lambda (calling its own `reloadDataFolder`); `SettingsScreen` calls the callback. **Note:** a plain `Runnable` will not work here — both `newPath` (String) and `prefs` (`PreferencesSetupDialog.Result`, which can be null) must be passed through the callback.
 
-**Why:** Consistent with Step 3.1.
-
-**Files:** `ui/recurring/SkipRecurringDialog.java` (NEW), `ui/MainWindow.java`
-**Risk:** None — skip logic is self-contained.
-**After:** Skip button works correctly. `MainWindow.java` no longer contains any dialog-building code.
+*Note: This phase does not introduce an event bus or DI framework — only simple field clearing and a single callback replacement.*
 
 ---
 
-### Step 3.3 — Extract `AccountDialog` from AccountsScreen
+## Phase 6 — Final Cleanup and Consistency Pass
+*Risk: Very Low | Impact: Low | Prerequisite: All prior phases complete*
 
-**What:** Create `ui/accounts/AccountDialog.java` in package `com.sanchay.ui.accounts`.
-
-Move the four inline dialog builders from `AccountsScreen`:
-- `openBankAccountDialog(BankAccount existing)` (~83 lines)
-- `openCreditCardDialog(CreditCardAccount existing)` (~81 lines)
-- `openLoanDialog(LoanAccount existing)` (~101 lines)
-- `openInvestmentDialog(InvestmentAccount existing)` (~58 lines)
-
-Structure as four static factory methods:
-```java
-public class AccountDialog {
-    public static void showForBank(BankAccount existing) { ... }
-    public static void showForCreditCard(CreditCardAccount existing) { ... }
-    public static void showForLoan(LoanAccount existing) { ... }
-    public static void showForInvestment(InvestmentAccount existing) { ... }
-}
-```
-
-Move into `AccountDialog` as private static helpers: `formGrid()`, `scrolled()`, `dialog()`,
-`memberCombo()`, `tf()`, `addRow()`, `nvl()`, plus all the enum parse/format helpers
-(`formatInvestmentType`, `parseInvestmentType`, `formatCardStatus`, `parseCardStatus`,
-`formatLoanType`, `formatLoanStatus`, `parseLoanStatus`, `formatInvestmentStatus`,
-`parseInvestmentStatus`) — **only if** they are exclusively used by the dialog methods.
-
-**Critical checks before moving:**
-- Grep `info()` across `AccountsScreen` — if it is also called from import code, keep it in
-  `AccountsScreen` (or add a 3-line copy in `AccountDialog`).
-- Grep `formatAccountStatus()` — it is used in account cards, so it stays in `AccountsScreen`.
-
-Update the two dispatch methods in `AccountsScreen` to delegate to `AccountDialog`.
-
-**Why:** AccountsScreen currently mixes three concerns: account list display, account details,
-and account CRUD dialogs. The CRUD dialogs are ~350 lines. Extracting them drops AccountsScreen
-from 1,648 to ~1,250 lines.
-
-**Files:** `ui/accounts/AccountDialog.java` (NEW), `ui/accounts/AccountsScreen.java`
-**Risk:** Medium — grep helper method usages carefully before moving.
-**After:** Add and edit account dialogs work for all four account types.
+25. **Standardize access modifiers.** Audit all `public` methods in dialog and screen classes; downgrade to `private` or package-private anything not called from outside its own class.
+26. **Standardize method ordering within files.** Follow: constructors / initialize() → public methods → private helpers → inner classes.
+27. **Clean up comments.** Remove trivial/obvious comments, commented-out code blocks (after confirming with user), and version/changelog references in code comments.
+28. **Verify CSS still applies.** After all structural changes, manually walk through every screen and dialog to confirm visual appearance is unchanged.
 
 ---
 
-### Step 3.4 — Extract `AddEditRecurringDialog` from RecurringScreen
+## Phase 7 — Update CLAUDE.md and README.md
+*Risk: None | Prerequisite: Phase 6 complete*
 
-**What:** Create `ui/recurring/AddEditRecurringDialog.java`. Move
-`RecurringScreen.openRecurringForm(RecurringTransaction existing)` (~480 lines) into the new class.
+29. **Update CLAUDE.md** with:
+    - New dialog utility methods added to UiUtils
+    - New dialog class names and their packages
+    - Updated wiring patterns (callback interface names)
+    - Any new packages added (e.g., `ui.dialog` sub-packages)
 
-```java
-public class AddEditRecurringDialog {
-    public static void show(RecurringTransaction existing) { ... }
-}
-```
-
-Move into the new class as private helpers: `miniGrid()`, `buildInvNotes()`, `appendNote()`,
-`formRow()` — but **only after** confirming they are used exclusively inside `openRecurringForm`.
-`formatFrequency()` and `formatStatus()` are used by the schedule table in `buildView()` — they
-stay in `RecurringScreen`.
-
-Update `RecurringScreen`: replace `openRecurringForm(null)` with `AddEditRecurringDialog.show(null)`,
-and the double-click handler with `AddEditRecurringDialog.show(item)`.
-
-**Why:** RecurringScreen mixes three concerns: pending section, all-schedules table, and the
-full add/edit form. The form is ~480 lines. After extraction RecurringScreen drops from 867 to
-~380 lines.
-
-**Files:** `ui/recurring/AddEditRecurringDialog.java` (NEW), `ui/recurring/RecurringScreen.java`
-**Risk:** Medium — verify helper ownership before moving. The form is self-contained (all
-DataStore/UiUtils calls are via static methods; no callback into RecurringScreen).
-**After:** Adding and editing recurring schedules continues to work.
+30. **Update README.md** with:
+    - Accurate architecture description reflecting refactored structure
+    - Removal of changelog/version references from architecture section
+    - Updated class responsibility table if present
 
 ---
 
-### Step 3.5 — Extract `SingleInputDialog` from CategoriesScreen
+## Recommended Execution Order
 
-**What:** Create `ui/SingleInputDialog.java` in package `com.sanchay.ui`. Move
-`CategoriesScreen.styledInput()` (~40 lines) verbatim:
+| Phase | Steps | Risk | Est. Scope |
+|-------|-------|------|-----------|
+| 1 — Dead Code | 1–5 | Very Low | < 1 hr |
+| 2 — Utility Extraction | 6–13 | Low | 3–4 hrs |
+| 3 — Extract Inline Dialogs | 14–20 | Medium | 3–4 hrs |
+| 4 — Monolithic Dialog Split | 21–22 | Medium-High | 4–6 hrs |
+| 5 — Wiring Fix | 23–24 | High | 2–3 hrs |
+| 6 — Final Cleanup | 25–28 | Very Low | 1–2 hrs |
+| 7 — Docs | 29–30 | None | 1 hr |
 
-```java
-public class SingleInputDialog {
-    public static String show(String title, String labelText,
-                              String subtitle, String initialValue) { ... }
-}
-```
-
-Update the 4 call sites in `CategoriesScreen` to `SingleInputDialog.show(...)` and delete
-the private `styledInput()` method.
-
-**Why:** A single-field styled input dialog is a generic UI pattern with no logical ownership by
-the categories screen.
-
-**Files:** `ui/SingleInputDialog.java` (NEW), `ui/categories/CategoriesScreen.java`
-**Risk:** None — the method has no dependencies beyond `UiUtils` static calls.
-**After:** Category add, rename, subcategory add/rename dialogs all work.
+**Total estimated scope: ~15–20 hrs of implementation work (not including review)**
 
 ---
 
-## Phase 4 — Fix Cross-Class Wiring
+## Files NOT in Scope
 
-### Step 4.1 — Fix `static lastExportDir` in AccountsScreen
-
-**What:** `AccountsScreen` has `private static String lastExportDir = null`. AccountsScreen is
-rebuilt on every Accounts navigation, so the static field currently provides within-session
-directory persistence. The correct fix is to move the field to `MainWindow` as a regular instance
-field (`private String lastAccountExportDir`) with a getter/setter, and have AccountsScreen
-receive/update it via the `MainWindow` reference it already holds for callbacks.
-
-Change the field in `AccountsScreen` to a regular instance field, read/write it through the
-MainWindow accessor, and add the field to MainWindow.
-
-**Files:** `ui/accounts/AccountsScreen.java`, `ui/MainWindow.java`
-**Risk:** Low — behaviour (directory remembered within a session) is preserved.
-**After:** App compiles and runs.
+- All CSS / FXML files (visual appearance must not change)
+- All model classes (clean; no changes needed)
+- All service classes (clean; no changes needed)
+- `module-info.java` (do not touch exports/opens unless a new package genuinely requires it)
 
 ---
 
-### Step 4.2 — Remove stale AccountsScreen imports from MainWindow and CategoriesScreen
+## Key Decisions Requiring User Sign-Off Before Proceeding
 
-**What:** After Step 2.1, neither `MainWindow.java` nor `CategoriesScreen.java` should need to
-import `com.sanchay.ui.accounts.AccountsScreen`. Verify and remove the import from both files.
-
-**Files:** `ui/MainWindow.java`, `ui/categories/CategoriesScreen.java`
-**Risk:** None.
-**After:** No spurious cross-package dependencies remain.
-
----
-
-## Phase 5 — Final Cleanup
-
-### Step 5.1 — Log silent catch blocks in PersistenceService
-
-**What:** Replace the ~8 instances of empty/near-empty `catch` blocks in `PersistenceService.java`
-with `System.err.println("Sanchay: failed to load [file]: " + e.getMessage())`. Do not add stack
-traces for expected malformed-input cases.
-
-**Files:** `service/PersistenceService.java`
-**Risk:** None — output only.
-
----
-
-### Step 5.2 — Consolidate `wireCategory` triple-call pattern in TransactionDialog
-
-**What:** Add a private helper to `TransactionDialog`:
-```java
-private void wireCategory(ComboBox<Category> catCb, List<Category> catMaster,
-                           ComboBox<Category> subCatCb, List<Category> subMaster) {
-    wireCatSubCat(catCb, subCatCb, subMaster);
-    UiUtils.wireAutoComplete(catCb,    catMaster);
-    UiUtils.wireAutoComplete(subCatCb, subMaster);
-}
-```
-Replace the 5 locations where the triple-call pattern appears with `wireCategory(...)`.
-
-**Why:** If wiring logic changes, it must currently be updated in 5 places.
-
-**Files:** `ui/transactions/TransactionDialog.java`
-**Risk:** Low — verify call order is preserved (wireCatSubCat first, then the two wireAutoComplete calls).
-**After:** Category autocomplete and sub-category cascading work correctly.
-
----
-
-### Step 5.3 — Document DataStore concern seams (comment only)
-
-**What:** Add structured comments in `DataStore.java` marking the three separable concerns
-embedded in the 832-line god object:
-- **RuleLearner** — `suggestCategoryForDescription()`, rule learning/application methods
-- **BalanceCalculator** — `getNetWorthPaise()`, `getTotalBankBalancePaise()`, monthly totals
-- **RecurringScheduler** — `getPendingRecurring()`, `autoRecordPending()`
-
-Use the pattern:
-```
-// ── [ConcernName] — candidate for extraction to service/[ClassName].java ──
-```
-
-**Files:** `service/DataStore.java`
-**Risk:** None — comments only.
-
----
-
-## Execution Order & Dependencies
-
-```
-1.1  Remove makeAutoComplete wrapper in TransactionDialog
-  └─► 5.2  Add wireCategory() helper (can follow immediately after 1.1)
-
-2.1  Move typeBadge() to UiUtils; fix 3 call sites
-  └─► 4.2  Remove stale AccountsScreen imports (do immediately after 2.1)
-  └─► 3.1  RecordRecurringDialog (needs typeBadge in UiUtils)
-        └─► 3.2  SkipRecurringDialog (delete shared helpers from MainWindow after 3.2)
-
-2.2  Unify buildGetStartedSteps in UiUtils  [independent of 2.1]
-
-3.3  AccountDialog           [independent of 3.1/3.2]
-3.4  AddEditRecurringDialog  [independent]
-3.5  SingleInputDialog       [independent]
-
-4.1  Fix static lastExportDir  [independent]
-
-5.1  PersistenceService logging  [independent]
-5.3  DataStore comment seams     [independent]
-```
-
-Steps 3.1–3.5 are mutually independent and can be done in parallel.
-
----
-
-## New Files to Create
-
-| New Class | Package | Extracted From |
-|-----------|---------|----------------|
-| `ui/recurring/RecordRecurringDialog.java` | `com.sanchay.ui.recurring` | `MainWindow.recordRecurring()` |
-| `ui/recurring/SkipRecurringDialog.java` | `com.sanchay.ui.recurring` | `MainWindow.skipRecurring()` |
-| `ui/accounts/AccountDialog.java` | `com.sanchay.ui.accounts` | `AccountsScreen` dialog methods |
-| `ui/recurring/AddEditRecurringDialog.java` | `com.sanchay.ui.recurring` | `RecurringScreen.openRecurringForm()` |
-| `ui/SingleInputDialog.java` | `com.sanchay.ui` | `CategoriesScreen.styledInput()` |
-
----
-
-## Critical Files (read before implementing each step)
-
-- `src/main/java/com/sanchay/ui/MainWindow.java`
-- `src/main/java/com/sanchay/ui/accounts/AccountsScreen.java`
-- `src/main/java/com/sanchay/ui/UiUtils.java`
-- `src/main/java/com/sanchay/ui/recurring/RecurringScreen.java`
-- `src/main/java/com/sanchay/ui/transactions/TransactionDialog.java`
-- `src/main/java/com/sanchay/ui/HelpDialog.java`
-- `src/main/java/com/sanchay/ui/dashboard/DashboardScreen.java`
-- `src/main/java/com/sanchay/ui/categories/CategoriesScreen.java`
-
----
-
-## Verification After All Steps
-
-1. **Build:** `bash build.sh compile` — must succeed with zero errors.
-2. **Launch:** `mvn javafx:run` — walk through every screen.
-3. **Checklist:**
-   - [ ] Dashboard welcome banner shows 3 steps
-   - [ ] Help button opens HelpDialog with same 3 steps
-   - [ ] Record and Skip buttons on Dashboard recurring cards work
-   - [ ] Record and Skip buttons on RecurringScreen work
-   - [ ] Add/edit dialogs for all 4 account types work
-   - [ ] Add/edit dialogs for recurring schedules work
-   - [ ] Category add, rename, subcategory add/rename work
-   - [ ] Transaction dialog (expense, income, transfer, redeem, CC payment, loan, investment) — all type panels work
-   - [ ] Transaction type badges appear in RecurringScreen, CategoriesScreen, MainWindow record dialog
-   - [ ] CSV import flow (ImportMappingDialog → AmbiguousMatchDialog / RecurringMatchDialog) works
+- **Phase 4 (TransactionDialog split)** — Decomposition approach: inner classes vs. package-private `*Panel` classes
+- **Phase 4 (EarningsDialog split)** — Decomposition boundary: where exactly to split the SIMPLE/SALARY toggle and PF account flow
+- **Phase 5, Step 24** — Whether to use `BiConsumer<String, PreferencesSetupDialog.Result>` or a named single-method interface for the SettingsScreen callback
+- **Phase 6** — Any commented-out code blocks longer than a few lines: confirm before removing

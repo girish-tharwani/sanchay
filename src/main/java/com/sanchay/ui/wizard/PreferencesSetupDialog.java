@@ -24,11 +24,7 @@ public class PreferencesSetupDialog {
      */
     public static Result show() {
         Dialog<Result> dlg = new Dialog<>();
-        dlg.setTitle("Preferences");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(460);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "⚙", "Set your preferences",
+        UiUtils.initDialog(dlg, "Set your preferences", "⚙", 460,
                 "These can be changed at any time from Settings.");
 
         VBox formRows = new VBox(14);
