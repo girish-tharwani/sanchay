@@ -1448,62 +1448,36 @@
     -fx-font-weight: 700;
     -fx-padding: 5 12 5 12;
 }
-.fp-depletion-warning {
-    -fx-background-color: #fff7ed;
-    -fx-border-color: #fed7aa;
-    -fx-border-radius: 10;
-    -fx-background-radius: 10;
-    -fx-border-width: 1;
-    -fx-text-fill: #92400e;
-    -fx-font-size: 12px;
-    -fx-padding: 10 14 10 14;
-}
+/* Post-retirement cash flow table — depleted balance cells shown in red */
+.post-retirement-cf-depleted { -fx-text-fill: -color-error; -fx-font-weight: 700; }
 
-/* ── Post-retirement bar chart ──────────────────────────────────────────── */
-.fp-bar-year {
+/* Shortfall / excess block on Forecasted Corpus card */
+.fp-corpus-pill {
+    -fx-padding: 18 24 18 24;
+    -fx-background-radius: 12;
+}
+.fp-corpus-pill-shortfall {
+    -fx-background-color: #fee2e2;
+}
+.fp-corpus-pill-excess {
+    -fx-background-color: #dcfce7;
+}
+.fp-last-updated {
     -fx-font-size: 11px;
     -fx-text-fill: -text-muted;
-    -fx-min-width: 36;
-    -fx-max-width: 36;
+    -fx-font-style: italic;
     -fx-alignment: CENTER_RIGHT;
 }
-.fp-bar-track {
-    -fx-background-color: #eef4f5;
-    -fx-background-radius: 4;
-    -fx-min-height: 14;
-    -fx-max-height: 14;
-    -fx-pref-height: 14;
+.fp-corpus-pill-kind {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-muted;
 }
-.fp-bar-fill-healthy {
-    -fx-background-color: linear-gradient(to right, -brand-mid, -brand-light);
-    -fx-background-radius: 4;
+.fp-corpus-pill-shortfall .fp-corpus-pill-kind { -fx-text-fill: #b91c1c; }
+.fp-corpus-pill-excess    .fp-corpus-pill-kind { -fx-text-fill: #15803d; }
+.fp-corpus-pill-amount {
+    -fx-font-size: 26px;
+    -fx-font-weight: 700;
 }
-.fp-bar-fill-low {
-    -fx-background-color: linear-gradient(to right, #f59e0b, #fbbf24);
-    -fx-background-radius: 4;
-}
-.fp-bar-fill-depleted {
-    -fx-background-color: linear-gradient(to right, #ef4444, #f87171);
-    -fx-background-radius: 4;
-}
-.fp-bar-value {
-    -fx-font-size: 11px;
-    -fx-font-weight: 600;
-    -fx-text-fill: -text-primary;
-    -fx-min-width: 72;
-    -fx-max-width: 72;
-    -fx-alignment: CENTER_RIGHT;
-}
-.fp-bar-value-negative { -fx-text-fill: -color-error; }
-
-/* ── Projection legend ──────────────────────────────────────────────────── */
-.fp-legend-dot {
-    -fx-min-width: 10; -fx-max-width: 10;
-    -fx-min-height: 10; -fx-max-height: 10;
-    -fx-background-radius: 2;
-}
-/* Colour variant — suffix derived from token name with hyphens stripped */
-.fp-legend-dot-brandmid    { -fx-background-color: -brand-mid; }
-.fp-legend-dot-brandaccent { -fx-background-color: #f59e0b; }
-.fp-legend-dot-colorerror  { -fx-background-color: -color-error; }
-.fp-legend-label { -fx-font-size: 11px; -fx-text-fill: -text-muted; }
+.fp-corpus-pill-shortfall .fp-corpus-pill-amount { -fx-text-fill: #b91c1c; }
+.fp-corpus-pill-excess    .fp-corpus-pill-amount { -fx-text-fill: #15803d; }

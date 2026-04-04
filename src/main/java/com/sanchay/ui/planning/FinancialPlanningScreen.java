@@ -13,7 +13,7 @@ import com.sanchay.service.DataStore;
 import com.sanchay.service.PlanParamsService;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -87,6 +87,7 @@ public class FinancialPlanningScreen {
     private FutureEarningsBreakdown futureEarnings;
 
     // ── Live-updatable UI handles ─────────────────────────────────────────────
+    private Label lastUpdatedLbl;
     private VBox  earningsCard;
     private Label futureEarningsKpiLbl;
     private Label forecastedCorpusKpiLbl;
@@ -101,7 +102,8 @@ public class FinancialPlanningScreen {
     private VBox expenseRowsContainer;
 
     // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
-    private VBox corpusCard;
+    private VBox  corpusCard;
+    private long  forecastedCorpusPaise;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private DatePicker retirementDatePicker;
@@ -322,15 +324,25 @@ public class FinancialPlanningScreen {
         Label subtitle = new Label("Retirement & wealth projection");
         subtitle.getStyleClass().add("dialog-subtitle");
 
-        //Label badge = new Label("⚠  Sample data — connect your profile to compute actuals");
-        //badge.getStyleClass().add("fp-sample-badge");
+        lastUpdatedLbl = new Label(formatLastUpdated(params.lastCalculatedDate));
+        lastUpdatedLbl.getStyleClass().add("fp-last-updated");
 
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(new VBox(2, title, subtitle), spacer);
+        header.getChildren().addAll(new VBox(2, title, subtitle), spacer, lastUpdatedLbl);
         return header;
+    }
+
+    private String formatLastUpdated(String isoDate) {
+        if (isoDate == null) return "Not yet calculated";
+        try {
+            LocalDate d = LocalDate.parse(isoDate);
+            return "Last updated on: " + d.format(DataStore.getInstance().getDateFormatter());
+        } catch (Exception e) {
+            return "Last updated on: " + isoDate;
+        }
     }
 
     // ── KPI strip ─────────────────────────────────────────────────────────────
@@ -403,7 +415,13 @@ public class FinancialPlanningScreen {
 
         Button recalcBtn = new Button("Recalculate");
         recalcBtn.getStyleClass().add("btn-gold");
-        recalcBtn.setOnAction(e -> { collectAndSave(); refreshEarningsCard(); });
+        recalcBtn.setOnAction(e -> {
+            params.lastCalculatedDate = LocalDate.now().toString();
+            collectAndSave();
+            refreshEarningsCard();
+            if (lastUpdatedLbl != null)
+                lastUpdatedLbl.setText(formatLastUpdated(params.lastCalculatedDate));
+        });
 
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
@@ -874,6 +892,7 @@ public class FinancialPlanningScreen {
                           - totalExpenses;
 
         long totalForecasted = pfBalance + stocksMf + cashBondsFds;
+        forecastedCorpusPaise = totalForecasted;
 
         if (forecastedCorpusKpiLbl != null)
             forecastedCorpusKpiLbl.setText(UiUtils.formatCorpusDisplay(totalForecasted));
@@ -883,6 +902,24 @@ public class FinancialPlanningScreen {
         addTableRow(corpusCard, "Cash, Bonds, FDs etc.", formatRupees(cashBondsFds), false, false);
         addTableRow(corpusCard, "Total Forecasted Corpus",
                 formatRupees(totalForecasted), true, totalForecasted < 0);
+
+        long requiredCorpus = computeRequiredCorpusPaise();
+        long delta          = totalForecasted - requiredCorpus;
+        boolean isShortfall = delta < 0;
+
+        Label kindLbl = new Label(isShortfall ? "Shortfall to Target Corpus" : "Surplus over Target Corpus");
+        kindLbl.getStyleClass().add("fp-corpus-pill-kind");
+
+        Label amountLbl = new Label(UiUtils.formatCorpusDisplay(Math.abs(delta)));
+        amountLbl.getStyleClass().add("fp-corpus-pill-amount");
+
+        VBox pillBox = new VBox(4, kindLbl, amountLbl);
+        pillBox.getStyleClass().addAll("fp-corpus-pill",
+                isShortfall ? "fp-corpus-pill-shortfall" : "fp-corpus-pill-excess");
+        pillBox.setAlignment(Pos.CENTER);
+        pillBox.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(pillBox, new Insets(16, 0, 4, 0));
+        corpusCard.getChildren().add(pillBox);
     }
 
     private void refreshForecastCard() {
@@ -903,104 +940,104 @@ public class FinancialPlanningScreen {
 
     // ── Post-Retirement Projection ────────────────────────────────────────────
 
+    private record PostRetirementRow(
+            int year, int age,
+            long startingBalancePaise, long roiPaise, long taxPaise, long withdrawalPaise,
+            boolean depleted) {}
+
     private Node buildPostRetirementCard() {
         Label title = new Label("Post-Retirement Corpus Projection");
         title.getStyleClass().add("text-section-title");
 
-        // Legend — dot colours are data-driven (not derivable from a CSS class alone)
-        HBox legend = new HBox(16,
-                buildLegendDot("-brand-mid",    "Healthy balance"),
-                buildLegendDot("-brand-accent", "Below ₹2 Cr"),
-                buildLegendDot("-color-error",  "Depleted"));
-        legend.setAlignment(Pos.CENTER_LEFT);
-        legend.setPadding(new Insets(6, 0, 8, 0));
+        TableView<PostRetirementRow> cfTable = buildCashFlowTable();
+        cfTable.getItems().addAll(computeCashFlowRows());
 
-        double maxBalance = 5.73;
-        Object[][] yearData = {
-            { "2032", 5.29 }, { "2033", 5.38 }, { "2034", 5.46 }, { "2035", 5.53 },
-            { "2036", 5.59 }, { "2037", 5.65 }, { "2038", 5.69 }, { "2039", 5.71 },
-            { "2040", 5.73 }, { "2041", 5.73 }, { "2042", 5.71 }, { "2043", 5.66 },
-            { "2044", 5.60 }, { "2045", 5.52 }, { "2046", 5.40 }, { "2047", 5.26 },
-            { "2048", 5.08 }, { "2049", 4.87 }, { "2050", 4.62 }, { "2051", 4.32 },
-            { "2052", 3.98 }, { "2053", 3.59 }, { "2054", 3.14 }, { "2055", 2.63 },
-            { "2056", 2.06 }, { "2057", 1.41 }, { "2058", 0.69 },
-            { "2059", -0.12 }, { "2060", -1.01 }, { "2064", -5.05 },
-        };
-
-        VBox bars = new VBox(4);
-        for (Object[] row : yearData) {
-            bars.getChildren().add(buildBarRow((String) row[0], (Double) row[1], maxBalance));
-        }
-
-        Label warning = new Label(
-                "⚠  At current withdrawal rates, corpus depletes around 2058–2059 (Age 85). "
-                + "Life expectancy target is 80. Consider increasing corpus or reducing "
-                + "post-retirement withdrawal rate.");
-        warning.getStyleClass().add("fp-depletion-warning");
-        warning.setWrapText(true);
-        warning.setMaxWidth(Double.MAX_VALUE);
-
-        VBox card = new VBox(12, title, legend, bars, warning);
+        VBox card = new VBox(12, title, cfTable);
         card.getStyleClass().add("card");
         return card;
     }
 
-    private HBox buildBarRow(String year, double balanceCr, double maxCr) {
-        HBox row = new HBox(8);
-        row.setAlignment(Pos.CENTER_LEFT);
+    private TableView<PostRetirementRow> buildCashFlowTable() {
+        TableView<PostRetirementRow> table = new TableView<>();
+        table.getStyleClass().add("forecast-table");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setEditable(false);
 
-        Label yearLbl = new Label(year);
-        yearLbl.getStyleClass().add("fp-bar-year");
+        TableColumn<PostRetirementRow, String> yearCol = new TableColumn<>("Year");
+        yearCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().year())));
+        yearCol.setPrefWidth(70);
 
-        StackPane track = new StackPane();
-        track.getStyleClass().add("fp-bar-track");
-        HBox.setHgrow(track, Priority.ALWAYS);
+        TableColumn<PostRetirementRow, String> ageCol = new TableColumn<>("Age");
+        ageCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().age())));
+        ageCol.setPrefWidth(55);
 
-        if (balanceCr > 0) {
-            Region fill = new Region();
-            double pct = Math.min(balanceCr / maxCr, 1.0);
-            fill.getStyleClass().add(balanceCr < 2.0 ? "fp-bar-fill-low" : "fp-bar-fill-healthy");
-            fill.prefWidthProperty().bind(Bindings.multiply(track.widthProperty(), pct));
-            fill.setMaxWidth(Double.MAX_VALUE);
-            StackPane.setAlignment(fill, Pos.CENTER_LEFT);
-            track.getChildren().add(fill);
-        } else {
-            // Full red bar for depleted years
-            Region fill = new Region();
-            fill.getStyleClass().add("fp-bar-fill-depleted");
-            fill.setMaxWidth(Double.MAX_VALUE);
-            track.getChildren().add(fill);
+        TableColumn<PostRetirementRow, String> balanceCol = new TableColumn<>("Starting Balance");
+        balanceCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().startingBalancePaise())));
+        balanceCol.setPrefWidth(160);
+        balanceCol.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().remove("post-retirement-cf-depleted");
+                if (empty || item == null) { setText(null); return; }
+                setText(item);
+                if (getTableView().getItems().get(getIndex()).depleted())
+                    getStyleClass().add("post-retirement-cf-depleted");
+            }
+        });
+
+        TableColumn<PostRetirementRow, String> roiCol = new TableColumn<>("ROI");
+        roiCol.setCellValueFactory(cd -> new SimpleStringProperty(
+                cd.getValue().depleted() ? "-" : formatRupees(cd.getValue().roiPaise())));
+        roiCol.setPrefWidth(130);
+
+        TableColumn<PostRetirementRow, String> taxCol = new TableColumn<>("Tax");
+        taxCol.setCellValueFactory(cd -> new SimpleStringProperty(
+                cd.getValue().depleted() ? "-" : formatRupees(cd.getValue().taxPaise())));
+        taxCol.setPrefWidth(110);
+
+        TableColumn<PostRetirementRow, String> withdrawalCol = new TableColumn<>("Withdrawal");
+        withdrawalCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().withdrawalPaise())));
+        withdrawalCol.setPrefWidth(130);
+
+        table.getColumns().addAll(yearCol, ageCol, balanceCol, roiCol, taxCol, withdrawalCol);
+        return table;
+    }
+
+    private List<PostRetirementRow> computeCashFlowRows() {
+        LocalDate retireDate   = getRetirementDate();
+        int retirementYear     = retireDate.getYear();
+        int retirementAge      = (int) ChronoUnit.YEARS.between(selfDob, retireDate);
+        int lifeExpectancy     = params.lifeExpectancy;
+        double ror             = params.rorPostRetirePct / 100.0;
+        double taxRate         = params.postRetireTaxPct / 100.0;
+        double inflationRate   = params.inflationPct / 100.0;
+
+        // costOfLivingPaise is today's value — inflate it to the first year of retirement
+        double yearsToRetire = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
+        double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
+
+        List<PostRetirementRow> rows = new ArrayList<>();
+        long balance = forecastedCorpusPaise;
+
+        int totalYears = lifeExpectancy - retirementAge;
+        for (int i = 0; i < totalYears; i++) {
+            int year = retirementYear + i;
+            int age  = retirementAge + i;
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
+
+            if (balance > 0) {
+                long roi = roundDownTo10k(Math.round(balance * ror));
+                long tax = roundUpTo10k(Math.round(roi * taxRate));
+                rows.add(new PostRetirementRow(year, age, balance, roi, tax, withdrawal, false));
+                balance = balance + roi - tax - withdrawal;
+            } else {
+                rows.add(new PostRetirementRow(year, age, balance, 0, 0, withdrawal, true));
+                balance = balance - withdrawal;
+            }
         }
-
-        String displayVal = balanceCr >= 0
-                ? String.format("₹%.2f Cr", balanceCr)
-                : String.format("−₹%.2f Cr", Math.abs(balanceCr));
-        Label valLbl = new Label(displayVal);
-        valLbl.getStyleClass().add("fp-bar-value");
-        if (balanceCr < 0) valLbl.getStyleClass().add("fp-bar-value-negative");
-
-        row.getChildren().addAll(yearLbl, track, valLbl);
-        return row;
+        return rows;
     }
 
-    /**
-     * Legend entry: coloured dot + label text.
-     * dotColor is a CSS token (e.g. "-brand-mid") or hex — it drives the suffix used in
-     * the fp-legend-dot-* classes defined in app.css. The suffix is formed by stripping
-     * hyphens from the token name.
-     */
-    private HBox buildLegendDot(String colorToken, String label) {
-        Region dot = new Region();
-        String suffix = colorToken.replace("-", "").replace("fx", "");
-        dot.getStyleClass().addAll("fp-legend-dot", "fp-legend-dot-" + suffix);
-
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("fp-legend-label");
-
-        HBox entry = new HBox(6, dot, lbl);
-        entry.setAlignment(Pos.CENTER_LEFT);
-        return entry;
-    }
 
     // ── Shared table-building helpers ─────────────────────────────────────────
 
@@ -1454,6 +1491,46 @@ public class FinancialPlanningScreen {
         if (paise <= 0) return 0;
         final long UNIT = 1_000_000L; // ₹10,000 in paise
         return ((paise + UNIT - 1) / UNIT) * UNIT;
+    }
+
+    /** Floor to the nearest ₹10,000 (= 1,000,000 paise). Zero stays zero. */
+    private static long roundDownTo10k(long paise) {
+        if (paise <= 0) return 0;
+        final long UNIT = 1_000_000L; // ₹10,000 in paise
+        return (paise / UNIT) * UNIT;
+    }
+
+    /**
+     * Reverse-calculates the corpus required at retirement so that inflation-growing
+     * withdrawals are fully funded through life expectancy.
+     *
+     * Required corpus = PV of all annual withdrawals discounted at the net-of-tax
+     * post-retirement RoR:
+     *   PV = colAtRetirement × Σ(i=0..n-1) [ ((1+g)/(1+r_net))^i ]
+     * where g = inflationRate, r_net = rorPostRetire × (1 − taxRate).
+     */
+    private long computeRequiredCorpusPaise() {
+        LocalDate retireDate   = getRetirementDate();
+        int retirementAge      = (int) ChronoUnit.YEARS.between(selfDob, retireDate);
+        int totalYears         = params.lifeExpectancy - retirementAge;
+        if (totalYears <= 0) return 0;
+
+        double ror           = params.rorPostRetirePct / 100.0;
+        double taxRate       = params.postRetireTaxPct / 100.0;
+        double inflationRate = params.inflationPct / 100.0;
+        double rNet          = ror * (1.0 - taxRate);
+
+        double yearsToRetire  = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
+        double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
+
+        double pv;
+        double ratio = (1 + inflationRate) / (1 + rNet);
+        if (Math.abs(ratio - 1.0) < 1e-9) {
+            pv = colAtRetirement * totalYears;
+        } else {
+            pv = colAtRetirement * (1.0 - Math.pow(ratio, totalYears)) / (1.0 - ratio);
+        }
+        return Math.round(pv);
     }
 
     private int parseIntSafe(String text, int fallback) {

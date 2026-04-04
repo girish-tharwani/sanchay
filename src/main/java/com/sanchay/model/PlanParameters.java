@@ -23,4 +23,6 @@ public class PlanParameters {
     public long   monthlySipEquityPaise = 500_000L;      // ₹5,000 default
 
     public java.util.List<MajorEvent> majorEvents = new java.util.ArrayList<>();
+
+    public String lastCalculatedDate = null;  // ISO "YYYY-MM-DD"; set each time the user recalculates
 }
