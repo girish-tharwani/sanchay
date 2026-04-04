@@ -1,5 +1,6 @@
 package com.sanchay.model;
 
+import com.sanchay.service.MoneyFormatter;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -166,7 +167,7 @@ public class Transaction {
     // ── Business methods ──────────────────────────────────────────────────────
 
     public String getAmountInr() {
-        return String.format("₹%,.2f", amountPaise / 100.0);
+        return MoneyFormatter.format(amountPaise);
     }
 
     private boolean isDebitFor(String viewingAccountId) {

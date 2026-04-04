@@ -10,6 +10,7 @@ import com.sanchay.model.RecurringTransaction;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PlanParamsService;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
@@ -626,11 +627,11 @@ public class FinancialPlanningScreen {
         totalLbl.getStyleClass().add("fp-table-label-total");
         totalLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(totalLbl, Priority.ALWAYS);
-        majorEventsForecastTotalLbl = new Label("₹0");
+        majorEventsForecastTotalLbl = new Label(MoneyFormatter.symbol() + "0");
         majorEventsForecastTotalLbl.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
         majorEventsForecastTotalLbl.setPrefWidth(110);
         majorEventsForecastTotalLbl.setAlignment(Pos.CENTER_RIGHT);
-        majorEventsActualTotalLbl = new Label("₹0");
+        majorEventsActualTotalLbl = new Label(MoneyFormatter.symbol() + "0");
         majorEventsActualTotalLbl.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
         majorEventsActualTotalLbl.setPrefWidth(110);
         majorEventsActualTotalLbl.setAlignment(Pos.CENTER_RIGHT);
@@ -1483,7 +1484,7 @@ public class FinancialPlanningScreen {
     }
 
     private String formatRupees(long paise) {
-        return String.format("₹%,.0f", paise / 100.0);
+        return MoneyFormatter.formatNoDecimal(paise);
     }
 
     /** Ceiling to the nearest ₹10,000 (= 1,000,000 paise). Zero stays zero. */
@@ -1545,12 +1546,7 @@ public class FinancialPlanningScreen {
     }
 
     private long parseRupeesSafe(String text, long fallback) {
-        if (text == null || text.isBlank()) return fallback;
-        try {
-            double rupees = Double.parseDouble(
-                    text.replace("₹", "").replace(",", "").trim());
-            return Math.round(rupees * 100);
-        } catch (Exception e) { return fallback; }
+        return MoneyFormatter.parseAmountSafe(text, fallback);
     }
 
     /** Sets the field text only if the new value differs, to avoid spurious listener firing. */

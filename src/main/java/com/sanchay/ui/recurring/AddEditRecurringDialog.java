@@ -2,6 +2,7 @@ package com.sanchay.ui.recurring;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -547,7 +548,7 @@ public class AddEditRecurringDialog {
                 if (type == Transaction.Type.LOAN_PAYMENT && loanToCb.getValue() == null) {
                     alert("Validation Error", "Select a loan account for the payment."); ev.consume(); return;
                 }
-                String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
+                String amtRaw = amtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
                 if (!amtRaw.isEmpty()) {
                     try { Double.parseDouble(amtRaw); }
                     catch (NumberFormatException e) {
@@ -582,7 +583,7 @@ public class AddEditRecurringDialog {
             LocalDate start = startPicker.getValue() != null ? startPicker.getValue() : LocalDate.now();
 
             long paise = 0;
-            String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
+            String amtRaw = amtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
             if (!amtRaw.isEmpty()) {
                 try { paise = Math.round(Double.parseDouble(amtRaw) * 100); }
                 catch (NumberFormatException ignored) {}
@@ -614,7 +615,7 @@ public class AddEditRecurringDialog {
                         invFdRef        = nullIfBlank(invFdRefFld.getText());
                         invInterestRate = parseRate(invFdRateFld.getText());
                         invMaturityDate = invFdMaturityPicker.getValue();
-                        String raw = invFdMaturityAmtFld.getText().trim().replace(",", "").replace("₹", "");
+                        String raw = invFdMaturityAmtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
                         if (!raw.isEmpty()) try { invFdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
                     }
                     case RECURRING_DEPOSIT -> {
@@ -630,9 +631,9 @@ public class AddEditRecurringDialog {
             boolean isRd = type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null
                     && invDestCb.getValue().getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT;
             if (isRd) {
-                String raw = invRdOpeningBalFld.getText().trim().replace(",", "").replace("₹", "");
+                String raw = invRdOpeningBalFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
                 if (!raw.isEmpty()) try { rdOpenBal = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
-                raw = invRdMaturityAmtFld.getText().trim().replace(",", "").replace("₹", "");
+                raw = invRdMaturityAmtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
                 if (!raw.isEmpty()) try { rdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
             }
 

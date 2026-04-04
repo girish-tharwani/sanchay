@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.ImportService;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
@@ -75,9 +76,9 @@ public class TransactionsScreen {
             ccSummary.setPadding(new Insets(12, 16, 12, 16));
             ccSummary.setAlignment(Pos.CENTER_LEFT);
             ccSummary.getChildren().addAll(
-                    ccStat("Credit Limit",  "₹" + String.format("%,.2f", cc.getCreditLimitPaise() / 100.0), "#595959"),
-                    ccStat("Outstanding",   "₹" + String.format("%,.2f", outstanding / 100.0), "#E74C3C"),
-                    ccStat("Available",     "₹" + String.format("%,.2f", available / 100.0), "#27AE60"),
+                    ccStat("Credit Limit",  MoneyFormatter.format(cc.getCreditLimitPaise()), "#595959"),
+                    ccStat("Outstanding",   MoneyFormatter.format(outstanding), "#E74C3C"),
+                    ccStat("Available",     MoneyFormatter.format(available), "#27AE60"),
                     ccStat("Billing Date",  cc.getBillingCycleDate() + " of month", "#595959"),
                     ccStat("Payment Due",   cc.getPaymentDueDays() + " days after billing", "#595959")
             );
@@ -92,12 +93,12 @@ public class TransactionsScreen {
                     if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
                 }
                 statLabel  = "Balance";
-                statValue  = "₹" + String.format("%,.2f", bal / 100.0);
+                statValue  = MoneyFormatter.format(bal);
                 statColour = "#0f3d4a";
             } else if (account instanceof LoanAccount la) {
                 long outstanding = ds2.getLoanOutstandingPaise(la);
                 statLabel  = "Outstanding";
-                statValue  = "₹" + String.format("%,.0f", outstanding / 100.0);
+                statValue  = MoneyFormatter.formatNoDecimal(outstanding);
                 statColour = outstanding > 0 ? "#C62828" : "#0f3d4a";
             } else if (account instanceof InvestmentAccount ia) {
                 long invested = ds2.getBaseInvestedPaise(ia);
@@ -110,7 +111,7 @@ public class TransactionsScreen {
                     }
                 }
                 statLabel  = "Invested";
-                statValue  = "₹" + String.format("%,.0f", Math.max(0, invested) / 100.0);
+                statValue  = MoneyFormatter.formatNoDecimal(Math.max(0, invested));
                 statColour = "#0f3d4a";
                 if (isMarketValueAccount(ia)) {
                     MarketValueEntry mv = ds2.getLatestMarketValue(ia.getId());
@@ -121,8 +122,8 @@ public class TransactionsScreen {
                         HBox.setHgrow(spacer2, Priority.ALWAYS);
                         header.getChildren().addAll(
                                 spacer2,
-                                ccStat("Market Value", "₹" + String.format("%,.0f", mv.getMarketValuePaise() / 100.0), "#0f3d4a"),
-                                ccStat("Gain / Loss",  (gl >= 0 ? "+" : "") + "₹" + String.format("%,.0f", gl / 100.0), glColor)
+                                ccStat("Market Value", MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise()), "#0f3d4a"),
+                                ccStat("Gain / Loss",  (gl >= 0 ? "+" : "") + MoneyFormatter.formatNoDecimal(Math.abs(gl)), glColor)
                         );
                         statLabel = null; // suppress the default single-stat path
                     }
@@ -267,9 +268,7 @@ public class TransactionsScreen {
             @Override protected void updateItem(Long paise, boolean empty) {
                 super.updateItem(paise, empty);
                 if (empty || paise == null) { setText(null); return; }
-                setText(paise < 0
-                    ? "(" + String.format("₹%,.2f", -paise / 100.0) + ")"
-                    :        String.format("₹%,.2f",  paise / 100.0));
+                setText(MoneyFormatter.formatSigned(paise));
             }
         });
 
@@ -507,14 +506,14 @@ public class TransactionsScreen {
             TableColumn<Transaction, String> principalCol = col("Principal", 100, t -> {
                 if (t.getType() != Transaction.Type.LOAN_PAYMENT) return null;
                 long p = effectiveLoanPrincipalPaise(t, ds);
-                return p > 0 ? String.format("₹%,.0f", p / 100.0) : null;
+                return p > 0 ? MoneyFormatter.formatNoDecimal(p) : null;
             });
             TableColumn<Transaction, String> interestCol = col("Interest", 100, t -> {
                 if (t.getType() != Transaction.Type.LOAN_PAYMENT) return null;
                 long principal = effectiveLoanPrincipalPaise(t, ds);
                 if (principal <= 0) return null;
                 long interest = t.getAmountPaise() - principal;
-                return interest > 0 ? String.format("₹%,.0f", interest / 100.0) : null;
+                return interest > 0 ? MoneyFormatter.formatNoDecimal(interest) : null;
             });
             return List.of(principalCol, interestCol);
         }
@@ -546,7 +545,7 @@ public class TransactionsScreen {
                     if (t.getInvestmentDetails() == null
                             || t.getInvestmentDetails().getFd() == null) return null;
                     Long p = t.getInvestmentDetails().getFd().getMaturityAmountPaise();
-                    return p != null ? String.format("₹%,.2f", p / 100.0) : null;
+                    return p != null ? MoneyFormatter.format(p) : null;
                 });
                 return List.of(matDateCol, matAmtCol);
             }

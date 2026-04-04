@@ -2,6 +2,7 @@ package com.sanchay.ui;
 
 import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
+import com.sanchay.service.MoneyFormatter;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -124,7 +125,7 @@ public final class UiUtils {
                 stepRowPadded("3", "Complete earnings details",
                         stepDescFlow(
                                 "Return to ", navHint("Profile"),
-                                " and click the ", navHint("₹"),
+                                " and click the ", navHint(MoneyFormatter.symbol()),
                                 " button next to each earning member. Mark them as earning "
                                 + "and fill in their salary and income details."))
         );
@@ -453,9 +454,6 @@ public final class UiUtils {
      * otherwise → "₹12,500"
      */
     public static String formatCorpusDisplay(long paise) {
-        long rupees = paise / 100;
-        if (rupees >= 1_00_00_000L) return String.format("₹%.2f Cr", rupees / 1_00_00_000.00);
-        if (rupees >= 1_00_000L)    return "₹" + Math.round(rupees / 1_00_000.00) + " Lakh";
-        return String.format("₹%,.0f", (double) rupees);
+        return MoneyFormatter.formatCompact(paise);
     }
 }

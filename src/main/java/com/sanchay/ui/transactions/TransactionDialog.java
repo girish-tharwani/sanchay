@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -485,7 +486,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 long prin = Math.round(Double.parseDouble(lnPrincipalFld.getText().replace(",", "")) * 100);
                 long interest = amt - prin;
                 lnInterestLbl.setText(interest >= 0
-                        ? String.format("₹%,.2f", interest / 100.0)
+                        ? MoneyFormatter.format(interest)
                         : "⚠ Principal exceeds EMI amount");
             } catch (NumberFormatException e) {
                 lnInterestLbl.setText("—");
@@ -572,7 +573,7 @@ public class TransactionDialog extends Dialog<Transaction> {
             String sign  = gainLoss >= 0 ? "+" : "";
             // Inline required: runtime gain/loss colour is data-driven
             String color = gainLoss >= 0 ? "-color-success-dark" : "-color-error";
-            rdeGainLossLbl.setText(sign + String.format("₹%,.2f", gainLoss / 100.0));
+            rdeGainLossLbl.setText(sign + MoneyFormatter.format(Math.abs(gainLoss)));
             rdeGainLossLbl.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold;");
             switchRedeemCatList(gainLoss < 0);
         } catch (NumberFormatException e) {
@@ -1816,7 +1817,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     private long   parseAmountSafe(String s) {
         if (s == null || s.isBlank()) return 0;
-        try { return Math.round(Double.parseDouble(s.replace(",", "").replace("₹", "").trim()) * 100); }
+        try { return Math.round(Double.parseDouble(s.replace(",", "").replace(MoneyFormatter.symbol(), "").trim()) * 100); }
         catch (NumberFormatException e) { return 0; }
     }
 
@@ -1826,7 +1827,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         catch (NumberFormatException e) { return null; }
     }
 
-    private String fmtPaise(long paise) { return String.format("₹%,.0f", paise / 100.0); }
+    private String fmtPaise(long paise) { return MoneyFormatter.formatNoDecimal(paise); }
 
     private Label previewVal() {
         Label l = new Label("—");

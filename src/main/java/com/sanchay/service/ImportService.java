@@ -137,7 +137,7 @@ public class ImportService {
         int textCells = 0;
         for (String cell : row) {
             if (cell == null || cell.isBlank()) continue;
-            String clean = cell.replaceAll("[,₹$%\\s]", "");
+            String clean = cell.replaceAll("[," + CurrencyConfig.symbol() + "$%\\s]", "");
             try { Double.parseDouble(clean); continue; } catch (NumberFormatException ignored) {}
             if (looksLikeDate(cell)) continue;
             textCells++;
@@ -757,7 +757,7 @@ public class ImportService {
             sign = 1;
             trimmed = trimmed.replaceAll("(?i)\\s*Cr\\.?$", "").strip();
         }
-        String clean = trimmed.replaceAll("[,₹$\\s]", "").strip();
+        String clean = trimmed.replaceAll("[," + CurrencyConfig.symbol() + "$\\s]", "").strip();
         try {
             long paise = Math.round(Double.parseDouble(clean) * 100);
             return sign != 0 ? sign * Math.abs(paise) : paise;

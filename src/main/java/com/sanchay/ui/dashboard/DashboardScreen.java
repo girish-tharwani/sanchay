@@ -5,6 +5,7 @@ import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.RecurringTransaction;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
@@ -133,8 +134,8 @@ public class DashboardScreen {
 
         String ccStripe = ccOutstanding > 0 ? "#e05555" : "-brand-light";
         String ccValue  = ccOutstanding > 0
-                ? "₹−" + String.format("%,.2f", ccOutstanding / 100.0)
-                : fmtInr(0);
+                ? MoneyFormatter.symbol() + "−" + MoneyFormatter.format(ccOutstanding).substring(MoneyFormatter.symbol().length())
+                : MoneyFormatter.format(0);
 
         HBox row = new HBox(14);
         row.getChildren().addAll(
@@ -449,9 +450,4 @@ public class DashboardScreen {
         return !ym.isBefore(start) && !ym.isAfter(end);
     }
 
-    // ── Format helpers ────────────────────────────────────────────────────────
-
-    private static String fmtInr(long paise) {
-        return String.format("₹%,.2f", paise / 100.0);
-    }
 }

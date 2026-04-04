@@ -1,5 +1,6 @@
 package com.sanchay.model;
 
+import com.sanchay.service.MoneyFormatter;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -168,7 +169,7 @@ public class RecurringTransaction {
 
     public String getAmountInr() {
         return amountPaise > 0
-                ? String.format("₹%,.2f", amountPaise / 100.0)
+                ? MoneyFormatter.format(amountPaise)
                 : "Variable";
     }
 

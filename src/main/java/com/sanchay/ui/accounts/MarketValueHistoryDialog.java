@@ -3,6 +3,7 @@ package com.sanchay.ui.accounts;
 import com.sanchay.model.InvestmentAccount;
 import com.sanchay.model.MarketValueEntry;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -41,18 +42,18 @@ public class MarketValueHistoryDialog extends Dialog<Void> {
 
         TableColumn<MarketValueEntry, String> mvCol = new TableColumn<>("Market Value");
         mvCol.setCellValueFactory(r ->
-                new SimpleStringProperty(String.format("₹%,.0f", r.getValue().getMarketValuePaise() / 100.0)));
+                new SimpleStringProperty(MoneyFormatter.formatNoDecimal(r.getValue().getMarketValuePaise())));
         mvCol.setPrefWidth(130);
 
         TableColumn<MarketValueEntry, String> invCol = new TableColumn<>("Invested");
         invCol.setCellValueFactory(r ->
-                new SimpleStringProperty(String.format("₹%,.0f", r.getValue().getInvestedPaise() / 100.0)));
+                new SimpleStringProperty(MoneyFormatter.formatNoDecimal(r.getValue().getInvestedPaise())));
         invCol.setPrefWidth(130);
 
         TableColumn<MarketValueEntry, String> glCol = new TableColumn<>("Gain / Loss");
         glCol.setCellValueFactory(r -> {
             long gl = r.getValue().getGainLossPaise();
-            return new SimpleStringProperty((gl >= 0 ? "+" : "") + String.format("₹%,.0f", gl / 100.0));
+            return new SimpleStringProperty((gl >= 0 ? "+" : "") + MoneyFormatter.formatNoDecimal(Math.abs(gl)));
         });
         glCol.setCellFactory(col -> new TableCell<>() {
             @Override protected void updateItem(String val, boolean empty) {
@@ -60,7 +61,7 @@ public class MarketValueHistoryDialog extends Dialog<Void> {
                 if (empty || val == null) { setText(null); setStyle(""); return; }
                 setText(val);
                 // Inline required: colour is runtime data (gain vs loss)
-                setStyle(val.startsWith("+") || val.startsWith("₹0")
+                setStyle(val.startsWith("+") || val.startsWith(MoneyFormatter.symbol() + "0")
                         ? "-fx-text-fill: #27AE60; -fx-font-weight: bold;"
                         : "-fx-text-fill: #C62828; -fx-font-weight: bold;");
             }

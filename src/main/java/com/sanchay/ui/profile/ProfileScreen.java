@@ -4,6 +4,7 @@ import com.sanchay.model.EarningSource;
 import com.sanchay.model.FamilyMember;
 import com.sanchay.model.RecurringTransaction;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -176,7 +177,7 @@ public class ProfileScreen {
                 text = "Not configured";
             } else {
                 long paise = m.computeInHandPaise();
-                text = paise > 0 ? String.format("₹%,.0f", paise / 100.0) : "—";
+                text = paise > 0 ? MoneyFormatter.formatNoDecimal(paise) : "—";
             }
             return new javafx.beans.property.SimpleStringProperty(text);
         });
@@ -231,7 +232,7 @@ public class ProfileScreen {
         earningsCol.setMinWidth(36);
         earningsCol.setMaxWidth(36);
         earningsCol.setCellFactory(tc -> new TableCell<>() {
-            private final Button btn = new Button("₹");
+            private final Button btn = new Button(MoneyFormatter.symbol());
             {
                 btn.getStyleClass().add("btn-row-add");
                 btn.setTooltip(new Tooltip("Configure earnings"));

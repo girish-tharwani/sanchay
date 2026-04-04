@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.CashFlowProjectionService;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.ForecastStateService;
+import com.sanchay.service.MoneyFormatter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -324,11 +325,11 @@ public class CashFlowForecastTab {
         long expense = result.totalProjectedExpensesPaise();
         long net     = income - expense;
 
-        statBalance.setText(formatPaise(lastTotal));
+        statBalance.setText(MoneyFormatter.formatTableCompact(lastTotal));
         applyPosNeg(statBalance, lastTotal);
-        statIncome.setText(formatPaise(income));
-        statExpense.setText(formatPaise(expense));
-        statNet.setText(formatPaise(net));
+        statIncome.setText(MoneyFormatter.formatTableCompact(income));
+        statExpense.setText(MoneyFormatter.formatTableCompact(expense));
+        statNet.setText(MoneyFormatter.formatTableCompact(net));
         applyPosNeg(statNet, net);
 
         // Forecast table
@@ -440,7 +441,7 @@ public class CashFlowForecastTab {
                     fe.month().format(MONTH_FMT),
                     getCategoryName(fe.categoryId()),
                     getCategoryName(fe.subCategoryId()),
-                    formatPaise(fe.amountPaise()),
+                    MoneyFormatter.formatTableCompact(fe.amountPaise()),
                     fe.excluded() ? "Excluded" : fe.method(),
                     fe.excluded(),
                     fe.categoryId(),
@@ -527,7 +528,7 @@ public class CashFlowForecastTab {
     // ── Override interaction ──────────────────────────────────────────────────
 
     private void promptAmountCorrection(ForecastTableRow row) {
-        TextInputDialog input = new TextInputDialog(row.amount().replace("₹", "").replace(",", "").trim());
+        TextInputDialog input = new TextInputDialog(row.amount().replace(MoneyFormatter.symbol(), "").replace(",", "").trim());
         input.setTitle("Correct Forecast Amount");
         input.setHeaderText(row.subCategory() + " — " + row.month());
         input.setContentText("Enter corrected amount (₹):");
@@ -658,16 +659,6 @@ public class CashFlowForecastTab {
         };
     }
 
-    private String formatPaise(long paise) {
-        long   abs  = Math.abs(paise);
-        double absR = abs / 100.0;
-        String formatted;
-        if      (absR >= 1_00_00_000) formatted = String.format("%.2fCr", absR / 1_00_00_000.0);
-        else if (absR >= 1_00_000)    formatted = String.format("%.2fL",  absR / 1_00_000.0);
-        else if (absR >= 1_000)       formatted = String.format("%.1fK",  absR / 1_000.0);
-        else                          formatted = String.format("%.0f",   absR);
-        return (paise < 0 ? "(₹" : "₹") + formatted + (paise < 0 ? ")" : "");
-    }
 
     private void applyPosNeg(Label lbl, long paise) {
         lbl.getStyleClass().removeAll("cash-flow-stat-value-pos", "cash-flow-stat-value-neg");

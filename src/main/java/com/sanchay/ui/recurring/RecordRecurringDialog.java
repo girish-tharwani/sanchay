@@ -2,6 +2,7 @@ package com.sanchay.ui.recurring;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -117,7 +118,7 @@ public class RecordRecurringDialog {
                     (javafx.scene.control.Button) dlg.getDialogPane().lookupButton(recordBtn);
             if (btn == null) return;
             btn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
-                String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
+                String amtRaw = amtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
                 boolean amtOk = true;
                 try { if (Double.parseDouble(amtRaw) <= 0) amtOk = false; }
                 catch (NumberFormatException ignored) { amtOk = false; }
@@ -138,7 +139,7 @@ public class RecordRecurringDialog {
         dlg.setResultConverter(bt -> bt == recordBtn);
         dlg.showAndWait().ifPresent(confirmed -> {
             if (!confirmed) return;
-            String amtRaw = amtFld.getText().trim().replace(",", "").replace("₹", "");
+            String amtRaw = amtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
             long paise = Math.round(Double.parseDouble(amtRaw) * 100);
             LocalDate txDate = datePicker.getValue() != null ? datePicker.getValue() : LocalDate.now();
             Transaction t = new Transaction(rType, txDate, r.getDescription(), paise);

@@ -3,6 +3,7 @@ package com.sanchay.ui.accounts;
 import com.sanchay.model.InvestmentAccount;
 import com.sanchay.model.MarketValueEntry;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -44,8 +45,7 @@ public class RecordMarketValueDialog extends Dialog<MarketValueEntry> {
             LocalDate d = valueDatePicker.getValue();
             if (d == null) { investedLbl.setText(""); return; }
             long inv = ds.getInvestedPaiseAsOf(account, d);
-            investedLbl.setText(String.format("Invested as of %s: ₹%,.0f",
-                    d.format(ds.getDateFormatter()), inv / 100.0));
+            investedLbl.setText("Invested as of " + d.format(ds.getDateFormatter()) + ": " + MoneyFormatter.formatNoDecimal(inv));
         };
         valueDatePicker.valueProperty().addListener((obs, o, n) -> refreshInvested.run());
         refreshInvested.run();
@@ -61,7 +61,7 @@ public class RecordMarketValueDialog extends Dialog<MarketValueEntry> {
 
         int row = 0;
         addRow(g, row++, "Value Date*",     valueDatePicker);
-        addRow(g, row++, "Market Value (₹)*", marketValueFld);
+        addRow(g, row++, "Market Value (" + MoneyFormatter.symbol() + ")*", marketValueFld);
         g.add(investedLbl, 1, row);
 
         getDialogPane().setContent(g);

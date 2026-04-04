@@ -1,5 +1,6 @@
 package com.sanchay.ui;
 
+import com.sanchay.service.MoneyFormatter;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
@@ -140,7 +141,7 @@ public class SplashScreen {
         DropShadow shadow = new DropShadow(18, Color.web("#F0B429", 0.55));
         disc.setEffect(shadow);
 
-        Label rupee = new Label("₹");
+        Label rupee = new Label(MoneyFormatter.symbol());
         rupee.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
 
         coin.getChildren().addAll(glow, disc, rupee);

@@ -2,6 +2,7 @@ package com.sanchay.ui.accounts;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
@@ -215,18 +216,18 @@ public class AccountsScreen {
         if (acc instanceof BankAccount ba) {
             long bal = computeRunningBalance(ba);
             label = "Balance";
-            value = String.format("₹%,.2f", bal / 100.0);
+            value = MoneyFormatter.format(bal);
             valueColour = bal >= 0 ? "-brand-dark" : "-color-error";
         } else if (acc instanceof CreditCardAccount cc) {
             long out = ds.getCreditCardOutstandingPaise(cc.getId());
             long avail = cc.getCreditLimitPaise() - out;
             label = "Outstanding / Available";
-            value = String.format("₹%,.2f  /  ₹%,.2f", out / 100.0, avail / 100.0);
+            value = MoneyFormatter.format(out) + "  /  " + MoneyFormatter.format(avail);
             valueColour = out > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof LoanAccount la) {
             long outstanding = ds.getLoanOutstandingPaise(la);
             label = "Outstanding";
-            value = String.format("₹%,.0f", outstanding / 100.0);
+            value = MoneyFormatter.formatNoDecimal(outstanding);
             valueColour = outstanding > 0 ? "-color-error" : "-brand-dark";
         } else if (acc instanceof InvestmentAccount ia) {
             long invested = ds.getInvestedPaiseAsOf(ia, LocalDate.now());
@@ -235,18 +236,17 @@ public class AccountsScreen {
                 if (mv != null) {
                     long gl = mv.getGainLossPaise();
                     label = "Invested  /  Market Value";
-                    value = String.format("₹%,.0f  /  ₹%,.0f",
-                            invested / 100.0, mv.getMarketValuePaise() / 100.0);
+                    value = MoneyFormatter.formatNoDecimal(invested) + "  /  " + MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise());
                     // Inline required: gain/loss colour is runtime data
                     valueColour = gl >= 0 ? "#27AE60" : "#C62828";
                 } else {
                     label = "Invested";
-                    value = String.format("₹%,.0f", invested / 100.0);
+                    value = MoneyFormatter.formatNoDecimal(invested);
                     valueColour = "-brand-mid";
                 }
             } else {
                 label = "Invested";
-                value = String.format("₹%,.0f", invested / 100.0);
+                value = MoneyFormatter.formatNoDecimal(invested);
                 valueColour = "-brand-mid";
             }
         } else {
@@ -297,13 +297,13 @@ public class AccountsScreen {
                     ba.getBankName());
             addField(fields, "Holder",         ba.getAccountHolder());
             addField(fields, "Current Balance",
-                    String.format("₹%,.2f", computeRunningBalance(ba) / 100.0));
+                    MoneyFormatter.format(computeRunningBalance(ba)));
         } else if (acc instanceof CreditCardAccount cc) {
             addField(fields, "Card Number",  cc.getMaskedCardNumber());
             addField(fields, "Issuer",       cc.getBankIssuer());
-            addField(fields, "Credit Limit", String.format("₹%,.2f", cc.getCreditLimitPaise() / 100.0));
+            addField(fields, "Credit Limit", MoneyFormatter.format(cc.getCreditLimitPaise()));
             long out = DataStore.getInstance().getCreditCardOutstandingPaise(cc.getId());
-            addField(fields, "Outstanding",  String.format("₹%,.2f", out / 100.0));
+            addField(fields, "Outstanding",  MoneyFormatter.format(out));
             addField(fields, "Billing Date", cc.getBillingCycleDate() + " of month");
             addField(fields, "Payment Due",  cc.getPaymentDueDays() + " days after billing");
             if (cc.isAddOnCard())
@@ -311,13 +311,13 @@ public class AccountsScreen {
         } else if (acc instanceof LoanAccount la) {
             addField(fields, "Loan A/C Number", la.getLoanAccountNumber());
             addField(fields, "Lender",          la.getLenderName());
-            addField(fields, "Loan Amount",     String.format("₹%,.2f", la.getLoanAmountPaise() / 100.0));
+            addField(fields, "Loan Amount",     MoneyFormatter.format(la.getLoanAmountPaise()));
             addField(fields, "Interest Rate",   la.getInterestRate() + "% p.a.");
             addField(fields, "Tenure",          la.getTenureMonths() + " months");
-            addField(fields, "EMI",             String.format("₹%,.2f", la.getEmiAmountPaise() / 100.0));
+            addField(fields, "EMI",             MoneyFormatter.format(la.getEmiAmountPaise()));
             addField(fields, "EMI Due Day",     la.getEmiDueDay() + " of month");
-            addField(fields, "Current Balance", String.format("₹%,.2f",
-                    DataStore.getInstance().getLoanOutstandingPaise(la) / 100.0));
+            addField(fields, "Current Balance", MoneyFormatter.format(
+                    DataStore.getInstance().getLoanOutstandingPaise(la)));
             if (la.isJointAccount() && la.getCoApplicantName() != null && !la.getCoApplicantName().isBlank())
                 addField(fields, "Co-applicant", la.getCoApplicantName());
         } else if (acc instanceof InvestmentAccount ia) {
@@ -337,19 +337,16 @@ public class AccountsScreen {
                                 ? t.getRedeemDetails().getPrincipalPaise() : t.getAmountPaise()).sum();
             addField(fields, "Investment Type",         ia.getAccountType());
             addField(fields, "Account Number",           ia.getFolioAccountNumber());
-            addField(fields, "Current Invested Amount", String.format("₹%,.2f", Math.max(0, invested) / 100.0));
+            addField(fields, "Current Invested Amount", MoneyFormatter.format(Math.max(0, invested)));
             if (isMarketValueAccount(ia)) {
                 MarketValueEntry mv = DataStore.getInstance().getLatestMarketValue(ia.getId());
                 if (mv != null) {
                     long gl    = mv.getGainLossPaise();
                     double pct = invested > 0 ? gl * 100.0 / invested : 0;
                     addField(fields, "Latest Market Value",
-                            String.format("₹%,.2f  (as of %s)",
-                                    mv.getMarketValuePaise() / 100.0,
-                                    mv.getValueDate().format(dateFmt())));
+                            MoneyFormatter.format(mv.getMarketValuePaise()) + "  (as of " + mv.getValueDate().format(dateFmt()) + ")");
                     addField(fields, "Gain / Loss",
-                            String.format("%s₹%,.2f  (%+.2f%%)",
-                                    gl >= 0 ? "+" : "", gl / 100.0, pct));
+                            (gl >= 0 ? "+" : "") + MoneyFormatter.format(Math.abs(gl)) + "  (" + String.format("%+.2f%%", pct) + ")");
                 }
             }
         }

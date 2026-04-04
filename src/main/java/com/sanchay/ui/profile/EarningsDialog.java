@@ -2,6 +2,7 @@ package com.sanchay.ui.profile;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -61,7 +62,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         getDialogPane().setPrefWidth(950);
         getDialogPane().setPrefHeight(680);
         UiUtils.applyStylesheet(this);
-        UiUtils.setDialogHeader(this, "₹", "Earnings — " + member.getName());
+        UiUtils.setDialogHeader(this, MoneyFormatter.symbol(), "Earnings — " + member.getName());
 
         TabPane tabs = buildTabPane();
         getDialogPane().setContent(tabs);
@@ -694,7 +695,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     }
 
     private long parsePaise(TextField tf, String fieldName) {
-        String raw = tf.getText().replace(",", "").replace("₹", "").trim();
+        String raw = tf.getText().replace(",", "").replace(MoneyFormatter.symbol(), "").trim();
         if (raw.isEmpty()) throw new IllegalArgumentException(fieldName + " is required.");
         try {
             double v = Double.parseDouble(raw);
@@ -706,7 +707,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     }
 
     private long parseOptionalPaise(TextField tf) {
-        String raw = tf.getText().replace(",", "").replace("₹", "").trim();
+        String raw = tf.getText().replace(",", "").replace(MoneyFormatter.symbol(), "").trim();
         if (raw.isEmpty()) return 0;
         try { return Math.round(Double.parseDouble(raw) * 100); }
         catch (NumberFormatException e) { return 0; }
@@ -727,7 +728,7 @@ public class EarningsDialog extends Dialog<Boolean> {
 
     private long parseAmountStr(String s) {
         if (s == null || s.isBlank()) return 0;
-        try { return Math.round(Double.parseDouble(s.replace(",", "").replace("₹", "").trim()) * 100); }
+        try { return Math.round(Double.parseDouble(s.replace(",", "").replace(MoneyFormatter.symbol(), "").trim()) * 100); }
         catch (NumberFormatException e) { return 0; }
     }
 
@@ -738,7 +739,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     }
 
     private String fmtAmt(long paise) { return String.format("%.2f",   paise / 100.0); }
-    private String fmtR  (long paise) { return String.format("₹%,.2f", paise / 100.0); }
+    private String fmtR  (long paise) { return MoneyFormatter.format(paise); }
 
     private static String formatFrequency(RecurringTransaction.Frequency f) {
         if (f == null) return "—";

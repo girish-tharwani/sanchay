@@ -2,6 +2,7 @@ package com.sanchay.ui;
 
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PersistenceService;
 import com.sanchay.ui.accounts.AccountsScreen;
 import com.sanchay.ui.categories.CategoriesScreen;
@@ -120,7 +121,7 @@ public class MainWindow {
         // ── Brand / logo section ─────────────────────────────────────────────
         StackPane logoCircle = new StackPane();
         logoCircle.getStyleClass().add("logo-circle");
-        Label rupee = new Label("₹");
+        Label rupee = new Label(MoneyFormatter.symbol());
         rupee.getStyleClass().add("logo-rupee");
         logoCircle.getChildren().add(rupee);
 

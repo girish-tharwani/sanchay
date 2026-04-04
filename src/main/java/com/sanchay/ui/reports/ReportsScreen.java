@@ -3,6 +3,7 @@ package com.sanchay.ui.reports;
 import com.sanchay.model.CreditCardAccount;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -284,7 +285,7 @@ public class ReportsScreen {
         VBox section = new VBox(10);
         Label heading = new Label("Expenses by Category — " + label);
         heading.getStyleClass().add("text-section-title");
-        Label totalLbl = new Label("Total: " + String.format("₹%,.2f", grandTotal / 100.0));
+        Label totalLbl = new Label("Total: " + MoneyFormatter.format(grandTotal));
         totalLbl.getStyleClass().add("section-group-label");
 
         VBox bars = new VBox(6);
@@ -322,7 +323,7 @@ public class ReportsScreen {
                     catLbl.setMinWidth(160);
                     catLbl.getStyleClass().add("text-section-title");
                     Label catTotalLbl = new Label(
-                            String.format("%.1f%%  ₹%,.0f", catPct, catTotal / 100.0));
+                            String.format("%.1f%%  ", catPct) + MoneyFormatter.formatNoDecimal(catTotal));
                     catTotalLbl.getStyleClass().add("text-hint");
                     catHeader.getChildren().addAll(catLbl, catTotalLbl);
                     bars.getChildren().add(catHeader);
@@ -365,7 +366,7 @@ public class ReportsScreen {
         Label pctLbl = new Label(String.format("%.1f%%", pct));
         pctLbl.getStyleClass().add("text-hint");
         pctLbl.setMinWidth(40);
-        Label amtLbl = new Label(String.format("₹%,.0f", amountPaise / 100.0));
+        Label amtLbl = new Label(MoneyFormatter.formatNoDecimal(amountPaise));
         amtLbl.getStyleClass().add("text-form-value");
         amtLbl.setMinWidth(80);
         barRow.getChildren().addAll(nameLbl, bar, pctLbl, amtLbl);
@@ -589,9 +590,9 @@ public class ReportsScreen {
             name.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: -brand-dark;");
             HBox stats = new HBox(16);
             stats.getChildren().addAll(
-                    ccStat(periodLabel,   "₹" + fmt(periodSpend),  periodSpend > 0 ? "-color-error" : "-brand-dark"),
-                    ccStat("Outstanding", "₹" + fmt(outstanding),  outstanding > 0 ? "-color-error" : "-brand-dark"),
-                    ccStat("Available",   "₹" + fmt(available),    "-brand-mid"),
+                    ccStat(periodLabel,   MoneyFormatter.formatNoDecimal(periodSpend),  periodSpend > 0 ? "-color-error" : "-brand-dark"),
+                    ccStat("Outstanding", MoneyFormatter.formatNoDecimal(outstanding),  outstanding > 0 ? "-color-error" : "-brand-dark"),
+                    ccStat("Available",   MoneyFormatter.formatNoDecimal(available),    "-brand-mid"),
                     ccStat("Issuer",      cc.getBankIssuer(),       "-brand-dark")
             );
             card.getChildren().addAll(name, stats);
@@ -663,7 +664,7 @@ public class ReportsScreen {
         section.getChildren().add(heading);
 
         if (showTotal) {
-            Label totalLbl = new Label("Total: " + String.format("₹%,.2f", total / 100.0));
+            Label totalLbl = new Label("Total: " + MoneyFormatter.format(total));
             totalLbl.getStyleClass().add("section-group-label");
             section.getChildren().add(totalLbl);
         }

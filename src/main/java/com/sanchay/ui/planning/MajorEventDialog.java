@@ -3,6 +3,7 @@ package com.sanchay.ui.planning;
 import com.sanchay.model.Category;
 import com.sanchay.model.MajorEvent;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -267,7 +268,7 @@ class MajorEventDialog {
         }
         long amtPaise;
         try {
-            String raw = amtFld.getText().replace("₹", "").replace(",", "").trim();
+            String raw = amtFld.getText().replace(MoneyFormatter.symbol(), "").replace(",", "").trim();
             if (raw.isBlank()) throw new NumberFormatException();
             amtPaise = Math.round(Double.parseDouble(raw) * 100);
             if (amtPaise <= 0) throw new NumberFormatException();
@@ -325,7 +326,7 @@ class MajorEventDialog {
     }
 
     private static String formatRupees(long paise) {
-        return String.format("₹%,.0f", paise / 100.0);
+        return MoneyFormatter.formatNoDecimal(paise);
     }
 
     private static void alert(String title, String msg) {
