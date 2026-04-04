@@ -57,16 +57,14 @@ public class AccountsScreen {
                 && ds.isGroupCollapsed("loan") && ds.isGroupCollapsed("investment");
 
         Label collapseAllChevron = new Label(allCollapsed ? "▸" : "▾");
-        collapseAllChevron.getStyleClass().add("group-chevron");
-        // Inline required: font-size is a sizing tweak, not a colour or theme token
-        collapseAllChevron.setStyle("-fx-font-size: 24px;");
+        collapseAllChevron.getStyleClass().addAll("group-chevron", "icon-xl");
 
         Label title = new Label("Accounts");
         title.getStyleClass().add("screen-title");
 
         HBox titleRow = new HBox(10, collapseAllChevron, title);
         titleRow.setAlignment(Pos.CENTER_LEFT);
-        titleRow.setStyle("-fx-cursor: hand;");
+        titleRow.getStyleClass().add("cursor-hand");
         Tooltip.install(titleRow, new Tooltip(allCollapsed ? "Expand all" : "Collapse all"));
         titleRow.setOnMouseClicked(e -> {
             boolean collapse = !allCollapsed;
@@ -106,15 +104,14 @@ public class AccountsScreen {
 
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setStyle("-fx-cursor: hand;");
+        header.getStyleClass().add("cursor-hand");
         header.setOnMouseClicked(e -> {
             DataStore.getInstance().setGroupCollapsed(type, !collapsed);
             buildList();
         });
 
         Label chevron = new Label(collapsed ? "▸" : "▾");
-        chevron.getStyleClass().add("filter-label");
-        chevron.setStyle("-fx-font-size: 16px;");
+        chevron.getStyleClass().addAll("filter-label", "icon-sm");
 
         // Shape.fill cannot be set via style class; data-driven colour stays inline
         Circle dot = new Circle(4);
@@ -167,9 +164,9 @@ public class AccountsScreen {
         info.setMinWidth(200);
         info.setMaxWidth(200);
         Label name = new Label(acc.getName());
-        // Inline required: active/inactive text colour is runtime data
-        name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;"
-                + (active ? " -fx-text-fill: -brand-dark;" : " -fx-text-fill: -text-hint;"));
+        name.getStyleClass().add("stat-value");
+        // Inline required: text colour is runtime data (active vs closed account)
+        name.setStyle(active ? "-fx-text-fill: -brand-dark;" : "-fx-text-fill: -text-hint;");
         name.setMaxWidth(200);
         Label sub  = new Label(acc.getAccountType());
         sub.getStyleClass().add("text-hint");
@@ -238,7 +235,7 @@ public class AccountsScreen {
                     label = "Invested  /  Market Value";
                     value = MoneyFormatter.formatNoDecimal(invested) + "  /  " + MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise());
                     // Inline required: gain/loss colour is runtime data
-                    valueColour = gl >= 0 ? "-brand-mid" : "#C62828";
+                    valueColour = gl >= 0 ? "-brand-mid" : "-color-error";
                 } else {
                     label = "Invested";
                     value = MoneyFormatter.formatNoDecimal(invested);
@@ -256,8 +253,9 @@ public class AccountsScreen {
         Label lbl = new Label(label);
         lbl.getStyleClass().add("card-title");
         Label val = new Label(value);
-        // Inline required: positive/negative/investment colour is runtime data
-        val.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: " + valueColour + ";");
+        val.getStyleClass().add("text-value-lg");
+        // Inline required: colour is runtime data (positive/negative/investment)
+        val.setStyle("-fx-text-fill: " + valueColour + ";");
         VBox box = new VBox(2, lbl, val);
         box.setAlignment(Pos.CENTER_RIGHT);
         return box;

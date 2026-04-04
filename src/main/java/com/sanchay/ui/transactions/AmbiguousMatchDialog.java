@@ -7,8 +7,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 
 import java.util.List;
 
@@ -43,7 +41,7 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         subtitle.getStyleClass().add("text-hint");
 
         // ── Imported block ────────────────────────────────────────────────────
-        HBox importedSecLabel = sectionLabel("Imported transaction", "#3db89a");
+        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
 
         VBox importedBlock = new VBox(4);
         importedBlock.getStyleClass().add("block-imported");
@@ -56,7 +54,7 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         importedBlock.getChildren().addAll(importedChip, importedInfo);
 
         // ── Candidates ────────────────────────────────────────────────────────
-        HBox matchesSecLabel = sectionLabel("Possible matches — select one", "#f0a500");
+        HBox matchesSecLabel = UiUtils.buildSectionLabel("Possible matches — select one", "#f0a500");
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);
@@ -131,15 +129,4 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         });
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private static HBox sectionLabel(String text, String dotColor) {
-        // Shape.fill cannot be set via style class; data-driven colour stays inline
-        Circle dot = new Circle(4, Color.web(dotColor));
-        Label lbl = new Label(text.toUpperCase());
-        lbl.getStyleClass().add("section-group-label");
-        HBox h = new HBox(8, dot, lbl);
-        h.setAlignment(Pos.CENTER_LEFT);
-        return h;
-    }
 }

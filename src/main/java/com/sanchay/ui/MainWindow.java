@@ -99,8 +99,14 @@ public class MainWindow {
         StackPane.setAlignment(wcBar, Pos.TOP_RIGHT);
 
         Scene scene = new Scene(outerRoot, 1185, 750);
-        scene.getStylesheets().add(
-                getClass().getResource("/com/sanchay/css/app.css").toExternalForm());
+        for (String f : new String[]{
+                "/com/sanchay/css/theme.css",
+                "/com/sanchay/css/components.css",
+                "/com/sanchay/css/layout.css",
+                "/com/sanchay/css/screens/reports.css",
+                "/com/sanchay/css/screens/planning.css"}) {
+            scene.getStylesheets().add(getClass().getResource(f).toExternalForm());
+        }
 
         addResizeSupport(scene, stage);
 

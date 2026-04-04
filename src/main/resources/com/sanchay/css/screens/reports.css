@@ -1,0 +1,167 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sanchay — screens/reports.css   (Cash Flow Forecast tab + Reports screen)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Chart series colours ────────────────────────────────────────────────── */
+/* Total series — gold, thicker */
+.cash-flow-chart .chart-series-line.series0 { -fx-stroke: -chart-color-total; -fx-stroke-width: 3px; }
+.cash-flow-chart .default-color0.chart-line-symbol { -fx-background-color: -chart-color-total, white; }
+
+/* Individual account series */
+.cash-flow-chart .chart-series-line.series1 { -fx-stroke: -chart-color-s1; -fx-stroke-width: 2px; }
+.cash-flow-chart .chart-series-line.series2 { -fx-stroke: -chart-color-s2; -fx-stroke-width: 2px; }
+.cash-flow-chart .chart-series-line.series3 { -fx-stroke: -chart-color-s3; -fx-stroke-width: 2px; }
+.cash-flow-chart .chart-series-line.series4 { -fx-stroke: -chart-color-s4; -fx-stroke-width: 2px; }
+.cash-flow-chart .chart-series-line.series5 { -fx-stroke: -chart-color-s5; -fx-stroke-width: 2px; }
+.cash-flow-chart .chart-series-line.series6 { -fx-stroke: -chart-color-s6; -fx-stroke-width: 2px; }
+.cash-flow-chart .chart-series-line.series7 { -fx-stroke: -chart-color-s7; -fx-stroke-width: 2px; }
+
+/* Hide data point symbols by default; show on hover */
+.cash-flow-chart .chart-line-symbol { -fx-background-radius: 3px; -fx-padding: 3px; visibility: hidden; }
+.cash-flow-chart .chart-line-symbol:hover { visibility: visible; }
+
+/* Chart plot area */
+.cash-flow-chart .chart-plot-background { -fx-background-color: -surface-card; }
+.cash-flow-chart .chart-vertical-grid-lines { -fx-stroke: rgba(42,138,122,0.08); }
+.cash-flow-chart .chart-horizontal-grid-lines { -fx-stroke: rgba(42,138,122,0.10); }
+.cash-flow-chart .axis { -fx-tick-label-fill: -text-muted; -fx-font-size: 11px; }
+
+/* ── Summary strip ───────────────────────────────────────────────────────── */
+.cash-flow-summary-strip {
+    -fx-background-color: rgba(42,138,122,0.07);
+    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 8 14 8 14;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-mid;
+}
+
+/* ── Stat cards ──────────────────────────────────────────────────────────── */
+.cash-flow-stat-card {
+    -fx-background-color: -surface-card;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 16 18 16 22;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.07), 8, 0, 0, 2);
+}
+.cash-flow-compact-stat-card {
+    -fx-background-color: -surface-card;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 12 6 12;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.05), 4, 0, 0, 1);
+}
+.cash-flow-stat-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-muted;
+}
+.cash-flow-compact-stat-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-muted;
+}
+.cash-flow-stat-value {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-primary;
+}
+.cash-flow-stat-value-pos { -fx-text-fill: -color-success; }
+.cash-flow-stat-value-neg { -fx-text-fill: -color-error; }
+.cash-flow-compact-stat-card .cash-flow-stat-value {
+    -fx-font-size: 12px;
+}
+.cash-flow-stat-sub {
+    -fx-font-size: 10px;
+    -fx-text-fill: -text-muted;
+}
+
+/* ── Warning bar ─────────────────────────────────────────────────────────── */
+.cash-flow-warning-bar {
+    -fx-background-color: -color-warning-bg;
+    -fx-border-color: -color-warning;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 6 12 6 12;
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-warning;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────────────── */
+.cash-flow-legend-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -text-secondary;
+}
+
+/* ── Forecast table ──────────────────────────────────────────────────────── */
+.forecast-table {
+    -fx-background-color: -surface-card;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.07), 8, 0, 0, 2);
+    -fx-padding: 16px;
+}
+
+.forecast-table .column-header .label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-mid;
+}
+
+.forecast-table .table-cell {
+    -fx-font-size: 12px;
+    -fx-text-fill: -text-primary;
+}
+
+/* Section title above the forecast table */
+.forecast-section-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-primary;
+    -fx-padding: 4 0 0 0;
+}
+
+/* Excluded row cells — greyed out */
+.forecast-cell-excluded {
+    -fx-text-fill: -text-muted;
+    -fx-opacity: 0.55;
+    -fx-strikethrough: true;
+}
+
+/* ── Exclude / include action buttons ────────────────────────────────────── */
+.forecast-btn-exclude {
+    -fx-background-color: rgba(224,85,85,0.10);
+    -fx-border-color: rgba(224,85,85,0.35);
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -color-error;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 2 10 2 10;
+}
+.forecast-btn-exclude:hover {
+    -fx-background-color: rgba(224,85,85,0.22);
+}
+
+.forecast-btn-include {
+    -fx-background-color: rgba(22,163,74,0.10);
+    -fx-border-color: rgba(22,163,74,0.35);
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -color-success-dark;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 2 10 2 10;
+}
+.forecast-btn-include:hover {
+    -fx-background-color: rgba(22,163,74,0.22);
+}

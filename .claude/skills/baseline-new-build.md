@@ -1,11 +1,11 @@
-# Skill: Baseline MVP version for project
+# Skill: Baseline New Build for project
 
 ## Purpose
-Guide Claude to learn and baseline project versioning for a new MVP
+Guide Claude to learn and baseline project versioning for a new Build
 
 ## Rules
 - NO CODE CHANGE AT ALL
-- Ask user for MVP suffix if not provided already
+- Ask user for Build name if not provided already
 
 ## What to exclude
 - Use .gitignore file at project root as a guide to what not to include in learning and analysis
@@ -22,10 +22,10 @@ Guide Claude to learn and baseline project versioning for a new MVP
 - [] Read the last change log version from the changelog.md and add that version as a suffix to file name e.g.CHANGELOG_v0.2.4.md
 
 ## Update the version in POM.xml
-- [] Update the version in pom.xml to 1.0.0 with the user prvides suffix appended to it
+- [] Update the version in pom.xml to 1.0.0 with the user provided Build Name appended to it
 
 ```xml
-<version>1.0.0-MVP1</version>
+<version>1.0.0-Agami</version>
 ```
 ## Initialize a changelog.md
 - Initialize a new CHANGELOG.md

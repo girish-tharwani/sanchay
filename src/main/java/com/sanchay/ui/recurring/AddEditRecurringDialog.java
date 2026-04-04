@@ -256,7 +256,7 @@ public class AddEditRecurringDialog {
             @Override protected void updateItem(Category item, boolean empty) {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? null : "  └ " + item.getName());
-                setStyle(empty || item == null ? "" : "-fx-text-fill: #1A1A2E;");
+                setStyle(empty || item == null ? "" : "-fx-text-fill: -text-label;");
             }
         });
         subCatCb.setButtonCell(new ListCell<>() {

@@ -1,9 +1,15 @@
-/DO NOT make any code changes.
+# Feature Plan
 
+- Follow these instructions to create a detailed implementation plan for a new feature. 
+- This is only a planning exercise — do not write or update any code yet.
+
+## Step 1 - Understand the requirements
 Read the requirements the user has just provided. Understand them fully.
 
+## Step 2 - Ask clarifying questions
 If anything is ambiguous or underspecified, ask clarifying questions before proceeding.
 
+## Step 3 - Create and explain the implementation plan
 Once requirements are clear, explain your implementation plan:
 - Which files will be touched and why
 - What new classes, methods, or fields will be added
@@ -11,14 +17,15 @@ Once requirements are clear, explain your implementation plan:
 - Any UI changes (new screens, dialogs, columns, /badges)
 - Any edge cases or tricky parts you anticipate
 
-Answer user queries:
-- Let user ask queries and answer them
+## Step 4 - Answer user queries and update the plan
+- Let user ask queries. Answer them based on your plan and understanding of the requirements.
 - Change the plan if needed, as per user conversation
 - Present the revised plan
 
-Once user confirms, write a detailed step-by-step plan at ./.claude/plans with a suitable file name in .md format for execution later.
+## Step 5 - Document the final plan
+Once user confirms, write a detailed step-by-step plan at ./.claude/plans with a suitable file name in .md format for execution.
 
-Do not write or update any code
+Again, this is only a planning exercise. Do not write or update any code
 
 Finish!
 

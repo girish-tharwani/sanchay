@@ -62,8 +62,8 @@ public class MarketValueHistoryDialog extends Dialog<Void> {
                 setText(val);
                 // Inline required: colour is runtime data (gain vs loss)
                 setStyle(val.startsWith("+") || val.startsWith(MoneyFormatter.symbol() + "0")
-                        ? "-fx-text-fill: #27AE60; -fx-font-weight: bold;"
-                        : "-fx-text-fill: #C62828; -fx-font-weight: bold;");
+                        ? "-fx-text-fill: -color-income; -fx-font-weight: bold;"
+                        : "-fx-text-fill: -color-error; -fx-font-weight: bold;");
             }
         });
         glCol.setPrefWidth(120);
@@ -83,8 +83,8 @@ public class MarketValueHistoryDialog extends Dialog<Void> {
                 setText(val);
                 // Inline required: colour is runtime data (gain vs loss)
                 setStyle(val.startsWith("+") || val.startsWith("0")
-                        ? "-fx-text-fill: #27AE60; -fx-font-weight: bold;"
-                        : "-fx-text-fill: #C62828; -fx-font-weight: bold;");
+                        ? "-fx-text-fill: -color-income; -fx-font-weight: bold;"
+                        : "-fx-text-fill: -color-error; -fx-font-weight: bold;");
             }
         });
         glPctCol.setPrefWidth(90);

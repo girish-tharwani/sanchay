@@ -5,6 +5,7 @@ import com.sanchay.service.CashFlowProjectionService;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.ForecastStateService;
 import com.sanchay.service.MoneyFormatter;
+import com.sanchay.ui.UiUtils;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -44,26 +45,7 @@ public class CashFlowForecastTab {
             YearMonth yearMonth
     ) {}
 
-    // ── Series swatch colours ─────────────────────────────────────────────────
-    // Inline required: colours are runtime-assigned to legend swatch rectangles from this array.
-    private static final String[] SERIES_COLORS = {
-        "#f0a500",  // 0 — Total (gold)
-        "#2a8a7a",  // 1
-        "#3db89a",  // 2
-        "#16a34a",  // 3
-        "#e05555",  // 4
-        "#7c3aed",  // 5
-        "#0f3d4a",  // 6
-        "#f59e0b",  // 7
-    };
-
-    // Group-level colours for summarised view (>5 accounts)
-    // Inline required: same runtime-assignment reason as SERIES_COLORS.
-    private static final Map<String, String> GROUP_COLORS = Map.of(
-        "Bank Accounts", "#2a8a7a",
-        "Credit Cards",  "#e05555",
-        "Investments",   "#f59e0b"
-    );
+    // Chart colours are defined in UiUtils.FORECAST_SERIES_COLORS / FORECAST_GROUP_COLORS.
 
     private static final DateTimeFormatter MONTH_FMT =
             DateTimeFormatter.ofPattern("MMM yy", Locale.ENGLISH);
@@ -350,7 +332,7 @@ public class CashFlowForecastTab {
                     new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
         }
         chart.getData().add(totalSeries);
-        legendPane.getChildren().add(buildLegendEntry("Total of Accounts", SERIES_COLORS[0]));
+        legendPane.getChildren().add(buildLegendEntry("Total of Accounts", UiUtils.FORECAST_SERIES_COLORS[0]));
 
         List<Account> accounts = result.accounts();
         boolean grouped = accounts.size() > 5 && !showDetailedAccounts;
@@ -376,7 +358,7 @@ public class CashFlowForecastTab {
                 }
             }
             chart.getData().add(series);
-            String color = SERIES_COLORS[(i + 1) % SERIES_COLORS.length];
+            String color = UiUtils.FORECAST_SERIES_COLORS[(i + 1) % UiUtils.FORECAST_SERIES_COLORS.length];
             legendPane.getChildren().add(buildLegendEntry(acc.getName(), color));
         }
     }
@@ -427,7 +409,7 @@ public class CashFlowForecastTab {
             }
             chart.getData().add(series);
 
-            String color = GROUP_COLORS.getOrDefault(groupName, SERIES_COLORS[1]);
+            String color = UiUtils.FORECAST_GROUP_COLORS.getOrDefault(groupName, UiUtils.FORECAST_SERIES_COLORS[1]);
             legendPane.getChildren().add(buildLegendEntry(groupName, color));
         }
     }

@@ -63,7 +63,7 @@ public class RecurringScreen {
         content.getChildren().add(pendingSection);
 
         // ── All schedules table ────────────────────────────────────────────────
-        HBox allHeader = sectionLabel("All Schedules", "#3db89a");
+        HBox allHeader = UiUtils.buildSectionLabel("All Schedules", "#3db89a");
         Region allHeaderSpacer = new Region();
         HBox.setHgrow(allHeaderSpacer, Priority.ALWAYS);
         Button addBtn = new Button("+ Add");
@@ -189,7 +189,7 @@ public class RecurringScreen {
     private void buildPendingSection(VBox container) {
         container.getChildren().clear();
 
-        container.getChildren().add(sectionLabel("Pending", "#f0a500"));
+        container.getChildren().add(UiUtils.buildSectionLabel("Pending", "#f0a500"));
 
         List<RecurringTransaction> pending = DataStore.getInstance().getPendingRecurring();
         if (pending.isEmpty()) {
@@ -306,18 +306,6 @@ public class RecurringScreen {
         return c;
     }
 
-    /** Colored dot + uppercase muted section label (matching dashboard style). */
-    private HBox sectionLabel(String text, String dotColor) {
-        // Shape.fill cannot be set via style class; data-driven colour stays inline
-        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(3.5);
-        dot.setFill(javafx.scene.paint.Color.web(dotColor));
-        Label lbl = new Label(text.toUpperCase());
-        lbl.getStyleClass().add("section-group-label");
-        HBox box = new HBox(7, dot, lbl);
-        box.setAlignment(Pos.CENTER_LEFT);
-        return box;
-    }
-
     private boolean showDeleteScheduleConfirm(RecurringTransaction r) {
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.setTitle("Delete Schedule");
@@ -333,7 +321,7 @@ public class RecurringScreen {
         warnRow.setAlignment(Pos.CENTER_LEFT);
         Label warnIcon = new Label("⚠");
         // Inline required: colour computed from role (danger), no CSS token for icon-only size
-        warnIcon.setStyle("-fx-font-size: 22px; -fx-text-fill: -color-error;");
+        warnIcon.getStyleClass().add("icon-danger");
         VBox warnText = new VBox(4);
         Label headline = new Label("Delete '" + r.getDescription() + "'?");
         headline.getStyleClass().add("text-section-title");
@@ -347,12 +335,12 @@ public class RecurringScreen {
         detailBlock.getStyleClass().add("dialog-danger-block");
         Label descLbl = new Label(r.getDescription());
         // Inline required: colour computed from role (danger)
-        descLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: -brand-dark;");
+        descLbl.getStyleClass().add("text-body-strong");
         descLbl.setWrapText(true);
         HBox meta = new HBox(8);
         meta.setAlignment(Pos.CENTER_LEFT);
         Label amtLbl = new Label(r.getAmountInr());
-        amtLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: -color-error;");
+        amtLbl.getStyleClass().add("text-amount-error");
         Label sep = new Label("·");
         sep.getStyleClass().add("text-hint");
         Label freqLbl = new Label(formatFrequency(r.getFrequency()));
@@ -368,10 +356,7 @@ public class RecurringScreen {
         Button deleteButton = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
         if (deleteButton != null) {
             ButtonBar.setButtonUniformSize(deleteButton, false);
-            Platform.runLater(() ->
-                // Inline required: dialog button styling applied post-show via Platform.runLater
-                deleteButton.setStyle("-fx-background-color: -color-error; -fx-text-fill: white; "
-                        + "-fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 7 20;"));
+            deleteButton.getStyleClass().add("btn-danger");
         }
 
         return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();

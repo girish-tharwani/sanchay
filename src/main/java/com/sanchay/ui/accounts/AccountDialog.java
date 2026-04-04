@@ -601,7 +601,8 @@ public class AccountDialog {
 
         Label hint = new Label("The new rate/EMI will apply from this date onwards in the schedule.");
         hint.setWrapText(true);
-        hint.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
+        hint.getStyleClass().add("text-hint");
+        hint.setStyle("-fx-font-size: 11px;"); // Inline required: 11px is smaller than base hint size
 
         Label lbl = new Label("Effective From*");
         lbl.getStyleClass().add("form-label");

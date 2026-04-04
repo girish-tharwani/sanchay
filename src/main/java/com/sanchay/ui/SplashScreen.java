@@ -67,14 +67,16 @@ public class SplashScreen {
     private Scene buildScene() {
         StackPane root = new StackPane();
         root.setPrefSize(480, 300);
-
-        LinearGradient bg = new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#0f3d4a")),
-                new Stop(1, Color.web("#1a6b5a")));
-        root.setBackground(new Background(new BackgroundFill(bg, CornerRadii.EMPTY, Insets.EMPTY)));
+        root.getStyleClass().add("splash-root"); // gradient defined in layout.css — CSS class wins over programmatic setBackground
 
         root.getChildren().addAll(buildDecorLayer(), buildContent());
-        return new Scene(root, 480, 300);
+        Scene scene = new Scene(root, 480, 300);
+        for (String f : new String[]{
+                "/com/sanchay/css/theme.css",
+                "/com/sanchay/css/components.css",
+                "/com/sanchay/css/layout.css"})
+            scene.getStylesheets().add(getClass().getResource(f).toExternalForm());
+        return scene;
     }
 
     // ── Decorative background circles ─────────────────────────────────────────
@@ -110,17 +112,14 @@ public class SplashScreen {
         StackPane coin = buildCoinGraphic();
         VBox.setMargin(coin, new Insets(0, 0, 6, 0));
 
-        // SplashScreen uses white + rgba transparent text on a dark gradient background.
-        // These inline styles are intentional: CSS tokens reference .root which is not
-        // in scope for this standalone-scene window, and rgba(255,255,255,...) has no token.
         Label appName = new Label("Sanchay");
-        appName.setStyle("-fx-font-size: 40px; -fx-font-weight: bold; -fx-text-fill: white;");
+        appName.getStyleClass().add("splash-title");
 
         Label subtitle = new Label("Personal Finance");
-        subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: rgba(255,255,255,0.72);");
+        subtitle.getStyleClass().add("splash-subtitle");
 
         Label tagline = new Label("Your household finances, organised.");
-        tagline.setStyle("-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.40);");
+        tagline.getStyleClass().add("splash-tagline");
 
         ProgressBar pb = buildProgressBar();
         VBox.setMargin(pb, new Insets(16, 0, 0, 0));

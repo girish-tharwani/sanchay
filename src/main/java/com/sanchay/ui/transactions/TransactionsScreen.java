@@ -76,11 +76,11 @@ public class TransactionsScreen {
             ccSummary.setPadding(new Insets(12, 16, 12, 16));
             ccSummary.setAlignment(Pos.CENTER_LEFT);
             ccSummary.getChildren().addAll(
-                    ccStat("Credit Limit",  MoneyFormatter.format(cc.getCreditLimitPaise()), "#595959"),
-                    ccStat("Outstanding",   MoneyFormatter.format(outstanding), "#E74C3C"),
-                    ccStat("Available",     MoneyFormatter.format(available), "#27AE60"),
-                    ccStat("Billing Date",  cc.getBillingCycleDate() + " of month", "#595959"),
-                    ccStat("Payment Due",   cc.getPaymentDueDays() + " days after billing", "#595959")
+                    ccStat("Credit Limit",  MoneyFormatter.format(cc.getCreditLimitPaise()), "-text-neutral"),
+                    ccStat("Outstanding",   MoneyFormatter.format(outstanding), "-color-expense"),
+                    ccStat("Available",     MoneyFormatter.format(available), "-color-income"),
+                    ccStat("Billing Date",  cc.getBillingCycleDate() + " of month", "-text-neutral"),
+                    ccStat("Payment Due",   cc.getPaymentDueDays() + " days after billing", "-text-neutral")
             );
             panel.getChildren().addAll(header, ccSummary);
         } else {
@@ -94,12 +94,12 @@ public class TransactionsScreen {
                 }
                 statLabel  = "Balance";
                 statValue  = MoneyFormatter.format(bal);
-                statColour = "#0f3d4a";
+                statColour = "-brand-dark";
             } else if (account instanceof LoanAccount la) {
                 long outstanding = ds2.getLoanOutstandingPaise(la);
                 statLabel  = "Outstanding";
                 statValue  = MoneyFormatter.formatNoDecimal(outstanding);
-                statColour = outstanding > 0 ? "#C62828" : "#0f3d4a";
+                statColour = outstanding > 0 ? "-color-error" : "-brand-dark";
             } else if (account instanceof InvestmentAccount ia) {
                 long invested = ds2.getBaseInvestedPaise(ia);
                 for (Transaction t : ds2.getTransactions()) {
@@ -112,17 +112,17 @@ public class TransactionsScreen {
                 }
                 statLabel  = "Invested";
                 statValue  = MoneyFormatter.formatNoDecimal(Math.max(0, invested));
-                statColour = "#0f3d4a";
+                statColour = "-brand-dark";
                 if (isMarketValueAccount(ia)) {
                     MarketValueEntry mv = ds2.getLatestMarketValue(ia.getId());
                     if (mv != null) {
                         long gl = mv.getGainLossPaise();
-                        String glColor = gl >= 0 ? "#27AE60" : "#C62828";
+                        String glColor = gl >= 0 ? "-color-income" : "-color-error";
                         Region spacer2 = new Region();
                         HBox.setHgrow(spacer2, Priority.ALWAYS);
                         header.getChildren().addAll(
                                 spacer2,
-                                ccStat("Market Value", MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise()), "#0f3d4a"),
+                                ccStat("Market Value", MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise()), "-brand-dark"),
                                 ccStat("Gain / Loss",  (gl >= 0 ? "+" : "") + MoneyFormatter.formatNoDecimal(Math.abs(gl)), glColor)
                         );
                         statLabel = null; // suppress the default single-stat path
@@ -200,9 +200,8 @@ public class TransactionsScreen {
         });
         typeFilter.setButtonCell(typeFilter.getCellFactory().call(null));
 
-        // Inline required: vertical separator Region — no CSS class covers exact rgba brand tint + pixel sizing
         Region filterSep = new Region();
-        filterSep.setStyle("-fx-background-color: rgba(42,138,122,0.18); -fx-pref-width: 1; -fx-min-width: 1; -fx-max-width: 1; -fx-pref-height: 22;");
+        filterSep.getStyleClass().add("filter-separator");
 
         HBox filterRow = new HBox(10);
         filterRow.getStyleClass().add("filter-bar");
@@ -651,10 +650,11 @@ public class TransactionsScreen {
     private VBox ccStat(String label, String value, String colour) {
         VBox b = new VBox(2);
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: -text-hint;");
+        lbl.getStyleClass().add("stat-label");
         Label val = new Label(value);
+        val.getStyleClass().add("stat-value");
         // Inline required: colour is runtime data (balance direction / CC outstanding)
-        val.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + colour + ";");
+        val.setStyle("-fx-text-fill: " + colour + ";");
         b.getChildren().addAll(lbl, val);
         return b;
     }
@@ -988,7 +988,7 @@ public class TransactionsScreen {
         HBox warnRow = new HBox(12);
         warnRow.setAlignment(Pos.CENTER_LEFT);
         Label warnIcon = new Label("⚠");
-        warnIcon.setStyle("-fx-font-size: 22px; -fx-text-fill: -color-error;");
+        warnIcon.getStyleClass().add("icon-danger");
         VBox warnText = new VBox(4);
         Label headline = new Label(isGrouped ? "Delete linked redemption group?" : "Delete this transaction?");
         headline.getStyleClass().add("text-section-title");
@@ -1002,18 +1002,14 @@ public class TransactionsScreen {
         warnRow.getChildren().addAll(warnIcon, warnText);
 
         VBox txnBlock = new VBox(5);
-        // Danger-tinted preview block — specific red tint has no CSS token; keep inline
-        txnBlock.setStyle(
-                "-fx-background-color: #fef2f2; -fx-border-color: #fecaca; "
-                + "-fx-border-radius: 8; -fx-background-radius: 8; -fx-border-width: 1; "
-                + "-fx-padding: 12 14;");
+        txnBlock.getStyleClass().add("dialog-danger-block");
         Label desc = new Label(t.getDescription());
-        desc.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: -brand-dark;");
+        desc.getStyleClass().add("text-body-strong");
         desc.setWrapText(true);
         HBox meta = new HBox(8);
         meta.setAlignment(Pos.CENTER_LEFT);
         Label amt = new Label(t.getAmountInr());
-        amt.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: -color-error;");
+        amt.getStyleClass().add("text-amount-error");
         Label sep = new Label("·");
         sep.getStyleClass().add("text-hint");
         Label date = new Label(t.getDate().format(dateFmt()));
@@ -1029,11 +1025,7 @@ public class TransactionsScreen {
         Button deleteButton = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
         if (deleteButton != null) {
             ButtonBar.setButtonUniformSize(deleteButton, false);
-            Platform.runLater(() -> {
-                // Inline required: dialog button styling is applied post-show via Platform.runLater
-                deleteButton.setStyle("-fx-background-color: -color-error; -fx-text-fill: white; "
-                        + "-fx-font-weight: 600; -fx-background-radius: 8; -fx-padding: 7 20;");
-            });
+            deleteButton.getStyleClass().add("btn-danger");
         }
 
         return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
@@ -1063,7 +1055,7 @@ public class TransactionsScreen {
                 + "-fx-min-width: 40; -fx-max-width: 40; -fx-min-height: 40; -fx-max-height: 40; "
                 + "-fx-background-radius: 20; -fx-alignment: CENTER; -fx-padding: 0;");
         Label titleLbl = new Label("Import Complete");
-        titleLbl.setStyle("-fx-font-size: 15px; -fx-font-weight: 700; -fx-text-fill: -brand-dark;");
+        titleLbl.getStyleClass().add("text-title-md");
         titleRow.getChildren().addAll(iconLbl, titleLbl);
 
         VBox lines = new VBox(0);
@@ -1078,8 +1070,7 @@ public class TransactionsScreen {
 
         if (!result.ambiguous.isEmpty()) {
             Label warn = new Label("⚠  " + result.ambiguous.size() + " ambiguous match(es) resolved manually");
-            // #856404 is amber warning text; -color-warning (#B7450D) is a different hue — keep hex
-            warn.setStyle("-fx-text-fill: #856404; -fx-font-size: 12px; -fx-padding: 10 0 0 0;");
+            warn.getStyleClass().add("text-warning-sm");
             body.getChildren().add(warn);
         }
 
@@ -1093,9 +1084,7 @@ public class TransactionsScreen {
         HBox line = new HBox(10);
         line.setAlignment(Pos.CENTER_LEFT);
         line.setPadding(new Insets(8, 14, 8, 14));
-        // Bottom-border divider between import result rows
-        line.setStyle("-fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent; "
-                + "-fx-border-width: 1;");
+        line.getStyleClass().add("divider-row-bottom");
         String checkBg  = (successStyle && count > 0) ? "#f0fdf4" : "#f8fbfc";
         String checkFg  = (successStyle && count > 0) ? "#16a34a" : "#7aa4b0";
         String checkBdr = (successStyle && count > 0) ? "#bbf7d0" : "rgba(42,138,122,0.15)";

@@ -1,5 +1,6 @@
 package com.sanchay.ui;
 
+import java.util.Map;
 import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.MoneyFormatter;
@@ -23,6 +24,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
@@ -38,12 +41,48 @@ import java.util.stream.Collectors;
 public final class UiUtils {
     private UiUtils() {}
 
-    private static final String CSS_PATH = "/com/sanchay/css/app.css";
+    private static final String[] CSS_FILES = {
+        "/com/sanchay/css/theme.css",
+        "/com/sanchay/css/components.css",
+        "/com/sanchay/css/layout.css",
+        "/com/sanchay/css/screens/reports.css",
+        "/com/sanchay/css/screens/planning.css"
+    };
 
-    /** Shared chart palette — used by ReportsScreen bar charts. */
+    /** Shared chart palette — used by ReportsScreen bar/pie charts (category breakdown). */
     public static final String[] CHART_PALETTE = {
             "#E74C3C","#E67E22","#F39C12","#8E44AD","#2E75B6",
             "#1ABC9C","#27AE60","#2980B9","#C0392B","#16A085"};
+
+    /**
+     * Series colours for account cash-flow forecast chart (CashFlowForecastTab).
+     * Entries that mirror CSS design tokens:
+     *   [0] #f0a500 ≈ -brand-accent (gold — Total series)
+     *   [1] #2a8a7a ≈ -brand-mid
+     *   [2] #3db89a ≈ -brand-light
+     *   [6] #0f3d4a ≈ -brand-dark
+     * Runtime-assigned to legend swatch rectangles — cannot use CSS tokens here.
+     */
+    public static final String[] FORECAST_SERIES_COLORS = {
+        "#f0a500",  // 0 — Total (≈ -brand-accent)
+        "#2a8a7a",  // 1 — (≈ -brand-mid)
+        "#3db89a",  // 2 — (≈ -brand-light)
+        "#16a34a",  // 3
+        "#e05555",  // 4
+        "#7c3aed",  // 5
+        "#0f3d4a",  // 6 — (≈ -brand-dark)
+        "#f59e0b",  // 7
+    };
+
+    /**
+     * Group-level colours for summarised cash-flow view (>5 accounts).
+     * Runtime-assigned — same reason as FORECAST_SERIES_COLORS.
+     */
+    public static final Map<String, String> FORECAST_GROUP_COLORS = Map.of(
+        "Bank Accounts", "#2a8a7a",   // ≈ -brand-mid
+        "Credit Cards",  "#e05555",
+        "Investments",   "#f59e0b"
+    );
 
     /**
      * Applies the app stylesheet to a dialog's DialogPane.
@@ -55,8 +94,8 @@ public final class UiUtils {
     }
 
     public static void applyStylesheet(DialogPane pane) {
-        String css = UiUtils.class.getResource(CSS_PATH).toExternalForm();
-        pane.getStylesheets().add(css);
+        for (String f : CSS_FILES)
+            pane.getStylesheets().add(UiUtils.class.getResource(f).toExternalForm());
     }
 
     /**
@@ -86,6 +125,23 @@ public final class UiUtils {
 
         row.getChildren().addAll(num, text);
         return row;
+    }
+
+    /**
+     * Coloured dot + uppercase section label row.
+     * Previously duplicated as private sectionLabel() in RecurringScreen,
+     * AmbiguousMatchDialog, and RecurringMatchDialog.
+     *
+     * dotColor stays as a String because it is data-driven (callers pass different
+     * brand colours). Shape.fill cannot be set via CSS class — legitimate exception.
+     */
+    public static HBox buildSectionLabel(String text, String dotColor) {
+        Circle dot = new Circle(4, Color.web(dotColor));
+        Label lbl = new Label(text.toUpperCase());
+        lbl.getStyleClass().add("section-group-label");
+        HBox box = new HBox(8, dot, lbl);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
     }
 
     /**
@@ -398,7 +454,7 @@ public final class UiUtils {
         if (monthPane == null) return;
         // Inline required: DatePicker calendar popup is a separate JavaFX skin node tree
         // not accessible via the main stylesheet; setStyle() via lookup is the only way.
-        monthPane.setStyle("-fx-background-color: #d8f0ec;");
+        monthPane.setStyle("-fx-background-color: -surface-datepicker-header;");
         monthPane.lookupAll(".label").forEach(n ->
                 n.setStyle("-fx-text-fill: -brand-dark; -fx-font-weight: bold;"));
         monthPane.lookupAll(".left-arrow, .right-arrow").forEach(n ->

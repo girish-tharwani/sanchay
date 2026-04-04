@@ -574,11 +574,12 @@ public class TransactionDialog extends Dialog<Transaction> {
             // Inline required: runtime gain/loss colour is data-driven
             String color = gainLoss >= 0 ? "-color-success-dark" : "-color-error";
             rdeGainLossLbl.setText(sign + MoneyFormatter.format(Math.abs(gainLoss)));
+            rdeGainLossLbl.getStyleClass().remove("text-hint");
             rdeGainLossLbl.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold;");
             switchRedeemCatList(gainLoss < 0);
         } catch (NumberFormatException e) {
             rdeGainLossLbl.setText("—");
-            rdeGainLossLbl.setStyle(""); // clears inline; text-hint class applies
+            rdeGainLossLbl.setStyle(""); // clears inline; text-hint class re-applies
         }
     }
 
@@ -642,7 +643,7 @@ public class TransactionDialog extends Dialog<Transaction> {
             @Override protected void updateItem(Category c, boolean empty) {
                 super.updateItem(c, empty);
                 setText(empty || c == null ? null : "  └ " + c.getName());
-                setStyle(empty || c == null ? "" : "-fx-text-fill: #1A1A2E;");
+                setStyle(empty || c == null ? "" : "-fx-text-fill: -text-label;");
             }
         });
         return cb;
@@ -2060,7 +2061,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         Label iconLbl = new Label("⚠");
         iconLbl.getStyleClass().addAll("dialog-icon-box-lg", "dialog-icon-box-lg--error");
         Label msgLbl = new Label(msg);
-        msgLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: -brand-dark;");
+        msgLbl.getStyleClass().add("text-body-strong");
         msgLbl.setWrapText(true);
         msgLbl.setMaxWidth(280);
         iconRow.getChildren().addAll(iconLbl, msgLbl);

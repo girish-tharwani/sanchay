@@ -586,8 +586,7 @@ public class ReportsScreen {
                     .mapToLong(Transaction::getAmountPaise).sum();
             VBox card = new VBox(10); card.getStyleClass().add("card");
             Label name = new Label(cc.getName());
-            // Inline required: 15px is a one-off size not covered by utility classes
-            name.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: -brand-dark;");
+            name.getStyleClass().add("text-title-md");
             HBox stats = new HBox(16);
             stats.getChildren().addAll(
                     ccStat(periodLabel,   MoneyFormatter.formatNoDecimal(periodSpend),  periodSpend > 0 ? "-color-error" : "-brand-dark"),
@@ -766,8 +765,9 @@ public class ReportsScreen {
         Label lbl = new Label(label.toUpperCase());
         lbl.getStyleClass().add("card-title");
         Label val = new Label(value);
-        // Inline required: positive/negative/neutral colour is runtime data
-        val.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+        val.getStyleClass().add("text-value-lg");
+        // Inline required: colour is runtime data (positive/negative/neutral)
+        val.setStyle("-fx-text-fill: " + color + ";");
         box.getChildren().addAll(lbl, val);
         return box;
     }

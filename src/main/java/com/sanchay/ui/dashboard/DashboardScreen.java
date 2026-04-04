@@ -299,8 +299,9 @@ public class DashboardScreen {
                 HBox.setHgrow(descL, Priority.ALWAYS);
 
                 Label amtL = new Label(t.getAmountInr());
-                // Inline required: 13px bold-dark is a one-off size not covered by a utility class
-                amtL.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: -brand-dark; -fx-alignment: center-right;");
+                amtL.getStyleClass().add("stat-value");
+                // Inline required: alignment + text-fill not covered by stat-value class
+                amtL.setStyle("-fx-text-fill: -brand-dark; -fx-alignment: center-right;");
                 amtL.setMinWidth(110);
                 amtL.setMaxWidth(110);
 

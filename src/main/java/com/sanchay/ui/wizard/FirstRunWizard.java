@@ -193,8 +193,12 @@ public class FirstRunWizard {
 
     private Scene applyStylesheet(Scene scene) {
         try {
-            String css = getClass().getResource("/com/sanchay/css/app.css").toExternalForm();
-            scene.getStylesheets().add(css);
+            for (String f : new String[]{
+                    "/com/sanchay/css/theme.css",
+                    "/com/sanchay/css/components.css",
+                    "/com/sanchay/css/layout.css"}) {
+                scene.getStylesheets().add(getClass().getResource(f).toExternalForm());
+            }
         } catch (Exception ignored) {}
         return scene;
     }

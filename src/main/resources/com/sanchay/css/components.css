@@ -1,0 +1,1051 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sanchay — components.css   (reusable UI component classes)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Screen title ────────────────────────────────────────────────────────── */
+.screen-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.card {
+    -fx-background-color: -surface-card;
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+    -fx-padding: 16px;
+}
+
+.card-title {
+    -fx-font-size: 11px;
+    -fx-text-fill: -text-secondary;
+    -fx-font-weight: 700;
+    -fx-padding: 0 0 2px 0;
+}
+
+/* Summary card amount values — uniform teal-dark colour */
+.card-value {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+/* Header area — white background, single teal bottom border */
+.table-view .column-header-background {
+    -fx-background-color: white;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.22) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-size: 36px;
+}
+
+.table-view .column-header .label {
+    -fx-font-weight: 700;
+    -fx-text-fill: -brand-mid;
+    -fx-font-size: 11px;
+    -fx-padding: 0 8px;
+    -fx-alignment: CENTER;
+}
+
+/* Data cell alignment — CENTER default; overridden per column type */
+.table-cell                { -fx-alignment: CENTER; }
+.table-cell.cell-desc      { -fx-alignment: CENTER-LEFT; }
+.table-cell.cell-amt       { -fx-alignment: CENTER-RIGHT; }
+
+/* All rows — white with 1px teal bottom divider; no alternating colours */
+.table-row-cell,
+.table-row-cell:odd,
+.table-row-cell:even {
+    -fx-background-color: rgba(42,138,122,0.08), white;
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-cell-size: 42px;
+}
+
+/* Row selection — teal fill, white text */
+.table-row-cell:selected,
+.table-row-cell:odd:selected,
+.table-row-cell:even:selected {
+    -fx-background-color: rgba(42,138,122,0.08), -brand-mid;
+    -fx-background-insets: 0, 0 0 1 0;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: white;
+}
+
+/* Left accent strip for imported / reconciled rows */
+.table-row-cell:row-imported {
+    -fx-background-color: #E65100, white;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+.table-row-cell:row-reconciled {
+    -fx-background-color: #2E7D32, white;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+/* Keep accent strip visible when row is selected */
+.table-row-cell:row-imported:selected {
+    -fx-background-color: #E65100, -brand-mid;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+.table-row-cell:row-reconciled:selected {
+    -fx-background-color: #2E7D32, -brand-mid;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+
+/* ── Loan schedule rows ─────────────────────────────────────────────────── */
+/* Past EMI rows — slightly muted */
+.table-row-cell:row-past {
+    -fx-opacity: 0.7;
+}
+/* Rows where user has made a spot correction */
+.table-row-cell:row-override {
+    -fx-background-color: #FFF8E1, white;
+    -fx-background-insets: 0, 0 0 0 3;
+    -fx-font-style: italic;
+}
+.table-row-cell:row-override:selected {
+    -fx-background-color: #F9A825, -brand-mid;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+
+/* ── Table card wrapper ──────────────────────────────────────────────────── */
+.table-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14px;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 14px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+}
+
+/* ── Table footer bar ────────────────────────────────────────────────────── */
+.table-footer {
+    -fx-background-color: -surface-subtle;
+    -fx-border-color: rgba(42,138,122,0.15) transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 10px 16px;
+}
+
+/* ── Floating add button (FAB) ───────────────────────────────────────────── */
+.fab {
+    -fx-background-color: -brand-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-min-width: 52px;
+    -fx-min-height: 52px;
+    -fx-max-width: 52px;
+    -fx-max-height: 52px;
+    -fx-background-radius: 26px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 10, 0, 0, 3);
+}
+
+.fab:hover {
+    -fx-background-color: derive(-brand-accent, -10%);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-secondary {
+    -fx-background-color: -surface-field;
+    -fx-text-fill: -brand-dark;
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-padding: 7px 18px;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #ddf0ec;
+}
+
+.btn-danger {
+    -fx-background-color: -color-error;
+    -fx-text-fill: white;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-padding: 7px 18px;
+    -fx-font-weight: 600;
+}
+
+.btn-danger:hover {
+    -fx-background-color: derive(-color-error, -10%);
+}
+.btn-danger:pressed {
+    -fx-background-color: derive(-color-error, -20%);
+}
+
+/* ── Small icon button (ℹ ☰ etc.) ───────────────────────────────────────── */
+.btn-icon {
+    -fx-background-color: -surface-field;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
+    -fx-border-width: 1px;
+    -fx-min-width: 28px;
+    -fx-max-width: 28px;
+    -fx-min-height: 28px;
+    -fx-max-height: 28px;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-text-fill: -text-muted;
+    -fx-padding: 0;
+}
+.btn-icon:hover {
+    -fx-background-color: #ddf0ec;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Gold-tinted button for group "+ Add" actions ───────────────────────── */
+.btn-gold {
+    -fx-background-color: rgba(240,165,0,0.12);
+    -fx-border-color: rgba(240,165,0,0.40);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-text-fill: #b37800;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 5px 14px;
+}
+.btn-gold:hover {
+    -fx-background-color: rgba(240,165,0,0.22);
+}
+
+/* ── 28×28 action buttons (Record / Skip in pending lists) ──────────────── */
+.btn-action-sm {
+    -fx-background-color: -surface-field;
+    -fx-text-fill: -text-muted;
+    -fx-font-size: 12px;
+    -fx-min-width: 28; -fx-max-width: 28;
+    -fx-min-height: 28; -fx-max-height: 28;
+    -fx-background-radius: 7;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+.btn-action-sm:hover {
+    -fx-background-color: #ddf0ec;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Small red danger button (delete / remove inline) ───────────────────── */
+.btn-danger-sm {
+    -fx-background-color: #fef2f2;
+    -fx-text-fill: -color-error;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-border-width: 1;
+    -fx-min-width: 26; -fx-max-width: 26;
+    -fx-min-height: 26; -fx-max-height: 26;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+}
+.btn-danger-sm:hover {
+    -fx-background-color: #fee2e2;
+}
+
+/* ── Row-editor ±22px add / remove buttons ───────────────────────────────── */
+.btn-row-remove {
+    -fx-background-color: #F5DADA;
+    -fx-text-fill: -color-error;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+.btn-row-add {
+    -fx-background-color: #E8F5E9;
+    -fx-text-fill: -color-success-dark;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+/* ── TabPane — flat underline style ─────────────────────────────────────── */
+.tab-pane .tab-header-area {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.25) transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 8px 18px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.tab-pane .tab .tab-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 13px;
+    -fx-font-weight: normal;
+}
+.tab-pane .tab:selected {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -brand-mid transparent;
+    -fx-border-width: 0 0 2px 0;
+}
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -brand-mid;
+    -fx-font-weight: bold;
+}
+.tab-pane .tab:hover .tab-label {
+    -fx-text-fill: -brand-dark;
+}
+.tab-pane > .tab-content-area {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ── Tags / badges ──────────────────────────────────────────────────────── */
+/* Common badge base — pill shape, fixed width for alignment */
+.badge-expense, .badge-income, .badge-transfer, .badge-investment,
+.badge-cc-payment, .badge-loan-payment,
+.badge-refund, .badge-redeem, .badge-gain, .badge-lose {
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1;
+    -fx-padding: 3px 10px;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-min-width: 100px;
+    -fx-alignment: CENTER;
+}
+
+/* Compact variant — used in transaction table cells */
+.badge-sm {
+    -fx-font-size: 9.5px;
+    -fx-padding: 2px 7px;
+    -fx-min-width: 76px;
+}
+
+.badge-expense      { -fx-background-color: #fef2f2; -fx-text-fill: #c0392b; -fx-border-color: #fecaca; }
+.badge-income       { -fx-background-color: #f0fdf4; -fx-text-fill: #16a34a; -fx-border-color: #bbf7d0; }
+.badge-transfer     { -fx-background-color: #f5f3ff; -fx-text-fill: #7c3aed; -fx-border-color: #e9d5ff; }
+.badge-investment   { -fx-background-color: #fefce8; -fx-text-fill: #b45309; -fx-border-color: #fde68a; }
+.badge-cc-payment   { -fx-background-color: #fdf4ff; -fx-text-fill: #9333ea; -fx-border-color: #e9d5ff; }
+.badge-loan-payment { -fx-background-color: #eff6ff; -fx-text-fill: #2563eb; -fx-border-color: #bfdbfe; }
+.badge-refund       { -fx-background-color: #ecfdf5; -fx-text-fill: #0d9488; -fx-border-color: #99f6e4; }
+.badge-redeem       { -fx-background-color: #fff7ed; -fx-text-fill: #c2410c; -fx-border-color: #fed7aa; }
+.badge-gain         { -fx-background-color: #f0fdf4; -fx-text-fill: #15803d; -fx-border-color: #86efac; }
+.badge-lose         { -fx-background-color: #fff1f2; -fx-text-fill: #be123c; -fx-border-color: #fecdd3; }
+
+/* ── Source-indicator badges (fixed 24×24 in transaction table) ──────────── */
+.badge-imported {
+    -fx-background-color: #DDEEFF; -fx-text-fill: #1A66CC;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER;
+}
+.badge-auto-cat {
+    -fx-background-color: #FFF3CD; -fx-text-fill: #856404;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER; -fx-cursor: hand;
+}
+.badge-reconciled {
+    -fx-background-color: #DCFCE7; -fx-text-fill: #166534;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER;
+}
+.badge-manual {
+    -fx-background-color: #EEEEEE; -fx-text-fill: #555555;
+    -fx-font-weight: bold; -fx-font-size: 10px;
+    -fx-min-width: 24; -fx-max-width: 24;
+    -fx-min-height: 24; -fx-max-height: 24;
+    -fx-padding: 0; -fx-background-radius: 3; -fx-alignment: CENTER;
+}
+
+/* ── Account / category status badges ───────────────────────────────────── */
+.status-active {
+    -fx-font-size: 11px;
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-background-color: #DCFCE7;
+    -fx-text-fill: #166534;
+}
+
+.status-closed {
+    -fx-font-size: 11px;
+    -fx-padding: 2 8;
+    -fx-background-radius: 10;
+    -fx-background-color: #F5F5F5;
+    -fx-text-fill: -text-hint;
+}
+
+/* ── Form fields ────────────────────────────────────────────────────────── */
+.form-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 600;
+}
+
+.text-field, .text-area, .combo-box, .date-picker {
+    -fx-background-color: -surface-field;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-width: 1px;
+    -fx-padding: 6px 10px;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
+    -fx-background-color: white;
+    -fx-border-color: -brand-mid;
+}
+
+/* Flat style for filter-bar controls */
+.filter-field, .filter-field .text-field {
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-background-color: white;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 0;
+}
+.filter-field:focused {
+    -fx-border-color: -brand-mid;
+    -fx-border-width: 1px;
+}
+.filter-field.combo-box .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+}
+.filter-field.combo-box .arrow-button .arrow {
+    -fx-background-color: -text-secondary;
+}
+
+/* ── Filter label (uppercase, muted) ─────────────────────────────────────── */
+.filter-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-muted;
+}
+
+/* ── DatePicker inner text field ─────────────────────────────────────────── */
+.date-picker .text-field {
+    -fx-text-fill: -text-primary;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────────────────── */
+.spinner {
+    -fx-background-color: -surface-field;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-width: 1px;
+    -fx-padding: 0;                    /* remove Modena outer padding that inflates height */
+}
+.spinner:focused {
+    -fx-background-color: white;
+    -fx-border-color: -brand-mid;
+}
+/* Strip double-border/background from the inner text field */
+.spinner .text-field {
+    -fx-text-fill: -text-primary;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 6px 4px 6px 10px;
+}
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 1px 6px;              /* tight vertical padding so buttons don't exceed text-field height */
+}
+.spinner .increment-arrow-button:hover,
+.spinner .decrement-arrow-button:hover {
+    -fx-background-color: rgba(42,138,122,0.10);
+}
+.spinner .increment-arrow,
+.spinner .decrement-arrow {
+    -fx-background-color: -text-secondary;
+}
+
+/* ── DatePicker popup calendar ───────────────────────────────────────────── */
+.date-picker-popup {
+    -fx-background-color: white;
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.14), 12, 0, 0, 3);
+}
+
+.date-picker-popup > * > .month-year-pane {
+    -fx-background-color: -surface-datepicker-header;
+    -fx-padding: 6px 8px;
+}
+
+.date-picker-popup > * > .month-year-pane .label {
+    -fx-text-fill: -brand-dark;
+    -fx-font-weight: bold;
+}
+
+.date-picker-popup > * > .month-year-pane .button {
+    -fx-background-color: transparent;
+}
+
+.date-picker-popup > * > .month-year-pane .button:hover {
+    -fx-background-color: rgba(0,0,0,0.07);
+}
+
+.date-picker-popup > * > .month-year-pane .left-arrow,
+.date-picker-popup > * > .month-year-pane .right-arrow {
+    -fx-background-color: -brand-dark;
+}
+
+.date-picker-popup .day-name-cell {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.date-picker-popup .day-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -text-primary;
+}
+
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: -surface-datepicker-header;
+    -fx-background-radius: 50%;
+}
+
+.date-picker-popup .day-cell.today {
+    -fx-border-color: -brand-mid;
+    -fx-border-radius: 50%;
+    -fx-background-radius: 50%;
+}
+
+.date-picker-popup .day-cell:selected {
+    -fx-background-color: -brand-mid;
+    -fx-text-fill: white;
+    -fx-background-radius: 50%;
+}
+
+.date-picker-popup .day-cell.outside-month {
+    -fx-text-fill: -text-muted;
+}
+
+.date-picker-popup .week-number-cell {
+    -fx-text-fill: -text-muted;
+    -fx-font-size: 10px;
+}
+
+/* ── Pending / recent-txn row — divider-only style ──────────────────────── */
+/* No background; items are separated by a subtle bottom border */
+.pending-item {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 11px 16px;
+}
+
+/* ── Dialog pane ─────────────────────────────────────────────────────────── */
+.dialog-pane {
+    -fx-background-color: white;
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-background-radius: 14px;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: -surface-hover;
+    -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-text-fill: -brand-dark;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane .label,
+.dialog-pane GridPane .label {
+    -fx-text-fill: -text-primary;
+}
+
+.dialog-pane .check-box {
+    -fx-text-fill: -text-primary;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: -surface-hover;
+    -fx-border-color: rgba(42,138,122,0.18) transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 10px 14px;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-background-color: -surface-field;
+    -fx-text-fill: -brand-mid;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 18px;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button-bar .button:default {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -brand-mid, -brand-light);
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-font-weight: 600;
+}
+
+.dialog-pane .button-bar .button:default:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -brand-light, -brand-mid);
+}
+
+/* ── Dialog components ───────────────────────────────────────────────────── */
+/* Header bar above dialog content (light surface + bottom border) */
+.dialog-header-bar {
+    -fx-background-color: -surface-subtle;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 14 20 14 20;
+}
+
+/* Subtitle / tagline below a dialog title — muted, non-italic */
+.dialog-subtitle {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -text-muted;
+}
+
+/* Teal icon box inside dialog headers (28×28 rounded square) */
+.dialog-icon-box {
+    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-width: 28; -fx-min-height: 28;
+    -fx-max-width: 28; -fx-max-height: 28;
+    -fx-alignment: center;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-mid;
+}
+
+/* ── Large circular icon boxes (42×42) for confirm / error dialogs ───────── */
+.dialog-icon-box-lg {
+    -fx-border-radius: 50;
+    -fx-background-radius: 50;
+    -fx-min-width: 42; -fx-min-height: 42;
+    -fx-max-width: 42; -fx-max-height: 42;
+    -fx-alignment: center;
+}
+
+/* Gold tint — used in "Skip" / informational dialogs */
+.dialog-icon-box-lg--gold {
+    -fx-background-color: rgba(240,165,0,0.12);
+    -fx-border-color: rgba(240,165,0,0.30);
+    -fx-text-fill: #d4900a;
+    -fx-font-size: 20px;
+}
+
+/* Red tint — used in error / validation dialogs */
+.dialog-icon-box-lg--error {
+    -fx-background-color: rgba(192,57,43,0.10);
+    -fx-border-color: rgba(192,57,43,0.25);
+    -fx-text-fill: -color-error;
+    -fx-font-size: 18px;
+}
+
+/* Red variant of the small header icon box — used in destructive dialogs */
+.dialog-icon-box--danger {
+    -fx-background-color: rgba(192,57,43,0.10);
+    -fx-border-color: rgba(192,57,43,0.25);
+    -fx-text-fill: -color-error;
+}
+
+/* Red-tinted detail card — shows the record being deleted */
+.dialog-danger-block {
+    -fx-background-color: #fef2f2;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 12 16 12 16;
+}
+
+/* ── Inline card separators ──────────────────────────────────────────────── */
+/* Teal-dark 1px line — separates header from content inside a card */
+.sep-teal {
+    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+/* Teal-faint 1px line — used between items in a dialog or content block */
+.content-divider {
+    -fx-background-color: rgba(42,138,122,0.15);
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+/* ── Summary / stat cards ─────────────────────────────────────────────────── */
+/* Static parts of summary cards; dynamic stripe is set inline in Java */
+.card-summary {
+    -fx-background-radius: 12, 12;
+    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+    -fx-padding: 18 18 18 20;
+}
+
+/* Welcome / get-started card (teal left-stripe, always brand-light) */
+.card-welcome {
+    -fx-background-color: -brand-light, white;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 12, 12;
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 20 24 20 24;
+}
+
+/* ── Info box (subtle teal-bordered content block) ───────────────────────── */
+/* Padding NOT included here — callers set it via Java to allow per-context values */
+.info-box {
+    -fx-background-color: -surface-subtle;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+/* ── Match-dialog components ─────────────────────────────────────────────── */
+/* Imported transaction block (left teal accent stripe) */
+.block-imported {
+    -fx-background-color: rgba(42,138,122,0.12), -surface-teal-faint;
+    -fx-background-insets: 0, 0 0 0 4;
+    -fx-background-radius: 8, 6;
+    -fx-padding: 10 12 10 14;
+}
+
+/* Match candidate row — unselected */
+.match-row {
+    -fx-background-color: -surface-teal-faint;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+/* Match candidate row — selected */
+.match-row-selected {
+    -fx-background-color: rgba(42,138,122,0.10), -surface-teal-faint;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12;
+    -fx-border-color: -brand-mid;
+    -fx-border-radius: 8;
+    -fx-border-width: 1.5;
+}
+
+/* ── Warning alert box ───────────────────────────────────────────────────── */
+.alert-warning {
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-warning;
+    -fx-background-color: -color-warning-bg;
+    -fx-padding: 12;
+    -fx-background-radius: 6;
+}
+
+/* ── Text utility classes ────────────────────────────────────────────────── */
+/* Step / card titles: bold 14px brand-dark */
+.text-step-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: -brand-dark;
+}
+
+/* Section heading inside a card (same weight/colour as step title) */
+.text-section-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: -brand-dark;
+}
+
+/* Body text in muted secondary colour */
+.text-body-muted {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 13px;
+}
+
+/* Small italic hint / caption text */
+.text-hint {
+    -fx-text-fill: -text-hint;
+    -fx-font-size: 11px;
+    -fx-font-style: italic;
+}
+
+.text-error {
+    -fx-text-fill: -color-error;
+    -fx-font-size: 11px;
+}
+
+/* "No items" placeholder — same as hint but used on standalone labels */
+.text-empty {
+    -fx-text-fill: -text-hint;
+    -fx-font-style: italic;
+}
+
+/* Standard form value label — dark, 12px */
+.text-form-value {
+    -fx-text-fill: -text-label;
+    -fx-font-size: 12px;
+}
+
+/* Success / confirmation text (green) */
+.text-success {
+    -fx-text-fill: -color-success;
+    -fx-font-size: 12px;
+}
+
+/* Large heading — wizard welcome, screen hero titles */
+.text-heading-lg {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Inline teal hyperlink-style label ───────────────────────────────────── */
+.link-teal {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -brand-mid;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-background-color: transparent;
+}
+.link-teal:hover {
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Section group label — small, bold, muted ────────────────────────────── */
+/* e.g. "BANK ACCOUNTS", "PENDING" */
+.section-group-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -text-muted;
+}
+
+/* ── Read-only / locked ComboBox — overrides JavaFX disabled dimming ─────── */
+.combo-locked {
+    -fx-opacity: 1.0;
+}
+.combo-locked .combo-box-base {
+    -fx-background-color: derive(-surface-field, -8%);
+    -fx-border-color: rgba(42,138,122,0.15);
+}
+.combo-locked .combo-box-base > .list-cell {
+    -fx-text-fill: -text-secondary;
+    -fx-background-color: transparent;
+}
+.combo-locked .combo-box-base > .arrow-button {
+    -fx-opacity: 0.4;
+}
+
+/* ── Step badge (numbered circle in setup / help guides) ─────────────────── */
+.step-badge {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -brand-mid, -brand-light);
+    -fx-text-fill: -text-on-dark;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 15;
+    -fx-min-width: 30; -fx-min-height: 30;
+    -fx-max-width: 30; -fx-max-height: 30;
+    -fx-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(42,138,122,0.35), 8, 0, 0, 2);
+}
+
+/* ── Nav-hint chip (keyboard shortcut / screen-name pill) ────────────────── */
+.nav-hint {
+    -fx-background-color: -surface-field;
+    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 1 7 1 7;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -brand-mid;
+}
+
+/* ── Teal chip / frequency tag (small rounded pill) ──────────────────────── */
+.chip-teal {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-text-fill: -brand-mid;
+    -fx-background-radius: 12;
+    -fx-padding: 2 8;
+}
+
+/* ── Categories screen rows ──────────────────────────────────────────────── */
+/* Parent category row bottom-border separator */
+.category-row {
+    -fx-border-color: transparent transparent #E0E6ED transparent;
+    -fx-border-width: 1;
+}
+/* Sub-category row background + bottom-border separator */
+.subcategory-row {
+    -fx-background-color: #FAFBFC;
+    -fx-border-color: transparent transparent #F0F4F8 transparent;
+    -fx-border-width: 1;
+}
+
+/* ── Shared text styles used across delete/confirm dialogs ──────────────── */
+/* Description text in delete confirmation dialogs — 13px medium weight */
+.text-body-strong {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -brand-dark;
+}
+/* Amount label in delete confirmation dialogs — 13px bold error colour */
+.text-amount-error {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -color-error;
+}
+/* Mid-size dialog/section title — 15px bold brand-dark */
+.text-title-md {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -brand-dark;
+}
+/* Data value label — 14px bold, no text-fill (set inline: data-driven colour) */
+.text-value-lg {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+/* Bottom-border divider row — used between import result lines */
+.divider-row-bottom {
+    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-width: 1;
+}
+
+/* ── Icon size utilities ─────────────────────────────────────────────────── */
+/* Danger icon — warning/error symbol (22px, error colour) */
+.icon-danger {
+    -fx-font-size: 22px;
+    -fx-text-fill: -color-error;
+}
+/* Large icon — collapse chevrons, hero symbols (24px neutral) */
+.icon-xl {
+    -fx-font-size: 24px;
+}
+/* Small icon — inline chevrons, row-level symbols (16px neutral) */
+.icon-sm {
+    -fx-font-size: 16px;
+}
+
+/* ── Stat chip — label/value pair in summary strips ──────────────────────── */
+.stat-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -text-hint;
+}
+/* Static size/weight only — text-fill is set inline (data-driven) */
+.stat-value {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+/* ── Hyperlink-style button (no border, underlined, cursor hand) ─────────── */
+.text-link {
+    -fx-font-size: 13px;
+    -fx-underline: true;
+    -fx-padding: 4 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-text-fill: -brand-mid;
+}
+.text-link:hover {
+    -fx-text-fill: -brand-dark;
+}
+
+/* ── Small warning prose label (amber) ───────────────────────────────────── */
+.text-warning-sm {
+    -fx-text-fill: -color-warning-text;
+    -fx-font-size: 12px;
+    -fx-padding: 10 0 0 0;
+}
+
+/* ── Clickable container utility ─────────────────────────────────────────── */
+/* Applied to non-button containers (HBox, VBox) that respond to mouse clicks */
+.cursor-hand {
+    -fx-cursor: hand;
+}
+
+/* ── Vertical filter-bar separator (1px hairline) ────────────────────────── */
+.filter-separator {
+    -fx-background-color: rgba(42,138,122,0.18);
+    -fx-pref-width: 1;
+    -fx-min-width: 1;
+    -fx-max-width: 1;
+    -fx-pref-height: 22;
+}
+
+/* ── Miscellaneous component utilities ───────────────────────────────────── */
+/* Danger menu item text */
+.menu-item-danger {
+    -fx-text-fill: -color-error;
+}
+
+/* Avatar initials label (white bold text overlaid on circle) */
+.avatar-initial {
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
