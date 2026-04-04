@@ -225,8 +225,8 @@ public class CashFlowForecastTab {
         methodCol.setPrefWidth(180);
         methodCol.setCellFactory(col -> buildExcludedAwareCell());
 
-        TableColumn<ForecastTableRow, Void> actionCol = new TableColumn<>("Action");
-        actionCol.setPrefWidth(100);
+        TableColumn<ForecastTableRow, Void> actionCol = new TableColumn<>("Include");
+        actionCol.setPrefWidth(80);
         actionCol.setCellFactory(col -> new ActionCell());
 
         table.getColumns().addAll(monthCol, categoryCol, subCategoryCol, amountCol, methodCol, actionCol);
@@ -493,15 +493,22 @@ public class CashFlowForecastTab {
         }
     }
 
-    /** Renders the Exclude or Include action button. */
+    /** Renders a checkbox — checked means included in the forecast, unchecked means excluded. */
     private class ActionCell extends TableCell<ForecastTableRow, Void> {
-        private final Button btn = new Button();
+        private final CheckBox checkBox = new CheckBox();
+        private boolean updating = false;
 
         ActionCell() {
-            btn.setOnAction(e -> {
+            checkBox.setOnAction(e -> {
+                if (updating) return;
                 ForecastTableRow row = getTableView().getItems().get(getIndex());
-                if (row.excluded()) promptInclusion(row);
-                else                promptExclusion(row);
+                boolean acted = checkBox.isSelected() ? promptInclusion(row) : promptExclusion(row);
+                if (!acted) {
+                    // User cancelled — revert the checkbox to its original position.
+                    updating = true;
+                    checkBox.setSelected(!checkBox.isSelected());
+                    updating = false;
+                }
             });
         }
 
@@ -509,10 +516,11 @@ public class CashFlowForecastTab {
         protected void updateItem(Void item, boolean empty) {
             super.updateItem(item, empty);
             if (empty) { setGraphic(null); return; }
+            updating = true;
             ForecastTableRow row = getTableView().getItems().get(getIndex());
-            btn.getStyleClass().setAll(row.excluded() ? "forecast-btn-include" : "forecast-btn-exclude");
-            btn.setText(row.excluded() ? "Include" : "Exclude");
-            setGraphic(btn);
+            checkBox.setSelected(!row.excluded());
+            updating = false;
+            setGraphic(checkBox);
         }
     }
 
@@ -537,41 +545,47 @@ public class CashFlowForecastTab {
             return;
         }
 
-        boolean allMonths = askScope("Apply Correction",
+        Optional<Boolean> scope = askScope("Apply Correction",
                 "Apply this correction to:", row.subCategory(), row.month());
+        if (scope.isEmpty()) return;
 
-        YearMonth targetMonth = allMonths ? null : row.yearMonth();
+        YearMonth targetMonth = scope.get() ? null : row.yearMonth();
         forecastState.saveOverride(ForecastOverride.correction(
                 row.categoryId(), row.subCategoryId(), targetMonth, correctedPaise));
         refresh();
     }
 
-    private void promptExclusion(ForecastTableRow row) {
-        boolean allMonths = askScope("Exclude Sub-Category",
+    private boolean promptExclusion(ForecastTableRow row) {
+        Optional<Boolean> scope = askScope("Exclude Sub-Category",
                 "Exclude from forecast:", row.subCategory(), row.month());
+        if (scope.isEmpty()) return false;
 
-        YearMonth targetMonth = allMonths ? null : row.yearMonth();
+        YearMonth targetMonth = scope.get() ? null : row.yearMonth();
         forecastState.saveOverride(ForecastOverride.exclusion(
                 row.categoryId(), row.subCategoryId(), targetMonth));
         refresh();
+        return true;
     }
 
-    private void promptInclusion(ForecastTableRow row) {
-        boolean allMonths = askScope("Include Sub-Category",
+    private boolean promptInclusion(ForecastTableRow row) {
+        Optional<Boolean> scope = askScope("Include Sub-Category",
                 "Include back in forecast:", row.subCategory(), row.month());
+        if (scope.isEmpty()) return false;
 
-        YearMonth targetMonth = allMonths ? null : row.yearMonth();
+        YearMonth targetMonth = scope.get() ? null : row.yearMonth();
         forecastState.saveOverride(ForecastOverride.inclusionMarker(
                 row.categoryId(), row.subCategoryId(), targetMonth));
         refresh();
+        return true;
     }
 
     /**
      * Shows a two-choice dialog: "This month only" vs "All future months".
-     * Returns true if the user chose "All future months".
+     * Returns Optional.of(true) for "All future months", Optional.of(false) for "This month only",
+     * and Optional.empty() if the user cancelled.
      */
-    private boolean askScope(String title, String headerPrefix,
-                              String subCatName, String monthLabel) {
+    private Optional<Boolean> askScope(String title, String headerPrefix,
+                                        String subCatName, String monthLabel) {
         ButtonType thisMonth   = new ButtonType("This month only",    ButtonBar.ButtonData.LEFT);
         ButtonType allMonths   = new ButtonType("All future months",  ButtonBar.ButtonData.RIGHT);
         ButtonType cancel      = new ButtonType("Cancel",             ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -586,8 +600,8 @@ public class CashFlowForecastTab {
                 forecastTable.getScene().getStylesheets());
 
         Optional<ButtonType> result = dlg.showAndWait();
-        if (result.isEmpty() || result.get() == cancel) return false;
-        return result.get() == allMonths;
+        if (result.isEmpty() || result.get() == cancel) return Optional.empty();
+        return Optional.of(result.get() == allMonths);
     }
 
     private void onRegenerateClicked() {
