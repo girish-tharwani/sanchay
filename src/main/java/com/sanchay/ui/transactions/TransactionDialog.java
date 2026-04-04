@@ -1585,7 +1585,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         invRdRateFld = null;
         invRdMaturityPicker = null;
         invPrevScheduleBox.getChildren().clear();
-        if (itype == null) {
+        if (itype == null || itype == InvestmentAccount.InvestmentType.PROVIDENT_FUND) {
             invRightPanel.setVisible(false);
             invRightPanel.setManaged(false);
             resizeDialog(560);

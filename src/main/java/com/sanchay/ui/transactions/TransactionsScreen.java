@@ -182,6 +182,24 @@ public class TransactionsScreen {
         CheckBox pendingOnly = new CheckBox("Show pending review only");
         pendingOnly.getStyleClass().add("text-hint");
 
+        ComboBox<Transaction.Type> typeFilter = new ComboBox<>();
+        typeFilter.getItems().add(null);
+        typeFilter.getItems().addAll(
+                Transaction.Type.EXPENSE, Transaction.Type.INCOME, Transaction.Type.TRANSFER,
+                Transaction.Type.REFUND, Transaction.Type.INVESTMENT, Transaction.Type.CC_PAYMENT,
+                Transaction.Type.REDEEM, Transaction.Type.LOAN_PAYMENT
+        );
+        typeFilter.setPromptText("All Types");
+        typeFilter.getStyleClass().add("filter-field");
+        typeFilter.setPrefWidth(130);
+        typeFilter.setCellFactory(lv -> new ListCell<>() {
+            @Override protected void updateItem(Transaction.Type t, boolean empty) {
+                super.updateItem(t, empty);
+                setText(empty ? null : (t == null ? "All Types" : UiUtils.badgeText(t)));
+            }
+        });
+        typeFilter.setButtonCell(typeFilter.getCellFactory().call(null));
+
         // Inline required: vertical separator Region — no CSS class covers exact rgba brand tint + pixel sizing
         Region filterSep = new Region();
         filterSep.setStyle("-fx-background-color: rgba(42,138,122,0.18); -fx-pref-width: 1; -fx-min-width: 1; -fx-max-width: 1; -fx-pref-height: 22;");
@@ -193,6 +211,7 @@ public class TransactionsScreen {
                 fromLbl, fromPicker,
                 toLbl, toPicker,
                 filterSep,
+                typeFilter,
                 search,
                 pendingOnly
         );
@@ -281,6 +300,7 @@ public class TransactionsScreen {
                     .filter(t -> isForAccount(t, account))
                     .filter(t -> from == null || !t.getDate().isBefore(from))
                     .filter(t -> to   == null || !t.getDate().isAfter(to))
+                    .filter(t -> typeFilter.getValue() == null || t.getType() == typeFilter.getValue())
                     .filter(t -> q.isEmpty()
                             || t.getDescription().toLowerCase().contains(q)
                             || (t.getNotes() != null && t.getNotes().toLowerCase().contains(q)))
@@ -315,6 +335,7 @@ public class TransactionsScreen {
         search.textProperty().addListener((obs, o, n) -> applyFilter.run());
         fromPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         toPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
+        typeFilter.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         table.comparatorProperty().addListener((obs, o, n) -> applyFilter.run());
         pendingOnly.selectedProperty().addListener((obs, o, n) -> applyFilter.run());
         applyFilter.run();
@@ -452,7 +473,10 @@ public class TransactionsScreen {
             }
         });
 
-        table.getColumns().addAll(dateCol, descCol, typeCol, acctCol);
+        boolean isPf = account instanceof InvestmentAccount pfIa
+                && pfIa.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND;
+        table.getColumns().addAll(dateCol, descCol, typeCol);
+        if (!isPf) table.getColumns().add(acctCol);
         table.getColumns().addAll(specialtyCols);
         table.getColumns().addAll(amtCol, srcCol, actionsCol);
         table.getSortOrder().add(dateCol);
@@ -560,6 +584,10 @@ public class TransactionsScreen {
                     return d != null ? d.format(dateFmt()) : null;
                 });
                 return List.of(matDateCol);
+            }
+
+            if (invType == InvestmentAccount.InvestmentType.PROVIDENT_FUND) {
+                return List.of(); // no specialty columns for PF
             }
         }
 
@@ -795,33 +823,130 @@ public class TransactionsScreen {
         File file = fc.showSaveDialog(null);
         if (file == null) return;
         mainWindow.setLastAccountExportDir(file.getParent());
+
+        DataStore ds = DataStore.getInstance();
+        boolean isPf = account instanceof InvestmentAccount pfIa
+                && pfIa.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND;
+
+        // Determine specialty column header and per-row extractor based on account type.
+        // Extractor returns already-formatted, CSV-safe strings (quoted where needed).
+        String specialtyHeader;
+        java.util.function.Function<Transaction, List<String>> specialtyExtractor;
+
+        if (isPf) {
+            specialtyHeader = null;
+            specialtyExtractor = t -> List.of();
+        } else if (account instanceof LoanAccount) {
+            specialtyHeader = "Principal,Interest";
+            specialtyExtractor = t -> {
+                if (t.getType() != Transaction.Type.LOAN_PAYMENT) return List.of("", "");
+                long p = effectiveLoanPrincipalPaise(t, ds);
+                String principal = p > 0 ? String.format("%.2f", p / 100.0) : "";
+                long interest = p > 0 ? t.getAmountPaise() - p : 0;
+                String interestStr = interest > 0 ? String.format("%.2f", interest / 100.0) : "";
+                return List.of(principal, interestStr);
+            };
+        } else if (account instanceof InvestmentAccount ia) {
+            InvestmentAccount.InvestmentType invType = ia.getInvestmentType();
+            if (invType == InvestmentAccount.InvestmentType.MUTUAL_FUNDS
+                    || invType == InvestmentAccount.InvestmentType.EQUITY) {
+                specialtyHeader = "Scheme / Script,Units / NAV";
+                specialtyExtractor = t -> {
+                    if (t.getInvestmentDetails() == null) return List.of("", "");
+                    String scheme = t.getInvestmentDetails().getSchemeScriptName() != null
+                            ? "\"" + t.getInvestmentDetails().getSchemeScriptName().replace("\"", "\"\"") + "\""
+                            : "";
+                    String units = t.getInvestmentDetails().getUnitsNav() != null
+                            ? String.format("%.4f", t.getInvestmentDetails().getUnitsNav()) : "";
+                    return List.of(scheme, units);
+                };
+            } else if (invType == InvestmentAccount.InvestmentType.FIXED_DEPOSIT
+                    || invType == InvestmentAccount.InvestmentType.DEBT_BONDS) {
+                specialtyHeader = "Maturity Date,Maturity Amount";
+                specialtyExtractor = t -> {
+                    if (t.getInvestmentDetails() == null || t.getInvestmentDetails().getFd() == null)
+                        return List.of("", "");
+                    LocalDate d = t.getInvestmentDetails().getFd().getMaturityDate();
+                    Long p = t.getInvestmentDetails().getFd().getMaturityAmountPaise();
+                    return List.of(
+                            d != null ? d.format(dateFmt()) : "",
+                            p != null ? String.format("%.2f", p / 100.0) : "");
+                };
+            } else if (invType == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT) {
+                specialtyHeader = "Maturity Date";
+                specialtyExtractor = t -> {
+                    if (t.getRecurring() == null || t.getRecurring().getRecurringId() == null)
+                        return List.of("");
+                    RecurringTransaction r = ds.findRecurringById(t.getRecurring().getRecurringId());
+                    if (r == null) return List.of("");
+                    LocalDate d = r.getMaturityDate();
+                    return List.of(d != null ? d.format(dateFmt()) : "");
+                };
+            } else {
+                specialtyHeader = "Category,Sub-category";
+                specialtyExtractor = t -> List.of(
+                        "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getCategoryId() : null) + "\"",
+                        "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getSubCategoryId() : null) + "\"");
+            }
+        } else {
+            // Bank / Credit Card
+            specialtyHeader = "Category,Sub-category";
+            specialtyExtractor = t -> List.of(
+                    "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getCategoryId() : null) + "\"",
+                    "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getSubCategoryId() : null) + "\"");
+        }
+
+        // Build header
+        List<String> headerCols = new ArrayList<>(List.of("Date", "Description", "Type"));
+        if (!isPf) headerCols.add("To / From Account");
+        if (specialtyHeader != null) headerCols.addAll(List.of(specialtyHeader.split(",")));
+        headerCols.add("Amount");
+
+        // Pre-build group-id → account-id maps for REDEEM split transactions
+        Map<String, String> groupFromId = new java.util.HashMap<>();
+        Map<String, String> groupToId   = new java.util.HashMap<>();
+        for (Transaction gt : ds.getTransactions()) {
+            String gid = gt.getGroupTransactionId();
+            if (gid == null) continue;
+            if (gt.getFromAccountId() != null) groupFromId.put(gid, gt.getFromAccountId());
+            if (gt.getToAccountId()   != null) groupToId  .put(gid, gt.getToAccountId());
+        }
+
         try {
             try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-                pw.println("Date,Description,Type,Category,Sub-category,Amount");
-                DataStore ds = DataStore.getInstance();
+                pw.println(String.join(",", headerCols));
                 for (Transaction t : txs) {
                     // Export signed amounts so re-importing preserves EXPENSE vs INCOME.
-                    // INCOME / transfer arriving here → positive; EXPENSE → negative; REST as per funds direction
                     long signedPaise;
                     if (t.getType() == Transaction.Type.INCOME) {
-                        // INCOME
                         signedPaise = t.getAmountPaise();
-                    } else if(t.getType() == Transaction.Type.EXPENSE) {
-                        // EXPENSE
+                    } else if (t.getType() == Transaction.Type.EXPENSE) {
                         signedPaise = -t.getAmountPaise();
                     } else {
-                        // All other TXN Types
                         signedPaise = account.getId().equals(t.getFromAccountId())
                                 ? -t.getAmountPaise() : t.getAmountPaise();
                     }
-                    pw.println(String.join(",",
-                            t.getDate().format(dateFmt()),
-                            "\"" + t.getDescription().replace("\"", "\"\"") + "\"",
-                            t.getType().name(),
-                            "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getCategoryId() : null) + "\"",
-                            "\"" + ds.getCategoryName(t.getClassification() != null ? t.getClassification().getSubCategoryId() : null) + "\"",
-                            String.format("%.2f", signedPaise / 100.0)
-                    ));
+
+                    List<String> row = new ArrayList<>();
+                    row.add(t.getDate().format(dateFmt()));
+                    row.add("\"" + t.getDescription().replace("\"", "\"\"") + "\"");
+                    row.add(t.getType().name());
+
+                    if (!isPf) {
+                        String secondId = account.getId().equals(t.getFromAccountId())
+                                ? t.getToAccountId() : t.getFromAccountId();
+                        if (secondId == null && t.getGroupTransactionId() != null) {
+                            String gid = t.getGroupTransactionId();
+                            secondId = account.getId().equals(t.getFromAccountId())
+                                    ? groupToId.get(gid) : groupFromId.get(gid);
+                        }
+                        String acctName = ds.getAccountName(secondId);
+                        row.add("\"" + ("—".equals(acctName) ? "" : acctName) + "\"");
+                    }
+
+                    row.addAll(specialtyExtractor.apply(t));
+                    row.add(String.format("%.2f", signedPaise / 100.0));
+                    pw.println(String.join(",", row));
                 }
             }
             info("Export Complete", "Saved " + txs.size() + " transaction(s) to:\n" + file.getAbsolutePath());

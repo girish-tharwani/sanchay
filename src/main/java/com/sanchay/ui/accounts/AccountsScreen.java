@@ -238,7 +238,7 @@ public class AccountsScreen {
                     label = "Invested  /  Market Value";
                     value = MoneyFormatter.formatNoDecimal(invested) + "  /  " + MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise());
                     // Inline required: gain/loss colour is runtime data
-                    valueColour = gl >= 0 ? "#27AE60" : "#C62828";
+                    valueColour = gl >= 0 ? "-brand-mid" : "#C62828";
                 } else {
                     label = "Invested";
                     value = MoneyFormatter.formatNoDecimal(invested);
