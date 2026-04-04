@@ -712,12 +712,14 @@ public class FinancialPlanningScreen {
 
         // Fixed column widths must match the column header widths above
         Label forecastLbl = new Label(formatRupees(forecast));
-        forecastLbl.getStyleClass().add("fp-event-forecast");
+        //forecastLbl.getStyleClass().add("fp-event-forecast");
+        forecastLbl.getStyleClass().add("fp-table-value");
         forecastLbl.setPrefWidth(110);
         forecastLbl.setAlignment(Pos.CENTER_RIGHT);
 
         Label actualLbl = new Label(formatRupees(actual));
-        actualLbl.getStyleClass().add(actual > 0 ? "fp-event-actual" : "fp-event-actual-zero");
+        //actualLbl.getStyleClass().add(actual > 0 ? "fp-event-actual" : "fp-event-actual-zero");
+        actualLbl.getStyleClass().add("fp-table-value");
         actualLbl.setPrefWidth(110);
         actualLbl.setAlignment(Pos.CENTER_RIGHT);
 
@@ -834,9 +836,9 @@ public class FinancialPlanningScreen {
         long majorEventsNet = roundUpTo10k(computeMajorEventsKpi());
         long totalExpenses  = costOfLiving + loanPayments + majorEventsNet;
         addTableSubHeader(expenseRowsContainer, "EXPENSES");
-        addTableRow(expenseRowsContainer, "Loan Payments",  formatRupees(loanPayments),   false, true);
-        addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(costOfLiving),   false, true);
-        addTableRow(expenseRowsContainer, "Major Events",   formatRupees(majorEventsNet), false, true);
+        addTableRow(expenseRowsContainer, "Loan Payments",  formatRupees(loanPayments),   false, false);
+        addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(costOfLiving),   false, false);
+        addTableRow(expenseRowsContainer, "Major Events",   formatRupees(majorEventsNet), false, false);
         addTableRow(expenseRowsContainer, "Total Expenses", formatRupees(totalExpenses),  true,  true);
     }
 
