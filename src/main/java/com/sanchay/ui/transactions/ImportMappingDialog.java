@@ -8,6 +8,9 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,6 +33,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
     private final Account       account;
     private final String[]      headers;
     private final ImportMapping prefilled;  // may be null
+    private final String[]      sampleRow;  // first data row, used for date-format auto-detection; may be null
 
     // Controls
     private ComboBox<String> dateCb;
@@ -48,11 +52,13 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
      * @param account   the account being imported into
      * @param headers   the first row (header row) of the CSV
      * @param prefilled saved mapping to pre-fill (null = fresh dialog)
+     * @param sampleRow the first data row (row index 1), used for date-format auto-detection; may be null
      */
-    public ImportMappingDialog(Account account, String[] headers, ImportMapping prefilled) {
+    public ImportMappingDialog(Account account, String[] headers, ImportMapping prefilled, String[] sampleRow) {
         this.account   = account;
         this.headers   = headers;
         this.prefilled = prefilled;
+        this.sampleRow = sampleRow;
 
         UiUtils.applyStylesheet(this);
         setTitle("Import CSV — " + account.getName());
@@ -217,9 +223,27 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         fmtCb.setMaxWidth(Double.MAX_VALUE);
         if (prefilled != null && prefilled.getDateFormat() != null)
             fmtCb.setValue(prefilled.getDateFormat());
-        else
-            fmtCb.setValue("dd/MM/yyyy");
         addRow(g, row++, "Date format *", fmtCb);
+
+        // When the user picks the date column, try to auto-detect the format from the first data row.
+        Runnable autoDetectFmt = () -> {
+            String col = dateCb.getValue();
+            if (col == null || NONE.equals(col) || sampleRow == null) return;
+            int idx = Arrays.asList(headers).indexOf(col);
+            if (idx < 0 || idx >= sampleRow.length) return;
+            String sample = sampleRow[idx].strip();
+            if (sample.isBlank()) return;
+            for (String fmt : DATE_FORMATS) {
+                try {
+                    LocalDate.parse(sample, DateTimeFormatter.ofPattern(fmt));
+                    fmtCb.setValue(fmt);
+                    break;
+                } catch (DateTimeParseException ignored) {}
+            }
+        };
+        dateCb.valueProperty().addListener((obs, old, col) -> autoDetectFmt.run());
+        // If no format was pre-filled, attempt immediate detection from already-selected date column
+        if (fmtCb.getValue() == null || fmtCb.getValue().isBlank()) autoDetectFmt.run();
 
         Label fmtHint = new Label("Common formats: dd/MM/yyyy · yyyy-MM-dd · dd-MMM-yyyy");
         fmtHint.getStyleClass().add("text-hint");

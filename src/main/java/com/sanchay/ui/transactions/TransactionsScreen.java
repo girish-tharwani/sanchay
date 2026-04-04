@@ -706,8 +706,9 @@ public class TransactionsScreen {
         boolean snapshotOk = saved != null && snapshot.equals(saved.getHeaderSnapshot());
 
         // Always show mapping dialog — pre-filled when snapshot matches
+        String[] sampleRow = rows.size() > 1 ? rows.get(1) : null;
         ImportMappingDialog dlg = new ImportMappingDialog(account, rows.get(0),
-                snapshotOk ? saved : null);
+                snapshotOk ? saved : null, sampleRow);
         Optional<ImportMapping> mappingOpt = dlg.showAndWait();
         if (mappingOpt.isEmpty() || mappingOpt.get() == null) return;
 
