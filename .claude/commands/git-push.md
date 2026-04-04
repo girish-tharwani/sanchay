@@ -9,13 +9,13 @@ Read the current version from `pom.xml`. It follows `MAJOR.MINOR.PATCH-SNAPSHOT`
 - Default: increment **PATCH** only (bug fixes, UI tweaks, new features — everything)
 - Increment **MINOR** and reset PATCH to 0 **only** if the user explicitly requested it in this session
 - Never increment **MAJOR** under any circumstances
-- Always keep the existing suffix `-MVP1` suffix
+- Always keep the existing suffix `-Agami` suffix
 
 ## Step 2 — Update pom.xml
 
 Set the new version in `pom.xml`:
 ```xml
-<version>1.0.1-MVP1</version>
+<version>1.0.1-Agami</version>
 ```
 
 ## Step 3 — Update CHANGELOG.md

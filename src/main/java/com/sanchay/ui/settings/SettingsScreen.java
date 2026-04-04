@@ -210,7 +210,7 @@ public class SettingsScreen {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
         fc.setTitle("Save Backup As");
-        fc.setInitialFileName("PersonalFinance_backup_" + timestamp + ".zip");
+        fc.setInitialFileName("Sanchay_data_backup_" + timestamp + ".zip");
         fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("ZIP Archives", "*.zip"));
         File zipFile = fc.showSaveDialog(null);
         if (zipFile == null) return;
@@ -241,9 +241,9 @@ public class SettingsScreen {
 
     private VBox buildAboutSection() {
         VBox box = new VBox(6);
-        addInfo(box, "Application",    "Personal Finance Manager");
-        addInfo(box, "Version",        AppConfig.getAppVersion());
-        addInfo(box, "Data Schema",    "v4");
+        addInfo(box, "Application",    "Sanchay - Personal Finance Manager");
+        addInfo(box, "Developed by",   "Girish Tharwani");
+        addInfo(box, "Version",        AppConfig.getAppBuild() + " - " + AppConfig.getAppVersion());
         addInfo(box, "Platform",       "Windows 11+ / JavaFX");
         return box;
     }

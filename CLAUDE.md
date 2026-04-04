@@ -4,7 +4,7 @@
 A desktop personal finance management app for Windows, targeting Indian households. Single-user, self-contained — no server or cloud required. All data stored as local JSON files. Packaged as a Windows `.exe` via `jpackage`.
 
 ## Tech stack
-- **Language:** Java 17, JavaFX 21 (no FXML — UI built programmatically)
+- **Language:** Java 21, JavaFX 21.0.10 (no FXML — UI built programmatically)
 - **JSON:** Gson 2.10.1
 - **Build:** Maven (`mvn javafx:run` to run, `build.sh` for packaging)
 - **Entry point:** `com.sanchay.MainApp`
@@ -114,7 +114,7 @@ Internal (code-generated, not shown in type picker): `GAIN`, `LOSE` — created 
 Left sidebar (fixed, non-collapsible): Dashboard → Accounts → Recurring → Reports → Categories | Profile → Settings. No standalone Transactions screen — accessed via account card → Transactions button. Floating `+` button on every screen opens the New Transaction dialog.
 
 ## Current version
-`v1.1.9-MVP1` (pom.xml)
+`v1.0.0-Agami` (pom.xml)
 
 ## Out of scope (initial version)
 Cloud sync, PDF/OFX import, push notifications, budgeting, ITR summaries, mobile app, multi-user login.

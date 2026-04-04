@@ -140,13 +140,15 @@ public class FinancialPlanningScreen {
         if (self == null || self.getDateOfBirth() == null) {
             // Show error on next pulse (after the view is placed in the scene graph)
             Platform.runLater(() -> {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Profile Incomplete");
-                alert.setHeaderText("Date of birth not set");
-                alert.setContentText(
-                        "Financial planning requires your date of birth.\n"
-                        + "Please set it in your Profile before continuing.");
-                alert.showAndWait();
+                Dialog<ButtonType> dlg = new Dialog<>();
+                UiUtils.applyStylesheet(dlg);
+                UiUtils.setDialogHeader(dlg, "!", "Profile Incomplete");
+                Label msg = new Label("Financial planning requires your date of birth.\nPlease set it in your Profile before continuing.");
+                msg.getStyleClass().add("text-body-muted");
+                msg.setWrapText(true);
+                dlg.getDialogPane().setContent(msg);
+                dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+                dlg.showAndWait();
                 navigateToProfile.run();
             });
             view = new ScrollPane(new Label(""));

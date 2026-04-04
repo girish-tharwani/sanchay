@@ -22,8 +22,25 @@ public class AppConfig {
     private static final String APP_DIR_NAME  = "sanchay";
     private static final String CONFIG_FILE   = "app-config.json";
 
-    /** Loaded once from version.properties (Maven-filtered from pom.xml). */
-    private static final String APP_VERSION = loadVersion();
+    /** Full raw version string loaded from version.properties, e.g. "v1.0.0-Agami". */
+    private static final String RAW_VERSION = loadVersion();
+
+    /** Numeric version with v-prefix, e.g. "v1.0.0". */
+    public static final String APP_VERSION;
+
+    /** Build name suffix, e.g. "Agami". Empty string if no suffix present. */
+    public static final String APP_BUILD;
+
+    static {
+        int dash = RAW_VERSION.lastIndexOf('-');
+        if (dash > 0) {
+            APP_VERSION = RAW_VERSION.substring(0, dash);
+            APP_BUILD   = RAW_VERSION.substring(dash + 1);
+        } else {
+            APP_VERSION = RAW_VERSION;
+            APP_BUILD   = "";
+        }
+    }
 
     private static String loadVersion() {
         try (InputStream in = AppConfig.class.getResourceAsStream("/version.properties")) {
@@ -37,13 +54,17 @@ public class AppConfig {
         return "unknown";
     }
 
-    /** Returns the application version read from pom.xml via version.properties. */
+    /** Returns the numeric version, e.g. "v1.0.0". */
     public static String getAppVersion() { return APP_VERSION; }
+
+    /** Returns the build name, e.g. "Agami". */
+    public static String getAppBuild() { return APP_BUILD; }
 
     /** In-memory model of app-config.json */
     public static class Config {
         public String dataFolderPath;
         public String appVersion = APP_VERSION;
+        public String appBuild   = APP_BUILD;
     }
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -97,6 +118,7 @@ public class AppConfig {
         Config cfg = new Config();
         cfg.dataFolderPath = dataFolderPath;
         cfg.appVersion     = APP_VERSION;
+        cfg.appBuild       = APP_BUILD;
 
         Path tmpFile = dir.resolve(CONFIG_FILE + ".tmp");
         Path target  = dir.resolve(CONFIG_FILE);

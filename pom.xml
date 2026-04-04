@@ -6,15 +6,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.sanchay</groupId>
-    <artifactId>sanchay-personal-finance</artifactId>
-    <version>v1.1.9-MVP1</version>
+    <artifactId>sanchay</artifactId>
+    <version>v1.0.0-Agami</version>
     <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>21.0.2</javafx.version>
+        <javafx.version>21.0.10</javafx.version>
         <!-- Default: no extra JVM args -->
         <exec.jvmArgs></exec.jvmArgs>
     </properties>
@@ -80,11 +80,20 @@
                         <phase>package</phase>
                         <goals><goal>shade</goal></goals>
                         <configuration>
+                            <!-- Fixed output name so build.sh never needs updating when version bumps -->
+                            <outputFile>${project.build.directory}/sanchay-app.jar</outputFile>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.sanchay.MainApp</mainClass>
                                 </transformer>
                             </transformers>
+                            <!-- JavaFX is provided via the jlink runtime image — exclude from fat JAR
+                                 to avoid split-package conflicts at runtime -->
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.openjfx:*</exclude>
+                                </excludes>
+                            </artifactSet>
                         </configuration>
                     </execution>
                 </executions>

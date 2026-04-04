@@ -7,6 +7,7 @@ import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.SplashScreen;
 import com.sanchay.ui.wizard.FirstRunWizard;
 import javafx.application.Application;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 /**
@@ -29,6 +30,10 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        try (var in = getClass().getResourceAsStream("/icon.png")) {
+            if (in != null) primaryStage.getIcons().add(new Image(in));
+        } catch (Exception ignored) {}
+
         String dataFolderPath = resolveDataFolder(primaryStage);
 
         if (dataFolderPath == null) {

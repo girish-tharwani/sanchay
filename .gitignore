@@ -29,8 +29,9 @@ test-data/
 work-folder/
 wireframes/
 logs/
-build.sh
+tools/
 CHANGELOG_v0.2.13.md
+CHANGELOG_v1.1.9.md
 AGENTS.md
 
 
@@ -43,6 +44,9 @@ out/
 
 # Maven
 target/
+
+# installer/ is intentionally tracked — contains the distributable .exe for sharing
+# (do not add installer/ here)
 
 # OS
 .DS_Store

@@ -42,7 +42,10 @@
       "Bash(grep -v \"//\")",
       "Bash(sed -n '661,670p' src/main/java/com/sanchay/ui/reports/CashFlowForecastTab.java)",
       "Bash(sed -n '208,215p' src/main/java/com/sanchay/ui/accounts/LoanScheduleDialog.java)",
-      "Bash(sed -n '450,460p' src/main/java/com/sanchay/ui/dashboard/DashboardScreen.java)"
+      "Bash(sed -n '450,460p' src/main/java/com/sanchay/ui/dashboard/DashboardScreen.java)",
+      "Bash(java -version)",
+      "Bash(where wix:*)",
+      "Bash(where candle:*)"
     ]
   },
   "enabledPlugins": {

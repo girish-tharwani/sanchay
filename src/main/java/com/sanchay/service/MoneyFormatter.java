@@ -83,7 +83,6 @@ public final class MoneyFormatter {
      * Compact KPI tile display.
      *   INR:     ≥ 1 Cr → ₹3.31 Cr  |  ≥ 1 L → ₹45 Lakh  |  otherwise → ₹12,500
      *   Others:  ≥ 1 B  → $3.31B     |  ≥ 1 M → $45M       |  ≥ 1 K → $12.5K  |  otherwise → $500
-     * Replaces UiUtils.formatCorpusDisplay().
      */
     public static String formatCompact(long paise) {
         String sym  = CurrencyConfig.symbol();
@@ -107,7 +106,6 @@ public final class MoneyFormatter {
      *   INR positive:    ₹3.31Cr / ₹45.2L / ₹12.5K / ₹500
      *   Others positive: $3.31B  / $45.2M  / $12.5K / $500
      *   Negative (any):  (₹3.31Cr)
-     * Replaces CashFlowForecastTab.formatPaise().
      */
     public static String formatTableCompact(long paise) {
         String sym  = CurrencyConfig.symbol();
