@@ -1,3 +1,21 @@
+## v1.1.7 — 2026-04-04
+
+### Added
+- Financial Planning: Post Retirement Cash Flow table showing Year, Age, Starting Balance, ROI, Tax, and Withdrawal for each year from retirement to life expectancy; depleted balance rows shown in red
+- Financial Planning: Shortfall / Surplus pill on the Forecasted Corpus card — computes required corpus via PV of inflation-growing withdrawals and compares against forecasted corpus; large prominent block, updates on Recalculate
+- Financial Planning: "Last updated on: <date>" label in the screen header; stamped with current date each time Recalculate is clicked; persisted across restarts via `plan_params.json`
+
+### Changed
+- Financial Planning: Cost of Living in post-retirement cash flow inflated from today to retirement date before being used as the first-year withdrawal base
+- Financial Planning: ROI rounded down to nearest ₹10,000; Tax and Withdrawal rounded up to nearest ₹10,000 in the cash flow table
+- Cash Flow Forecast (Reports): Include/Exclude toggle button replaced with a checkbox; unchecking excludes, checking includes; checkbox reverts if scope dialog is cancelled
+- Cash Flow Forecast (Reports): Cancelling the scope dialog no longer saves the exclusion/inclusion override (was previously treated as "this month only")
+
+### Fixed
+- Cash Flow Forecast: Cancelling amount-correction scope dialog no longer applied the correction
+
+---
+
 ## v1.1.6 — 2026-04-03
 
 ### Changed
