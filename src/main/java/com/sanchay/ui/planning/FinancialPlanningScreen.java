@@ -445,7 +445,7 @@ public class FinancialPlanningScreen {
         grid.setVgap(0);
 
         ColumnConstraints labelCol = new ColumnConstraints();
-        labelCol.setPrefWidth(190);
+        labelCol.setPrefWidth(200);
         labelCol.setMinWidth(120);
 
         ColumnConstraints fieldCol = new ColumnConstraints();
@@ -591,7 +591,7 @@ public class FinancialPlanningScreen {
         eventsTitle.getStyleClass().add("section-group-label");
         card.getChildren().add(eventsTitle);
 
-        Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions. Double-click an event to edit.");
+        Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions.");
         hint.getStyleClass().add("text-hint");
         hint.setWrapText(true);
         card.getChildren().add(hint);
@@ -637,6 +637,8 @@ public class FinancialPlanningScreen {
         majorEventsActualTotalLbl.setAlignment(Pos.CENTER_RIGHT);
         totalRow.getChildren().addAll(totalLbl, majorEventsForecastTotalLbl, majorEventsActualTotalLbl);
         card.getChildren().add(totalRow);
+
+        card.getChildren().add(UiUtils.hintLabel("Double-click an event to edit"));
 
         // "Add Major Event" button
         Button addBtn = new Button("+ Add Major Event");

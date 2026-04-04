@@ -31,22 +31,40 @@ public final class MoneyFormatter {
         return result;
     }
 
-    /** Formats paise with Indian grouping and the given decimal places. */
+    /** Formats paise with the active currency's grouping style and the given decimal places. */
     private static String applyGrouping(long paise, int decimals) {
         String raw  = String.format("%." + decimals + "f", Math.abs(paise) / 100.0);
         int dot     = raw.indexOf('.');
         String intP = dot >= 0 ? raw.substring(0, dot) : raw;
         String decP = dot >= 0 ? raw.substring(dot)    : "";
+        String grouped;
+        switch (CurrencyConfig.groupingStyle()) {
+            case INDIAN:  grouped = indianGroup(intP); break;
+            default:      grouped = westernGroup(intP); break;
+        }
         return CurrencyConfig.symbol()
                 + (paise < 0 ? "-" : "")
-                + indianGroup(intP)
+                + grouped
                 + decP;
+    }
+
+    /** Applies Western comma grouping every 3 digits: "1000000" → "1,000,000" */
+    private static String westernGroup(String intDigits) {
+        if (intDigits.length() <= 3) return intDigits;
+        StringBuilder sb = new StringBuilder();
+        int offset = intDigits.length() % 3;
+        if (offset > 0) sb.append(intDigits, 0, offset);
+        for (int i = offset; i < intDigits.length(); i += 3) {
+            if (sb.length() > 0) sb.append(',');
+            sb.append(intDigits, i, i + 3);
+        }
+        return sb.toString();
     }
 
     // ── Display formatting ────────────────────────────────────────────────────
 
     /**
-     * Full-precision with Indian grouping: ₹16,91,802.83
+     * Full-precision with active currency grouping: ₹16,91,802.83 (INR) or $1,234,567.89 (others).
      * Use for transaction lists, account details, dialog fields.
      */
     public static String format(long paise) {
@@ -54,7 +72,7 @@ public final class MoneyFormatter {
     }
 
     /**
-     * No decimals with Indian grouping: ₹16,91,802
+     * No decimals with active currency grouping: ₹16,91,802 (INR) or $1,234,567 (others).
      * Use for account cards, table cells, planning rows.
      */
     public static String formatNoDecimal(long paise) {
@@ -62,24 +80,33 @@ public final class MoneyFormatter {
     }
 
     /**
-     * Compact KPI tile display:
-     *   ≥ ₹1 Cr  → ₹3.31 Cr
-     *   ≥ ₹1 L   → ₹45 Lakh
-     *   otherwise → ₹12,500  (Indian grouping, no decimals)
+     * Compact KPI tile display.
+     *   INR:     ≥ 1 Cr → ₹3.31 Cr  |  ≥ 1 L → ₹45 Lakh  |  otherwise → ₹12,500
+     *   Others:  ≥ 1 B  → $3.31B     |  ≥ 1 M → $45M       |  ≥ 1 K → $12.5K  |  otherwise → $500
      * Replaces UiUtils.formatCorpusDisplay().
      */
     public static String formatCompact(long paise) {
         String sym  = CurrencyConfig.symbol();
         long rupees = paise / 100;
-        if (rupees >= 1_00_00_000L) return sym + String.format("%.2f Cr",  rupees / 1_00_00_000.00);
-        if (rupees >= 1_00_000L)    return sym + Math.round(rupees / 1_00_000.00) + " Lakh";
+        switch (CurrencyConfig.compactUnits()) {
+            case INDIAN:
+                if (rupees >= 1_00_00_000L) return sym + String.format("%.2f Cr",  rupees / 1_00_00_000.00);
+                if (rupees >= 1_00_000L)    return sym + Math.round(rupees / 1_00_000.00) + " Lakh";
+                break;
+            default:
+                if (rupees >= 1_000_000_000L) return sym + String.format("%.2fB", rupees / 1_000_000_000.00);
+                if (rupees >= 1_000_000L)     return sym + String.format("%.0fM", rupees / 1_000_000.00);
+                if (rupees >= 1_000L)         return sym + String.format("%.1fK", rupees / 1_000.00);
+                break;
+        }
         return formatNoDecimal(paise);
     }
 
     /**
      * Compact table display with accounting brackets for negatives.
-     *   Positive: ₹3.31Cr / ₹45.2L / ₹12.5K / ₹500
-     *   Negative: (₹3.31Cr)
+     *   INR positive:    ₹3.31Cr / ₹45.2L / ₹12.5K / ₹500
+     *   Others positive: $3.31B  / $45.2M  / $12.5K / $500
+     *   Negative (any):  (₹3.31Cr)
      * Replaces CashFlowForecastTab.formatPaise().
      */
     public static String formatTableCompact(long paise) {
@@ -87,10 +114,20 @@ public final class MoneyFormatter {
         long   abs  = Math.abs(paise);
         double absR = abs / 100.0;
         String formatted;
-        if      (absR >= 1_00_00_000) formatted = String.format("%.2fCr", absR / 1_00_00_000.0);
-        else if (absR >= 1_00_000)    formatted = String.format("%.2fL",  absR / 1_00_000.0);
-        else if (absR >= 1_000)       formatted = String.format("%.1fK",  absR / 1_000.0);
-        else                          formatted = String.format("%.0f",   absR);
+        switch (CurrencyConfig.compactUnits()) {
+            case INDIAN:
+                if      (absR >= 1_00_00_000) formatted = String.format("%.2fCr", absR / 1_00_00_000.0);
+                else if (absR >= 1_00_000)    formatted = String.format("%.2fL",  absR / 1_00_000.0);
+                else if (absR >= 1_000)       formatted = String.format("%.1fK",  absR / 1_000.0);
+                else                          formatted = String.format("%.0f",   absR);
+                break;
+            default:
+                if      (absR >= 1_000_000_000) formatted = String.format("%.2fB", absR / 1_000_000_000.0);
+                else if (absR >= 1_000_000)     formatted = String.format("%.2fM", absR / 1_000_000.0);
+                else if (absR >= 1_000)         formatted = String.format("%.1fK", absR / 1_000.0);
+                else                            formatted = String.format("%.0f",  absR);
+                break;
+        }
         return paise < 0 ? "(" + sym + formatted + ")" : sym + formatted;
     }
 

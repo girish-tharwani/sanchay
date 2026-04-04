@@ -1,3 +1,12 @@
+## v1.1.9 — 2026-04-04
+
+### Changed
+- `CurrencyConfig` now reads currency code from `DataStore` (settings) instead of a hardcoded symbol; exposes `groupingStyle()` and `compactUnits()` enums with switch-case structure ready for additional currencies
+- `MoneyFormatter` wired to `CurrencyConfig` enums — grouping (Indian vs Western) and compact units (Lakh/Cr vs K/M/B) branch on active currency
+- Financial Planning: "Double-click a row to edit" hint added below the Major Events table
+
+---
+
 ## v1.1.8 — 2026-04-04
 
 ### Added
