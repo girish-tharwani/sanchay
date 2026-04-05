@@ -6,7 +6,7 @@ import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PersistenceService;
 import com.sanchay.ui.accounts.AccountsScreen;
 import com.sanchay.ui.categories.CategoriesScreen;
-import com.sanchay.ui.common.HelpDialog;
+import com.sanchay.ui.help.HelpScreen;
 import com.sanchay.ui.dashboard.DashboardScreen;
 import com.sanchay.ui.profile.ProfileScreen;
 import com.sanchay.ui.recurring.RecordRecurringDialog;
@@ -42,6 +42,7 @@ public class MainWindow {
     private CategoriesScreen categoriesScreen;
     private FinancialPlanningScreen financialPlanningScreen;
     private TransactionsScreen transactionsScreen;
+    private HelpScreen helpScreen;
 
     // AccountsScreen is NOT cached — always rebuilt on navigation so that
     // navigating back via the sidebar always shows the account list, not a
@@ -104,7 +105,8 @@ public class MainWindow {
                 "/com/sanchay/css/components.css",
                 "/com/sanchay/css/layout.css",
                 "/com/sanchay/css/screens/reports.css",
-                "/com/sanchay/css/screens/planning.css"}) {
+                "/com/sanchay/css/screens/planning.css",
+                "/com/sanchay/css/screens/help.css"}) {
             scene.getStylesheets().add(getClass().getResource(f).toExternalForm());
         }
 
@@ -187,7 +189,7 @@ public class MainWindow {
         Button helpBtn = new Button("❓  Help");
         helpBtn.getStyleClass().add("sidebar-item");
         helpBtn.setMaxWidth(Double.MAX_VALUE);
-        helpBtn.setOnAction(e -> new HelpDialog(root.getScene().getWindow()).show());
+        helpBtn.setOnAction(e -> navigateTo("Help"));
         VBox.setMargin(helpBtn, new Insets(0, 0, 12, 0));
 
         sidebar.getChildren().addAll(
@@ -270,6 +272,11 @@ public class MainWindow {
                 if (settingsScreen == null) settingsScreen = new SettingsScreen(this::reloadDataFolder);
                 else settingsScreen.refresh();
                 yield settingsScreen.getView();
+            }
+            case "Help" -> {
+                if (helpScreen == null) helpScreen = new HelpScreen(this);
+                else helpScreen.refresh();
+                yield helpScreen.getView();
             }
             default -> new Label("Screen not found: " + screen);
         };
@@ -369,6 +376,7 @@ public class MainWindow {
         categoriesScreen = null;
         financialPlanningScreen = null;
         transactionsScreen = null;
+        helpScreen       = null;
         isFirstRun       = false;
         postTransactionCallback   = null;
         transactionContextAccount = null;

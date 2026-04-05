@@ -1,21 +1,21 @@
-# Git Push - Build Agami
+# Git Push
 
 Follow these steps every time changes are committed and pushed to GitHub.
 
 ## Step 1 — Determine the new version
 
-Read the current version from `pom.xml`. It follows `MAJOR.MINOR.PATCH-SNAPSHOT`.
+Read the current version from `pom.xml`. It follows `MAJOR.MINOR.PATCH-SUFFIX`.
 
 - Default: increment **PATCH** only (bug fixes, UI tweaks, new features — everything)
 - Increment **MINOR** and reset PATCH to 0 **only** if the user explicitly requested it in this session
 - Never increment **MAJOR** under any circumstances
-- Always keep the existing suffix `-Agami` suffix
+- Always keep the existing suffix e.g. `-Barbet` suffix
 
 ## Step 2 — Update pom.xml
 
 Set the new version in `pom.xml`:
 ```xml
-<version>1.0.1-Agami</version>
+<version>0.0.2-Barbet</version>
 ```
 
 ## Step 3 — Update CHANGELOG.md

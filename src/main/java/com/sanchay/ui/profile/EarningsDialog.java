@@ -88,9 +88,8 @@ public class EarningsDialog extends Dialog<Boolean> {
         List<EarningSource> existing = member.getEarningSources();
         if (existing == null || existing.isEmpty()) {
             EarningSource blank = new EarningSource();
-            blank.setSourceName("Income");
-            blank.setType(FamilyMember.EarningType.SIMPLE);
-            blank.setSimpleFrequency(RecurringTransaction.Frequency.MONTHLY.name());
+            blank.setSourceName("Income - Structured");
+            blank.setType(FamilyMember.EarningType.SALARY);
             existing = List.of(blank);
         }
         for (EarningSource src : existing) {
@@ -98,7 +97,7 @@ public class EarningsDialog extends Dialog<Boolean> {
             tabs.getTabs().add(buildSourceTab(src, tabs));
         }
 
-        Tab addTab = new Tab("+ Income");
+        Tab addTab = new Tab("+ Income (Simple / Structured)");
         addTab.setClosable(false);
         tabs.getTabs().add(addTab);
 

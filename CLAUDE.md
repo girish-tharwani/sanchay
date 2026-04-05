@@ -26,6 +26,8 @@ README.md at project root contains coding commandments for UI styling and functi
 - **CSS priority**: Bean setters (`setBackground()`, `setFont()`, etc.) have *lower* priority than author stylesheets and will be silently overridden once CSS loads. Only `.setStyle()` (inline style) beats author CSS. Any background or color that must survive stylesheet loading must be expressed as a CSS class.
 - **Dialog scenes**: JavaFX dialogs open in a separate scene and never inherit the main window's stylesheets. Every `Dialog`/`Alert` must call `UiUtils.applyStylesheet()` explicitly, otherwise design tokens and component styles won't resolve.
 - **Tokens in inline styles**: CSS looked-up colour tokens (e.g. `-brand-dark`, `-color-error`) work inside `.setStyle()` strings, so data-driven inline styles can reference design tokens instead of raw hex literals.
+- **WebView must not live inside a ScrollPane**: JavaFX 21's `ScrollPane` wraps its viewport in an internal `CacheFilter`. When a `WebView` is inside that cached viewport, the WebKit renderer crashes with a `NullPointerException` in `WCPageBackBufferImpl` (RTTexture allocation failure). Likewise, any container with `-fx-effect: dropshadow(...)` as an ancestor of a `WebView` triggers the same crash via `NodeEffectInput`. Always make `WebView` a direct child of an effect-free, non-ScrollPane container; let the WebView scroll its content internally.
+- **WebView anchor links with `loadContent()`**: When HTML is loaded via `WebEngine.loadContent()`, the page base URL is `about:blank`. Clicking `<a href="#anchor">` triggers a full navigation to `about:blank#anchor` instead of an in-page scroll. Fix by injecting a JavaScript `click` event listener that calls `preventDefault()` and `element.scrollIntoView()` instead.
 
 ### Testing Framework
 No test framework or linter is configured.
@@ -99,7 +101,10 @@ Each dialog has its own class. Extracted dialog classes by package:
 
 **`ui/common/`**
 - `SingleInputDialog` — generic single text-field dialog
-- `HelpDialog` — in-app help overlay
+
+**`ui/help/`**
+- `HelpScreen` — full Help & Support screen; WebView renders USER-GUIDE.md via `MarkdownConverter`; must not be wrapped in a ScrollPane (see JavaFX CSS Gotchas)
+- `MarkdownConverter` — line-by-line Markdown→HTML converter with embedded CSS matching the app's design tokens
 
 **`ui/wizard/`**
 - `PreferencesSetupDialog` — first-run preferences (also shown when switching to an empty data folder)

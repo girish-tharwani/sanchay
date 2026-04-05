@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v1.0.0-Agami
+- **Version:** v0.0.2-Barbet
 
 ---
 
@@ -26,6 +26,7 @@
    - [Categories](#categories)
    - [Profile](#profile)
    - [Settings](#settings)
+   - [Help & Support](#help--support)
 7. [CSV Import](#csv-import)
 8. [Architecture Overview](#architecture-overview)
 9. [Configuration Files](#configuration-files)
@@ -342,6 +343,12 @@ Manages family members and their income sources.
 
 ---
 
+### Help & Support
+
+Full in-app reference rendered from `USER-GUIDE.md`. Shows the same dismissable Get Started banner as the Dashboard on first open. The user guide is rendered as styled HTML (headings, tables, lists, blockquotes, code blocks) with a working Table of Contents — clicking any TOC entry scrolls directly to that section.
+
+---
+
 ## CSV Import
 
 The import workflow supports pasting CSV or tab-delimited text directly from a bank statement, or loading a file via file dialog.
@@ -471,6 +478,7 @@ Stores user preferences and UI state (date format, year format, currency, sideba
 | javafx-controls | org.openjfx | 21.0.10 | UI controls |
 | javafx-fxml | org.openjfx | 21.0.10 | FXML support |
 | javafx-graphics | org.openjfx | 21.0.10 | Rendering |
+| javafx-web | org.openjfx | 21.0.10 | WebView for in-app HTML rendering |
 | gson | com.google.code.gson | 2.10.1 | JSON serialization |
 
 **Maven plugins:**

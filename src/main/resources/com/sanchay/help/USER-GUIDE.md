@@ -702,5 +702,3 @@ The schedule stops appearing as pending until you **Reactivate** it. Your histor
 All your accounts, transactions, and settings will be available immediately.
 
 ---
-
-*Sanchay v1.0.0-Agami · Developer: Girish Tharwani*
