@@ -7,7 +7,7 @@
 
     <groupId>com.sanchay</groupId>
     <artifactId>sanchay</artifactId>
-    <version>v1.0.0-Agami</version>
+    <version>v1.0.1-Agami</version>
     <packaging>jar</packaging>
 
     <properties>
