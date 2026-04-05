@@ -22,7 +22,7 @@ if [ "$1" = "package-dist" ]; then
           | sed 's/.*<version>v\([^<]*\)<\/version>.*/\1/')
     APP_VERSION_NUM="${RAW%%-*}"
     APP_BUILD="${RAW#*-}"
-    INSTALLER_NAME="Sanchay-build-${APP_BUILD}-v${APP_VERSION_NUM}"
+    INSTALLER_NAME="Sanchay-rel-${APP_BUILD}-v${APP_VERSION_NUM}"
     echo ">>> Building installer: ${INSTALLER_NAME}.exe"
 
     # ── Step 1: Build the fat JAR (JavaFX excluded — comes via runtime image) ──
