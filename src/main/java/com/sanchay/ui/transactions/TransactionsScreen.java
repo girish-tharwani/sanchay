@@ -16,6 +16,7 @@ import java.io.*;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
@@ -304,7 +305,8 @@ public class TransactionsScreen {
                             || (t.getNotes() != null && t.getNotes().toLowerCase().contains(q)))
                     .filter(t -> !pendingOnly.isSelected()
                             || t.getSourceIndicator() == Transaction.SourceIndicator.AUTO_CATEGORIZED
-                            || t.getSourceIndicator() == Transaction.SourceIndicator.IMPORTED)
+                            || t.getSourceIndicator() == Transaction.SourceIndicator.IMPORTED
+                            || t.getSourceIndicator() == Transaction.SourceIndicator.MANUAL)
                     .collect(Collectors.toList());
 
             if (table.getSortOrder().contains(dateCol)) {
@@ -423,7 +425,12 @@ public class TransactionsScreen {
                     case IMPORTED -> {
                         badge.setText("I");
                         badge.getStyleClass().add("badge-imported");
-                        badge.setTooltip(new Tooltip("Imported from file"));
+                        badge.setTooltip(new Tooltip("Imported from file — right-click to merge with existing"));
+                        ContextMenu cm = new ContextMenu();
+                        MenuItem mergeItem = new MenuItem("Merge with existing…");
+                        mergeItem.setOnAction(ev -> openMergeDialog(t, applyFilter));
+                        cm.getItems().add(mergeItem);
+                        badge.setContextMenu(cm);
                     }
                     case AUTO_CATEGORIZED -> {
                         badge.setText("?");
@@ -447,14 +454,21 @@ public class TransactionsScreen {
                             if (tipSubCatId != null)
                                 tip.append(" / ").append(ds.getCategoryName(tipSubCatId));
                         }
-                        tip.append("\nClick to accept, or double-click to edit");
+                        tip.append("\nLeft-click to accept · Right-click to merge with existing");
                         badge.setTooltip(new Tooltip(tip.toString()));
                         badge.setOnMouseClicked(e -> {
-                            t.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
-                            DataStore.getInstance().saveTransactionsNow();
-                            applyFilter.run();
-                            e.consume();
+                            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                                t.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
+                                DataStore.getInstance().saveTransactionsNow();
+                                applyFilter.run();
+                                e.consume();
+                            }
                         });
+                        ContextMenu cmAc = new ContextMenu();
+                        MenuItem mergeItemAc = new MenuItem("Merge with existing…");
+                        mergeItemAc.setOnAction(ev -> openMergeDialog(t, applyFilter));
+                        cmAc.getItems().add(mergeItemAc);
+                        badge.setContextMenu(cmAc);
                     }
                     case RECONCILED -> {
                         badge.setText("R");
@@ -464,7 +478,16 @@ public class TransactionsScreen {
                     default -> {
                         badge.setText("M");
                         badge.getStyleClass().add("badge-manual");
-                        badge.setTooltip(new Tooltip("Manually entered"));
+                        badge.setTooltip(new Tooltip("Manually entered — right-click to mark as reconciled"));
+                        ContextMenu cmM = new ContextMenu();
+                        MenuItem markItem = new MenuItem("Mark as Reconciled");
+                        markItem.setOnAction(ev -> {
+                            t.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
+                            DataStore.getInstance().saveTransactionsNow();
+                            applyFilter.run();
+                        });
+                        cmM.getItems().add(markItem);
+                        badge.setContextMenu(cmM);
                     }
                 }
                 setGraphic(badge);
@@ -967,6 +990,38 @@ public class TransactionsScreen {
         Label lbl = new Label(UiUtils.badgeText(type));
         lbl.getStyleClass().addAll(UiUtils.badgeStyle(type), "badge-sm");
         return lbl;
+    }
+
+    // ── Merge imported with manual ────────────────────────────────────────────
+
+    private void openMergeDialog(Transaction imported, Runnable refresh) {
+        DataStore ds = DataStore.getInstance();
+        LocalDate date = imported.getDate();
+        List<Transaction> candidates = ds.getTransactions().stream()
+                .filter(t -> t.getSourceIndicator() == Transaction.SourceIndicator.MANUAL)
+                .filter(t -> account.getId().equals(t.getFromAccountId())
+                          || account.getId().equals(t.getToAccountId()))
+                .filter(t -> !t.getDate().isBefore(date.minusDays(10))
+                          && !t.getDate().isAfter(date.plusDays(10)))
+                .sorted(Comparator.comparingLong(t -> Math.abs(
+                        ChronoUnit.DAYS.between(t.getDate(), date))))
+                .collect(Collectors.toList());
+
+        if (candidates.isEmpty()) {
+            info("No Candidates Found",
+                    "No manually-entered transactions exist within ±10 days of "
+                    + date.format(dateFmt()) + " for this account.");
+            return;
+        }
+
+        new MergeWithManualDialog(imported, candidates, dateFmt())
+                .showAndWait()
+                .ifPresent(chosen -> {
+                    ImportService.reconcile(imported, chosen, ds);
+                    ds.deleteTransactionByIdInternal(imported.getId());
+                    ds.saveTransactionsNow();
+                    refresh.run();
+                });
     }
 
     // ── Styled Delete Transaction dialog ──────────────────────────────────────

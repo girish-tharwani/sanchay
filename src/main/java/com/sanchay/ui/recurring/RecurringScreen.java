@@ -99,8 +99,17 @@ public class RecurringScreen {
                 r -> formatFrequency(r.getFrequency()));
         TableColumn<RecurringTransaction, String> amtCol  = col("Amount", 90,
                 RecurringTransaction::getAmountInr, "cell-amt");
-        TableColumn<RecurringTransaction, String> nextCol = col("Next Due", 100,
-                r -> r.getNextDueDate() != null ? r.getNextDueDate().format(fmt) : "—");
+        TableColumn<RecurringTransaction, java.time.LocalDate> nextCol = new TableColumn<>("NEXT DUE");
+        nextCol.setPrefWidth(100);
+        nextCol.setMinWidth(60);
+        nextCol.setCellValueFactory(d -> new javafx.beans.property.SimpleObjectProperty<>(d.getValue().getNextDueDate()));
+        nextCol.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(java.time.LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                setText(empty || date == null ? "—" : date.format(fmt));
+            }
+        });
+        nextCol.setComparator(java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
         TableColumn<RecurringTransaction, String> statusCol = col("Status", 80,
                 r -> formatStatus(r.getStatus()));
         TableColumn<RecurringTransaction, String> paymentsCol = col("Payments", 80,

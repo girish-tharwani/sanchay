@@ -1,3 +1,17 @@
+## v0.0.2-Civet — 2026-04-05
+
+### Added
+- Transactions: right-click on I or ? badge opens "Merge with Existing" dialog — lists MANUAL transactions within ±10 days so the user can manually pair a duplicate import with its counterpart; imported entry is deleted and the manual entry becomes RECONCILED
+- Transactions: right-click on M badge → "Mark as Reconciled" for accounts where CSV import is never used
+- Recurring: Next Due column now sorts chronologically instead of lexicographically
+
+### Changed
+- Transactions: "Show pending review only" filter now includes MANUAL transactions alongside IMPORTED and AUTO_CATEGORIZED
+- Transactions: ? badge tooltip updated to reflect left-click (accept) vs right-click (merge) actions
+
+## v0.1.1-Civet — 2026-04-05
+
+
 ## v1.0.0-Barbet — 2026-04-05
 - Release baseline
 

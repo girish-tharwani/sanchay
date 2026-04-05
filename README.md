@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v1.0.0-Barbet
+- **Version:** v0.0.2-Civet
 
 ---
 
@@ -224,12 +224,14 @@ Opened by clicking into an account. Shows all transactions for that account with
 
 **Transaction sources** track how a record entered the system:
 
-| Source | Meaning |
-|---|---|
-| MANUAL | Entered by the user |
-| IMPORTED | Brought in by CSV import; category not yet confirmed |
-| AUTO_CATEGORIZED | Imported and automatically categorized by a rule; awaiting acceptance |
-| RECONCILED | An imported row that was matched and merged with an existing manual transaction |
+| Source | Badge | Meaning |
+|---|---|---|
+| MANUAL | M | Entered by the user. Right-click → Mark as Reconciled (for accounts without CSV import) |
+| IMPORTED | I | Brought in by CSV import; category not yet confirmed. Right-click → Merge with existing manual transaction |
+| AUTO_CATEGORIZED | ? | Imported and automatically categorized by a rule; left-click to accept, right-click to merge with an existing manual transaction |
+| RECONCILED | R | Verified — either matched with an import or explicitly marked by the user |
+
+The **"Show pending review only"** filter surfaces all MANUAL, IMPORTED, and AUTO_CATEGORIZED transactions so unreviewed entries from any source are visible in one place.
 
 ---
 
