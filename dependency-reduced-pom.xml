@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sanchay</groupId>
   <artifactId>sanchay</artifactId>
-  <version>v1.0.0-Barbet</version>
+  <version>v0.0.1-Civet</version>
   <build>
     <resources>
       <resource>
