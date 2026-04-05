@@ -174,7 +174,7 @@ class InvestmentPanel {
     }
 
     private void buildFdFields(VBox g) {
-        invFdRefFld            = parent.tf("optional");
+        invFdRefFld            = parent.tf("required");
         invFdRateFld           = parent.tf("e.g. 7.5");
         invFdMaturityPicker    = new DatePicker();
         UiUtils.styleOnShow(invFdMaturityPicker);
@@ -242,7 +242,7 @@ class InvestmentPanel {
             payoutDateBox.setManaged(fixed);
         });
 
-        dynStackRow(g, "Reference No",      invFdRefFld);
+        dynStackRow(g, "Reference No*",      invFdRefFld);
         dynStackRow(g, "Interest Rate (%)", invFdRateFld);
         dynStackRow(g, "Maturity Date",     invFdMaturityPicker);
         dynStackRow(g, "Maturity Amount",   invFdMaturityAmtFld);
@@ -298,8 +298,10 @@ class InvestmentPanel {
                 t.setNotes(userNotes);
             }
             case FIXED_DEPOSIT, DEBT_BONDS -> {
+                if (invFdRefFld == null || invFdRefFld.getText().isBlank())
+                    throw new IllegalArgumentException("Reference No is required for Fixed Deposit / Bond transactions.");
                 Transaction.FdDetails fd = new Transaction.FdDetails();
-                fd.setRef(parent.nullIfBlank(invFdRefFld != null ? invFdRefFld.getText() : null));
+                fd.setRef(invFdRefFld.getText().trim());
                 if (invFdRateFld != null && !invFdRateFld.getText().isBlank()) {
                     try { fd.setInterestRate(Double.parseDouble(invFdRateFld.getText().trim())); }
                     catch (NumberFormatException e) { throw new IllegalArgumentException("Interest rate must be a number."); }

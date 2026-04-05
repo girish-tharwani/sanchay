@@ -17,10 +17,10 @@ public class PlanParameters {
     public double rorPfPct              = 8.1;
     public double rorPostRetirePct      = 7.0;
     public double inflationPct          = 6.0;
-    public long   costOfLivingPaise     = 15_000_000L;   // ₹1,50,000 default
+    public long   costOfLivingPaise     = 150_000_000L;   // ₹15,00,000 default
     public String employmentStartDate   = null;           // ISO "YYYY-MM-DD"
-    public long   monthlySipMfPaise     = 1_000_000L;    // ₹10,000 default
-    public long   monthlySipEquityPaise = 500_000L;      // ₹5,000 default
+    public long   monthlySipMfPaise     = 0L;             // ₹0 default
+    public long   monthlySipEquityPaise = 0L;             // ₹0 default
 
     public java.util.List<MajorEvent> majorEvents = new java.util.ArrayList<>();
 

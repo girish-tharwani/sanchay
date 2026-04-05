@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sanchay</groupId>
   <artifactId>sanchay</artifactId>
-  <version>v0.0.1-Barbet</version>
+  <version>v0.0.2-Barbet</version>
   <build>
     <resources>
       <resource>
@@ -83,6 +83,12 @@
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-graphics</artifactId>
+      <version>21.0.10</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-web</artifactId>
       <version>21.0.10</version>
       <scope>compile</scope>
     </dependency>

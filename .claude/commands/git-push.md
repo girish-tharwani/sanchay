@@ -41,10 +41,10 @@ Keep descriptions concise. No implementation details in Fixed entries.
 Review both files and update them with new information to align with the changes made in the new version. Do **not** add version or changelog information to either file — that belongs only in `CHANGELOG.md`.
 
 ## Step 5 — Stage, commit, and push
+Use the new version string as the commit message.
 ```bash
 git add -A
-git commit -m "v1.0.1-MVP1"
+git commit -m "v0.0.2-Barbet"
 git push
 ```
 
-Use the new version string as the commit message.

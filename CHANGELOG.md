@@ -1,3 +1,11 @@
+## v0.0.3-Barbet — 2026-04-05
+
+### Fixed
+- Help screen missing from packaged installer: `javafx.web` added to jlink `--add-modules` and jpackage `--java-options` in `build.sh` so the WebView runtime is included in the bundled JRE
+- InvestmentPanel: Reference No field is now mandatory (validated on save) for Fixed Deposit and Bond transactions
+
+---
+
 ## v0.0.2-Barbet — 2026-04-05
 
 ### Added

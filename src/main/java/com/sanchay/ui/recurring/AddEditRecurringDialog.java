@@ -151,7 +151,7 @@ public class AddEditRecurringDialog {
         invUnitsFld.setMaxWidth(Double.MAX_VALUE);
 
         TextField invFdRefFld         = new TextField();
-        invFdRefFld.setPromptText("FD reference number (optional)");
+        invFdRefFld.setPromptText("Reference number (optional)");
         invFdRefFld.setMaxWidth(Double.MAX_VALUE);
 
         TextField invFdRateFld        = new TextField();
@@ -285,12 +285,12 @@ public class AddEditRecurringDialog {
             invTypeLbl.setText(sel.getAccountType());
             GridPane dg = miniGrid();
             switch (sel.getInvestmentType()) {
-                case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
+                case MUTUAL_FUNDS, EQUITY -> {
                     UiUtils.addFormRow(dg, 0, "Scheme / Script", invSchemeFld);
                     UiUtils.addFormRow(dg, 1, "Units / NAV",     invUnitsFld);
                 }
-                case FIXED_DEPOSIT -> {
-                    UiUtils.addFormRow(dg, 0, "FD Reference No",   invFdRefFld);
+                case FIXED_DEPOSIT, DEBT_BONDS -> {
+                    UiUtils.addFormRow(dg, 0, "Reference No",      invFdRefFld);
                     UiUtils.addFormRow(dg, 1, "Interest Rate (%)", invFdRateFld);
                     UiUtils.addFormRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
                     UiUtils.addFormRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
@@ -589,11 +589,11 @@ public class AddEditRecurringDialog {
             long    invFdMatAmt = 0;
             if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null) {
                 switch (invDestCb.getValue().getInvestmentType()) {
-                    case MUTUAL_FUNDS, EQUITY, DEBT_BONDS -> {
+                    case MUTUAL_FUNDS, EQUITY -> {
                         invSchemeScript = nullIfBlank(invSchemeFld.getText());
                         invUnitsNav     = nullIfBlank(invUnitsFld.getText());
                     }
-                    case FIXED_DEPOSIT -> {
+                    case FIXED_DEPOSIT, DEBT_BONDS -> {
                         invFdRef        = nullIfBlank(invFdRefFld.getText());
                         invInterestRate = parseRate(invFdRateFld.getText());
                         invMaturityDate = invFdMaturityPicker.getValue();
