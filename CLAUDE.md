@@ -50,6 +50,76 @@ model/      → Domain data classes (serialized to JSON)
 ### UI Shell
 `MainWindow` uses a three-zone layout (top bar / sidebar / main panel) with a Floating Action Button (FAB) for adding transactions. It manages `postTransactionCallback` and `transactionContextAccount` so the FAB knows which account context to use. Screens are rebuilt on each navigation (not cached), except AccountsScreen context which is preserved.
 
+`navigateTo()` clears both FAB fields unconditionally at the top on every navigation — AccountsScreen re-sets them when needed. This prevents stale account context if the user opens the FAB after navigating away.
+
+`SettingsScreen` is decoupled from `MainWindow` via a `BiConsumer<String, PreferencesSetupDialog.Result>` callback injected via constructor. `MainWindow` passes `this::reloadDataFolder`; `SettingsScreen` never holds a `MainWindow` reference.
+
+### Dialog Utilities (`UiUtils`)
+Shared dialog boilerplate is consolidated in `UiUtils`. Always use these instead of duplicating:
+
+| Method | Purpose |
+|---|---|
+| `initDialog(dlg, title, icon, width)` | Sets title, applies stylesheet, calls `setDialogHeader`, sets pref width |
+| `initDialog(dlg, title, icon, width, height)` | Same + sets pref height |
+| `addSaveCancel(dialogPane)` | Adds Save + Cancel `ButtonType`s, returns the Save `ButtonType` |
+| `createDatePicker(initialDate)` | Creates a `DatePicker` with smart converter + styleOnShow wired |
+| `buildFormGrid(labelColWidth)` | Returns a standard 2-column `GridPane` (hgap=12, vgap=10) |
+| `addFormRow(grid, row, label, control)` | Adds a label+control row to a `buildFormGrid` grid |
+| `setDialogHeader(dlg, icon, heading)` | Sets the custom `DialogPane` header (icon box + heading label) |
+| `applyStylesheet(dialog)` | Copies main window stylesheets into a dialog's scene |
+| `wireAutoComplete(comboBox, masterList)` | Wires type-ahead filtering on an editable `ComboBox` |
+| `wireDescriptionAutocomplete(textField, suggestions)` | Wires autocomplete on a description `TextField` |
+| `styleOnShow(datePicker)` | Applies popup-open style class to a `DatePicker` |
+
+### Dialog Classes
+Each dialog has its own class. Extracted dialog classes by package:
+
+**`ui/transactions/`**
+- `TransactionDialog` — coordinator for all transaction types; delegates per-type UI/save/prefill to `*Panel` classes (see below)
+- `ImportCompleteDialog` — read-only import result summary
+- `ImportMappingDialog`, `AmbiguousMatchDialog`, `RecurringMatchDialog` — import workflow dialogs
+
+**`ui/categories/`**
+- `ReassignCategoryDialog` — reassign transactions from one category to another
+- `MoveSubCategoryDialog` — move a sub-category to a different parent
+- `CategoryTransactionsDialog` — read/edit transactions for a category
+
+**`ui/accounts/`**
+- `AccountDialog` — create/edit any account type
+- `LoanScheduleDialog` — view amortization schedule for a loan
+- `MarketValueHistoryDialog` / `RecordMarketValueDialog` — investment market value management
+
+**`ui/recurring/`**
+- `AddEditRecurringDialog` — create/edit recurring schedules
+- `RecordRecurringDialog` — record an occurrence of a recurring transaction
+- `SkipRecurringDialog` — skip a recurring occurrence
+
+**`ui/planning/`**
+- `MajorEventDialog` — add/edit a major life event
+
+**`ui/common/`**
+- `SingleInputDialog` — generic single text-field dialog
+- `HelpDialog` — in-app help overlay
+
+**`ui/wizard/`**
+- `PreferencesSetupDialog` — first-run preferences (also shown when switching to an empty data folder)
+
+### TransactionDialog Panel Architecture
+`TransactionDialog` is a coordinator: it owns shared fields (type selector, date, description, amount, notes) and delegates all type-specific UI, save logic, and prefill logic to package-private `*Panel` classes in `ui/transactions/`:
+
+| Panel class | Transaction type(s) |
+|---|---|
+| `ExpensePanel` | `EXPENSE` |
+| `IncomePanel` | `INCOME` |
+| `TransferPanel` | `TRANSFER` |
+| `RefundPanel` | `REFUND` |
+| `CCPaymentPanel` | `CC_PAYMENT` |
+| `LoanPaymentPanel` | `LOAN_PAYMENT` (includes prepayment detection and schedule recalculation) |
+| `RedeemPanel` | `REDEEM`, `GAIN`, `LOSE` |
+| `InvestmentPanel` | `INVESTMENT` (includes dynamic fields per investment type and the FD/Bond preview panel) |
+
+Each panel receives a `TransactionDialog parent` reference in its constructor and accesses shared fields and helper methods through it. Panel fields are package-private so `TransactionDialog` can read them for auto-suggest routing, context-account pre-population, and focus management. To add a new transaction type: add a `*Panel` class, add it to `typeCb.getItems()`, wire `panelNodeFor()`, `save()`, `prefillFromTransaction()`, `applyContextAccount()`, `setContextAccount()`, and `focusFirstEmpty()` in `TransactionDialog`.
+
 ### Business Logic Services
 - **`CashFlowProjectionService`** — Projects account balances month-by-month using recurring transactions, maturity events, overrides, and seasonality factors. Used by Reports/Forecasting screens.
 - **`ImportService`** — Parses clipboard CSV/TSV, auto-detects delimiters, matches imports to existing transactions, and auto-categorizes via rules.

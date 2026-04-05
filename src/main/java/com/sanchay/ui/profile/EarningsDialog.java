@@ -51,8 +51,6 @@ public class EarningsDialog extends Dialog<Boolean> {
         ComboBox<Category> salCatCb;
         ComboBox<InvestmentAccount> salPfAcctCb;
         CheckBox gratuityChk;
-        Label calcGross, calcEmpPf, calcTds, calcInHand,
-              calcEmpEpf, calcEps, calcPfDeposit, calcEpsDeposit, calcGratuity;
     }
 
     public EarningsDialog(FamilyMember member) {
@@ -354,99 +352,121 @@ public class EarningsDialog extends Dialog<Boolean> {
         g.add(createPfLink, 1, r++);
         row(g, r,   "Gratuity",                    refs.gratuityChk);
 
-        // Calculation panel
-        refs.calcGross      = calcVal(); refs.calcEmpPf      = calcVal();
-        refs.calcTds        = calcVal(); refs.calcInHand     = calcVal();
-        refs.calcEmpEpf     = calcVal(); refs.calcEps        = calcVal();
-        refs.calcPfDeposit  = calcVal(); refs.calcEpsDeposit = calcVal();
-        refs.calcGratuity   = calcVal();
-        refs.calcInHand.getStyleClass().add("text-success");
-        // Inline required: font-weight and size are layout emphasis, not colour — no token covers them
-        refs.calcInHand.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
-
-        GridPane calc = new GridPane();
-        calc.setHgap(12); calc.setVgap(6);
-        calc.setPadding(new Insets(12, 16, 12, 16));
-        calc.getStyleClass().add("info-box");
-        ColumnConstraints cc1 = new ColumnConstraints(190);
-        ColumnConstraints cc2 = new ColumnConstraints(); cc2.setHgrow(Priority.ALWAYS);
-        calc.getColumnConstraints().addAll(cc1, cc2);
-
-        int cr = 0;
-        calcRow(calc, cr++, "Gross Monthly:",              refs.calcGross);
-        calcRow(calc, cr++, "Employee PF (12% + VPF):",    refs.calcEmpPf);
-        calcRow(calc, cr++, "Estimated Monthly TDS:",      refs.calcTds);
-        calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr++, "Net In-hand:",                refs.calcInHand);
-        calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr++, "Employer EPF:",               refs.calcEmpEpf);
-        calcRow(calc, cr++, "EPS:",                        refs.calcEps);
-        calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr++, "Monthly PF Deposit:",         refs.calcPfDeposit);
-        calcRow(calc, cr++, "Monthly EPS Deposit:",        refs.calcEpsDeposit);
-        calc.add(new Separator(), 0, cr++, 2, 1);
-        calcRow(calc, cr,   "Gratuity (per year of service):", refs.calcGratuity);
-
-        Runnable recalc = () -> recalcSalary(refs);
-        refs.salBasicFld.textProperty().addListener((o, ov, nv) -> recalc.run());
-        refs.salHraFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
-        refs.salOtherFld.textProperty().addListener((o, ov, nv) -> recalc.run());
-        refs.salTaxFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
-        refs.salVpfFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
-        refs.gratuityChk.selectedProperty().addListener((o, ov, nv) -> recalc.run());
-        if (configured) recalc.run();
-
-        Label calcTitle = new Label("Salary Breakdown (Monthly)");
-        calcTitle.getStyleClass().add("text-section-title");
+        Node rightPanel = new SalaryDeductionPanel().build(refs, configured);
 
         ScrollPane leftScroll = new ScrollPane(g);
         leftScroll.setFitToWidth(true);
         leftScroll.getStyleClass().add("scroll-transparent");
         HBox.setHgrow(leftScroll, Priority.ALWAYS);
 
-        VBox rightPanel = new VBox(8, calcTitle, calc);
-        rightPanel.setPadding(new Insets(4, 4, 8, 8));
-        rightPanel.setMinWidth(330);
-        rightPanel.setMaxWidth(360);
-
         HBox outer = new HBox(12, leftScroll, rightPanel);
         outer.setPadding(new Insets(0, 0, 8, 0));
         return outer;
     }
 
-    private void recalcSalary(SourceFormRefs refs) {
-        long   basic  = parseAmountStr(refs.salBasicFld.getText());   // annual
-        long   hra    = parseAmountStr(refs.salHraFld.getText());     // annual
-        long   other  = parseAmountStr(refs.salOtherFld.getText());   // annual
-        double taxPct = parseDoubleStr(refs.salTaxFld.getText());
-        double vpfPct = parseDoubleStr(refs.salVpfFld.getText());
+    // ── Salary breakdown panel (inner class) ──────────────────────────────────
 
-        long basicMo = basic / 12;
-        long hraMo   = hra   / 12;
-        long otherMo = other / 12;
+    /**
+     * Owns the salary deduction display table (right panel in the SALARY form).
+     * Builds the calculation grid, wires recalc listeners on salary input fields,
+     * and keeps all display-only labels private.
+     */
+    private class SalaryDeductionPanel {
 
-        long gross        = basicMo + hraMo + otherMo;
-        long mandatoryEpf = Math.round(basicMo * 0.12);
-        long totalEmpPf   = Math.round(basicMo * (0.12 + vpfPct / 100.0));
-        long tds          = Math.round((gross - mandatoryEpf) * taxPct / 100.0);
-        long inHand       = gross - totalEmpPf - tds;
-        long empEpf       = Math.max(0L, Math.round(basicMo * 0.12) - 125_000L);
-        long eps          = basicMo > 0 ? Math.min(125_000L, Math.round(basicMo * 0.0833)) : 0;
-        long pfDeposit    = totalEmpPf + empEpf;
-        long epsDeposit   = eps;
-        boolean showGratuity = refs.gratuityChk != null && refs.gratuityChk.isSelected();
-        long gratuityPerYear = showGratuity ? Math.round(basicMo * 15.0 / (26.0)) : 0;
+        private final Label calcGross, calcEmpPf, calcTds, calcInHand,
+                            calcEmpEpf, calcEps, calcPfDeposit, calcEpsDeposit, calcGratuity;
 
-        refs.calcGross    .setText(fmtR(gross));
-        refs.calcEmpPf    .setText(fmtR(totalEmpPf));
-        refs.calcTds      .setText(fmtR(tds));
-        refs.calcInHand   .setText(fmtR(inHand));
-        refs.calcEmpEpf   .setText(fmtR(empEpf));
-        refs.calcEps      .setText(basicMo > 0 ? fmtR(eps) : "—");
-        refs.calcPfDeposit .setText(fmtR(pfDeposit));
-        refs.calcEpsDeposit.setText(fmtR(epsDeposit));
-        if (refs.calcGratuity != null)
-            refs.calcGratuity.setText(showGratuity ? fmtR(gratuityPerYear) : "—");
+        SalaryDeductionPanel() {
+            calcGross      = calcVal();
+            calcEmpPf      = calcVal();
+            calcTds        = calcVal();
+            calcInHand     = calcVal();
+            calcEmpEpf     = calcVal();
+            calcEps        = calcVal();
+            calcPfDeposit  = calcVal();
+            calcEpsDeposit = calcVal();
+            calcGratuity   = calcVal();
+            calcInHand.getStyleClass().add("text-success");
+            // Inline required: font-weight and size are layout emphasis, not colour — no token covers them
+            calcInHand.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+        }
+
+        /** Builds and returns the right-panel VBox; wires recalc listeners on refs. */
+        Node build(SourceFormRefs refs, boolean runInitialCalc) {
+            GridPane calc = new GridPane();
+            calc.setHgap(12); calc.setVgap(6);
+            calc.setPadding(new Insets(12, 16, 12, 16));
+            calc.getStyleClass().add("info-box");
+            ColumnConstraints cc1 = new ColumnConstraints(190);
+            ColumnConstraints cc2 = new ColumnConstraints(); cc2.setHgrow(Priority.ALWAYS);
+            calc.getColumnConstraints().addAll(cc1, cc2);
+
+            int cr = 0;
+            calcRow(calc, cr++, "Gross Monthly:",              calcGross);
+            calcRow(calc, cr++, "Employee PF (12% + VPF):",    calcEmpPf);
+            calcRow(calc, cr++, "Estimated Monthly TDS:",      calcTds);
+            calc.add(new Separator(), 0, cr++, 2, 1);
+            calcRow(calc, cr++, "Net In-hand:",                calcInHand);
+            calc.add(new Separator(), 0, cr++, 2, 1);
+            calcRow(calc, cr++, "Employer EPF:",               calcEmpEpf);
+            calcRow(calc, cr++, "EPS:",                        calcEps);
+            calc.add(new Separator(), 0, cr++, 2, 1);
+            calcRow(calc, cr++, "Monthly PF Deposit:",         calcPfDeposit);
+            calcRow(calc, cr++, "Monthly EPS Deposit:",        calcEpsDeposit);
+            calc.add(new Separator(), 0, cr++, 2, 1);
+            calcRow(calc, cr, "Gratuity (per year of service):", calcGratuity);
+
+            Runnable recalc = () -> recalc(refs);
+            refs.salBasicFld.textProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.salHraFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.salOtherFld.textProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.salTaxFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.salVpfFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.gratuityChk.selectedProperty().addListener((o, ov, nv) -> recalc.run());
+            if (runInitialCalc) recalc.run();
+
+            Label calcTitle = new Label("Salary Breakdown (Monthly)");
+            calcTitle.getStyleClass().add("text-section-title");
+            VBox panel = new VBox(8, calcTitle, calc);
+            panel.setPadding(new Insets(4, 4, 8, 8));
+            panel.setMinWidth(330);
+            panel.setMaxWidth(360);
+            return panel;
+        }
+
+        private void recalc(SourceFormRefs refs) {
+            long   basic  = parseAmountStr(refs.salBasicFld.getText()); // annual
+            long   hra    = parseAmountStr(refs.salHraFld.getText());   // annual
+            long   other  = parseAmountStr(refs.salOtherFld.getText()); // annual
+            double taxPct = parseDoubleStr(refs.salTaxFld.getText());
+            double vpfPct = parseDoubleStr(refs.salVpfFld.getText());
+
+            long basicMo = basic / 12;
+            long hraMo   = hra   / 12;
+            long otherMo = other / 12;
+
+            long gross        = basicMo + hraMo + otherMo;
+            long mandatoryEpf = Math.round(basicMo * 0.12);
+            long totalEmpPf   = Math.round(basicMo * (0.12 + vpfPct / 100.0));
+            long tds          = Math.round((gross - mandatoryEpf) * taxPct / 100.0);
+            long inHand       = gross - totalEmpPf - tds;
+            long empEpf       = Math.max(0L, Math.round(basicMo * 0.12) - 125_000L);
+            long eps          = basicMo > 0 ? Math.min(125_000L, Math.round(basicMo * 0.0833)) : 0;
+            long pfDeposit    = totalEmpPf + empEpf;
+            long epsDeposit   = eps;
+            boolean showGratuity = refs.gratuityChk != null && refs.gratuityChk.isSelected();
+            long gratuityPerYear = showGratuity ? Math.round(basicMo * 15.0 / (26.0)) : 0;
+
+            calcGross     .setText(fmtR(gross));
+            calcEmpPf     .setText(fmtR(totalEmpPf));
+            calcTds       .setText(fmtR(tds));
+            calcInHand    .setText(fmtR(inHand));
+            calcEmpEpf    .setText(fmtR(empEpf));
+            calcEps       .setText(basicMo > 0 ? fmtR(eps) : "—");
+            calcPfDeposit .setText(fmtR(pfDeposit));
+            calcEpsDeposit.setText(fmtR(epsDeposit));
+            calcGratuity  .setText(showGratuity ? fmtR(gratuityPerYear) : "—");
+        }
     }
 
     // ── Save ──────────────────────────────────────────────────────────────────

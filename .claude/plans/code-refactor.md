@@ -38,7 +38,7 @@ Remove definitively unused code that cannot affect behavior.
 
 ---
 
-## Phase 2 — Extract Shared UI Boilerplate to Utilities
+## Phase 2 — Extract Shared UI Boilerplate to Utilities - COMPLETED
 *Risk: Low | Impact: High | Prerequisite: Phase 1 complete*
 
 Add utility methods to `UiUtils` (already exists at ~515 LOC) or a new `DialogUtils` class to eliminate the most widespread copy-paste patterns. Each extraction step: add the utility method → replace all call sites → confirm compilation.
@@ -54,7 +54,7 @@ Add utility methods to `UiUtils` (already exists at ~515 LOC) or a new `DialogUt
 
 ---
 
-## Phase 3 — Extract Inline Dialogs to Own Classes
+## Phase 3 — Extract Inline Dialogs to Own Classes - COMPLETED
 *Risk: Medium | Impact: Medium | Prerequisite: Phase 2 complete (utility methods available)*
 
 For each inline dialog, create a dedicated class, move all dialog code into it, and replace the inline block in the parent screen with: instantiate → pass data via constructor → showAndWait() → handle result.
@@ -98,7 +98,7 @@ The two oversized dialogs are candidates for decomposition into sub-components.
 
 ---
 
-## Phase 5 — Fix Cross-Class Wiring in MainWindow
+## Phase 5 — Fix Cross-Class Wiring in MainWindow - COMPLETED
 *Risk: High | Impact: Medium | Prerequisite: Phase 3 complete*
 
 Address the two anti-pattern fields on `MainWindow` that couple `AccountsScreen` to the FAB behavior.

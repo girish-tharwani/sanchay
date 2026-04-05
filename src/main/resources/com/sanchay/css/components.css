@@ -344,10 +344,10 @@
     -fx-background-radius: 20px;
     -fx-border-radius: 20px;
     -fx-border-width: 1;
-    -fx-padding: 3px 10px;
+    -fx-padding: 2px 7px;
     -fx-font-size: 11px;
     -fx-font-weight: 700;
-    -fx-min-width: 100px;
+    -fx-min-width: 85px;
     -fx-alignment: CENTER;
 }
 
@@ -355,7 +355,7 @@
 .badge-sm {
     -fx-font-size: 9.5px;
     -fx-padding: 2px 7px;
-    -fx-min-width: 76px;
+    -fx-min-width: 75px;
 }
 
 .badge-expense      { -fx-background-color: #fef2f2; -fx-text-fill: #c0392b; -fx-border-color: #fecaca; }

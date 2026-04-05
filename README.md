@@ -400,10 +400,11 @@ MainApp (JavaFX Application)
 │
 ├── UI Layer (ui/)
 │   ├── MainWindow     ─ Shell: sidebar nav + top bar + main panel + FAB
+│   ├── UiUtils        ─ Shared dialog helpers (stylesheet, initDialog, error, etc.)
 │   └── [screen packages]/
 │       ├── dashboard, accounts, transactions, recurring
 │       ├── reports, planning, categories, profile, settings
-│       └── wizard (first-run), common (shared dialogs)
+│       └── wizard (first-run)
 │
 └── Service Layer (service/)
     ├── CashFlowProjectionService  ─ Month-by-month balance forecasting
@@ -415,6 +416,23 @@ MainApp (JavaFX Application)
     ├── MoneyFormatter             ─ Amount and currency symbol formatting
     └── CurrencyConfig             ─ Currency metadata
 ```
+
+### TransactionDialog Panel Architecture
+
+`TransactionDialog` is a coordinator. The form logic for each transaction type lives in a dedicated package-private panel class in `ui/transactions/`:
+
+| Panel class | Transaction type |
+|---|---|
+| `ExpensePanel` | EXPENSE |
+| `IncomePanel` | INCOME |
+| `TransferPanel` | TRANSFER |
+| `RefundPanel` | REFUND |
+| `InvestmentPanel` | INVESTMENT |
+| `CCPaymentPanel` | CC_PAYMENT |
+| `LoanPaymentPanel` | LOAN_PAYMENT |
+| `RedeemPanel` | REDEEM |
+
+Each panel receives a `TransactionDialog parent` reference in its constructor and accesses shared fields (`ds`, `typeCb`, `sharedDate`, `sharedAmt`, etc.) and helper methods (`requireDate()`, `parsePaise()`, `persistTransaction()`, etc.) directly — all package-private to avoid getter boilerplate. Each panel implements three responsibilities: `getNode()` (build the form section), `save()` (validate and write to DataStore), and `prefill(Transaction)` (populate fields when editing).
 
 **Key design decisions:**
 

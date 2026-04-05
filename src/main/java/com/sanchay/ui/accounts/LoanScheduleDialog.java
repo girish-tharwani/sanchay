@@ -60,19 +60,16 @@ public class LoanScheduleDialog {
         TableColumn<AmortizationEntry, String> colOpening = new TableColumn<>("Opening Balance");
         colOpening.setCellValueFactory(r ->
                 new SimpleStringProperty(String.format("%.0f", r.getValue().getOpeningBalancePaise() / 100.0)));
-                //new SimpleStringProperty(formatPaise(r.getValue().getOpeningBalancePaise())));
         colOpening.setPrefWidth(145);
 
         TableColumn<AmortizationEntry, String> colEmi = new TableColumn<>("EMI");
         colEmi.setCellValueFactory(r ->
                 new SimpleStringProperty(String.format("%.0f", r.getValue().getEmiAmountPaise() / 100.0)));
-                //new SimpleStringProperty(formatPaise(r.getValue().getEmiAmountPaise())));
         colEmi.setPrefWidth(120);
 
         TableColumn<AmortizationEntry, String> colPrincipal = new TableColumn<>("Principal");
         colPrincipal.setCellValueFactory(r ->
                 new SimpleStringProperty(String.format("%.0f", r.getValue().getPrincipalRepaymentPaise() / 100.0)));
-                //new SimpleStringProperty(formatPaise(r.getValue().getPrincipalRepaymentPaise())));
         colPrincipal.setPrefWidth(130);
         colPrincipal.setEditable(true);
         colPrincipal.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -104,7 +101,6 @@ public class LoanScheduleDialog {
         TableColumn<AmortizationEntry, String> colInterest = new TableColumn<>("Interest");
         colInterest.setCellValueFactory(r ->
                 new SimpleStringProperty(String.format("%.0f", r.getValue().getInterestPaymentPaise() / 100.0)));
-                //new SimpleStringProperty(formatPaise(r.getValue().getInterestPaymentPaise())));
         colInterest.setPrefWidth(120);
 
         table.getColumns().addAll(colDate, colOpening, colEmi, colPrincipal, colInterest);

@@ -705,13 +705,11 @@ public class FinancialPlanningScreen {
 
         // Fixed column widths must match the column header widths above
         Label forecastLbl = new Label(formatRupees(forecast));
-        //forecastLbl.getStyleClass().add("fp-event-forecast");
         forecastLbl.getStyleClass().add("fp-table-value");
         forecastLbl.setPrefWidth(110);
         forecastLbl.setAlignment(Pos.CENTER_RIGHT);
 
         Label actualLbl = new Label(formatRupees(actual));
-        //actualLbl.getStyleClass().add(actual > 0 ? "fp-event-actual" : "fp-event-actual-zero");
         actualLbl.getStyleClass().add("fp-table-value");
         actualLbl.setPrefWidth(110);
         actualLbl.setAlignment(Pos.CENTER_RIGHT);

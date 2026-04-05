@@ -218,7 +218,6 @@ public class TransactionsScreen {
         // ── Transaction table ──────────────────────────────────────────────────
         TableView<Transaction> table = new TableView<>();
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        //table.setPrefHeight(400);
 
 
         TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("DATE");
