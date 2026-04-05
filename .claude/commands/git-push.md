@@ -9,7 +9,7 @@ Read the current version from `pom.xml`. It follows `MAJOR.MINOR.PATCH-SUFFIX`.
 - Default: increment **PATCH** only (bug fixes, UI tweaks, new features — everything)
 - Increment **MINOR** and reset PATCH to 0 **only** if the user explicitly requested it in this session
 - Never increment **MAJOR** under any circumstances
-- Always keep the existing suffix e.g. `-Barbet` suffix
+- Always keep the existing suffix e.g. `-Civet` suffix
 
 ## Step 2 — Update pom.xml
 

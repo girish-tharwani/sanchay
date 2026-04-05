@@ -1,3 +1,9 @@
+## v0.0.3-Civet — 2026-04-05
+
+### Changed
+- User Guide: expanded import section with Recurring Schedule Matching (§7.5) and Transaction States (§7.6) subsections
+- User Guide: added tip in §5 recommending CSV import over manual entry
+
 ## v0.0.2-Civet — 2026-04-05
 
 ### Added

@@ -31,6 +31,8 @@ This guide walks through every feature in Sanchay from first launch to advanced 
    - [First-Time Column Mapping](#72-first-time-column-mapping)
    - [Reviewing Import Results](#73-reviewing-import-results)
    - [Handling Ambiguous Matches](#74-handling-ambiguous-matches)
+   - [Matching Recurring Schedules](#75-matching-recurring-schedules)
+   - [Transaction States](#76-transaction-states)
 8. [Categories](#8-categories)
 9. [Dashboard](#9-dashboard)
 10. [Reports & Cash Flow Forecast](#10-reports--cash-flow-forecast)
@@ -240,6 +242,7 @@ Investment accounts track both book value (from transactions) and market value (
 ## 5. Recording Transactions
 
 Click the **+** FAB at the bottom-right of any screen. The transaction type defaults to the context of the current screen.
+> It is much easier to import the transaction from your bank and credit card statements instead of entering them individually. See **Importing Bank Statement** section for details.
 
 All transaction types share these fields:
 
@@ -406,7 +409,7 @@ The schedule advances to the next due date.
 
 ## 7. Importing Bank Statements
 
-Sanchay can import your bank or credit card statement formatted asn comma-separated text, matching imported rows against transactions you've already entered manually or recurring schedule occurrences.
+Sanchay can import your bank or credit card statement formatted as comma-separated text, matching imported rows **intelligently** against transactions you've already entered manually or recurring schedule occurrences.
 
 ### 7.1 Preparing Your Statement
 
@@ -460,9 +463,37 @@ For each contested item, you see the CSV row on one side and the candidate manua
 - **Add as new** — create a new transaction and leave the manual ones untouched
 - **Skip** — discard this CSV row entirely
 
-For pending recurring schedule matches, a separate **Recurring Match** dialog shows the CSV row alongside the matching schedule occurrence. Confirm to reconcile, or add as new.
+### 7.5 Matching Recurring Schedules
 
----
+If a CSV row matches with a pending instance of recurring schedule, a  **Recurring Match** dialog shows the CSV row alongside the matching schedule occurrence. You can confirm to reconcile, or add as new.
+
+### 7.6 Transaction States
+
+#### Manual
+- Manually created, not reconciled with any imported transaction yet.
+- **Badge:** `M`
+- **Transition:**
+   - Right‑click → **Mark as Reconciled** → `RECONCILED`
+   - Match with an imported transaction by **Import CSV** process → `RECONCILED`
+
+#### Imported
+- Imported via csv, not matched to any manual transaction and not auto-categorized by Sanchay
+- **Badge:** `I`
+- **Transition:**
+   - Right‑click → **Merge with Existing Manual Transaction** → `RECONCILED`
+   - Double-click → **Verify and update the details** → `RECONCILED`
+
+#### Auto Categorized
+- Imported via csv, not matched to any manual transaction but auto-categorized by Sanchay
+- **Badge:** `?`
+- **Transition:**
+    - Right‑click → **Merge with Existing Manual Transaction** → `RECONCILED`
+    - Click on `?` → **Accept auto categorization** → `RECONCILED`
+    - Double-click → **Verify and update the details** → `RECONCILED`
+
+#### Reconciled
+- **Badge:** `R`
+
 
 ## 8. Categories
 
