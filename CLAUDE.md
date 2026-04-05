@@ -59,19 +59,19 @@ model/      → Domain data classes (serialized to JSON)
 ### Dialog Utilities (`UiUtils`)
 Shared dialog boilerplate is consolidated in `UiUtils`. Always use these instead of duplicating:
 
-| Method | Purpose |
-|---|---|
-| `initDialog(dlg, title, icon, width)` | Sets title, applies stylesheet, calls `setDialogHeader`, sets pref width |
-| `initDialog(dlg, title, icon, width, height)` | Same + sets pref height |
-| `addSaveCancel(dialogPane)` | Adds Save + Cancel `ButtonType`s, returns the Save `ButtonType` |
-| `createDatePicker(initialDate)` | Creates a `DatePicker` with smart converter + styleOnShow wired |
-| `buildFormGrid(labelColWidth)` | Returns a standard 2-column `GridPane` (hgap=12, vgap=10) |
-| `addFormRow(grid, row, label, control)` | Adds a label+control row to a `buildFormGrid` grid |
-| `setDialogHeader(dlg, icon, heading)` | Sets the custom `DialogPane` header (icon box + heading label) |
-| `applyStylesheet(dialog)` | Copies main window stylesheets into a dialog's scene |
-| `wireAutoComplete(comboBox, masterList)` | Wires type-ahead filtering on an editable `ComboBox` |
-| `wireDescriptionAutocomplete(textField, suggestions)` | Wires autocomplete on a description `TextField` |
-| `styleOnShow(datePicker)` | Applies popup-open style class to a `DatePicker` |
+| Method                                                | Purpose                                                                  |
+|-------------------------------------------------------|--------------------------------------------------------------------------|
+| `initDialog(dlg, title, icon, width)`                 | Sets title, applies stylesheet, calls `setDialogHeader`, sets pref width |
+| `initDialog(dlg, title, icon, width, height)`         | Same + sets pref height                                                  |
+| `addSaveCancel(dialogPane)`                           | Adds Save + Cancel `ButtonType`s, returns the Save `ButtonType`          |
+| `createDatePicker(initialDate)`                       | Creates a `DatePicker` with smart converter + styleOnShow wired          |
+| `buildFormGrid(labelColWidth)`                        | Returns a standard 2-column `GridPane` (hgap=12, vgap=10)                |
+| `addFormRow(grid, row, label, control)`               | Adds a label+control row to a `buildFormGrid` grid                       |
+| `setDialogHeader(dlg, icon, heading)`                 | Sets the custom `DialogPane` header (icon box + heading label)           |
+| `applyStylesheet(dialog)`                             | Copies main window stylesheets into a dialog's scene                     |
+| `wireAutoComplete(comboBox, masterList)`              | Wires type-ahead filtering on an editable `ComboBox`                     |
+| `wireDescriptionAutocomplete(textField, suggestions)` | Wires autocomplete on a description `TextField`                          |
+| `styleOnShow(datePicker)`                             | Applies popup-open style class to a `DatePicker`                         |
 
 ### Dialog Classes
 Each dialog has its own class. Extracted dialog classes by package:
@@ -112,16 +112,16 @@ Each dialog has its own class. Extracted dialog classes by package:
 ### TransactionDialog Panel Architecture
 `TransactionDialog` is a coordinator: it owns shared fields (type selector, date, description, amount, notes) and delegates all type-specific UI, save logic, and prefill logic to package-private `*Panel` classes in `ui/transactions/`:
 
-| Panel class | Transaction type(s) |
-|---|---|
-| `ExpensePanel` | `EXPENSE` |
-| `IncomePanel` | `INCOME` |
-| `TransferPanel` | `TRANSFER` |
-| `RefundPanel` | `REFUND` |
-| `CCPaymentPanel` | `CC_PAYMENT` |
-| `LoanPaymentPanel` | `LOAN_PAYMENT` (includes prepayment detection and schedule recalculation) |
-| `RedeemPanel` | `REDEEM`, `GAIN`, `LOSE` |
-| `InvestmentPanel` | `INVESTMENT` (includes dynamic fields per investment type and the FD/Bond preview panel) |
+| Panel class        | Transaction type(s)                                                                      |
+|--------------------|------------------------------------------------------------------------------------------|
+| `ExpensePanel`     | `EXPENSE`                                                                                |
+| `IncomePanel`      | `INCOME`                                                                                 |
+| `TransferPanel`    | `TRANSFER`                                                                               |
+| `RefundPanel`      | `REFUND`                                                                                 |
+| `CCPaymentPanel`   | `CC_PAYMENT`                                                                             |
+| `LoanPaymentPanel` | `LOAN_PAYMENT` (includes prepayment detection and schedule recalculation)                |
+| `RedeemPanel`      | `REDEEM`, `GAIN`, `LOSE`                                                                 |
+| `InvestmentPanel`  | `INVESTMENT` (includes dynamic fields per investment type and the FD/Bond preview panel) |
 
 Each panel receives a `TransactionDialog parent` reference in its constructor and accesses shared fields and helper methods through it. Panel fields are package-private so `TransactionDialog` can read them for auto-suggest routing, context-account pre-population, and focus management. To add a new transaction type: add a `*Panel` class, add it to `typeCb.getItems()`, wire `panelNodeFor()`, `save()`, `prefillFromTransaction()`, `applyContextAccount()`, `setContextAccount()`, and `focusFirstEmpty()` in `TransactionDialog`.
 

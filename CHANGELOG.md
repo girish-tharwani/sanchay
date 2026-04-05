@@ -1,3 +1,6 @@
+## v1.0.0-Civet — 2026-04-05
+- Baseline for release
+
 ## v0.0.3-Civet — 2026-04-05
 
 ### Changed
