@@ -50,9 +50,9 @@ if [ "$1" = "package-dist" ]; then
     mkdir -p "$SCRIPT_DIR/target/pkg-input"
     cp "$SCRIPT_DIR/target/sanchay-app.jar" "$SCRIPT_DIR/target/pkg-input/"
 
-    # Clean installer/ at project root so only the latest build is present
-    rm -rf "$SCRIPT_DIR/installer"
+    # Clear installer/ contents so only the latest build is present
     mkdir -p "$SCRIPT_DIR/installer"
+    rm -f "$SCRIPT_DIR/installer/"*
 
     # jpackage requires a plain numeric version; we rename the output to add "v" prefix
     jpackage \

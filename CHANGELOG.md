@@ -1,3 +1,6 @@
+## v1.0.0-Barbet — 2026-04-05
+- Release baseline
+
 ## v0.0.3-Barbet — 2026-04-05
 
 ### Fixed
