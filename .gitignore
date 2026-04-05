@@ -33,6 +33,7 @@ tools/
 CHANGELOG_v0.2.13.md
 CHANGELOG_v1.1.9.md
 AGENTS.md
+installer/
 
 
 # IntelliJ IDEA
@@ -44,6 +45,7 @@ out/
 
 # Maven
 target/
+dependency-reduced-pom.xml
 
 # installer/ is intentionally tracked — contains the distributable .exe for sharing
 # (do not add installer/ here)
