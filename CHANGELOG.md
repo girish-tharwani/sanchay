@@ -1,3 +1,6 @@
+## v1.0.0-Darter — 2026-04-06
+- Set for release
+
 ## v0.0.2-Darter — 2026-04-06
 
 ### Changed
