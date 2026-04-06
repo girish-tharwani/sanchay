@@ -69,76 +69,111 @@ public class TransactionsScreen {
         title.getStyleClass().add("screen-title");
         header.getChildren().addAll(back, title);
 
+        // Mutable stat labels — updated by refreshHeader after data changes
+        final Runnable[] refreshHeader = { null };
+
         if (account instanceof CreditCardAccount cc) {
-            long outstanding = DataStore.getInstance().getCreditCardOutstandingPaise(cc.getId());
-            long available   = Math.min(cc.getCreditLimitPaise(), cc.getCreditLimitPaise() - outstanding);
+            Label outstandingVal = new Label();
+            Label availableVal   = new Label();
+            outstandingVal.getStyleClass().add("stat-value");
+            availableVal.getStyleClass().add("stat-value");
+
             HBox ccSummary = new HBox(24);
             ccSummary.getStyleClass().add("card");
             ccSummary.setPadding(new Insets(12, 16, 12, 16));
             ccSummary.setAlignment(Pos.CENTER_LEFT);
             ccSummary.getChildren().addAll(
                     ccStat("Credit Limit",  MoneyFormatter.format(cc.getCreditLimitPaise()), "-text-neutral"),
-                    ccStat("Outstanding",   MoneyFormatter.format(outstanding), "-color-expense"),
-                    ccStat("Available",     MoneyFormatter.format(available), "-color-income"),
+                    ccStatWithLabel("Outstanding",   outstandingVal, "-color-expense"),
+                    ccStatWithLabel("Available",     availableVal,   "-color-income"),
                     ccStat("Billing Date",  cc.getBillingCycleDate() + " of month", "-text-neutral"),
                     ccStat("Payment Due",   cc.getPaymentDueDays() + " days after billing", "-text-neutral")
             );
             panel.getChildren().addAll(header, ccSummary);
+
+            refreshHeader[0] = () -> {
+                long out = DataStore.getInstance().getCreditCardOutstandingPaise(cc.getId());
+                long avail = Math.min(cc.getCreditLimitPaise(), cc.getCreditLimitPaise() - out);
+                outstandingVal.setText(MoneyFormatter.format(out));
+                availableVal.setText(MoneyFormatter.format(avail));
+            };
         } else {
             DataStore ds2 = DataStore.getInstance();
-            String statLabel; String statValue; String statColour;
             if (account instanceof BankAccount ba) {
-                long bal = ba.getOpeningBalancePaise();
-                for (Transaction t : ds2.getTransactions()) {
-                    if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
-                    if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
-                }
-                statLabel  = "Balance";
-                statValue  = MoneyFormatter.format(bal);
-                statColour = "-brand-dark";
-            } else if (account instanceof LoanAccount la) {
-                long outstanding = ds2.getLoanOutstandingPaise(la);
-                statLabel  = "Outstanding";
-                statValue  = MoneyFormatter.formatNoDecimal(outstanding);
-                statColour = outstanding > 0 ? "-color-error" : "-brand-dark";
-            } else if (account instanceof InvestmentAccount ia) {
-                long invested = ds2.getBaseInvestedPaise(ia);
-                for (Transaction t : ds2.getTransactions()) {
-                    if (t.getType() == Transaction.Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
-                        invested += t.getAmountPaise();
-                    if (t.getType() == Transaction.Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
-                        long rdPrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
-                        invested -= rdPrin > 0 ? rdPrin : t.getAmountPaise();
+                Label balVal = new Label();
+                balVal.getStyleClass().add("stat-value");
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                header.getChildren().addAll(spacer, ccStatWithLabel("Balance", balVal, "-brand-dark"));
+                refreshHeader[0] = () -> {
+                    long bal = ba.getOpeningBalancePaise();
+                    for (Transaction t : DataStore.getInstance().getTransactions()) {
+                        if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
+                        if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
                     }
-                }
-                statLabel  = "Invested";
-                statValue  = MoneyFormatter.formatNoDecimal(Math.max(0, invested));
-                statColour = "-brand-dark";
+                    balVal.setText(MoneyFormatter.format(bal));
+                };
+            } else if (account instanceof LoanAccount la) {
+                Label outVal = new Label();
+                outVal.getStyleClass().add("stat-value");
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                header.getChildren().addAll(spacer, ccStatWithLabel("Outstanding", outVal, "-color-error"));
+                refreshHeader[0] = () -> {
+                    long outstanding = ds2.getLoanOutstandingPaise(la);
+                    outVal.setText(MoneyFormatter.formatNoDecimal(outstanding));
+                    outVal.setStyle("-fx-text-fill: " + (outstanding > 0 ? "-color-error" : "-brand-dark") + ";");
+                };
+            } else if (account instanceof InvestmentAccount ia) {
+                Label investedVal = new Label();
+                investedVal.getStyleClass().add("stat-value");
                 if (isMarketValueAccount(ia)) {
                     MarketValueEntry mv = ds2.getLatestMarketValue(ia.getId());
                     if (mv != null) {
-                        long gl = mv.getGainLossPaise();
-                        String glColor = gl >= 0 ? "-color-income" : "-color-error";
+                        Label mvVal = new Label();
+                        Label glVal = new Label();
+                        mvVal.getStyleClass().add("stat-value");
+                        glVal.getStyleClass().add("stat-value");
                         Region spacer2 = new Region();
                         HBox.setHgrow(spacer2, Priority.ALWAYS);
                         header.getChildren().addAll(
                                 spacer2,
-                                ccStat("Market Value", MoneyFormatter.formatNoDecimal(mv.getMarketValuePaise()), "-brand-dark"),
-                                ccStat("Gain / Loss",  (gl >= 0 ? "+" : "") + MoneyFormatter.formatNoDecimal(Math.abs(gl)), glColor)
+                                ccStatWithLabel("Market Value", mvVal, "-brand-dark"),
+                                ccStatWithLabel("Gain / Loss",  glVal, "-brand-dark")
                         );
-                        statLabel = null; // suppress the default single-stat path
+                        refreshHeader[0] = () -> {
+                            MarketValueEntry latest = DataStore.getInstance().getLatestMarketValue(ia.getId());
+                            if (latest != null) {
+                                long gl = latest.getGainLossPaise();
+                                mvVal.setText(MoneyFormatter.formatNoDecimal(latest.getMarketValuePaise()));
+                                glVal.setText((gl >= 0 ? "+" : "") + MoneyFormatter.formatNoDecimal(Math.abs(gl)));
+                                glVal.setStyle("-fx-text-fill: " + (gl >= 0 ? "-color-income" : "-color-error") + ";");
+                            }
+                        };
                     }
+                } else {
+                    Region spacer = new Region();
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
+                    header.getChildren().addAll(spacer, ccStatWithLabel("Invested", investedVal, "-brand-dark"));
+                    refreshHeader[0] = () -> {
+                        long invested = ds2.getBaseInvestedPaise(ia);
+                        for (Transaction t : DataStore.getInstance().getTransactions()) {
+                            if (t.getType() == Transaction.Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
+                                invested += t.getAmountPaise();
+                            if (t.getType() == Transaction.Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
+                                long rdPrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
+                                invested -= rdPrin > 0 ? rdPrin : t.getAmountPaise();
+                            }
+                        }
+                        investedVal.setText(MoneyFormatter.formatNoDecimal(Math.max(0, invested)));
+                    };
                 }
-            } else {
-                statLabel = statValue = statColour = null;
-            }
-            if (statLabel != null) {
-                Region spacer = new Region();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                header.getChildren().addAll(spacer, ccStat(statLabel, statValue, statColour));
             }
             panel.getChildren().add(header);
         }
+
+        // Run once to populate initial values
+        if (refreshHeader[0] != null) refreshHeader[0].run();
 
         // ── Filters ────────────────────────────────────────────────────────────
         TextField search = new TextField();
@@ -330,6 +365,7 @@ public class TransactionsScreen {
                 table.getItems().setAll(filtered);
                 table.sort();
             }
+            if (refreshHeader[0] != null) refreshHeader[0].run();
         };
 
         search.textProperty().addListener((obs, o, n) -> applyFilter.run());
@@ -681,6 +717,16 @@ public class TransactionsScreen {
         return b;
     }
 
+    /** Like ccStat but accepts a pre-created value Label so the caller can update it later. */
+    private VBox ccStatWithLabel(String label, Label val, String colour) {
+        VBox b = new VBox(2);
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("stat-label");
+        val.setStyle("-fx-text-fill: " + colour + ";");
+        b.getChildren().addAll(lbl, val);
+        return b;
+    }
+
     // ── Import CSV ────────────────────────────────────────────────────────────
 
     private void doImportCsv(Runnable refreshTable) {
@@ -980,9 +1026,11 @@ public class TransactionsScreen {
 
     private void info(String title, String msg) {
         Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.setContentText(msg);
+        UiUtils.initDialog(a, title, "i", 400);
+        Label content = new Label(msg);
+        content.setWrapText(true);
+        content.getStyleClass().add("dialog-body-text");
+        a.getDialogPane().setContent(content);
         a.showAndWait();
     }
 
