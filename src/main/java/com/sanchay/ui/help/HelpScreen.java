@@ -3,7 +3,6 @@ package com.sanchay.ui.help;
 import com.sanchay.service.AppConfig;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
-import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -11,7 +10,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.web.WebView;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -147,24 +145,13 @@ public class HelpScreen {
         card.getStyleClass().add("help-guide-card");
         VBox.setVgrow(card, Priority.ALWAYS);
 
-        WebView webView = new WebView();
-        webView.setMaxWidth(Double.MAX_VALUE);
-        webView.setMaxHeight(Double.MAX_VALUE);
-        VBox.setVgrow(webView, Priority.ALWAYS);
+        VBox rendered = MarkdownRenderer.render(loadGuideContent());
+        ScrollPane scroll = new ScrollPane(rendered);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("guide-scroll");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
 
-        webView.getEngine().getLoadWorker().stateProperty().addListener(
-                (obs, oldState, newState) -> {
-                    if (newState == Worker.State.SUCCEEDED) {
-                        Object h = webView.getEngine().executeScript("document.body.scrollHeight");
-                        if (h instanceof Integer height) {
-                            webView.setPrefHeight(height + 24);
-                        }
-                    }
-                });
-
-        webView.getEngine().loadContent(MarkdownConverter.toHtml(loadGuideContent()));
-
-        card.getChildren().add(webView);
+        card.getChildren().add(scroll);
         section.getChildren().addAll(labelRow, card);
         return section;
     }

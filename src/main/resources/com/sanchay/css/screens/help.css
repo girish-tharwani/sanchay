@@ -7,13 +7,117 @@
     -fx-font-size: 20px;
 }
 
-/* ── Guide card — same visual as table-card but without dropshadow.
-      WebView inside a dropshadow container triggers a JavaFX 21 NPE in
-      WCPageBackBufferImpl; removing the effect is the correct workaround. ── */
+/* ── Guide card — contains a ScrollPane with rendered Markdown nodes.
+      Dropshadow is safe here; the WebView/CacheFilter NPE no longer applies. ── */
 .help-guide-card {
     -fx-background-color: white;
     -fx-background-radius: 14px;
     -fx-border-color: rgba(42,138,122,0.15);
     -fx-border-radius: 14px;
     -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
+}
+
+/* ── Guide ScrollPane — transparent so the card background shows through ── */
+.guide-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+.guide-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+.guide-h1 {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+.guide-h2 {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+    -fx-padding: 3 0 0 0;
+}
+.guide-h3 {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+}
+.guide-h4 {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-secondary;
+}
+
+.separator {
+    -fx-background-color: -brand-dark;
+    -fx-border-color: transparent;
+}
+
+/* ── Paragraph / plain text ─────────────────────────────────────────────── */
+/* Applied to both Label (-fx-text-fill) and Text nodes (-fx-fill).
+   Both properties are declared so each node type picks up the right one. */
+.guide-text {
+    -fx-text-fill: #334155;
+    -fx-fill: #334155;
+    -fx-font-size: 13px;
+}
+
+/* ── Inline bold ─────────────────────────────────────────────────────────── */
+.guide-bold {
+    -fx-font-weight: bold;
+    -fx-fill: -brand-dark;
+}
+
+/* ── Inline code ─────────────────────────────────────────────────────────── */
+.guide-inline-code {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-fill: #b45309;
+}
+
+/* ── Blockquote ─────────────────────────────────────────────────────────── */
+.guide-blockquote {
+    -fx-background-color: #f0f9f7;
+    -fx-border-color: #3db89a;
+    -fx-border-width: 0 0 0 3px;
+    -fx-background-radius: 0 4px 4px 0;
+    -fx-padding: 8 12 8 12;
+}
+
+/* ── List ────────────────────────────────────────────────────────────────── */
+.guide-list-bullet {
+    -fx-text-fill: #334155;
+    -fx-font-weight: bold;
+}
+
+.guide-list-item{
+    -fx-text-fill: #334155;
+    -fx-fill: #334155;
+    -fx-font-size: 13px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.guide-table {
+    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+.guide-th {
+    -fx-font-weight: bold;
+    -fx-background-color: #e8f4f1;
+    -fx-border-color: rgba(42,138,122,0.2);
+    -fx-border-width: 0.5px;
+    -fx-padding: 6 10 6 10;
+    -fx-text-fill: -brand-dark;
+}
+.guide-td {
+    -fx-background-color: white;
+    -fx-border-color: rgba(42,138,122,0.1);
+    -fx-border-width: 0.5px;
+    -fx-padding: 5 10 5 10;
+    -fx-text-fill: #334155;
 }

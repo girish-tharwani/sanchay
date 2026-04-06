@@ -34,7 +34,7 @@ if [ "$1" = "package-dist" ]; then
     rm -rf "$SCRIPT_DIR/target/runtime"
     jlink \
         --module-path "$JAVAFX_JMODS" \
-        --add-modules java.base,java.desktop,java.logging,java.prefs,java.xml,jdk.unsupported,javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.web \
+        --add-modules java.base,java.desktop,java.logging,java.prefs,java.xml,jdk.unsupported,javafx.controls,javafx.fxml,javafx.graphics,javafx.base \
         --output "$SCRIPT_DIR/target/runtime" \
         --strip-debug \
         --compress=zip-6 \
@@ -63,7 +63,7 @@ if [ "$1" = "package-dist" ]; then
         --input "$SCRIPT_DIR/target/pkg-input" \
         --main-jar sanchay-app.jar \
         --runtime-image "$SCRIPT_DIR/target/runtime" \
-        --java-options "--add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base,javafx.web" \
+        --java-options "--add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.base" \
         --dest "$SCRIPT_DIR/installer" \
         --icon "$SCRIPT_DIR/src/main/resources/icon.ico" \
         --win-dir-chooser \

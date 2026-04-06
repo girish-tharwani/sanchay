@@ -103,8 +103,8 @@ Each dialog has its own class. Extracted dialog classes by package:
 - `SingleInputDialog` — generic single text-field dialog
 
 **`ui/help/`**
-- `HelpScreen` — full Help & Support screen; WebView renders USER-GUIDE.md via `MarkdownConverter`; must not be wrapped in a ScrollPane (see JavaFX CSS Gotchas)
-- `MarkdownConverter` — line-by-line Markdown→HTML converter with embedded CSS matching the app's design tokens
+- `HelpScreen` — full Help & Support screen; renders USER-GUIDE.md via `MarkdownRenderer` inside a `ScrollPane`
+- `MarkdownRenderer` — converts Markdown to a native JavaFX node tree (H1–H4, paragraphs, inline bold/code, lists, code blocks, horizontal rules); no WebView or javafx-web dependency
 
 **`ui/wizard/`**
 - `PreferencesSetupDialog` — first-run preferences (also shown when switching to an empty data folder)

@@ -10,38 +10,14 @@ This guide walks through every feature in Sanchay from first launch to advanced 
 2. [The Main Window](#2-the-main-window)
 3. [Setting Up Your Profile](#3-setting-up-your-profile)
 4. [Managing Accounts](#4-managing-accounts)
-   - [Bank Account](#41-bank-account)
-   - [Credit Card](#42-credit-card)
-   - [Loan Account](#43-loan-account)
-   - [Investment Account](#44-investment-account)
 5. [Recording Transactions](#5-recording-transactions)
-   - [Expense](#51-expense)
-   - [Income](#52-income)
-   - [Transfer](#53-transfer)
-   - [Credit Card Payment](#54-credit-card-payment)
-   - [Loan Payment](#55-loan-payment)
-   - [Investment](#56-investment)
-   - [Redeem](#57-redeem)
-   - [Refund](#58-refund)
 6. [Recurring Schedules](#6-recurring-schedules)
-   - [Creating a Schedule](#61-creating-a-schedule)
-   - [Recording & Skipping Due Items](#62-recording--skipping-due-items)
 7. [Importing Bank Statements](#7-importing-bank-statements)
-   - [Preparing Your Statement](#71-preparing-your-statement)
-   - [First-Time Column Mapping](#72-first-time-column-mapping)
-   - [Reviewing Import Results](#73-reviewing-import-results)
-   - [Handling Ambiguous Matches](#74-handling-ambiguous-matches)
-   - [Matching Recurring Schedules](#75-matching-recurring-schedules)
-   - [Transaction States](#76-transaction-states)
 8. [Categories](#8-categories)
 9. [Dashboard](#9-dashboard)
 10. [Reports & Cash Flow Forecast](#10-reports--cash-flow-forecast)
 11. [Financial Planning](#11-financial-planning)
-    - [Plan Parameters](#111-plan-parameters)
-    - [Major Events](#112-major-events)
 12. [Settings](#12-settings)
-    - [Changing Your Data Folder](#121-changing-your-data-folder)
-    - [Creating a Backup](#122-creating-a-backup)
 13. [Tips & Common Workflows](#13-tips--common-workflows)
 
 ---
@@ -667,11 +643,7 @@ Changes take effect immediately.
 
 ### 12.3 Creating a Backup
 
-Under **Backup**, click **Create Backup**. Sanchay creates a timestamped ZIP archive of your entire data folder:
-
-```
-Sanchay_data_backup_20240315_143022.zip
-```
+Under **Backup**, click **Create Backup**. Sanchay creates a timestamped ZIP archive of your entire data folder, e.g. Sanchay_data_backup_20240315_143022.zip
 
 The ZIP is saved alongside your data folder. Store it on a separate drive or email it to yourself for off-site protection.
 

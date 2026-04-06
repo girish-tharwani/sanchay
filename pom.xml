@@ -7,7 +7,7 @@
 
     <groupId>com.sanchay</groupId>
     <artifactId>sanchay</artifactId>
-    <version>v0.0.1-Darter</version>
+    <version>v0.0.2-Darter</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -33,11 +33,6 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-graphics</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-web</artifactId>
             <version>${javafx.version}</version>
         </dependency>
         <dependency>
