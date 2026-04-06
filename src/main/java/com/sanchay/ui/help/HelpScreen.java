@@ -37,7 +37,6 @@ public class HelpScreen {
     }
 
     public Node getView() { return view; }
-    public void refresh() { buildView(); }
 
     private void buildView() {
         view = new VBox(20);

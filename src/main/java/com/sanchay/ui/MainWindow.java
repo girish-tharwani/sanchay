@@ -275,7 +275,6 @@ public class MainWindow {
             }
             case "Help" -> {
                 if (helpScreen == null) helpScreen = new HelpScreen(this);
-                else helpScreen.refresh();
                 yield helpScreen.getView();
             }
             default -> new Label("Screen not found: " + screen);
