@@ -45,8 +45,7 @@ public class SettingsScreen {
                 title,
                 buildSection("📁  Data",       buildDataSection()),
                 buildSection("🎨  Appearance", buildAppearanceSection()),
-                buildSection("💾  Backup",     buildBackupSection()),
-                buildSection("ℹ️  About",     buildAboutSection())
+                buildSection("💾  Backup",     buildBackupSection())
         );
 
         view = new ScrollPane(content);
@@ -236,29 +235,6 @@ public class SettingsScreen {
                 }
             }
         }
-    }
-
-    // ── About ─────────────────────────────────────────────────────────────────
-
-    private VBox buildAboutSection() {
-        VBox box = new VBox(6);
-        addInfo(box, "Application",    "Sanchay - Personal Finance Manager");
-        addInfo(box, "Developed by",   "Girish Tharwani");
-        addInfo(box, "Version",        AppConfig.getAppBuild() + " - " + AppConfig.getAppVersion());
-        addInfo(box, "Platform",       "Windows 11+ / JavaFX");
-        return box;
-    }
-
-    private void addInfo(VBox box, String label, String value) {
-        HBox row = new HBox(12);
-        row.setAlignment(Pos.CENTER_LEFT);
-        Label lbl = new Label(label + ":");
-        lbl.setMinWidth(130);
-        lbl.getStyleClass().add("text-form-value");
-        Label val = new Label(value);
-        val.getStyleClass().add("text-body-muted");
-        row.getChildren().addAll(lbl, val);
-        box.getChildren().add(row);
     }
 
     private void showInfo(String title, String msg) {

@@ -1,5 +1,6 @@
 package com.sanchay.ui.help;
 
+import com.sanchay.service.AppConfig;
 import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
 import javafx.concurrent.Worker;
@@ -53,6 +54,8 @@ public class HelpScreen {
             view.getChildren().add(buildGetStartedCard());
         }
 
+        view.getChildren().add(buildAboutSection());
+
         VBox guideSection = buildGuideSection();
         VBox.setVgrow(guideSection, Priority.ALWAYS);
         view.getChildren().add(guideSection);
@@ -89,6 +92,43 @@ public class HelpScreen {
 
         card.getChildren().addAll(heading, intro, steps);
         return card;
+    }
+
+    // ── About ─────────────────────────────────────────────────────────────────
+
+    private VBox buildAboutSection() {
+        VBox section = new VBox(8);
+        HBox labelRow = new HBox(8);
+        labelRow.setAlignment(Pos.CENTER_LEFT);
+        Circle dot = new Circle(4, Color.web("#3db89a"));
+        Label heading = new Label("ABOUT");
+        heading.getStyleClass().add("section-group-label");
+        labelRow.getChildren().addAll(dot, heading);
+
+        VBox card = new VBox(12);
+        card.getStyleClass().add("table-card");
+        card.setPadding(new Insets(16));
+
+        VBox box = new VBox(6);
+        addInfo(box, "Application",  "Sanchay - Personal Finance Manager");
+        addInfo(box, "Developed by", "Girish Tharwani");
+        addInfo(box, "Version",      AppConfig.getAppBuild() + " - " + AppConfig.getAppVersion());
+        addInfo(box, "Platform",     "Windows 11+ / JavaFX");
+        card.getChildren().add(box);
+        section.getChildren().addAll(labelRow, card);
+        return section;
+    }
+
+    private void addInfo(VBox box, String label, String value) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+        Label lbl = new Label(label + ":");
+        lbl.setMinWidth(130);
+        lbl.getStyleClass().add("text-form-value");
+        Label val = new Label(value);
+        val.getStyleClass().add("text-body-muted");
+        row.getChildren().addAll(lbl, val);
+        box.getChildren().add(row);
     }
 
     // ── User guide section ────────────────────────────────────────────────────
