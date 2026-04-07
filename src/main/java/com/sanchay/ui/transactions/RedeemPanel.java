@@ -34,10 +34,13 @@ class RedeemPanel {
 
         catMaster.addAll(parent.ds.getIncomeCategories());
         catCb    = parent.makeCatCb(catMaster, "Select gain category (optional)");
+        parent.setNodeId(catCb, "txn-redeem-category-combo");
         subCatCb = parent.makeSubCatCb(subCatMaster);
+        parent.setNodeId(subCatCb, "txn-redeem-subcategory-combo");
         parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
 
         fromCb = new ComboBox<>();
+        fromCb.setId("txn-redeem-from-account-combo");
         fromCb.setMaxWidth(Double.MAX_VALUE);
         fromCb.setPromptText("Select investment account");
         parent.ds.getInvestmentAccounts().forEach(fromCb.getItems()::add);
@@ -50,10 +53,13 @@ class RedeemPanel {
         fromCb.setButtonCell(fromCb.getCellFactory().call(null));
 
         toCb = parent.accountCombo(false); // bank accounts only
+        parent.setNodeId(toCb, "txn-redeem-to-account-combo");
 
         fdRefRowLbl = new Label("Reference No.");
+        fdRefRowLbl.setId("txn-redeem-fd-reference-label");
         fdRefRowLbl.getStyleClass().add("form-label");
         fdRefCb = new ComboBox<>();
+        fdRefCb.setId("txn-redeem-fd-reference-combo");
         fdRefCb.setMaxWidth(Double.MAX_VALUE);
         fdRefCb.setPromptText("Select FD reference");
         fdRefRowLbl.setVisible(false);
@@ -63,7 +69,9 @@ class RedeemPanel {
         fromCb.valueProperty().addListener((obs, old, ia) -> refreshFdRefRow(ia));
 
         principalFld = parent.tf("Original invested amount being returned");
+        parent.setNodeId(principalFld, "txn-redeem-principal-field");
         gainLossLbl  = new Label("—");
+        gainLossLbl.setId("txn-redeem-gain-loss-label");
         gainLossLbl.getStyleClass().add("text-hint");
 
         principalFld.textProperty().addListener((obs, old, val) -> updateGainLoss());
@@ -78,6 +86,7 @@ class RedeemPanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-redeem-panel");
         parent.row(g, 0, "From Account*",  fromCb);
         parent.row(g, 1, "To Account*",    toCb);
         // Row 2: FD reference — hidden by default, shown for Fixed Deposit accounts

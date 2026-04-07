@@ -56,16 +56,20 @@ public class TransactionsScreen {
 
     private void buildTransactionsView() {
         VBox panel = new VBox(14);
+        panel.setId("txn-screen-panel");
         panel.getStyleClass().add("main-panel");
         panel.setPadding(new Insets(24));
 
         HBox header = new HBox(12);
+        header.setId("txn-screen-header");
         header.setAlignment(Pos.CENTER_LEFT);
         Button back = new Button("⬅");
+        back.setId("txn-back-button");
         back.getStyleClass().add("btn-secondary");
         back.setTooltip(new Tooltip("Back"));
         back.setOnAction(e -> mainWindow.navigateTo("Accounts"));
         Label title = new Label(account.getName() + " — Transactions");
+        title.setId("txn-screen-title");
         title.getStyleClass().add("screen-title");
         header.getChildren().addAll(back, title);
 
@@ -75,6 +79,8 @@ public class TransactionsScreen {
         if (account instanceof CreditCardAccount cc) {
             Label outstandingVal = new Label();
             Label availableVal   = new Label();
+            outstandingVal.setId("txn-cc-outstanding-value");
+            availableVal.setId("txn-cc-available-value");
             outstandingVal.getStyleClass().add("stat-value");
             availableVal.getStyleClass().add("stat-value");
 
@@ -101,6 +107,7 @@ public class TransactionsScreen {
             DataStore ds2 = DataStore.getInstance();
             if (account instanceof BankAccount ba) {
                 Label balVal = new Label();
+                balVal.setId("txn-balance-value");
                 balVal.getStyleClass().add("stat-value");
                 Region spacer = new Region();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -115,6 +122,7 @@ public class TransactionsScreen {
                 };
             } else if (account instanceof LoanAccount la) {
                 Label outVal = new Label();
+                outVal.setId("txn-loan-outstanding-value");
                 outVal.getStyleClass().add("stat-value");
                 Region spacer = new Region();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -126,12 +134,15 @@ public class TransactionsScreen {
                 };
             } else if (account instanceof InvestmentAccount ia) {
                 Label investedVal = new Label();
+                investedVal.setId("txn-invested-value");
                 investedVal.getStyleClass().add("stat-value");
                 if (isMarketValueAccount(ia)) {
                     MarketValueEntry mv = ds2.getLatestMarketValue(ia.getId());
                     if (mv != null) {
                         Label mvVal = new Label();
                         Label glVal = new Label();
+                        mvVal.setId("txn-market-value");
+                        glVal.setId("txn-gain-loss-value");
                         mvVal.getStyleClass().add("stat-value");
                         glVal.getStyleClass().add("stat-value");
                         Region spacer2 = new Region();
@@ -177,6 +188,7 @@ public class TransactionsScreen {
 
         // ── Filters ────────────────────────────────────────────────────────────
         TextField search = new TextField();
+        search.setId("txn-search-field");
 
         search.setPromptText("Search description or notes…");
         search.getStyleClass().add("filter-field");
@@ -200,6 +212,8 @@ public class TransactionsScreen {
         // Create DatePickers
         DatePicker fromPicker = new DatePicker(fromDate);
         DatePicker toPicker   = new DatePicker(toDate);
+        fromPicker.setId("txn-from-date-picker");
+        toPicker.setId("txn-to-date-picker");
 
         fromPicker.setPrefWidth(130);
         toPicker.setPrefWidth(130);
@@ -211,14 +225,18 @@ public class TransactionsScreen {
         UiUtils.styleOnShow(toPicker);
 
         Label fromLbl = new Label("FROM");
+        fromLbl.setId("txn-from-date-label");
         fromLbl.getStyleClass().add("filter-label");
         Label toLbl = new Label("TO");
+        toLbl.setId("txn-to-date-label");
         toLbl.getStyleClass().add("filter-label");
 
         CheckBox pendingOnly = new CheckBox("Show pending review only");
+        pendingOnly.setId("txn-pending-only-checkbox");
         pendingOnly.getStyleClass().add("text-hint");
 
         ComboBox<Transaction.Type> typeFilter = new ComboBox<>();
+        typeFilter.setId("txn-type-filter-combo");
         typeFilter.getItems().add(null);
         typeFilter.getItems().addAll(
                 Transaction.Type.EXPENSE, Transaction.Type.INCOME, Transaction.Type.TRANSFER,
@@ -240,6 +258,7 @@ public class TransactionsScreen {
         filterSep.getStyleClass().add("filter-separator");
 
         HBox filterRow = new HBox(10);
+        filterRow.setId("txn-filter-row");
         filterRow.getStyleClass().add("filter-bar");
         filterRow.setAlignment(Pos.CENTER_LEFT);
         filterRow.getChildren().addAll(
@@ -253,6 +272,7 @@ public class TransactionsScreen {
 
         // ── Transaction table ──────────────────────────────────────────────────
         TableView<Transaction> table = new TableView<>();
+        table.setId("txn-table");
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
 
@@ -384,6 +404,7 @@ public class TransactionsScreen {
                 @Override
                 protected void updateItem(Transaction t, boolean empty) {
                     super.updateItem(t, empty);
+                    setId(empty || t == null ? null : "txn-table-row-" + sanitizeId(t.getId()));
                     pseudoClassStateChanged(PC_IMPORTED,   false);
                     pseudoClassStateChanged(PC_RECONCILED, false);
                     if (t == null || empty) return;
@@ -430,6 +451,7 @@ public class TransactionsScreen {
         actionsCol.setCellFactory(tc -> new TableCell<>() {
             private final Label deleteBtn = new Label("×");
             {
+                deleteBtn.setId("txn-delete-action");
                 deleteBtn.getStyleClass().add("btn-row-remove");
                 deleteBtn.setTooltip(new Tooltip("Delete transaction"));
                 deleteBtn.setOnMouseClicked(e -> {
@@ -445,6 +467,7 @@ public class TransactionsScreen {
             @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
+                deleteBtn.setId("txn-delete-action-" + sanitizeId(getTableRow().getItem().getId()));
                 setGraphic(deleteBtn);
             }
         });
@@ -526,6 +549,7 @@ public class TransactionsScreen {
                         badge.setContextMenu(cmM);
                     }
                 }
+                badge.setId("txn-source-badge-" + sanitizeId(t.getId()));
                 setGraphic(badge);
             }
         });
@@ -539,21 +563,25 @@ public class TransactionsScreen {
         table.getSortOrder().add(dateCol);
 
         Button exportBtn = new Button("Export CSV");
+        exportBtn.setId("txn-export-button");
         exportBtn.getStyleClass().add("btn-gold");
         exportBtn.setOnAction(e -> exportCsv(table.getItems()));
 
         HBox footerRow = new HBox(8);
+        footerRow.setId("txn-footer-row");
         footerRow.getStyleClass().add("table-footer");
         footerRow.setAlignment(Pos.CENTER_LEFT);
         Label hintLbl = UiUtils.hintLabel(
                 (account instanceof BankAccount || account instanceof CreditCardAccount)
                 ? "Double-click a row to edit  ·  Ctrl+V to paste from Excel / CSV"
                 : "Double-click a row to edit");
+        hintLbl.setId("txn-footer-hint");
         Region footerSpacer = new Region();
         HBox.setHgrow(footerSpacer, Priority.ALWAYS);
         footerRow.getChildren().addAll(hintLbl, footerSpacer);
         if (account instanceof BankAccount || account instanceof CreditCardAccount) {
             Button importBtn = new Button("Import CSV");
+            importBtn.setId("txn-import-button");
             importBtn.getStyleClass().add("btn-gold");
             importBtn.setOnAction(e -> doImportCsv(applyFilter));
             footerRow.getChildren().add(importBtn);
@@ -561,6 +589,7 @@ public class TransactionsScreen {
         footerRow.getChildren().add(exportBtn);
 
         VBox tableCard = new VBox();
+        tableCard.setId("txn-table-card");
         tableCard.getStyleClass().add("table-card");
         table.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(table, Priority.ALWAYS);
@@ -571,6 +600,7 @@ public class TransactionsScreen {
         panel.getChildren().addAll(filterRow, tableCard);
 
         ScrollPane scroll = new ScrollPane(panel);
+        scroll.setId("txn-screen-scroll-pane");
         scroll.setFitToHeight(true);
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("scroll-page-bg");
@@ -1028,6 +1058,7 @@ public class TransactionsScreen {
         Alert a = new Alert(Alert.AlertType.INFORMATION);
         UiUtils.initDialog(a, title, "i", 400);
         Label content = new Label(msg);
+        content.setId("txn-info-dialog-message");
         content.setWrapText(true);
         content.getStyleClass().add("dialog-body-text");
         a.getDialogPane().setContent(content);
@@ -1036,6 +1067,7 @@ public class TransactionsScreen {
 
     public static Label typeBadge(Transaction.Type type) {
         Label lbl = new Label(UiUtils.badgeText(type));
+        lbl.setId("txn-type-badge-" + type.name().toLowerCase(Locale.ENGLISH));
         lbl.getStyleClass().addAll(UiUtils.badgeStyle(type), "badge-sm");
         return lbl;
     }
@@ -1076,6 +1108,7 @@ public class TransactionsScreen {
 
     private boolean showDeleteTxnConfirm(Transaction t) {
         Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.getDialogPane().setId("txn-delete-dialog-pane");
         dlg.setTitle("Delete Transaction");
         dlg.setHeaderText(null);
         dlg.getDialogPane().setPrefWidth(400);
@@ -1085,18 +1118,23 @@ public class TransactionsScreen {
         boolean isGrouped = t.getGroupTransactionId() != null;
 
         VBox body = new VBox(14);
+        body.setId("txn-delete-dialog-body");
         body.setPadding(new Insets(16));
 
         HBox warnRow = new HBox(12);
+        warnRow.setId("txn-delete-dialog-warning-row");
         warnRow.setAlignment(Pos.CENTER_LEFT);
         Label warnIcon = new Label("⚠");
+        warnIcon.setId("txn-delete-dialog-warning-icon");
         warnIcon.getStyleClass().add("icon-danger");
         VBox warnText = new VBox(4);
         Label headline = new Label(isGrouped ? "Delete linked redemption group?" : "Delete this transaction?");
+        headline.setId("txn-delete-dialog-headline");
         headline.getStyleClass().add("text-section-title");
         String subMsg = "This action cannot be undone."
                 + (isGrouped ? " This will also delete the related principal and gain/loss entries." : "");
         Label subLbl = new Label(subMsg);
+        subLbl.setId("txn-delete-dialog-subtext");
         subLbl.getStyleClass().add("text-hint");
         subLbl.setWrapText(true);
         subLbl.setMaxWidth(310);
@@ -1104,17 +1142,23 @@ public class TransactionsScreen {
         warnRow.getChildren().addAll(warnIcon, warnText);
 
         VBox txnBlock = new VBox(5);
+        txnBlock.setId("txn-delete-dialog-transaction-block");
         txnBlock.getStyleClass().add("dialog-danger-block");
         Label desc = new Label(t.getDescription());
+        desc.setId("txn-delete-dialog-description");
         desc.getStyleClass().add("text-body-strong");
         desc.setWrapText(true);
         HBox meta = new HBox(8);
+        meta.setId("txn-delete-dialog-meta");
         meta.setAlignment(Pos.CENTER_LEFT);
         Label amt = new Label(t.getAmountInr());
+        amt.setId("txn-delete-dialog-amount");
         amt.getStyleClass().add("text-amount-error");
         Label sep = new Label("·");
+        sep.setId("txn-delete-dialog-separator");
         sep.getStyleClass().add("text-hint");
         Label date = new Label(t.getDate().format(dateFmt()));
+        date.setId("txn-delete-dialog-date");
         date.getStyleClass().add("text-hint");
         meta.getChildren().addAll(amt, sep, date);
         txnBlock.getChildren().addAll(desc, meta);
@@ -1128,7 +1172,10 @@ public class TransactionsScreen {
         if (deleteButton != null) {
             ButtonBar.setButtonUniformSize(deleteButton, false);
             deleteButton.getStyleClass().add("btn-danger");
+            deleteButton.setId("txn-delete-dialog-confirm-button");
         }
+        Button cancelButton = (Button) dlg.getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelButton != null) cancelButton.setId("txn-delete-dialog-cancel-button");
 
         return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
     }
@@ -1171,5 +1218,9 @@ public class TransactionsScreen {
             return cell;
         });
         return c;
+    }
+
+    private String sanitizeId(String raw) {
+        return raw == null ? "unknown" : raw.replaceAll("[^A-Za-z0-9_-]", "-");
     }
 }

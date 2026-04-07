@@ -66,21 +66,27 @@ public class TransactionDialog extends Dialog<Transaction> {
 
     public TransactionDialog() {
         getDialogPane().getStyleClass().add("dialog-pane");
+        getDialogPane().setId("txn-dialog-pane");
         UiUtils.initDialog(this, "New Transaction", "+", 560);
 
         // Shared fields
         sharedDate  = new DatePicker(LocalDate.now());
+        sharedDate.setId("txn-date-picker");
         UiUtils.styleOnShow(sharedDate);
         sharedDesc  = new TextField();
+        sharedDesc.setId("txn-description-field");
         sharedDesc.setPromptText("e.g. Electricity Bill");
         UiUtils.wireDescriptionAutocomplete(sharedDesc, ds.getDistinctTransactionDescriptions());
         sharedAmt   = new TextField();
+        sharedAmt.setId("txn-amount-field");
         sharedAmt.setPromptText("0.00");
         sharedNotes = new TextField();
+        sharedNotes.setId("txn-notes-field");
         sharedNotes.setPromptText("optional");
 
         // Type selector
         typeCb = new ComboBox<>();
+        typeCb.setId("txn-type-combo");
         typeCb.getItems().addAll(
                 Type.EXPENSE, Type.INCOME, Type.TRANSFER,
                 Type.REFUND, Type.INVESTMENT, Type.CC_PAYMENT, Type.REDEEM, Type.LOAN_PAYMENT);
@@ -100,6 +106,7 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         // Shared top grid: Type, Date, Description, Amount
         topGrid = form();
+        topGrid.setId("txn-top-grid");
         topGrid.setPadding(new Insets(10, 10, 4, 10));
         int r = 0;
         row(topGrid, r++, "Type*",        typeCb);
@@ -109,11 +116,13 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         // Shared bottom grid: Notes
         botGrid = form();
+        botGrid.setId("txn-bottom-grid");
         botGrid.setPadding(new Insets(4, 10, 10, 10));
         row(botGrid, 0, "Notes", sharedNotes);
 
         // Swappable middle section
         typeSection = new VBox();
+        typeSection.setId("txn-type-section");
         typeSection.getChildren().add(expensePanel.getNode());
 
         typeCb.valueProperty().addListener((obs, old, type) -> {
@@ -138,9 +147,11 @@ public class TransactionDialog extends Dialog<Transaction> {
         wireAutoSuggest();
 
         standardContent = new VBox();
+        standardContent.setId("txn-standard-content");
         standardContent.getChildren().addAll(topGrid, typeSection, botGrid);
 
         scroll = new ScrollPane(standardContent);
+        scroll.setId("txn-scroll-pane");
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         getDialogPane().setContent(scroll);
@@ -153,10 +164,15 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         Platform.runLater(() -> {
             Button btn = (Button) getDialogPane().lookupButton(saveBtn);
-            if (btn != null) btn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
-                try { pendingResult = save(); }
-                catch (Exception ex) { showError(ex.getMessage()); ev.consume(); }
-            });
+            if (btn != null) {
+                btn.setId("txn-save-button");
+                btn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+                    try { pendingResult = save(); }
+                    catch (Exception ex) { showError(ex.getMessage()); ev.consume(); }
+                });
+            }
+            Button cancel = (Button) getDialogPane().lookupButton(cancelBtn);
+            if (cancel != null) cancel.setId("txn-cancel-button");
             focusFirstEmpty();
         });
     }
@@ -536,6 +552,9 @@ public class TransactionDialog extends Dialog<Transaction> {
     void row(GridPane g, int row, String label, Node field) {
         Label lbl = new Label(label);
         lbl.getStyleClass().add("form-label");
+        if (field.getId() != null && !field.getId().isBlank()) {
+            lbl.setId(field.getId() + "-label");
+        }
         if (field instanceof Region r) r.setMaxWidth(Double.MAX_VALUE);
         g.add(lbl, 0, row);
         g.add(field, 1, row);
@@ -545,6 +564,10 @@ public class TransactionDialog extends Dialog<Transaction> {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         return tf;
+    }
+
+    void setNodeId(Node node, String id) {
+        if (node != null) node.setId(id);
     }
 
     ComboBox<Account> accountCombo(boolean includeCreditCards) {
@@ -729,15 +752,19 @@ public class TransactionDialog extends Dialog<Transaction> {
     private void showError(String msg) {
         Dialog<Void> dlg = new Dialog<>();
         UiUtils.initDialog(dlg, "Validation Error", "⚠", 380);
+        dlg.getDialogPane().setId("txn-validation-dialog-pane");
 
         VBox body = new VBox(10);
+        body.setId("txn-validation-dialog-body");
         body.setPadding(new Insets(16));
 
         HBox iconRow = new HBox(14);
         iconRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         Label iconLbl = new Label("⚠");
+        iconLbl.setId("txn-validation-dialog-icon");
         iconLbl.getStyleClass().addAll("dialog-icon-box-lg", "dialog-icon-box-lg--error");
         Label msgLbl = new Label(msg);
+        msgLbl.setId("txn-validation-dialog-message");
         msgLbl.getStyleClass().add("text-body-strong");
         msgLbl.setWrapText(true);
         msgLbl.setMaxWidth(280);
@@ -746,6 +773,10 @@ public class TransactionDialog extends Dialog<Transaction> {
 
         dlg.getDialogPane().setContent(body);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        Platform.runLater(() -> {
+            Button okBtn = (Button) dlg.getDialogPane().lookupButton(ButtonType.OK);
+            if (okBtn != null) okBtn.setId("txn-validation-dialog-ok-button");
+        });
         dlg.showAndWait();
     }
 }

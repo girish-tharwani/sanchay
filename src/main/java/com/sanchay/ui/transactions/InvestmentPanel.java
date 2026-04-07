@@ -58,9 +58,11 @@ class InvestmentPanel {
         this.parent = parent;
 
         fromCb = parent.accountCombo(false);
+        parent.setNodeId(fromCb, "txn-investment-from-account-combo");
         fromCb.getItems().removeIf(a -> !(a instanceof BankAccount));
 
         destCb = new ComboBox<>();
+        destCb.setId("txn-investment-destination-account-combo");
         destCb.setMaxWidth(Double.MAX_VALUE);
         destCb.setPromptText("Select investment account");
         parent.ds.getInvestmentAccounts().forEach(destCb.getItems()::add);
@@ -76,11 +78,13 @@ class InvestmentPanel {
 
         // ── Right panel (preview) ─────────────────────────────────────────────
         dynamicBox      = new VBox(0);
-        prevPrincipal   = previewVal();
-        prevAnnualInt   = previewVal();
-        prevTotalInt    = previewVal();
-        prevTenor       = previewVal();
+        dynamicBox.setId("txn-investment-dynamic-box");
+        prevPrincipal   = previewVal("txn-investment-preview-principal");
+        prevAnnualInt   = previewVal("txn-investment-preview-annual-interest");
+        prevTotalInt    = previewVal("txn-investment-preview-total-interest");
+        prevTenor       = previewVal("txn-investment-preview-tenor");
         prevScheduleBox = new VBox(4);
+        prevScheduleBox.setId("txn-investment-preview-schedule");
 
         GridPane prevSummaryGrid = new GridPane();
         prevSummaryGrid.setHgap(8); prevSummaryGrid.setVgap(6);
@@ -97,18 +101,22 @@ class InvestmentPanel {
         VBox schedSection = new VBox(4);
         schedSection.setPadding(new Insets(4, 8, 8, 8));
         Label schedHeader = new Label("Payout Schedule");
+        schedHeader.setId("txn-investment-preview-schedule-header");
         schedHeader.getStyleClass().add("text-body-muted");
         schedSection.getChildren().addAll(schedHeader, prevScheduleBox);
 
         Label fdPreviewHeader = new Label("FD / Bond Preview");
+        fdPreviewHeader.setId("txn-investment-preview-header");
         fdPreviewHeader.getStyleClass().add("text-body-muted");
         fdPreviewHeader.setPadding(new Insets(8, 8, 0, 8));
 
         previewPanel = new VBox(0, fdPreviewHeader, prevSummaryGrid, schedSection);
+        previewPanel.setId("txn-investment-preview-panel");
         previewPanel.setVisible(false);
         previewPanel.setManaged(false);
 
         rightPanel = new VBox(0);
+        rightPanel.setId("txn-investment-right-panel");
         rightPanel.setMinWidth(256);
         rightPanel.setMaxWidth(256);
         rightPanel.setVisible(false);
@@ -117,9 +125,12 @@ class InvestmentPanel {
 
         // ── Layout containers ─────────────────────────────────────────────────
         leftContent = new VBox();
+        leftContent.setId("txn-investment-left-content");
         HBox.setHgrow(leftContent, Priority.ALWAYS);
         Separator sep = new Separator(Orientation.VERTICAL);
+        sep.setId("txn-investment-separator");
         content = new HBox(0, leftContent, sep, rightPanel);
+        content.setId("txn-investment-content");
 
         node = buildNode();
     }
@@ -128,6 +139,7 @@ class InvestmentPanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-investment-panel");
         parent.row(g, 0, "From Account*", fromCb);
         parent.row(g, 1, "To Account*",   destCb);
         return g;
@@ -162,7 +174,9 @@ class InvestmentPanel {
         switch (itype) {
             case MUTUAL_FUNDS, EQUITY -> {
                 invSchemeFld = parent.tf("optional");
+                parent.setNodeId(invSchemeFld, "txn-investment-scheme-field");
                 invUnitsFld  = parent.tf("e.g. 100.5");
+                parent.setNodeId(invUnitsFld, "txn-investment-units-field");
                 dynStackRow(g, "Scheme / Script", invSchemeFld);
                 dynStackRow(g, "Units / NAV",     invUnitsFld);
             }
@@ -175,11 +189,16 @@ class InvestmentPanel {
 
     private void buildFdFields(VBox g) {
         invFdRefFld            = parent.tf("required");
+        parent.setNodeId(invFdRefFld, "txn-investment-fd-reference-field");
         invFdRateFld           = parent.tf("e.g. 7.5");
+        parent.setNodeId(invFdRateFld, "txn-investment-fd-rate-field");
         invFdMaturityPicker    = new DatePicker();
+        invFdMaturityPicker.setId("txn-investment-fd-maturity-date-picker");
         UiUtils.styleOnShow(invFdMaturityPicker);
         invFdMaturityAmtFld    = parent.tf("optional");
+        parent.setNodeId(invFdMaturityAmtFld, "txn-investment-fd-maturity-amount-field");
         invFdInterestPayableCb = new ComboBox<>();
+        invFdInterestPayableCb.setId("txn-investment-fd-interest-payable-combo");
         invFdInterestPayableCb.getItems().addAll(Transaction.InterestPayable.values());
         invFdInterestPayableCb.setPromptText("Select");
         invFdInterestPayableCb.setMaxWidth(Double.MAX_VALUE);
@@ -199,6 +218,7 @@ class InvestmentPanel {
         invFdInterestPayableCb.setButtonCell(invFdInterestPayableCb.getCellFactory().call(null));
 
         invFdPayoutAnchorCb = new ComboBox<>();
+        invFdPayoutAnchorCb.setId("txn-investment-fd-payout-anchor-combo");
         invFdPayoutAnchorCb.getItems().addAll(Transaction.PayoutAnchor.values());
         invFdPayoutAnchorCb.setValue(Transaction.PayoutAnchor.ANNIVERSARY);
         invFdPayoutAnchorCb.setMaxWidth(Double.MAX_VALUE);
@@ -215,6 +235,7 @@ class InvestmentPanel {
         invFdPayoutAnchorCb.setButtonCell(invFdPayoutAnchorCb.getCellFactory().call(null));
 
         invFdPayoutMonthCb = new ComboBox<>();
+        invFdPayoutMonthCb.setId("txn-investment-fd-payout-month-combo");
         invFdPayoutMonthCb.getItems().addAll(Month.values());
         invFdPayoutMonthCb.setPromptText("Month");
         invFdPayoutMonthCb.setCellFactory(lv -> new ListCell<>() {
@@ -226,12 +247,16 @@ class InvestmentPanel {
         invFdPayoutMonthCb.setButtonCell(invFdPayoutMonthCb.getCellFactory().call(null));
 
         invFdPayoutDaySp = new Spinner<>(1, 28, 1);
+        invFdPayoutDaySp.setId("txn-investment-fd-payout-day-spinner");
         invFdPayoutDaySp.setMaxWidth(Double.MAX_VALUE);
         invFdPayoutDaySp.setEditable(true);
         invFdPayoutDaySp.setPrefWidth(72);
         invFdPayoutDaySp.setMaxWidth(72);
 
-        HBox payoutDateBox = new HBox(8, invFdPayoutMonthCb, new Label("Day"), invFdPayoutDaySp);
+        Label payoutDayLabel = new Label("Day");
+        payoutDayLabel.setId("txn-investment-fd-payout-day-label");
+        HBox payoutDateBox = new HBox(8, invFdPayoutMonthCb, payoutDayLabel, invFdPayoutDaySp);
+        payoutDateBox.setId("txn-investment-fd-payout-date-box");
         payoutDateBox.setAlignment(Pos.CENTER_LEFT);
         payoutDateBox.setVisible(false);
         payoutDateBox.setManaged(false);
@@ -258,11 +283,13 @@ class InvestmentPanel {
                 : Collections.emptyList();
         if (rdRefs.isEmpty()) {
             Label err = new Label("No RD schedules found for this account.\nCreate a recurring schedule first.");
+            err.setId("txn-investment-rd-missing-schedule-label");
             err.getStyleClass().add("text-error");
             err.setWrapText(true);
             g.getChildren().add(err);
         } else {
             invRdRefCb = new ComboBox<>();
+            invRdRefCb.setId("txn-investment-rd-reference-combo");
             invRdRefCb.getItems().addAll(rdRefs);
             invRdRefCb.setEditable(false);
             invRdRefCb.setMaxWidth(Double.MAX_VALUE);
@@ -457,14 +484,18 @@ class InvestmentPanel {
             long interest   = Math.round(principal * rate / 100.0 * days / 365.0);
 
             Label dateLbl = new Label(d.format(fmt));
+            dateLbl.setId("txn-investment-preview-schedule-date-" + i);
             dateLbl.getStyleClass().add("text-body-muted");
             dateLbl.setMinWidth(110);
 
             Label amtLbl = new Label(fmtPaise(interest) + (isLast ? " + principal" : ""));
+            amtLbl.setId("txn-investment-preview-schedule-amount-" + i);
             amtLbl.getStyleClass().addAll(isLast
                     ? List.of("text-form-value", "text-success") : List.of("text-form-value"));
 
-            prevScheduleBox.getChildren().add(new HBox(8, dateLbl, amtLbl));
+            HBox scheduleRow = new HBox(8, dateLbl, amtLbl);
+            scheduleRow.setId("txn-investment-preview-schedule-row-" + i);
+            prevScheduleBox.getChildren().add(scheduleRow);
             prev = d;
         }
     }
@@ -508,9 +539,15 @@ class InvestmentPanel {
 
     private void dynStackRow(VBox container, String labelText, Node field) {
         Label lbl = new Label(labelText);
+        if (field.getId() != null && !field.getId().isBlank()) {
+            lbl.setId(field.getId() + "-label");
+        }
         lbl.getStyleClass().add("form-label");
         if (field instanceof Region r) r.setMaxWidth(Double.MAX_VALUE);
         VBox wrapper = new VBox(3, lbl, field);
+        wrapper.setId((field.getId() != null && !field.getId().isBlank())
+                ? field.getId() + "-row"
+                : "txn-investment-row-" + id(labelText));
         container.getChildren().add(wrapper);
     }
 
@@ -529,16 +566,24 @@ class InvestmentPanel {
 
     private String fmtPaise(long paise) { return MoneyFormatter.formatNoDecimal(paise); }
 
-    private Label previewVal() {
+    private Label previewVal(String id) {
         Label l = new Label("—");
+        l.setId(id);
         l.getStyleClass().add("text-form-value");
         return l;
     }
 
     private void prevRow(GridPane g, int row, String labelText, Label val) {
         Label lbl = new Label(labelText);
+        lbl.setId("txn-investment-preview-" + id(labelText) + "-label");
         lbl.getStyleClass().add("text-body-muted");
         g.add(lbl, 0, row);
         g.add(val, 1, row);
+    }
+
+    private String id(String text) {
+        return text.toLowerCase(Locale.ENGLISH)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
     }
 }

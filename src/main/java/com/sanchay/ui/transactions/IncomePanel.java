@@ -28,11 +28,15 @@ class IncomePanel {
 
         catMaster.addAll(parent.ds.getIncomeCategories());
         catCb    = parent.makeCatCb(catMaster, "Select category");
+        parent.setNodeId(catCb, "txn-income-category-combo");
         subCatCb = parent.makeSubCatCb(subCatMaster);
+        parent.setNodeId(subCatCb, "txn-income-subcategory-combo");
         parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
 
         acctCb    = parent.accountCombo(false); // bank only
+        parent.setNodeId(acctCb, "txn-income-account-combo");
         familyFld = parent.tf("optional");
+        parent.setNodeId(familyFld, "txn-income-family-member-field");
 
         node = buildNode();
     }
@@ -41,6 +45,7 @@ class IncomePanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-income-panel");
         int r = 0;
         parent.row(g, r++, "To Account*",   acctCb);
         parent.row(g, r++, "Category",       catCb);

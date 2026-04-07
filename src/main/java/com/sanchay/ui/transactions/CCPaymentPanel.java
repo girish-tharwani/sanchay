@@ -21,9 +21,11 @@ class CCPaymentPanel {
         this.parent = parent;
 
         bankCb = parent.accountCombo(false);
+        parent.setNodeId(bankCb, "txn-cc-payment-from-account-combo");
         bankCb.getItems().removeIf(a -> !(a instanceof BankAccount));
 
         cardCb = parent.accountCombo(true);
+        parent.setNodeId(cardCb, "txn-cc-payment-to-account-combo");
         cardCb.getItems().removeIf(a -> !(a instanceof CreditCardAccount));
 
         node = buildNode();
@@ -33,6 +35,7 @@ class CCPaymentPanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-cc-payment-panel");
         parent.row(g, 0, "From Account*", bankCb);
         parent.row(g, 1, "To Account*",   cardCb);
         return g;

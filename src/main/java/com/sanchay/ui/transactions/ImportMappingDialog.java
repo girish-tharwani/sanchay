@@ -63,6 +63,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         UiUtils.initDialog(this, "Import CSV — " + account.getName(), "⇌", 520,
                 "Map CSV columns to transaction fields."
                 + (prefilled != null ? "  Pre-filled from saved mapping — please confirm." : ""));
+        getDialogPane().setId("txn-import-mapping-dialog-pane");
 
         getDialogPane().setContent(buildContent());
 
@@ -71,7 +72,10 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         // Validation: Date, Description and Amount must be mapped
         Button importBtn = (Button) getDialogPane().lookupButton(importBt);
+        importBtn.setId("txn-import-mapping-import-button");
         importBtn.setDisable(true);
+        Button cancelBtn = (Button) getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelBtn != null) cancelBtn.setId("txn-import-mapping-cancel-button");
         Runnable validate = () -> {
             boolean dateOk = dateCb.getValue() != null && !NONE.equals(dateCb.getValue());
             boolean descOk = descCb.getValue() != null && !NONE.equals(descCb.getValue());
@@ -119,16 +123,20 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
     private VBox buildContent() {
         // ── Detected columns as pills ─────────────────────────────────────────
         Label detectedLbl = new Label("DETECTED COLUMNS");
+        detectedLbl.setId("txn-import-mapping-detected-columns-label");
         detectedLbl.getStyleClass().add("section-group-label");
 
         javafx.scene.layout.FlowPane pillBox = new javafx.scene.layout.FlowPane(6, 6);
-        for (String h : headers) {
+        for (int i = 0; i < headers.length; i++) {
+            String h = headers[i];
             Label pill = new Label(h);
+            pill.setId("txn-import-mapping-detected-column-" + i);
             pill.getStyleClass().add("chip-teal");
             pillBox.getChildren().add(pill);
         }
 
         VBox detectedBox = new VBox(6, detectedLbl, pillBox);
+        detectedBox.setId("txn-import-mapping-detected-box");
         detectedBox.getStyleClass().add("info-box");
 
         GridPane g = UiUtils.buildFormGrid(160);
@@ -138,33 +146,41 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         // Date column
         dateCb = colCombo(true);
+        dateCb.setId("txn-import-mapping-date-column-combo");
         UiUtils.addFormRow(g, row++, "Date column *", dateCb);
         if (prefilled != null) dateCb.setValue(prefilled.getColumnDate());
 
         // Description column
         descCb = colCombo(true);
+        descCb.setId("txn-import-mapping-description-column-combo");
         UiUtils.addFormRow(g, row++, "Description column *", descCb);
         if (prefilled != null) descCb.setValue(prefilled.getColumnDescription());
 
         // Amount type toggle
         singleRb = new RadioButton("Single amount column");
         splitRb  = new RadioButton("Separate Debit / Credit columns");
+        singleRb.setId("txn-import-mapping-single-amount-radio");
+        splitRb.setId("txn-import-mapping-split-amount-radio");
         ToggleGroup tg = new ToggleGroup();
         singleRb.setToggleGroup(tg); splitRb.setToggleGroup(tg);
         singleRb.setSelected(prefilled == null || !prefilled.isAmountSplit());
         splitRb.setSelected(prefilled != null && prefilled.isAmountSplit());
 
         HBox amtTypeRow = new HBox(16, singleRb, splitRb);
+        amtTypeRow.setId("txn-import-mapping-amount-type-row");
         amtTypeRow.setAlignment(Pos.CENTER_LEFT);
         Label amtTypeLbl = new Label("Amount type *");
+        amtTypeLbl.setId("txn-import-mapping-amount-type-label");
         amtTypeLbl.getStyleClass().add("form-label");
         g.add(amtTypeLbl, 0, row);
         g.add(amtTypeRow, 1, row++);
 
         // Single amount row
         amtCb = colCombo(true);
+        amtCb.setId("txn-import-mapping-amount-column-combo");
         amtCb.setMaxWidth(Double.MAX_VALUE);
         singleRow = new HBox(amtCb);
+        singleRow.setId("txn-import-mapping-single-amount-row");
         HBox.setHgrow(amtCb, Priority.ALWAYS);
         if (prefilled != null && !prefilled.isAmountSplit() && prefilled.getColumnAmount() != null)
             amtCb.setValue(prefilled.getColumnAmount());
@@ -172,8 +188,10 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         // ── Split amount sub-section ──────────────────────────────────────────
         debitCb = colCombo(false);
+        debitCb.setId("txn-import-mapping-debit-column-combo");
         debitCb.setMaxWidth(Double.MAX_VALUE);
         creditCb = colCombo(false);
+        creditCb.setId("txn-import-mapping-credit-column-combo");
         creditCb.setMaxWidth(Double.MAX_VALUE);
         if (prefilled != null && prefilled.isAmountSplit() && prefilled.getColumnDebit() != null)
             debitCb.setValue(prefilled.getColumnDebit());
@@ -181,6 +199,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
             creditCb.setValue(prefilled.getColumnCredit());
 
         GridPane splitGrid = new GridPane();
+        splitGrid.setId("txn-import-mapping-split-grid");
         splitGrid.setHgap(12); splitGrid.setVgap(8);
         ColumnConstraints sg1 = new ColumnConstraints(130);
         ColumnConstraints sg2 = new ColumnConstraints(); sg2.setHgrow(Priority.ALWAYS);
@@ -189,10 +208,12 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         UiUtils.addFormRow(splitGrid, 1, "Credit column", creditCb);
 
         Label splitTitle = new Label("AMOUNT COLUMNS");
+        splitTitle.setId("txn-import-mapping-split-title");
         splitTitle.getStyleClass().add("section-group-label");
         debitRow = new HBox();  // reuse field — content irrelevant, used only for visibility toggle
         creditRow = new HBox(); // same
         VBox splitSection = new VBox(8, splitTitle, splitGrid);
+        splitSection.setId("txn-import-mapping-split-section");
         splitSection.getStyleClass().add("info-box");
 
         g.add(splitSection, 0, row++, 2, 1);
@@ -210,6 +231,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
 
         // Date format
         fmtCb = new ComboBox<>();
+        fmtCb.setId("txn-import-mapping-date-format-combo");
         fmtCb.setEditable(true);
         fmtCb.getItems().addAll(DATE_FORMATS);
         fmtCb.setMaxWidth(Double.MAX_VALUE);
@@ -238,9 +260,11 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         if (fmtCb.getValue() == null || fmtCb.getValue().isBlank()) autoDetectFmt.run();
 
         Label fmtHint = new Label("Common formats: dd/MM/yyyy · yyyy-MM-dd · dd-MMM-yyyy");
+        fmtHint.setId("txn-import-mapping-date-format-hint");
         fmtHint.getStyleClass().add("text-hint");
 
         VBox content = new VBox(12, detectedBox, g, fmtHint);
+        content.setId("txn-import-mapping-content");
         content.setPadding(new Insets(4, 8, 4, 8));
         return content;
     }

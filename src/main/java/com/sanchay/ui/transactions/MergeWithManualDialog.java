@@ -28,12 +28,14 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
     public MergeWithManualDialog(Transaction imported, List<Transaction> candidates,
                                   DateTimeFormatter fmt) {
         UiUtils.initDialog(this, "Merge with Existing", "⇄", 560);
+        getDialogPane().setId("txn-merge-dialog-pane");
 
         DataStore ds = DataStore.getInstance();
 
         Label subtitle = new Label(
                 "Select a manually-entered transaction to merge this import into. "
                 + "The manual entry keeps its category; the import date and amount will be used.");
+        subtitle.setId("txn-merge-subtitle");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("text-hint");
 
@@ -41,15 +43,18 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
         HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
 
         VBox importedBlock = new VBox(4);
+        importedBlock.setId("txn-merge-imported-block");
         importedBlock.getStyleClass().add("block-imported");
         Label importedChip = new Label(
                 imported.getSourceIndicator() == Transaction.SourceIndicator.AUTO_CATEGORIZED
                         ? "AUTO-CATEGORIZED" : "IMPORTED");
+        importedChip.setId("txn-merge-imported-chip");
         importedChip.getStyleClass().add("chip-teal");
         Label importedInfo = new Label(
                 imported.getDate().format(fmt)
                 + "   " + imported.getAmountInr()
                 + "   " + imported.getDescription());
+        importedInfo.setId("txn-merge-imported-info");
         importedInfo.getStyleClass().add("text-step-title");
         importedInfo.setWrapText(true);
         importedBlock.getChildren().addAll(importedChip, importedInfo);
@@ -60,9 +65,12 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);
+        candidateBox.setId("txn-merge-candidate-box");
 
-        for (Transaction c : candidates) {
+        for (int i = 0; i < candidates.size(); i++) {
+            Transaction c = candidates.get(i);
             RadioButton rb = new RadioButton();
+            rb.setId("txn-merge-choice-" + i);
             rb.setToggleGroup(tg);
             rb.setUserData(c);
 
@@ -74,20 +82,24 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
                     : subCatName.isBlank() ? catName : catName + " › " + subCatName;
 
             VBox cCard = new VBox(3);
+            cCard.setId("txn-merge-card-" + i);
             Label cInfo = new Label(
                     c.getDate().format(fmt)
                     + "   " + c.getAmountInr()
                     + "   " + c.getDescription());
+            cInfo.setId("txn-merge-card-info-" + i);
             cInfo.getStyleClass().add("text-step-title");
             cInfo.setWrapText(true);
             cCard.getChildren().add(cInfo);
             if (!catLabel.isBlank()) {
                 Label cCat = new Label(catLabel);
+                cCat.setId("txn-merge-card-category-" + i);
                 cCat.getStyleClass().add("text-hint");
                 cCard.getChildren().add(cCat);
             }
 
             HBox rbRow = new HBox(10, rb, cCard);
+            rbRow.setId("txn-merge-row-" + i);
             rbRow.getStyleClass().add("match-row");
             rbRow.setAlignment(Pos.CENTER_LEFT);
             HBox.setHgrow(cCard, Priority.ALWAYS);
@@ -104,9 +116,11 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
                 subtitle,
                 importedSecLabel, importedBlock,
                 matchesSecLabel, candidateBox);
+        content.setId("txn-merge-content");
         content.setPadding(new Insets(16, 16, 8, 16));
 
         ScrollPane sp = new ScrollPane(content);
+        sp.setId("txn-merge-scroll-pane");
         sp.setFitToWidth(true);
         sp.setPrefHeight(400);
         sp.getStyleClass().add("scroll-transparent");
@@ -117,7 +131,10 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
         getDialogPane().getButtonTypes().addAll(mergeBt, ButtonType.CANCEL);
 
         Button mergeBtn = (Button) getDialogPane().lookupButton(mergeBt);
+        mergeBtn.setId("txn-merge-confirm-button");
         mergeBtn.setDisable(true);
+        Button cancelBtn = (Button) getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelBtn != null) cancelBtn.setId("txn-merge-cancel-button");
         tg.selectedToggleProperty().addListener((o, p, n) -> mergeBtn.setDisable(n == null));
 
         setResultConverter(bt -> {

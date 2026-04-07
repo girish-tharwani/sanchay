@@ -27,12 +27,14 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
      */
     public AmbiguousMatchDialog(Transaction imported, List<Transaction> candidates) {
         UiUtils.initDialog(this, "Ambiguous Match", "?", 560);
+        getDialogPane().setId("txn-ambiguous-match-dialog-pane");
 
         DataStore ds = DataStore.getInstance();
 
         // ── Subtitle ─────────────────────────────────────────────────────────
         Label subtitle = new Label(
                 "Multiple existing transactions could match this import. Select one to reconcile.");
+        subtitle.setId("txn-ambiguous-match-subtitle");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("text-hint");
 
@@ -40,11 +42,14 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
 
         VBox importedBlock = new VBox(4);
+        importedBlock.setId("txn-ambiguous-match-imported-block");
         importedBlock.getStyleClass().add("block-imported");
         Label importedChip = new Label("IMPORTED");
+        importedChip.setId("txn-ambiguous-match-imported-chip");
         importedChip.getStyleClass().add("chip-teal");
         Label importedInfo = new Label(
                 imported.getDate() + "   " + imported.getAmountInr() + "   " + imported.getDescription());
+        importedInfo.setId("txn-ambiguous-match-imported-info");
         importedInfo.getStyleClass().add("text-step-title");
         importedInfo.setWrapText(true);
         importedBlock.getChildren().addAll(importedChip, importedInfo);
@@ -54,9 +59,12 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);
+        candidateBox.setId("txn-ambiguous-match-candidate-box");
 
-        for (Transaction c : candidates) {
+        for (int i = 0; i < candidates.size(); i++) {
+            Transaction c = candidates.get(i);
             RadioButton rb = new RadioButton();
+            rb.setId("txn-ambiguous-match-choice-" + i);
             rb.setToggleGroup(tg);
             rb.setUserData(c);
 
@@ -66,17 +74,21 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
                     : subCatName.isBlank() ? catName : catName + " › " + subCatName;
 
             VBox cCard = new VBox(3);
+            cCard.setId("txn-ambiguous-match-card-" + i);
             Label cInfo = new Label(c.getDate() + "   " + c.getAmountInr() + "   " + c.getDescription());
+            cInfo.setId("txn-ambiguous-match-card-info-" + i);
             cInfo.getStyleClass().add("text-step-title");
             cInfo.setWrapText(true);
             cCard.getChildren().add(cInfo);
             if (!catLabel.isBlank()) {
                 Label cCat = new Label(catLabel);
+                cCat.setId("txn-ambiguous-match-card-category-" + i);
                 cCat.getStyleClass().add("text-hint");
                 cCard.getChildren().add(cCat);
             }
 
             HBox rbRow = new HBox(10, rb, cCard);
+            rbRow.setId("txn-ambiguous-match-row-" + i);
             rbRow.getStyleClass().add("match-row");
             rbRow.setAlignment(Pos.CENTER_LEFT);
             HBox.setHgrow(cCard, Priority.ALWAYS);
@@ -94,9 +106,11 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
                 subtitle,
                 importedSecLabel, importedBlock,
                 matchesSecLabel, candidateBox);
+        content.setId("txn-ambiguous-match-content");
         content.setPadding(new Insets(16, 16, 8, 16));
 
         ScrollPane sp = new ScrollPane(content);
+        sp.setId("txn-ambiguous-match-scroll-pane");
         sp.setFitToWidth(true);
         sp.setPrefHeight(400);
         sp.getStyleClass().add("scroll-transparent");
@@ -111,7 +125,12 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
 
         // Reconcile button enabled only when a radio is selected
         Button reconcileBtn = (Button) getDialogPane().lookupButton(reconcileBt);
+        reconcileBtn.setId("txn-ambiguous-match-reconcile-button");
         reconcileBtn.setDisable(true);
+        Button newBtn = (Button) getDialogPane().lookupButton(newBt);
+        if (newBtn != null) newBtn.setId("txn-ambiguous-match-add-new-button");
+        Button cancelBtn = (Button) getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelBtn != null) cancelBtn.setId("txn-ambiguous-match-cancel-button");
         tg.selectedToggleProperty().addListener(
                 (o, p, n) -> reconcileBtn.setDisable(n == null));
 

@@ -3,6 +3,7 @@ package com.sanchay.ui.transactions;
 import com.sanchay.model.*;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.MoneyFormatter;
+import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -36,12 +37,16 @@ class LoanPaymentPanel {
 
         catMaster.addAll(parent.ds.getExpenseCategories());
         catCb    = parent.makeCatCb(catMaster, "Select category (optional)");
+        parent.setNodeId(catCb, "txn-loan-payment-category-combo");
         subCatCb = parent.makeSubCatCb(subCatMaster);
+        parent.setNodeId(subCatCb, "txn-loan-payment-subcategory-combo");
         parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
 
         fromCb = parent.accountCombo(true); // bank + CC
+        parent.setNodeId(fromCb, "txn-loan-payment-from-account-combo");
 
         toCb = new ComboBox<>();
+        toCb.setId("txn-loan-payment-to-account-combo");
         toCb.setMaxWidth(Double.MAX_VALUE);
         toCb.setPromptText("Select loan account");
         parent.ds.getActiveLoanAccounts().forEach(toCb.getItems()::add);
@@ -54,9 +59,13 @@ class LoanPaymentPanel {
         toCb.setButtonCell(toCb.getCellFactory().call(null));
 
         modeCb        = parent.payModeCombo();
+        parent.setNodeId(modeCb, "txn-loan-payment-mode-combo");
         refFld        = parent.tf("optional");
+        parent.setNodeId(refFld, "txn-loan-payment-reference-field");
         principalFld  = parent.tf("Principal portion of this payment");
+        parent.setNodeId(principalFld, "txn-loan-payment-principal-field");
         interestLbl   = new Label("—");
+        interestLbl.setId("txn-loan-payment-interest-label");
         interestLbl.getStyleClass().add("text-hint");
 
         // Pre-fill principal from schedule when loan account or date changes
@@ -100,6 +109,7 @@ class LoanPaymentPanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-loan-payment-panel");
         int r = 0;
         parent.row(g, r++, "From Account*", fromCb);
         parent.row(g, r++, "To Account*",   toCb);
@@ -230,12 +240,19 @@ class LoanPaymentPanel {
         RecurringTransaction rt = parent.ds.findLoanPaymentSchedule(loan.getId());
         if (rt == null || rt.getAmountPaise() == newEmiPaise) return;
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.getDialogPane().setId("txn-loan-payment-sync-dialog-pane");
         confirm.initOwner(parent.getDialogPane().getScene().getWindow());
         confirm.setTitle("Update Payment Schedule");
         confirm.setHeaderText(null);
         confirm.setContentText(String.format(
                 "EMI has changed to \u20b9%.0f after prepayment.\nUpdate the linked payment schedule?",
                 newEmiPaise / 100.0));
+        Platform.runLater(() -> {
+            Button okBtn = (Button) confirm.getDialogPane().lookupButton(ButtonType.OK);
+            if (okBtn != null) okBtn.setId("txn-loan-payment-sync-ok-button");
+            Button cancelBtn = (Button) confirm.getDialogPane().lookupButton(ButtonType.CANCEL);
+            if (cancelBtn != null) cancelBtn.setId("txn-loan-payment-sync-cancel-button");
+        });
         confirm.showAndWait().ifPresent(bt -> {
             if (bt == ButtonType.OK) {
                 rt.setAmountPaise(newEmiPaise);
@@ -257,14 +274,18 @@ class LoanPaymentPanel {
                 "How should the amortization schedule be recalculated?\n\n" +
                 "• Reduce Tenure — keep the same EMI, fewer months remaining.\n" +
                 "• Reduce EMI    — keep the same tenure, lower monthly EMI.");
+        bodyLabel.setId("txn-loan-payment-prepayment-message");
         bodyLabel.setWrapText(true);
 
         CheckBox rememberChk = new CheckBox("Remember my choice for this loan");
+        rememberChk.setId("txn-loan-payment-prepayment-remember-checkbox");
         rememberChk.getStyleClass().add("form-label");
 
         VBox content = new VBox(12, bodyLabel, rememberChk);
+        content.setId("txn-loan-payment-prepayment-body");
 
         Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.getDialogPane().setId("txn-loan-payment-prepayment-dialog-pane");
         dlg.initOwner(parent.getDialogPane().getScene().getWindow());
         dlg.initStyle(StageStyle.UNDECORATED);
         dlg.setHeaderText("This payment includes an extra principal amount.");
@@ -274,6 +295,11 @@ class LoanPaymentPanel {
 
         Button reduceTenureBtn = (Button) dlg.getDialogPane().lookupButton(reduceTenure);
         reduceTenureBtn.setMinWidth(150);
+        reduceTenureBtn.setId("txn-loan-payment-reduce-tenure-button");
+        Button reduceEmiBtn = (Button) dlg.getDialogPane().lookupButton(reduceEmi);
+        if (reduceEmiBtn != null) reduceEmiBtn.setId("txn-loan-payment-reduce-emi-button");
+        Button cancelBtn = (Button) dlg.getDialogPane().lookupButton(cancel);
+        if (cancelBtn != null) cancelBtn.setId("txn-loan-payment-prepayment-cancel-button");
 
         Optional<ButtonType> result = dlg.showAndWait();
         if (result.isEmpty() || result.get() == cancel) return null;

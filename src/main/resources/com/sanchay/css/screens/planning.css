@@ -152,3 +152,50 @@
 }
 .fp-corpus-pill-shortfall .fp-corpus-pill-amount { -fx-text-fill: #b91c1c; }
 .fp-corpus-pill-excess    .fp-corpus-pill-amount { -fx-text-fill: #15803d; }
+
+.fp-projection-mode-label {
+    -fx-font-size: 14px;
+}
+
+.fp-projection-mode-label-active {
+    -fx-text-fill: -text-primary;
+    -fx-font-weight: 700;
+}
+
+.fp-projection-mode-label-inactive {
+    -fx-text-fill: -text-muted;
+    -fx-font-weight: 600;
+}
+
+.fp-projection-switch {
+    -fx-padding: 0;
+}
+
+.fp-projection-switch > .box {
+    -fx-background-color: -brand-mid;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-min-width: 40;
+    -fx-pref-width: 40;
+    -fx-max-width: 40;
+    -fx-min-height: 22;
+    -fx-pref-height: 22;
+    -fx-max-height: 22;
+    -fx-padding: 2;
+}
+
+.fp-projection-switch:selected > .box {
+    -fx-background-color: -brand-mid;
+}
+
+.fp-projection-switch > .box > .mark {
+    -fx-background-color: -surface-white;
+    -fx-background-radius: 999;
+    -fx-shape: "M 9,0 A 9,9 0 1 1 9,18 A 9,9 0 1 1 9,0 Z";
+    -fx-scale-shape: false;
+    -fx-translate-x: -9;
+}
+
+.fp-projection-switch:selected > .box > .mark {
+    -fx-translate-x: 9;
+}

@@ -47,6 +47,11 @@ import java.util.stream.Collectors;
  */
 public class FinancialPlanningScreen {
 
+    private enum ProjectionMode {
+        MINIMUM,
+        ACTUAL
+    }
+
     private ScrollPane view;
     private final Runnable navigateToProfile;
 
@@ -105,6 +110,11 @@ public class FinancialPlanningScreen {
     // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
     private VBox  corpusCard;
     private long  forecastedCorpusPaise;
+    private TableView<PostRetirementRow> postRetirementTable;
+    private CheckBox projectionModeSwitch;
+    private Label minimumProjectionLbl;
+    private Label actualProjectionLbl;
+    private ProjectionMode projectionMode = ProjectionMode.MINIMUM;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private DatePicker retirementDatePicker;
@@ -412,7 +422,7 @@ public class FinancialPlanningScreen {
         recalcBtn.setOnAction(e -> {
             params.lastCalculatedDate = LocalDate.now().toString();
             collectAndSave();
-            refreshEarningsCard();
+            refreshComputedSections();
             if (lastUpdatedLbl != null)
                 lastUpdatedLbl.setText(formatLastUpdated(params.lastCalculatedDate));
         });
@@ -559,6 +569,12 @@ public class FinancialPlanningScreen {
             populateEarningsCard(earningsCard);
         }
         refreshForecastCard();
+    }
+
+    private void refreshComputedSections() {
+        corpusBreakdown = computeCorpusBreakdown();
+        refreshEarningsCard();
+        refreshPostRetirementTable();
     }
 
     // ── Expenses card (Expenses table + Major Events table) ──────────────────
@@ -903,7 +919,9 @@ public class FinancialPlanningScreen {
         long delta          = totalForecasted - requiredCorpus;
         boolean isShortfall = delta < 0;
 
-        Label kindLbl = new Label(isShortfall ? "Shortfall to Target Corpus" : "Surplus over Target Corpus");
+        Label kindLbl = new Label(isShortfall
+                ? "Projected Shortfall vs Required Corpus"
+                : "Projected Surplus vs Required Corpus");
         kindLbl.getStyleClass().add("fp-corpus-pill-kind");
 
         Label amountLbl = new Label(UiUtils.formatCorpusDisplay(Math.abs(delta)));
@@ -939,16 +957,38 @@ public class FinancialPlanningScreen {
     private record PostRetirementRow(
             int year, int age,
             long startingBalancePaise, long roiPaise, long taxPaise, long withdrawalPaise,
-            boolean depleted) {}
+            long endingBalancePaise, boolean startingDepleted, boolean endingNegative) {}
 
     private Node buildPostRetirementCard() {
-        Label title = new Label("Post-Retirement Corpus Projection");
-        title.getStyleClass().add("text-section-title");
+        minimumProjectionLbl = new Label("Minimum Corpus Projection");
+        minimumProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
+        minimumProjectionLbl.setPrefWidth(210);
+        minimumProjectionLbl.setMinWidth(210);
+        minimumProjectionLbl.setAlignment(Pos.CENTER_RIGHT);
 
-        TableView<PostRetirementRow> cfTable = buildCashFlowTable();
-        cfTable.getItems().addAll(computeCashFlowRows());
+        projectionModeSwitch = new CheckBox();
+        projectionModeSwitch.getStyleClass().add("fp-projection-switch");
+        projectionModeSwitch.setSelected(false);
+        projectionModeSwitch.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            projectionMode = isSelected ? ProjectionMode.ACTUAL : ProjectionMode.MINIMUM;
+            updateProjectionModeHeader();
+            refreshPostRetirementTable();
+        });
 
-        VBox card = new VBox(12, title, cfTable);
+        actualProjectionLbl = new Label("Actual Corpus Projection");
+        actualProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
+        actualProjectionLbl.setPrefWidth(190);
+        actualProjectionLbl.setMinWidth(190);
+        actualProjectionLbl.setAlignment(Pos.CENTER_LEFT);
+
+        HBox header = new HBox(10, minimumProjectionLbl, projectionModeSwitch, actualProjectionLbl);
+        header.setAlignment(Pos.CENTER_LEFT);
+        updateProjectionModeHeader();
+
+        postRetirementTable = buildCashFlowTable();
+        refreshPostRetirementTable();
+
+        VBox card = new VBox(12, header, postRetirementTable);
         card.getStyleClass().add("card");
         return card;
     }
@@ -976,33 +1016,47 @@ public class FinancialPlanningScreen {
                 getStyleClass().remove("post-retirement-cf-depleted");
                 if (empty || item == null) { setText(null); return; }
                 setText(item);
-                if (getTableView().getItems().get(getIndex()).depleted())
+                if (getTableView().getItems().get(getIndex()).startingDepleted())
                     getStyleClass().add("post-retirement-cf-depleted");
             }
         });
 
         TableColumn<PostRetirementRow, String> roiCol = new TableColumn<>("ROI");
         roiCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().depleted() ? "-" : formatRupees(cd.getValue().roiPaise())));
+                cd.getValue().startingDepleted() ? "-" : formatRupees(cd.getValue().roiPaise())));
         roiCol.setPrefWidth(130);
 
         TableColumn<PostRetirementRow, String> taxCol = new TableColumn<>("Tax");
         taxCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().depleted() ? "-" : formatRupees(cd.getValue().taxPaise())));
+                cd.getValue().startingDepleted() ? "-" : formatRupees(cd.getValue().taxPaise())));
         taxCol.setPrefWidth(110);
 
         TableColumn<PostRetirementRow, String> withdrawalCol = new TableColumn<>("Withdrawal");
         withdrawalCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().withdrawalPaise())));
         withdrawalCol.setPrefWidth(130);
 
-        table.getColumns().addAll(yearCol, ageCol, balanceCol, roiCol, taxCol, withdrawalCol);
+        TableColumn<PostRetirementRow, String> endingBalanceCol = new TableColumn<>("Ending Balance");
+        endingBalanceCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().endingBalancePaise())));
+        endingBalanceCol.setPrefWidth(160);
+        endingBalanceCol.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().remove("post-retirement-cf-depleted");
+                if (empty || item == null) { setText(null); return; }
+                setText(item);
+                if (getTableView().getItems().get(getIndex()).endingNegative())
+                    getStyleClass().add("post-retirement-cf-depleted");
+            }
+        });
+
+        table.getColumns().addAll(yearCol, ageCol, balanceCol, roiCol, taxCol, withdrawalCol, endingBalanceCol);
         return table;
     }
 
     private List<PostRetirementRow> computeCashFlowRows() {
         LocalDate retireDate   = getRetirementDate();
         int retirementYear     = retireDate.getYear();
-        int retirementAge      = (int) ChronoUnit.YEARS.between(selfDob, retireDate);
+        int retirementAge      = getRetirementAgeYears();
         int lifeExpectancy     = params.lifeExpectancy;
         double ror             = params.rorPostRetirePct / 100.0;
         double taxRate         = params.postRetireTaxPct / 100.0;
@@ -1013,7 +1067,9 @@ public class FinancialPlanningScreen {
         double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
 
         List<PostRetirementRow> rows = new ArrayList<>();
-        long balance = forecastedCorpusPaise;
+        long balance = projectionMode == ProjectionMode.ACTUAL
+                ? forecastedCorpusPaise
+                : roundUpTo1Lakh(computeRequiredCorpusPaise());
 
         int totalYears = lifeExpectancy - retirementAge;
         for (int i = 0; i < totalYears; i++) {
@@ -1022,16 +1078,44 @@ public class FinancialPlanningScreen {
             long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
 
             if (balance > 0) {
-                long roi = roundDownTo10k(Math.round(balance * ror));
+                long postWithdrawalBalance = balance - withdrawal;
+                long roi = roundDownTo10k(Math.round(Math.max(0, postWithdrawalBalance) * ror));
                 long tax = roundUpTo10k(Math.round(roi * taxRate));
-                rows.add(new PostRetirementRow(year, age, balance, roi, tax, withdrawal, false));
-                balance = balance + roi - tax - withdrawal;
+                long endingBalance = postWithdrawalBalance + roi - tax;
+                rows.add(new PostRetirementRow(
+                        year, age, balance, roi, tax, withdrawal,
+                        endingBalance, false, endingBalance < 0));
+                balance = endingBalance;
             } else {
-                rows.add(new PostRetirementRow(year, age, balance, 0, 0, withdrawal, true));
-                balance = balance - withdrawal;
+                long endingBalance = balance - withdrawal;
+                rows.add(new PostRetirementRow(
+                        year, age, balance, 0, 0, withdrawal,
+                        endingBalance, true, endingBalance < 0));
+                balance = endingBalance;
             }
         }
         return rows;
+    }
+
+    private void refreshPostRetirementTable() {
+        if (postRetirementTable == null) return;
+        postRetirementTable.getItems().setAll(computeCashFlowRows());
+        postRetirementTable.refresh();
+    }
+
+    private void updateProjectionModeHeader() {
+        if (minimumProjectionLbl == null || actualProjectionLbl == null) return;
+        boolean minimumActive = projectionMode == ProjectionMode.MINIMUM;
+        minimumProjectionLbl.getStyleClass().remove("fp-projection-mode-label-active");
+        actualProjectionLbl.getStyleClass().remove("fp-projection-mode-label-active");
+        minimumProjectionLbl.getStyleClass().remove("fp-projection-mode-label-inactive");
+        actualProjectionLbl.getStyleClass().remove("fp-projection-mode-label-inactive");
+        minimumProjectionLbl.getStyleClass().add(minimumActive
+                ? "fp-projection-mode-label-active"
+                : "fp-projection-mode-label-inactive");
+        actualProjectionLbl.getStyleClass().add(minimumActive
+                ? "fp-projection-mode-label-inactive"
+                : "fp-projection-mode-label-active");
     }
 
 
@@ -1505,28 +1589,65 @@ public class FinancialPlanningScreen {
      *   PV = colAtRetirement × Σ(i=0..n-1) [ ((1+g)/(1+r_net))^i ]
      * where g = inflationRate, r_net = rorPostRetire × (1 − taxRate).
      */
+    private static long roundUpTo1Lakh(long paise) {
+        if (paise <= 0) return 0;
+        final long UNIT = 10_000_000L; // â‚¹1,00,000 in paise
+        return ((paise + UNIT - 1) / UNIT) * UNIT;
+    }
+
     private long computeRequiredCorpusPaise() {
         LocalDate retireDate   = getRetirementDate();
-        int retirementAge      = (int) ChronoUnit.YEARS.between(selfDob, retireDate);
+        int retirementAge      = getRetirementAgeYears();
         int totalYears         = params.lifeExpectancy - retirementAge;
         if (totalYears <= 0) return 0;
 
-        double ror           = params.rorPostRetirePct / 100.0;
-        double taxRate       = params.postRetireTaxPct / 100.0;
-        double inflationRate = params.inflationPct / 100.0;
-        double rNet          = ror * (1.0 - taxRate);
+        long low = 0;
+        long high = Math.max(1, roundUpTo1Lakh(params.costOfLivingPaise * totalYears));
+        while (!sustainsPostRetirement(high)) {
+            low = high;
+            if (high > Long.MAX_VALUE / 2) return high;
+            high = Math.max(high + 1, high * 2);
+        }
 
-        double yearsToRetire  = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
+        while (low + 1 < high) {
+            long mid = low + (high - low) / 2;
+            if (sustainsPostRetirement(mid)) {
+                high = mid;
+            } else {
+                low = mid;
+            }
+        }
+        return high;
+    }
+
+    private int getRetirementAgeYears() {
+        LocalDate retireDate = getRetirementDate();
+        return (int) Math.round(ChronoUnit.DAYS.between(selfDob, retireDate) / 365.25);
+    }
+
+    private boolean sustainsPostRetirement(long startingBalancePaise) {
+        LocalDate retireDate   = getRetirementDate();
+        int retirementAge      = getRetirementAgeYears();
+        int totalYears         = params.lifeExpectancy - retirementAge;
+        if (totalYears <= 0) return true;
+
+        double ror             = params.rorPostRetirePct / 100.0;
+        double taxRate         = params.postRetireTaxPct / 100.0;
+        double inflationRate   = params.inflationPct / 100.0;
+        double yearsToRetire   = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
         double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
 
-        double pv;
-        double ratio = (1 + inflationRate) / (1 + rNet);
-        if (Math.abs(ratio - 1.0) < 1e-9) {
-            pv = colAtRetirement * totalYears;
-        } else {
-            pv = colAtRetirement * (1.0 - Math.pow(ratio, totalYears)) / (1.0 - ratio);
+        long balance = startingBalancePaise;
+        for (int i = 0; i < totalYears; i++) {
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
+            if (balance < withdrawal) return false;
+
+            long postWithdrawalBalance = balance - withdrawal;
+            long roi = roundDownTo10k(Math.round(postWithdrawalBalance * ror));
+            long tax = roundUpTo10k(Math.round(roi * taxRate));
+            balance = postWithdrawalBalance + roi - tax;
         }
-        return Math.round(pv);
+        return true;
     }
 
     private int parseIntSafe(String text, int fallback) {

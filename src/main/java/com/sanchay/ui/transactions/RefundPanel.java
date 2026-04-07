@@ -30,13 +30,19 @@ class RefundPanel {
 
         catMaster.addAll(parent.ds.getExpenseCategories());
         catCb    = parent.makeCatCb(catMaster, "Select original expense category");
+        parent.setNodeId(catCb, "txn-refund-category-combo");
         subCatCb = parent.makeSubCatCb(subCatMaster);
+        parent.setNodeId(subCatCb, "txn-refund-subcategory-combo");
         parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
 
         acctCb    = parent.accountCombo(true); // bank + CC (where refund lands)
+        parent.setNodeId(acctCb, "txn-refund-account-combo");
         modeCb    = parent.payModeCombo();
+        parent.setNodeId(modeCb, "txn-refund-payment-mode-combo");
         familyFld = parent.tf("optional");
+        parent.setNodeId(familyFld, "txn-refund-family-member-field");
         refFld    = parent.tf("optional");
+        parent.setNodeId(refFld, "txn-refund-reference-field");
 
         node = buildNode();
     }
@@ -45,6 +51,7 @@ class RefundPanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-refund-panel");
         int r = 0;
         parent.row(g, r++, "To Account*",    acctCb);
         parent.row(g, r++, "Category",        catCb);

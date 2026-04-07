@@ -35,6 +35,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
      */
     public RecurringMatchDialog(Transaction imported, List<RecurringTransaction> candidates) {
         UiUtils.initDialog(this, "Recurring Schedule Match", "↺", 520);
+        getDialogPane().setId("txn-recurring-match-dialog-pane");
 
         DataStore ds = DataStore.getInstance();
 
@@ -42,6 +43,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         Label subtitle = new Label(
                 "This imported transaction matches a recurring schedule. "
                 + "Select the schedule to record against, or add as a new transaction.");
+        subtitle.setId("txn-recurring-match-subtitle");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("text-hint");
 
@@ -49,11 +51,14 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
 
         VBox importedBlock = new VBox(4);
+        importedBlock.setId("txn-recurring-match-imported-block");
         importedBlock.getStyleClass().add("block-imported");
         Label importedChip = new Label("IMPORTED");
+        importedChip.setId("txn-recurring-match-imported-chip");
         importedChip.getStyleClass().add("chip-teal");
         Label importedInfo = new Label(
                 imported.getDate() + "   " + imported.getAmountInr() + "   " + imported.getDescription());
+        importedInfo.setId("txn-recurring-match-imported-info");
         importedInfo.getStyleClass().add("text-step-title");
         importedInfo.setWrapText(true);
         importedBlock.getChildren().addAll(importedChip, importedInfo);
@@ -63,9 +68,12 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);
+        candidateBox.setId("txn-recurring-match-candidate-box");
 
-        for (RecurringTransaction r : candidates) {
+        for (int i = 0; i < candidates.size(); i++) {
+            RecurringTransaction r = candidates.get(i);
             RadioButton rb = new RadioButton();
+            rb.setId("txn-recurring-match-choice-" + i);
             rb.setToggleGroup(tg);
             rb.setUserData(r);
 
@@ -82,23 +90,29 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
             // Frequency chip
             Label freqChip = new Label(freqText);
+            freqChip.setId("txn-recurring-match-frequency-chip-" + i);
             freqChip.getStyleClass().add("chip-teal");
 
             HBox mainRow = new HBox(8);
+            mainRow.setId("txn-recurring-match-main-row-" + i);
             mainRow.setAlignment(Pos.CENTER_LEFT);
             Label mainLbl = new Label(nextDue + "   " + r.getAmountInr() + "   " + r.getDescription());
+            mainLbl.setId("txn-recurring-match-main-label-" + i);
             mainLbl.getStyleClass().add("text-step-title");
             mainRow.getChildren().addAll(mainLbl, freqChip);
 
             VBox rCard = new VBox(3);
+            rCard.setId("txn-recurring-match-card-" + i);
             rCard.getChildren().add(mainRow);
             if (!catLabel.isBlank()) {
                 Label catLbl = new Label(catLabel);
+                catLbl.setId("txn-recurring-match-category-" + i);
                 catLbl.getStyleClass().add("text-hint");
                 rCard.getChildren().add(catLbl);
             }
 
             HBox rbRow = new HBox(10, rb, rCard);
+            rbRow.setId("txn-recurring-match-row-" + i);
             rbRow.getStyleClass().add("match-row");
             rbRow.setAlignment(Pos.CENTER_LEFT);
             HBox.setHgrow(rCard, Priority.ALWAYS);
@@ -121,9 +135,11 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
                 subtitle,
                 importedSecLabel, importedBlock,
                 matchesSecLabel, candidateBox);
+        content.setId("txn-recurring-match-content");
         content.setPadding(new Insets(16, 16, 8, 16));
 
         ScrollPane sp = new ScrollPane(content);
+        sp.setId("txn-recurring-match-scroll-pane");
         sp.setFitToWidth(true);
         sp.setPrefHeight(400);
         sp.getStyleClass().add("scroll-transparent");
@@ -138,8 +154,13 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
 
         // "Record against Schedule" enabled only when a radio is selected
         Button reconcileBtn = (Button) getDialogPane().lookupButton(reconcileBt);
+        reconcileBtn.setId("txn-recurring-match-record-button");
         ButtonBar.setButtonUniformSize(reconcileBtn, false);
         reconcileBtn.setDisable(tg.getSelectedToggle() == null);
+        Button newBtn = (Button) getDialogPane().lookupButton(newBt);
+        if (newBtn != null) newBtn.setId("txn-recurring-match-add-new-button");
+        Button cancelBtn = (Button) getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (cancelBtn != null) cancelBtn.setId("txn-recurring-match-cancel-button");
         tg.selectedToggleProperty().addListener(
                 (o, p, n) -> reconcileBtn.setDisable(n == null));
 

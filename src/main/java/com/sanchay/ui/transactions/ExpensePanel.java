@@ -30,13 +30,19 @@ class ExpensePanel {
 
         catMaster.addAll(parent.ds.getExpenseCategories());
         catCb    = parent.makeCatCb(catMaster, "Select category");
+        parent.setNodeId(catCb, "txn-expense-category-combo");
         subCatCb = parent.makeSubCatCb(subCatMaster);
+        parent.setNodeId(subCatCb, "txn-expense-subcategory-combo");
         parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
 
         acctCb    = parent.accountCombo(true); // bank + CC
+        parent.setNodeId(acctCb, "txn-expense-account-combo");
         modeCb    = parent.payModeCombo();
+        parent.setNodeId(modeCb, "txn-expense-payment-mode-combo");
         familyFld = parent.tf("optional");
+        parent.setNodeId(familyFld, "txn-expense-family-member-field");
         refFld    = parent.tf("optional");
+        parent.setNodeId(refFld, "txn-expense-reference-field");
 
         node = buildNode();
     }
@@ -45,6 +51,7 @@ class ExpensePanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-expense-panel");
         int r = 0;
         parent.row(g, r++, "From Account*",  acctCb);
         parent.row(g, r++, "Category",        catCb);

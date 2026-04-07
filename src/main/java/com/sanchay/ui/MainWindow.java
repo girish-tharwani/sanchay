@@ -20,11 +20,13 @@ import com.sanchay.ui.transactions.TransactionsScreen;
 import com.sanchay.ui.wizard.PreferencesSetupDialog;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -43,6 +45,11 @@ public class MainWindow {
     private FinancialPlanningScreen financialPlanningScreen;
     private TransactionsScreen transactionsScreen;
     private HelpScreen helpScreen;
+    private double restoredX;
+    private double restoredY;
+    private double restoredWidth;
+    private double restoredHeight;
+    private boolean customMaximized = false;
 
     // AccountsScreen is NOT cached — always rebuilt on navigation so that
     // navigating back via the sidebar always shows the account list, not a
@@ -85,8 +92,9 @@ public class MainWindow {
         maxBtn.getStyleClass().add("wc-btn");
         closeBtn.getStyleClass().addAll("wc-btn", "wc-btn-close");
         minBtn.setOnAction(e -> stage.setIconified(true));
-        maxBtn.setOnAction(e -> stage.setMaximized(!stage.isMaximized()));
+        maxBtn.setOnAction(e -> toggleMaximize(stage));
         closeBtn.setOnAction(e -> stage.close());
+        stage.maximizedProperty().addListener((obs, wasMax, isMax) -> customMaximized = isMax);
         stage.maximizedProperty().addListener((obs, wasMax, isMax) ->
                 maxBtn.setText(isMax ? "❐" : "□"));
 
@@ -151,7 +159,7 @@ public class MainWindow {
             dragOffset[1] = stage.getY() - e.getScreenY();
         });
         sidebar.setOnMouseDragged(e -> {
-            if (!stage.isMaximized()) {
+            if (!isWindowMaximized(stage)) {
                 stage.setX(e.getScreenX() + dragOffset[0]);
                 stage.setY(e.getScreenY() + dragOffset[1]);
             }
@@ -387,6 +395,49 @@ public class MainWindow {
 
     private static final int RESIZE_MARGIN = 6;
 
+    private boolean isWindowMaximized(Stage stage) {
+        return customMaximized || stage.isMaximized();
+    }
+
+    private void toggleMaximize(Stage stage) {
+        if (isWindowMaximized(stage)) {
+            restoreWindow(stage);
+        } else {
+            maximizeToVisualBounds(stage);
+        }
+    }
+
+    private void maximizeToVisualBounds(Stage stage) {
+        restoredX = stage.getX();
+        restoredY = stage.getY();
+        restoredWidth = stage.getWidth();
+        restoredHeight = stage.getHeight();
+
+        Rectangle2D currentBounds = new Rectangle2D(stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight());
+        Screen screen = Screen.getScreensForRectangle(currentBounds).stream()
+                .findFirst()
+                .orElse(Screen.getPrimary());
+        Rectangle2D visualBounds = screen.getVisualBounds();
+
+        customMaximized = true;
+        stage.setMaximized(false);
+        stage.setX(visualBounds.getMinX());
+        stage.setY(visualBounds.getMinY());
+        stage.setWidth(visualBounds.getWidth());
+        stage.setHeight(visualBounds.getHeight());
+    }
+
+    private void restoreWindow(Stage stage) {
+        customMaximized = false;
+        stage.setMaximized(false);
+        if (restoredWidth > 0 && restoredHeight > 0) {
+            stage.setX(restoredX);
+            stage.setY(restoredY);
+            stage.setWidth(restoredWidth);
+            stage.setHeight(restoredHeight);
+        }
+    }
+
     private void addResizeSupport(Scene scene, Stage stage) {
         double[] resizeStart = new double[6]; // screenX, screenY, stageX, stageY, stageW, stageH
         boolean[] resizing   = {false};
@@ -395,7 +446,7 @@ public class MainWindow {
         // Use addEventFilter (capture phase) so these fire even when a child node
         // consumes the event — required for edges overlapping the content area.
         scene.addEventFilter(MouseEvent.MOUSE_MOVED, e -> {
-            if (stage.isMaximized()) { scene.setCursor(Cursor.DEFAULT); return; }
+            if (isWindowMaximized(stage)) { scene.setCursor(Cursor.DEFAULT); return; }
             double x = e.getSceneX(), y = e.getSceneY();
             double w = scene.getWidth(),  h = scene.getHeight();
             boolean left  = x < RESIZE_MARGIN,  right = x > w - RESIZE_MARGIN;
@@ -414,7 +465,7 @@ public class MainWindow {
 
         scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
             Cursor c = scene.getCursor();
-            if (stage.isMaximized() || c == Cursor.DEFAULT) { resizing[0] = false; return; }
+            if (isWindowMaximized(stage) || c == Cursor.DEFAULT) { resizing[0] = false; return; }
             resizing[0]     = true;
             activeCursor[0] = c;
             resizeStart[0]  = e.getScreenX();
@@ -426,7 +477,7 @@ public class MainWindow {
         });
 
         scene.addEventFilter(MouseEvent.MOUSE_DRAGGED, e -> {
-            if (!resizing[0] || stage.isMaximized()) return;
+            if (!resizing[0] || isWindowMaximized(stage)) return;
             double dx = e.getScreenX() - resizeStart[0];
             double dy = e.getScreenY() - resizeStart[1];
             Cursor c  = activeCursor[0];

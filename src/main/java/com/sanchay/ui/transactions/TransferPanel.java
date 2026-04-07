@@ -28,11 +28,15 @@ class TransferPanel {
 
         catMaster.addAll(parent.ds.getExpenseCategories());
         catCb    = parent.makeCatCb(catMaster, "Select category (optional)");
+        parent.setNodeId(catCb, "txn-transfer-category-combo");
         subCatCb = parent.makeSubCatCb(subCatMaster);
+        parent.setNodeId(subCatCb, "txn-transfer-subcategory-combo");
         parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
 
         fromCb = parent.accountCombo(false); // bank only
+        parent.setNodeId(fromCb, "txn-transfer-from-account-combo");
         toCb   = parent.accountCombo(false); // bank only
+        parent.setNodeId(toCb, "txn-transfer-to-account-combo");
 
         node = buildNode();
     }
@@ -41,6 +45,7 @@ class TransferPanel {
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
+        g.setId("txn-transfer-panel");
         int r = 0;
         parent.row(g, r++, "From Account*", fromCb);
         parent.row(g, r++, "To Account*",   toCb);

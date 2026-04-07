@@ -1,7 +1,6 @@
 package com.sanchay.service;
 
 import com.sanchay.model.*;
-import com.sanchay.model.ImportMapping;
 //import com.sanchay.service.AmortizationService;
 //import com.sanchay.model.BankAccount.SubType;
 //import com.sanchay.model.InvestmentAccount.InvestmentType;
@@ -30,7 +29,7 @@ public class DataStore {
     private final Map<String, List<AmortizationEntry>> loanSchedules  = new HashMap<>();
     private final List<MarketValueEntry>               marketValues   = new ArrayList<>();
 
-    private String activeFinancialYear = "FY 2025-26";
+    //private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
     private String currency   = "INR";
     private String yearFormat = "Indian Financial Year";
@@ -65,7 +64,7 @@ public class DataStore {
         typeRules.clear();
         loanSchedules.clear();
         marketValues.clear();
-        activeFinancialYear = "FY 2025-26";
+        //activeFinancialYear = "FY 2025-26";
         dateFormat  = "DD/MM/YYYY";
         currency    = "INR";
         yearFormat  = "Indian Financial Year";
@@ -200,7 +199,7 @@ public class DataStore {
         loanSchedules.remove(loanAccountId);
         if (persistence != null) persistence.saveLoanSchedules(this);
     }
-    public String                     getActiveFinancialYear() { return activeFinancialYear; }
+    //public String                     getActiveFinancialYear() { return activeFinancialYear; }
 
     /** Returns the user-selected date format string: "DD/MM/YYYY" or "YYYY-MM-DD". */
     public String getDateFormat() { return dateFormat; }
@@ -252,20 +251,20 @@ public class DataStore {
     /**
      * Returns the start date (1 April) of the active financial year.
      * e.g. "FY 2025-26" → 2025-04-01
-     */
+     
     public LocalDate getActiveFYStart() {
         int startYear = parseFYStartYear(activeFinancialYear);
         return LocalDate.of(startYear, 4, 1);
-    }
+    }*/
 
     /**
      * Returns the end date (31 March) of the active financial year.
      * e.g. "FY 2025-26" → 2026-03-31
-     */
+    
     public LocalDate getActiveFYEnd() {
         int startYear = parseFYStartYear(activeFinancialYear);
         return LocalDate.of(startYear + 1, 3, 31);
-    }
+    } 
 
     private int parseFYStartYear(String fy) {
         // Format: "FY YYYY-YY" e.g. "FY 2025-26"
@@ -275,17 +274,17 @@ public class DataStore {
         } catch (Exception e) {
             return LocalDate.now().getYear();
         }
-    }
+    }*/
 
     // ── FY persistence ────────────────────────────────────────────────────────
-
+/* 
     public void setActiveFinancialYear(String y) {
         this.activeFinancialYear = y;
         if (persistence != null) persistence.saveSettings(this);
     }
-
+*/
     /** For internal load use only — does not trigger save. */
-    public void setActiveFinancialYearInternal(String y) { this.activeFinancialYear = y; }
+    // public void setActiveFinancialYearInternal(String y) { this.activeFinancialYear = y; }
 
     // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -1081,7 +1080,7 @@ public class DataStore {
         importMappings.clear();
         categoryRules.clear();
         typeRules.clear();
-        activeFinancialYear = "FY 2025-26";
+        //activeFinancialYear = "FY 2025-26";
         dateFormat = "DD/MM/YYYY";
         groupCollapsed.put("bank", true);
         groupCollapsed.put("cc", true);
