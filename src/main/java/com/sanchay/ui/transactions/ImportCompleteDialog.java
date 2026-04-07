@@ -1,7 +1,7 @@
 package com.sanchay.ui.transactions;
 
 import com.sanchay.service.ImportService;
-import com.sanchay.service.MoneyFormatter;
+//import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

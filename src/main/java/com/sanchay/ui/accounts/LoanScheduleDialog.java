@@ -6,7 +6,7 @@ import com.sanchay.model.RecurringTransaction;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
-import com.sanchay.service.MoneyFormatter;
+//import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.recurring.AddEditRecurringDialog;
 import javafx.beans.property.SimpleStringProperty;

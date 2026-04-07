@@ -23,8 +23,8 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
+//import javafx.scene.paint.Color;
+//import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 
 /** Transactions screen for viewing and managing transactions for a specific account. */
