@@ -257,8 +257,10 @@ public class FinancialPlanningScreen {
             double toRetire  = Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), retDate) / 365.25);
             double inRetire  = Math.max(0, lifeExp - retireAge);
 
-            yearsToRetireLbl.setText(String.valueOf((int) toRetire));
-            yearsInRetireLbl.setText(String.valueOf((int) inRetire));
+            //yearsToRetireLbl.setText(String.valueOf((int) toRetire));
+            yearsToRetireLbl.setText(String.format("%.2f", toRetire));
+            //yearsInRetireLbl.setText(String.valueOf((int) inRetire));
+            yearsInRetireLbl.setText(String.format("%.2f", inRetire));
             retirementAgeLbl.setText(String.format("%.2f", retireAge));
         }
     }
