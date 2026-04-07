@@ -3,7 +3,7 @@
 # Usage: ./build.sh [maven goals]   e.g.  ./build.sh compile
 #                                         ./build.sh clean package -DskipTests
 #                                         ./build.sh package-dist   ← builds Windows installer
-MVN="/d/Program Files/JetBrains/IntelliJ IDEA 2025.3.3/plugins/maven/lib/maven3/bin/mvn.cmd"
+MVN="/d/Program Files/apache-maven-3.9.14/bin/mvn.cmd"
 REPO="C:/Users/Tharwani/.m2/repository"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
