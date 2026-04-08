@@ -11,7 +11,6 @@ import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PlanParamsService;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -40,11 +39,6 @@ import java.util.List;
  * the computation layer will be wired in a future iteration.
  */
 public class FinancialPlanningScreen {
-
-    private enum ProjectionMode {
-        MINIMUM,
-        ACTUAL
-    }
 
     private ScrollPane view;
     private final Runnable navigateToProfile;
@@ -86,11 +80,7 @@ public class FinancialPlanningScreen {
     // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
     private VBox  corpusCard;
     private long  forecastedCorpusPaise;
-    private TableView<FinancialPlanningCalculator.PostRetirementRow> postRetirementTable;
-    private CheckBox projectionModeSwitch;
-    private Label minimumProjectionLbl;
-    private Label actualProjectionLbl;
-    private ProjectionMode projectionMode = ProjectionMode.MINIMUM;
+    private PostRetirementProjectionPanel postRetirementPanel;
 
     // ── Editable fields ───────────────────────────────────────────────────────
     private DatePicker retirementDatePicker;
@@ -111,6 +101,7 @@ public class FinancialPlanningScreen {
         this.navigateToProfile = navigateToProfile;
         this.majorEventPlanner = new MajorEventPlanner();
         this.planningCalculator = new FinancialPlanningCalculator();
+        this.postRetirementPanel = new PostRetirementProjectionPanel(planningCalculator, this::formatRupees);
         buildView();
     }
 
@@ -552,7 +543,9 @@ public class FinancialPlanningScreen {
     private void refreshComputedSections() {
         corpusBreakdown = planningCalculator.computeCorpusBreakdown();
         refreshEarningsCard();
-        refreshPostRetirementTable();
+        if (postRetirementPanel != null) {
+            postRetirementPanel.updateInputs(params, selfDob, forecastedCorpusPaise);
+        }
     }
 
     // ── Expenses card (Expenses table + Major Events table) ──────────────────
@@ -767,6 +760,10 @@ public class FinancialPlanningScreen {
         if (forecastedCorpusKpiLbl != null)
             forecastedCorpusKpiLbl.setText(UiUtils.formatCorpusDisplay(totalForecasted));
 
+        if (postRetirementPanel != null) {
+            postRetirementPanel.updateInputs(params, selfDob, totalForecasted);
+        }
+
         addTableRow(corpusCard, "PF Balance",            formatRupees(forecastedCorpus.pfBalancePaise()),    false, false);
         addTableRow(corpusCard, "Stocks & MF",           formatRupees(forecastedCorpus.stocksMfPaise()),     false, false);
         addTableRow(corpusCard, "Cash, Bonds, FDs etc.", formatRupees(forecastedCorpus.cashBondsFdsPaise()), false, false);
@@ -802,125 +799,10 @@ public class FinancialPlanningScreen {
     // ── Post-Retirement Projection ────────────────────────────────────────────
 
     private Node buildPostRetirementCard() {
-        minimumProjectionLbl = new Label("Minimum Corpus Projection");
-        minimumProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
-        minimumProjectionLbl.setPrefWidth(210);
-        minimumProjectionLbl.setMinWidth(210);
-        minimumProjectionLbl.setAlignment(Pos.CENTER_RIGHT);
-
-        projectionModeSwitch = new CheckBox();
-        projectionModeSwitch.getStyleClass().add("fp-projection-switch");
-        projectionModeSwitch.setSelected(false);
-        projectionModeSwitch.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            projectionMode = isSelected ? ProjectionMode.ACTUAL : ProjectionMode.MINIMUM;
-            updateProjectionModeHeader();
-            refreshPostRetirementTable();
-        });
-
-        actualProjectionLbl = new Label("Actual Corpus Projection");
-        actualProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
-        actualProjectionLbl.setPrefWidth(190);
-        actualProjectionLbl.setMinWidth(190);
-        actualProjectionLbl.setAlignment(Pos.CENTER_LEFT);
-
-        HBox header = new HBox(10, minimumProjectionLbl, projectionModeSwitch, actualProjectionLbl);
-        header.setAlignment(Pos.CENTER_LEFT);
-        updateProjectionModeHeader();
-
-        postRetirementTable = buildCashFlowTable();
-        refreshPostRetirementTable();
-
-        VBox card = new VBox(12, header, postRetirementTable);
-        card.getStyleClass().add("card");
-        return card;
-    }
-
-    private TableView<FinancialPlanningCalculator.PostRetirementRow> buildCashFlowTable() {
-        TableView<FinancialPlanningCalculator.PostRetirementRow> table = new TableView<>();
-        table.getStyleClass().add("forecast-table");
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setEditable(false);
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> yearCol = new TableColumn<>("Year");
-        yearCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().year())));
-        yearCol.setPrefWidth(70);
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> ageCol = new TableColumn<>("Age");
-        ageCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().age())));
-        ageCol.setPrefWidth(55);
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> balanceCol = new TableColumn<>("Starting Balance");
-        balanceCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().startingBalancePaise())));
-        balanceCol.setPrefWidth(160);
-        balanceCol.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("post-retirement-cf-depleted");
-                if (empty || item == null) { setText(null); return; }
-                setText(item);
-                if (getTableView().getItems().get(getIndex()).startingDepleted())
-                    getStyleClass().add("post-retirement-cf-depleted");
-            }
-        });
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> roiCol = new TableColumn<>("ROI");
-        roiCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().startingDepleted() ? "-" : formatRupees(cd.getValue().roiPaise())));
-        roiCol.setPrefWidth(130);
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> taxCol = new TableColumn<>("Tax");
-        taxCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().startingDepleted() ? "-" : formatRupees(cd.getValue().taxPaise())));
-        taxCol.setPrefWidth(110);
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> withdrawalCol = new TableColumn<>("Withdrawal");
-        withdrawalCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().withdrawalPaise())));
-        withdrawalCol.setPrefWidth(130);
-
-        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> endingBalanceCol = new TableColumn<>("Ending Balance");
-        endingBalanceCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().endingBalancePaise())));
-        endingBalanceCol.setPrefWidth(160);
-        endingBalanceCol.setCellFactory(col -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                getStyleClass().remove("post-retirement-cf-depleted");
-                if (empty || item == null) { setText(null); return; }
-                setText(item);
-                if (getTableView().getItems().get(getIndex()).endingNegative())
-                    getStyleClass().add("post-retirement-cf-depleted");
-            }
-        });
-
-        table.getColumns().addAll(yearCol, ageCol, balanceCol, roiCol, taxCol, withdrawalCol, endingBalanceCol);
-        return table;
-    }
-
-    private List<FinancialPlanningCalculator.PostRetirementRow> computeCashFlowRows() {
-        long balance = projectionMode == ProjectionMode.ACTUAL
-                ? forecastedCorpusPaise
-                : planningCalculator.computeRequiredCorpusPaise(params, selfDob);
-        return planningCalculator.computePostRetirementRows(params, selfDob, balance);
-    }
-
-    private void refreshPostRetirementTable() {
-        if (postRetirementTable == null) return;
-        postRetirementTable.getItems().setAll(computeCashFlowRows());
-        postRetirementTable.refresh();
-    }
-
-    private void updateProjectionModeHeader() {
-        if (minimumProjectionLbl == null || actualProjectionLbl == null) return;
-        boolean minimumActive = projectionMode == ProjectionMode.MINIMUM;
-        minimumProjectionLbl.getStyleClass().remove("fp-projection-mode-label-active");
-        actualProjectionLbl.getStyleClass().remove("fp-projection-mode-label-active");
-        minimumProjectionLbl.getStyleClass().remove("fp-projection-mode-label-inactive");
-        actualProjectionLbl.getStyleClass().remove("fp-projection-mode-label-inactive");
-        minimumProjectionLbl.getStyleClass().add(minimumActive
-                ? "fp-projection-mode-label-active"
-                : "fp-projection-mode-label-inactive");
-        actualProjectionLbl.getStyleClass().add(minimumActive
-                ? "fp-projection-mode-label-inactive"
-                : "fp-projection-mode-label-active");
+        postRetirementPanel = new PostRetirementProjectionPanel(planningCalculator, this::formatRupees);
+        Region panel = postRetirementPanel.build();
+        postRetirementPanel.updateInputs(params, selfDob, forecastedCorpusPaise);
+        return panel;
     }
 
 
