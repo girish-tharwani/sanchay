@@ -23,7 +23,6 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -69,16 +68,12 @@ public class FinancialPlanningScreen {
     private Label forecastedCorpusKpiLbl;
 
     // ── Major Events (live-updatable) ─────────────────────────────────────────
-    private Label majorEventsKpiLbl;
-    private VBox  majorEventsListBox;
-    private Label majorEventsForecastTotalLbl;
-    private Label majorEventsActualTotalLbl;
 
     // ── Expenses card (live-updatable expense rows) ───────────────────────────
-    private VBox expenseRowsContainer;
 
     // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
-    private VBox  corpusCard;
+    private final ExpensesMajorEventsSection expensesMajorEventsSection;
+    private PlanningSectionCard corpusCard;
     private long  forecastedCorpusPaise;
     private PostRetirementProjectionPanel postRetirementPanel;
 
@@ -102,6 +97,14 @@ public class FinancialPlanningScreen {
         this.majorEventPlanner = new MajorEventPlanner();
         this.planningCalculator = new FinancialPlanningCalculator();
         this.postRetirementPanel = new PostRetirementProjectionPanel(planningCalculator, this::formatRupees);
+        this.expensesMajorEventsSection = new ExpensesMajorEventsSection(
+                planningCalculator,
+                majorEventPlanner,
+                this::formatRupees,
+                () -> paramsService.save(params),
+                this::openEditDialog,
+                this::refreshForecastCard
+        );
         buildView();
     }
 
@@ -551,11 +554,11 @@ public class FinancialPlanningScreen {
     // ── Expenses card (Expenses table + Major Events table) ──────────────────
 
     private Region buildExpensesCard() {
-        if (params.majorEvents == null) params.majorEvents = new ArrayList<>();
-
-        VBox card = startSectionCard("Expenses Until Retirement", "#f87171");
+        return expensesMajorEventsSection.build(params, selfDob);
+    }
 
         // ── Expense rows (refreshable sub-container) ──────────────────────────
+    /*
         expenseRowsContainer = new VBox(0);
         card.getChildren().add(expenseRowsContainer);
         populateExpenseRows();
@@ -709,24 +712,26 @@ public class FinancialPlanningScreen {
         return row;
     }
 
+    */
+
     private void openEditDialog(MajorEvent event) {
         MajorEventDialog dlg = new MajorEventDialog(event);
         MajorEventDialog.Outcome outcome = dlg.show();
         if (outcome == MajorEventDialog.Outcome.SAVED) {
             // event was mutated in place by MajorEventDialog.validate()
             paramsService.save(params);
-            refreshMajorEventsList();
+            refreshForecastCard();
         } else if (outcome == MajorEventDialog.Outcome.DELETED) {
             params.majorEvents.remove(event);
             paramsService.save(params);
-            refreshMajorEventsList();
+            refreshForecastCard();
         }
     }
 
 
     // ── Expense rows (refreshable sub-container) ─────────────────────────────
 
-    private void populateExpenseRows() {
+    /* private void populateExpenseRows() {
         if (expenseRowsContainer == null) return;
         expenseRowsContainer.getChildren().clear();
 
@@ -737,20 +742,20 @@ public class FinancialPlanningScreen {
         addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(expenseSummary.costOfLivingPaise()),  false, false);
         addTableRow(expenseRowsContainer, "Major Events",   formatRupees(expenseSummary.majorEventsPaise()),   false, false);
         addTableRow(expenseRowsContainer, "Total Expenses", formatRupees(expenseSummary.totalPaise()),         true,  true);
-    }
+    } */
 
     // ── Forecasted Corpus card ────────────────────────────────────────────────
 
     private Region buildForecastedCorpusCard() {
-        corpusCard = startSectionCard("Forecasted Corpus at Retirement", "#86efac");
+        corpusCard = new PlanningSectionCard("Forecasted Corpus at Retirement", "#86efac");
         populateCorpusCard();
-        return corpusCard;
+        return corpusCard.getRoot();
     }
 
     private void populateCorpusCard() {
         if (corpusCard == null) return;
-        // Keep header+divider (indices 0,1) and replace all content rows
-        corpusCard.getChildren().subList(2, corpusCard.getChildren().size()).clear();
+        VBox corpusBody = corpusCard.getBody();
+        corpusBody.getChildren().clear();
 
         FinancialPlanningCalculator.ForecastedCorpusBreakdown forecastedCorpus =
                 planningCalculator.computeForecastedCorpusBreakdown(params, selfDob, corpusBreakdown, futureEarnings);
@@ -764,10 +769,10 @@ public class FinancialPlanningScreen {
             postRetirementPanel.updateInputs(params, selfDob, totalForecasted);
         }
 
-        addTableRow(corpusCard, "PF Balance",            formatRupees(forecastedCorpus.pfBalancePaise()),    false, false);
-        addTableRow(corpusCard, "Stocks & MF",           formatRupees(forecastedCorpus.stocksMfPaise()),     false, false);
-        addTableRow(corpusCard, "Cash, Bonds, FDs etc.", formatRupees(forecastedCorpus.cashBondsFdsPaise()), false, false);
-        addTableRow(corpusCard, "Total Forecasted Corpus",
+        addTableRow(corpusBody, "PF Balance",            formatRupees(forecastedCorpus.pfBalancePaise()),    false, false);
+        addTableRow(corpusBody, "Stocks & MF",           formatRupees(forecastedCorpus.stocksMfPaise()),     false, false);
+        addTableRow(corpusBody, "Cash, Bonds, FDs etc.", formatRupees(forecastedCorpus.cashBondsFdsPaise()), false, false);
+        addTableRow(corpusBody, "Total Forecasted Corpus",
                 formatRupees(totalForecasted), true, totalForecasted < 0);
 
         long requiredCorpus = planningCalculator.computeRequiredCorpusPaise(params, selfDob);
@@ -788,11 +793,11 @@ public class FinancialPlanningScreen {
         pillBox.setAlignment(Pos.CENTER);
         pillBox.setMaxWidth(Double.MAX_VALUE);
         VBox.setMargin(pillBox, new Insets(16, 0, 4, 0));
-        corpusCard.getChildren().add(pillBox);
+        corpusBody.getChildren().add(pillBox);
     }
 
     private void refreshForecastCard() {
-        populateExpenseRows();
+        expensesMajorEventsSection.refresh(params, selfDob);
         populateCorpusCard();
     }
 
