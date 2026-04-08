@@ -1,15 +1,11 @@
 package com.sanchay.ui.planning;
 
-import com.sanchay.model.EarningSource;
 import com.sanchay.model.FamilyMember;
-import com.sanchay.model.InvestmentAccount;
 import com.sanchay.model.MajorEvent;
-import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.PlanParameters;
-import com.sanchay.model.RecurringTransaction;
-import com.sanchay.model.Transaction;
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.FinancialPlanningCalculator;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PlanParamsService;
 import com.sanchay.ui.UiUtils;
@@ -28,10 +24,7 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Financial Planning screen — long-range retirement and wealth projection.
@@ -56,6 +49,7 @@ public class FinancialPlanningScreen {
     private final Runnable navigateToProfile;
 
     private PlanParamsService paramsService;
+    private final FinancialPlanningCalculator planningCalculator;
     private PlanParameters    params;
     private double            currentAgeDecimal;
     private LocalDate         selfDob;
@@ -67,30 +61,10 @@ public class FinancialPlanningScreen {
     private Label retirementAgeLbl;    // also reused in KPI strip
 
     // ── Corpus breakdown (computed once per buildView) ────────────────────────
-    private record CorpusBreakdown(
-            long bankPaise, long equityPaise, long mfPaise,
-            long bondsPaise, long fdPaise, long rdPaise,
-            long pfPaise, long totalPaise) {}
-
-    private CorpusBreakdown corpusBreakdown;
+    private FinancialPlanningCalculator.CorpusBreakdown corpusBreakdown;
 
     // ── Future earnings breakdown (computed once per buildView) ───────────────
-    private record FutureEarningsBreakdown(
-            long postTaxIncomePaise,
-            long pfContribPaise,
-            long gratuityPaise,
-            long pfInterestPaise,
-            long earningsSubtotalPaise,
-            long bondsInterestPaise,
-            long fdInterestPaise,
-            long rdInterestPaise,
-            long realizedRoiSubtotalPaise,
-            long equityApprecPaise,
-            long mfApprecPaise,
-            long unrealizedRoiSubtotalPaise,
-            long totalPaise) {}
-
-    private FutureEarningsBreakdown futureEarnings;
+    private FinancialPlanningCalculator.FutureEarningsBreakdown futureEarnings;
 
     // ── Live-updatable UI handles ─────────────────────────────────────────────
     private Label lastUpdatedLbl;
@@ -110,7 +84,7 @@ public class FinancialPlanningScreen {
     // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
     private VBox  corpusCard;
     private long  forecastedCorpusPaise;
-    private TableView<PostRetirementRow> postRetirementTable;
+    private TableView<FinancialPlanningCalculator.PostRetirementRow> postRetirementTable;
     private CheckBox projectionModeSwitch;
     private Label minimumProjectionLbl;
     private Label actualProjectionLbl;
@@ -133,6 +107,7 @@ public class FinancialPlanningScreen {
 
     public FinancialPlanningScreen(Runnable navigateToProfile) {
         this.navigateToProfile = navigateToProfile;
+        this.planningCalculator = new FinancialPlanningCalculator();
         buildView();
     }
 
@@ -164,8 +139,8 @@ public class FinancialPlanningScreen {
 
         initFields();
         updateDerivedLabels();
-        corpusBreakdown = computeCorpusBreakdown();
-        futureEarnings  = computeFutureEarnings();
+        corpusBreakdown = planningCalculator.computeCorpusBreakdown();
+        futureEarnings  = planningCalculator.computeFutureEarnings(params, selfDob);
 
         VBox content = new VBox(20);
         content.getStyleClass().add("main-panel");
@@ -560,7 +535,7 @@ public class FinancialPlanningScreen {
     }
 
     private void refreshEarningsCard() {
-        futureEarnings = computeFutureEarnings();
+        futureEarnings = planningCalculator.computeFutureEarnings(params, selfDob);
         if (futureEarningsKpiLbl != null)
             futureEarningsKpiLbl.setText(UiUtils.formatCorpusDisplay(futureEarnings.totalPaise()));
         if (earningsCard != null) {
@@ -572,7 +547,7 @@ public class FinancialPlanningScreen {
     }
 
     private void refreshComputedSections() {
-        corpusBreakdown = computeCorpusBreakdown();
+        corpusBreakdown = planningCalculator.computeCorpusBreakdown();
         refreshEarningsCard();
         refreshPostRetirementTable();
     }
@@ -691,24 +666,24 @@ public class FinancialPlanningScreen {
         }
 
         long forecastTotal = params.majorEvents.stream()
-                .mapToLong(this::computeEventForecast).sum();
+                .mapToLong(event -> planningCalculator.computeEventForecast(event, params, selfDob)).sum();
         long actualTotal = params.majorEvents.stream()
-                .mapToLong(this::computeEventActual).sum();
+                .mapToLong(planningCalculator::computeEventActual).sum();
 
         if (majorEventsForecastTotalLbl != null)
             majorEventsForecastTotalLbl.setText(formatRupees(forecastTotal));
         if (majorEventsActualTotalLbl != null)
             majorEventsActualTotalLbl.setText(formatRupees(actualTotal));
         if (majorEventsKpiLbl != null)
-            majorEventsKpiLbl.setText(UiUtils.formatCorpusDisplay(computeMajorEventsKpi()));
+            majorEventsKpiLbl.setText(UiUtils.formatCorpusDisplay(planningCalculator.computeMajorEventsKpi(params, selfDob)));
         // Expense rows include a "Major Events" line driven by computeMajorEventsKpi(); refresh it too
         populateExpenseRows();
         populateCorpusCard();
     }
 
     private HBox createEventRow(MajorEvent event) {
-        long forecast = computeEventForecast(event);
-        long actual   = computeEventActual(event);
+        long forecast = planningCalculator.computeEventForecast(event, params, selfDob);
+        long actual   = planningCalculator.computeEventActual(event);
 
         HBox row = new HBox();
         row.getStyleClass().add("fp-event-row");
@@ -750,79 +725,6 @@ public class FinancialPlanningScreen {
         }
     }
 
-    // ── Major Event computations ──────────────────────────────────────────────
-
-    /**
-     * Total forecasted spend for the event from max(today, startDate) until endDate (or retirement).
-     * ONE_TIME events return their stored amountPaise directly.
-     * RECURRING events multiply amountPaise by the number of occurrences remaining.
-     * If endDate is set on a RECURRING event it is used as-is, even if it extends beyond retirement.
-     */
-    private long computeEventForecast(MajorEvent event) {
-        if (event.getType() == MajorEvent.EventType.ONE_TIME) {
-            return event.getAmountPaise();
-        }
-        // RECURRING — upper bound: endDate if set (even beyond retirement), otherwise retirement date
-        LocalDate upperBound = getRetirementDate();
-        if (event.getEndDate() != null) {
-            try { upperBound = LocalDate.parse(event.getEndDate()); }
-            catch (Exception ignored) {}
-        }
-        LocalDate from = LocalDate.now();
-        if (event.getStartDate() != null) {
-            try {
-                LocalDate sd = LocalDate.parse(event.getStartDate());
-                if (sd.isAfter(from)) from = sd;
-            } catch (Exception ignored) {}
-        }
-        if (!from.isBefore(upperBound)) return 0;
-        long occurrences = switch (event.getFrequency() != null
-                ? event.getFrequency() : MajorEvent.Frequency.MONTHLY) {
-            case MONTHLY   -> java.time.temporal.ChronoUnit.MONTHS.between(from, upperBound);
-            case QUARTERLY -> java.time.temporal.ChronoUnit.MONTHS.between(from, upperBound) / 3;
-            case YEARLY    -> java.time.temporal.ChronoUnit.YEARS.between(from, upperBound);
-        };
-        return Math.max(0, occurrences) * event.getAmountPaise();
-    }
-
-    /**
-     * Cumulative actual spend for the event: sum of EXPENSE transactions matching
-     * the event's category (and sub-category if set) from the event's start date onwards.
-     */
-    private long computeEventActual(MajorEvent event) {
-        if (event.getCategoryId() == null) return 0;
-        LocalDate startDate = null;
-        if (event.getStartDate() != null) {
-            try { startDate = LocalDate.parse(event.getStartDate()); }
-            catch (Exception ignored) {}
-        }
-        final LocalDate from = startDate;
-        return DataStore.getInstance().getTransactions().stream()
-                .filter(t -> t.getType() == Transaction.Type.EXPENSE)
-                .filter(t -> t.getClassification() != null)
-                .filter(t -> event.getCategoryId().equals(t.getClassification().getCategoryId()))
-                .filter(t -> event.getSubCategoryId() == null
-                        || event.getSubCategoryId().equals(t.getClassification().getSubCategoryId()))
-                .filter(t -> from == null || !t.getDate().isBefore(from))
-                .mapToLong(Transaction::getAmountPaise)
-                .sum();
-    }
-
-    /** Net remaining major-events budget: total forecast minus total actual. */
-    private long computeMajorEventsKpi() {
-        if (params == null || params.majorEvents == null) return 0;
-        long forecast = params.majorEvents.stream().mapToLong(this::computeEventForecast).sum();
-        long actual   = params.majorEvents.stream().mapToLong(this::computeEventActual).sum();
-        return Math.max(0, forecast - actual);
-    }
-
-    /** Retirement date derived from plan parameters; never before today. */
-    private LocalDate getRetirementDate() {
-        LocalDate retireDate = (params.retirementDate != null)
-                ? LocalDate.parse(params.retirementDate)
-                : selfDob.plusYears(params.retirementAge);
-        return retireDate.isBefore(LocalDate.now()) ? LocalDate.now() : retireDate;
-    }
 
     // ── Expense rows (refreshable sub-container) ─────────────────────────────
 
@@ -830,25 +732,13 @@ public class FinancialPlanningScreen {
         if (expenseRowsContainer == null) return;
         expenseRowsContainer.getChildren().clear();
 
-        LocalDate retireDate = getRetirementDate();
-        LocalDate today      = LocalDate.now();
-        double yearsToRetire = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
-
-        // Cost of living inflated: sum of growing annuity C × [(1+r)^n − 1] / r
-        double inflationRate = params.inflationPct / 100.0;
-        long costOfLiving = roundUpTo10k((inflationRate == 0 || yearsToRetire <= 0)
-                ? Math.round(params.costOfLivingPaise * yearsToRetire)
-                : Math.round(params.costOfLivingPaise
-                        * (Math.pow(1 + inflationRate, yearsToRetire) - 1) / inflationRate));
-
-        long loanPayments   = roundUpTo10k(computeLoanPayments(retireDate));
-        long majorEventsNet = roundUpTo10k(computeMajorEventsKpi());
-        long totalExpenses  = costOfLiving + loanPayments + majorEventsNet;
+        FinancialPlanningCalculator.ExpenseSummary expenseSummary =
+                planningCalculator.computeExpenseSummary(params, selfDob);
         addTableSubHeader(expenseRowsContainer, "EXPENSES");
-        addTableRow(expenseRowsContainer, "Loan Payments",  formatRupees(loanPayments),   false, false);
-        addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(costOfLiving),   false, false);
-        addTableRow(expenseRowsContainer, "Major Events",   formatRupees(majorEventsNet), false, false);
-        addTableRow(expenseRowsContainer, "Total Expenses", formatRupees(totalExpenses),  true,  true);
+        addTableRow(expenseRowsContainer, "Loan Payments",  formatRupees(expenseSummary.loanPaymentsPaise()),  false, false);
+        addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(expenseSummary.costOfLivingPaise()),  false, false);
+        addTableRow(expenseRowsContainer, "Major Events",   formatRupees(expenseSummary.majorEventsPaise()),   false, false);
+        addTableRow(expenseRowsContainer, "Total Expenses", formatRupees(expenseSummary.totalPaise()),         true,  true);
     }
 
     // ── Forecasted Corpus card ────────────────────────────────────────────────
@@ -864,58 +754,21 @@ public class FinancialPlanningScreen {
         // Keep header+divider (indices 0,1) and replace all content rows
         corpusCard.getChildren().subList(2, corpusCard.getChildren().size()).clear();
 
-        LocalDate retireDate = getRetirementDate();
-        LocalDate today      = LocalDate.now();
-        long totalMonths     = java.time.temporal.ChronoUnit.MONTHS.between(today, retireDate);
-
-        // Recompute total expenses for the corpus net-of-expenses calculation (same rounding as expense card)
-        double yearsToRetire = java.time.temporal.ChronoUnit.DAYS.between(today, retireDate) / 365.25;
-        double inflationRate = params.inflationPct / 100.0;
-        long costOfLiving = roundUpTo10k((inflationRate == 0 || yearsToRetire <= 0)
-                ? Math.round(params.costOfLivingPaise * yearsToRetire)
-                : Math.round(params.costOfLivingPaise
-                        * (Math.pow(1 + inflationRate, yearsToRetire) - 1) / inflationRate));
-        long totalExpenses = costOfLiving
-                + roundUpTo10k(computeLoanPayments(retireDate))
-                + roundUpTo10k(computeMajorEventsKpi());
-
-        long pfBalance = corpusBreakdown.pfPaise()
-                       + futureEarnings.pfContribPaise()
-                       + futureEarnings.pfInterestPaise();
-
-        // equityApprecPaise / mfApprecPaise contain appreciation only (SIP principal was subtracted
-        // during computation); add the SIP principals back here to get the full bucket value.
-        long stocksMf = corpusBreakdown.equityPaise()
-                      + corpusBreakdown.mfPaise()
-                      + futureEarnings.equityApprecPaise()
-                      + params.monthlySipEquityPaise * totalMonths
-                      + futureEarnings.mfApprecPaise()
-                      + params.monthlySipMfPaise * totalMonths;
-
-        long cashBondsFds = corpusBreakdown.bankPaise()
-                          + corpusBreakdown.bondsPaise()
-                          + corpusBreakdown.fdPaise()
-                          + corpusBreakdown.rdPaise()
-                          + futureEarnings.bondsInterestPaise()
-                          + futureEarnings.fdInterestPaise()
-                          + futureEarnings.rdInterestPaise()
-                          + futureEarnings.postTaxIncomePaise()
-                          + futureEarnings.gratuityPaise()
-                          - totalExpenses;
-
-        long totalForecasted = pfBalance + stocksMf + cashBondsFds;
+        FinancialPlanningCalculator.ForecastedCorpusBreakdown forecastedCorpus =
+                planningCalculator.computeForecastedCorpusBreakdown(params, selfDob, corpusBreakdown, futureEarnings);
+        long totalForecasted = forecastedCorpus.totalPaise();
         forecastedCorpusPaise = totalForecasted;
 
         if (forecastedCorpusKpiLbl != null)
             forecastedCorpusKpiLbl.setText(UiUtils.formatCorpusDisplay(totalForecasted));
 
-        addTableRow(corpusCard, "PF Balance",            formatRupees(pfBalance),    false, false);
-        addTableRow(corpusCard, "Stocks & MF",           formatRupees(stocksMf),     false, false);
-        addTableRow(corpusCard, "Cash, Bonds, FDs etc.", formatRupees(cashBondsFds), false, false);
+        addTableRow(corpusCard, "PF Balance",            formatRupees(forecastedCorpus.pfBalancePaise()),    false, false);
+        addTableRow(corpusCard, "Stocks & MF",           formatRupees(forecastedCorpus.stocksMfPaise()),     false, false);
+        addTableRow(corpusCard, "Cash, Bonds, FDs etc.", formatRupees(forecastedCorpus.cashBondsFdsPaise()), false, false);
         addTableRow(corpusCard, "Total Forecasted Corpus",
                 formatRupees(totalForecasted), true, totalForecasted < 0);
 
-        long requiredCorpus = computeRequiredCorpusPaise();
+        long requiredCorpus = planningCalculator.computeRequiredCorpusPaise(params, selfDob);
         long delta          = totalForecasted - requiredCorpus;
         boolean isShortfall = delta < 0;
 
@@ -941,23 +794,7 @@ public class FinancialPlanningScreen {
         populateCorpusCard();
     }
 
-    /** Sum of all remaining LOAN_PAYMENT recurring instalment amounts until {@code retireDate}. */
-    private long computeLoanPayments(LocalDate retireDate) {
-        long total = 0;
-        for (RecurringTransaction rt : DataStore.getInstance().getRecurring()) {
-            if (rt.getTransactionType() != Transaction.Type.LOAN_PAYMENT) continue;
-            long occ = countOccurrences(rt, retireDate);
-            total += rt.getAmountPaise() * occ;
-        }
-        return total;
-    }
-
     // ── Post-Retirement Projection ────────────────────────────────────────────
-
-    private record PostRetirementRow(
-            int year, int age,
-            long startingBalancePaise, long roiPaise, long taxPaise, long withdrawalPaise,
-            long endingBalancePaise, boolean startingDepleted, boolean endingNegative) {}
 
     private Node buildPostRetirementCard() {
         minimumProjectionLbl = new Label("Minimum Corpus Projection");
@@ -993,21 +830,21 @@ public class FinancialPlanningScreen {
         return card;
     }
 
-    private TableView<PostRetirementRow> buildCashFlowTable() {
-        TableView<PostRetirementRow> table = new TableView<>();
+    private TableView<FinancialPlanningCalculator.PostRetirementRow> buildCashFlowTable() {
+        TableView<FinancialPlanningCalculator.PostRetirementRow> table = new TableView<>();
         table.getStyleClass().add("forecast-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setEditable(false);
 
-        TableColumn<PostRetirementRow, String> yearCol = new TableColumn<>("Year");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> yearCol = new TableColumn<>("Year");
         yearCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().year())));
         yearCol.setPrefWidth(70);
 
-        TableColumn<PostRetirementRow, String> ageCol = new TableColumn<>("Age");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> ageCol = new TableColumn<>("Age");
         ageCol.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().age())));
         ageCol.setPrefWidth(55);
 
-        TableColumn<PostRetirementRow, String> balanceCol = new TableColumn<>("Starting Balance");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> balanceCol = new TableColumn<>("Starting Balance");
         balanceCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().startingBalancePaise())));
         balanceCol.setPrefWidth(160);
         balanceCol.setCellFactory(col -> new TableCell<>() {
@@ -1021,21 +858,21 @@ public class FinancialPlanningScreen {
             }
         });
 
-        TableColumn<PostRetirementRow, String> roiCol = new TableColumn<>("ROI");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> roiCol = new TableColumn<>("ROI");
         roiCol.setCellValueFactory(cd -> new SimpleStringProperty(
                 cd.getValue().startingDepleted() ? "-" : formatRupees(cd.getValue().roiPaise())));
         roiCol.setPrefWidth(130);
 
-        TableColumn<PostRetirementRow, String> taxCol = new TableColumn<>("Tax");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> taxCol = new TableColumn<>("Tax");
         taxCol.setCellValueFactory(cd -> new SimpleStringProperty(
                 cd.getValue().startingDepleted() ? "-" : formatRupees(cd.getValue().taxPaise())));
         taxCol.setPrefWidth(110);
 
-        TableColumn<PostRetirementRow, String> withdrawalCol = new TableColumn<>("Withdrawal");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> withdrawalCol = new TableColumn<>("Withdrawal");
         withdrawalCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().withdrawalPaise())));
         withdrawalCol.setPrefWidth(130);
 
-        TableColumn<PostRetirementRow, String> endingBalanceCol = new TableColumn<>("Ending Balance");
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> endingBalanceCol = new TableColumn<>("Ending Balance");
         endingBalanceCol.setCellValueFactory(cd -> new SimpleStringProperty(formatRupees(cd.getValue().endingBalancePaise())));
         endingBalanceCol.setPrefWidth(160);
         endingBalanceCol.setCellFactory(col -> new TableCell<>() {
@@ -1053,48 +890,11 @@ public class FinancialPlanningScreen {
         return table;
     }
 
-    private List<PostRetirementRow> computeCashFlowRows() {
-        LocalDate retireDate   = getRetirementDate();
-        int retirementYear     = retireDate.getYear();
-        int retirementAge      = getRetirementAgeYears();
-        int lifeExpectancy     = params.lifeExpectancy;
-        double ror             = params.rorPostRetirePct / 100.0;
-        double taxRate         = params.postRetireTaxPct / 100.0;
-        double inflationRate   = params.inflationPct / 100.0;
-
-        // costOfLivingPaise is today's value — inflate it to the first year of retirement
-        double yearsToRetire = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
-        double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
-
-        List<PostRetirementRow> rows = new ArrayList<>();
+    private List<FinancialPlanningCalculator.PostRetirementRow> computeCashFlowRows() {
         long balance = projectionMode == ProjectionMode.ACTUAL
                 ? forecastedCorpusPaise
-                : roundUpTo1Lakh(computeRequiredCorpusPaise());
-
-        int totalYears = lifeExpectancy - retirementAge;
-        for (int i = 0; i < totalYears; i++) {
-            int year = retirementYear + i;
-            int age  = retirementAge + i;
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
-
-            if (balance > 0) {
-                long postWithdrawalBalance = balance - withdrawal;
-                long roi = roundDownTo10k(Math.round(Math.max(0, postWithdrawalBalance) * ror));
-                long tax = roundUpTo10k(Math.round(roi * taxRate));
-                long endingBalance = postWithdrawalBalance + roi - tax;
-                rows.add(new PostRetirementRow(
-                        year, age, balance, roi, tax, withdrawal,
-                        endingBalance, false, endingBalance < 0));
-                balance = endingBalance;
-            } else {
-                long endingBalance = balance - withdrawal;
-                rows.add(new PostRetirementRow(
-                        year, age, balance, 0, 0, withdrawal,
-                        endingBalance, true, endingBalance < 0));
-                balance = endingBalance;
-            }
-        }
-        return rows;
+                : planningCalculator.computeRequiredCorpusPaise(params, selfDob);
+        return planningCalculator.computePostRetirementRows(params, selfDob, balance);
     }
 
     private void refreshPostRetirementTable() {
@@ -1256,306 +1056,6 @@ public class FinancialPlanningScreen {
         return fld;
     }
 
-    // ── Corpus computation ────────────────────────────────────────────────────
-
-    private CorpusBreakdown computeCorpusBreakdown() {
-        DataStore ds = DataStore.getInstance();
-        LocalDate today = LocalDate.now();
-        final long ROUND = 1_000_000L; // 10,000 rupees in paise
-
-        long bank = Math.floorDiv(
-                ds.getTotalBankBalancePaise() - ds.getTotalCreditCardOutstandingPaise(), ROUND) * ROUND;
-
-        long equity = 0, mf = 0, bonds = 0, fd = 0, rd = 0, pf = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
-            long value;
-            switch (ia.getInvestmentType()) {
-                case EQUITY -> {
-                    MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
-                    value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
-                                       : ds.getInvestedPaiseAsOf(ia, today);
-                    equity += Math.floorDiv(value, ROUND) * ROUND;
-                }
-                case MUTUAL_FUNDS -> {
-                    MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
-                    value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
-                                       : ds.getInvestedPaiseAsOf(ia, today);
-                    mf += Math.floorDiv(value, ROUND) * ROUND;
-                }
-                case DEBT_BONDS        -> bonds += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
-                case FIXED_DEPOSIT     -> fd    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
-                case RECURRING_DEPOSIT -> rd    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
-                case PROVIDENT_FUND    -> pf    += Math.floorDiv(ds.getInvestedPaiseAsOf(ia, today), ROUND) * ROUND;
-            }
-        }
-
-        return new CorpusBreakdown(bank, equity, mf, bonds, fd, rd, pf,
-                bank + equity + mf + bonds + fd + rd + pf);
-    }
-
-    // ── Future earnings computation ───────────────────────────────────────────
-
-    private FutureEarningsBreakdown computeFutureEarnings() {
-        DataStore ds         = DataStore.getInstance();
-        LocalDate today      = LocalDate.now();
-        LocalDate retireDate = (params.retirementDate != null)
-                ? LocalDate.parse(params.retirementDate)
-                : selfDob.plusYears(params.retirementAge);   // fallback for legacy data
-        if (retireDate.isBefore(today)) retireDate = today;
-        double yearsToRetire  = ChronoUnit.DAYS.between(today, retireDate) / 365.25;
-        long   totalMonths    = ChronoUnit.MONTHS.between(today, retireDate);
-        final long ROUND      = 1_000_000L;
-
-        // ── Post-tax Income ───────────────────────────────────────────────────
-        Set<String> earningSchedIds = collectEarningScheduleIds(ds);
-        long postTaxIncome = 0;
-        for (RecurringTransaction rt : ds.getRecurring()) {
-            if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
-            long occ = countOccurrences(rt, retireDate);
-            if (occ <= 0) continue;
-            long perOcc = earningSchedIds.contains(rt.getId())
-                    ? rt.getAmountPaise()
-                    : Math.round(rt.getAmountPaise() * (1.0 - params.preRetireTaxPct / 100.0));
-            postTaxIncome += perOcc * occ;
-        }
-
-        // ── PF Contributions ──────────────────────────────────────────────────
-        long pfContrib        = 0;
-        long monthlyPfDeposit = 0;
-        for (FamilyMember m : ds.getFamilyMembers()) {
-            if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
-            for (EarningSource es : m.getEarningSources()) {
-                if (es.getType() != FamilyMember.EarningType.SALARY) continue;
-                if (es.getPfScheduleId() == null) continue;
-                RecurringTransaction pfSched = ds.getRecurring().stream()
-                        .filter(r -> es.getPfScheduleId().equals(r.getId()))
-                        .findFirst().orElse(null);
-                if (pfSched == null || pfSched.getAmountPaise() <= 0) continue;
-                long occ = countOccurrences(pfSched, retireDate);
-                pfContrib        += pfSched.getAmountPaise() * occ;
-                monthlyPfDeposit += pfSched.getAmountPaise(); // PF schedules are monthly
-            }
-        }
-
-        // ── Gratuity ──────────────────────────────────────────────────────────
-        long gratuity = 0;
-        if (params.employmentStartDate != null) {
-            try {
-                LocalDate empStart   = LocalDate.parse(params.employmentStartDate);
-                long serviceYears    = ChronoUnit.YEARS.between(empStart, retireDate);
-                if (serviceYears > 0) {
-                    for (FamilyMember m : ds.getFamilyMembers()) {
-                        if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
-                        for (EarningSource es : m.getEarningSources()) {
-                            if (es.getType() != FamilyMember.EarningType.SALARY) continue;
-                            if (!es.isGratuityEnabled()) continue;
-                            long monthlyBasic = es.getBasicDaPaise() / 12;
-                            long g = Math.round(monthlyBasic * 15.0 * serviceYears / 26.0);
-                            gratuity += Math.min(g, 200_000_000L); // capped at ₹20 lakh in paise
-                        }
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
-
-        // ── PF Interest (month-by-month simulation) ───────────────────────────
-        long pfBalance = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND)
-                pfBalance += ds.getInvestedPaiseAsOf(ia, today);
-        }
-        long pfStartBalance  = pfBalance;
-        double pfMonthlyRate = params.rorPfPct / 100.0 / 12.0;
-        for (long mo = 0; mo < totalMonths; mo++) {
-            pfBalance += Math.round(pfBalance * pfMonthlyRate); // interest first
-            pfBalance += monthlyPfDeposit;                       // then deposit
-        }
-        long pfInterest = Math.max(0, pfBalance - pfStartBalance - (monthlyPfDeposit * totalMonths));
-
-        // ── Bonds Interest ────────────────────────────────────────────────────
-        long bondsInterest = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.DEBT_BONDS) continue;
-            // Maturity gain from INVESTMENT transactions
-            for (Transaction t : ds.getTransactions()) {
-                if (t.getType() != Transaction.Type.INVESTMENT) continue;
-                if (!ia.getId().equals(t.getToAccountId())) continue;
-                if (t.getInvestmentDetails() == null) continue;
-                Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
-                if (fd == null || fd.getMaturityAmountPaise() == null) continue;
-                if (fd.getMaturityDate() != null && fd.getMaturityDate().isAfter(retireDate)) continue;
-                bondsInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
-            }
-            // Interest income recurring schedules directed to this account
-            for (RecurringTransaction rt : ds.getRecurring()) {
-                if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
-                if (!ia.getId().equals(rt.getToAccountId())) continue;
-                bondsInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
-            }
-        }
-
-        // ── FD Interest ───────────────────────────────────────────────────────
-        // Collect FD ref numbers that have already been redeemed
-        Set<String> redeemedFdRefs = ds.getTransactions().stream()
-                .filter(tx -> tx.getRedeemDetails() != null
-                        && tx.getRedeemDetails().getOrgnlFDRef() != null)
-                .map(tx -> tx.getRedeemDetails().getOrgnlFDRef())
-                .collect(Collectors.toSet());
-
-        long fdInterest = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.FIXED_DEPOSIT) continue;
-            // Maturity gain from INVESTMENT transactions
-            for (Transaction t : ds.getTransactions()) {
-                if (t.getType() != Transaction.Type.INVESTMENT) continue;
-                if (!ia.getId().equals(t.getToAccountId())) continue;
-                if (t.getInvestmentDetails() == null) continue;
-                Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
-                if (fd == null || fd.getMaturityAmountPaise() == null) continue;
-                // Skip if this FD has already been redeemed
-                if (fd.getRef() != null && redeemedFdRefs.contains(fd.getRef())) continue;
-                fdInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
-            }
-            // Interest income recurring schedules directed to this account
-            for (RecurringTransaction rt : ds.getRecurring()) {
-                if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
-                if (!ia.getId().equals(rt.getToAccountId())) continue;
-                fdInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
-            }
-        }
-        // Apply pre-retirement tax rate to FD interest (taxable as income)
-        fdInterest = Math.round(fdInterest * (1.0 - params.preRetireTaxPct / 100.0));
-
-        // ── RD Interest ───────────────────────────────────────────────────────
-        // ── RD Interest ───────────────────────────────────────────────────────
-        Set<String> rdAccountIds = ds.getInvestmentAccounts().stream()
-                .filter(ia -> ia.getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT
-                        && ia.getInvestmentStatus() != InvestmentAccount.InvestmentStatus.REDEEMED)
-                .map(InvestmentAccount::getId)
-                .collect(Collectors.toSet());
-
-        long rdInterest = 0;
-        for (RecurringTransaction rt : ds.getRecurring()) {
-            if (rt.getTransactionType() != Transaction.Type.INVESTMENT) continue;
-            if (!rdAccountIds.contains(rt.getToAccountId())) continue;
-            if (rt.getRdMaturityAmountPaise() <= 0) continue;
-            long numPayments;
-            if (rt.getNumberOfPayments() != null && rt.getNumberOfPayments() > 0) {
-                numPayments = rt.getNumberOfPayments();
-            } else if (rt.getStartDate() != null && rt.getMaturityDate() != null) {
-                numPayments = ChronoUnit.MONTHS.between(rt.getStartDate(), rt.getMaturityDate());
-            } else {
-                continue; // cannot determine principal without payment count
-            }
-            long totalPrincipal = numPayments * rt.getAmountPaise();
-            rdInterest += Math.max(0, rt.getRdMaturityAmountPaise() - totalPrincipal);
-        }
-        // Apply pre-retirement tax rate to RD interest (taxable as income)
-        rdInterest = Math.round(rdInterest * (1.0 - params.preRetireTaxPct / 100.0));
-
-        // ── Equity Future Value ───────────────────────────────────────────────
-        long equityPv = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.EQUITY) continue;
-            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
-            MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
-            equityPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
-        }
-        double equityRate = params.rorEquitiesPct / 100.0;
-        long equityApprec = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
-                + computeSipFv(params.monthlySipEquityPaise, equityRate, totalMonths)
-                - equityPv
-                - params.monthlySipEquityPaise * totalMonths;
-
-        // ── MF Future Value ───────────────────────────────────────────────────
-        long mfPv = 0;
-        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
-            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.MUTUAL_FUNDS) continue;
-            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
-            MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
-            mfPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
-        }
-        double mfRate = params.rorMfPct / 100.0;
-        long mfApprec = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
-                + computeSipFv(params.monthlySipMfPaise, mfRate, totalMonths)
-                - mfPv
-                - params.monthlySipMfPaise * totalMonths;
-
-        // ── Round and assemble ────────────────────────────────────────────────
-        long rIncome    = floorRound(postTaxIncome,              ROUND);
-        long rPfContrib = floorRound(pfContrib,                  ROUND);
-        long rGratuity  = floorRound(gratuity,                   ROUND);
-        long rPfInt     = floorRound(pfInterest,                 ROUND);
-        long rBondsInt  = floorRound(Math.max(0, bondsInterest), ROUND);
-        long rFdInt     = floorRound(Math.max(0, fdInterest),    ROUND);
-        long rRdInt     = floorRound(Math.max(0, rdInterest),    ROUND);
-        long rEquityApprec  = floorRound(Math.max(0, equityApprec),      ROUND);
-        long rMfApprec      = floorRound(Math.max(0, mfApprec),          ROUND);
-
-        long earnSub     = rIncome + rPfContrib + rGratuity + rPfInt;
-        long realizedSub = rBondsInt + rFdInt + rRdInt;
-        long unrlzdSub   = rEquityApprec + rMfApprec;
-        long total       = earnSub + realizedSub + unrlzdSub;
-
-        return new FutureEarningsBreakdown(
-                rIncome, rPfContrib, rGratuity, rPfInt, earnSub,
-                rBondsInt, rFdInt, rRdInt, realizedSub,
-                rEquityApprec, rMfApprec, unrlzdSub, total);
-    }
-
-    private Set<String> collectEarningScheduleIds(DataStore ds) {
-        Set<String> ids = new HashSet<>();
-        for (FamilyMember m : ds.getFamilyMembers()) {
-            if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
-            for (EarningSource es : m.getEarningSources()) {
-                if (es.getRecurringScheduleId() != null)
-                    ids.add(es.getRecurringScheduleId());
-            }
-        }
-        return ids;
-    }
-
-    /**
-     * Counts future occurrences of a recurring schedule from today until {@code until}.
-     * Respects endDate, numberOfPayments, and active status.
-     */
-    private long countOccurrences(RecurringTransaction rt, LocalDate until) {
-        if (rt.getStatus() != RecurringTransaction.Status.ACTIVE) return 0;
-        if (rt.getAmountPaise() <= 0) return 0;
-        LocalDate from          = LocalDate.now();
-        LocalDate effectiveEnd  = (rt.getEndDate() != null && rt.getEndDate().isBefore(until))
-                                  ? rt.getEndDate() : until;
-        if (from.isAfter(effectiveEnd)) return 0;
-        long count = switch (rt.getFrequency()) {
-            case MONTHLY        -> ChronoUnit.MONTHS.between(from, effectiveEnd);
-            case QUARTERLY      -> ChronoUnit.MONTHS.between(from, effectiveEnd) / 3;
-            case HALF_YEARLY    -> ChronoUnit.MONTHS.between(from, effectiveEnd) / 6;
-            case ANNUALLY       -> ChronoUnit.YEARS.between(from, effectiveEnd);
-            case ALTERNATE_YEAR -> ChronoUnit.YEARS.between(from, effectiveEnd) / 2;
-        };
-        if (rt.getNumberOfPayments() != null) {
-            long remaining = Math.max(0L, rt.getNumberOfPayments() - rt.getPaymentsMade());
-            count = Math.min(count, remaining);
-        }
-        return Math.max(0, count);
-    }
-
-    /** Future value of a monthly SIP annuity: FV = PMT × [(1+r)^n − 1] / r */
-    private long computeSipFv(long monthlyPaise, double annualRate, long months) {
-        if (monthlyPaise <= 0 || months <= 0) return 0;
-        double r = annualRate / 12.0;
-        if (r == 0) return monthlyPaise * months;
-        return Math.round(monthlyPaise * (Math.pow(1 + r, months) - 1) / r);
-    }
-
-    private long floorRound(long value, long unit) {
-        return Math.floorDiv(value, unit) * unit;
-    }
-
-    /** Formats a paise value as a human-readable corpus amount: ₹3.40 Cr, ₹50 Lakh, etc. */
-    // ── Format / parse helpers ────────────────────────────────────────────────
-
     private String formatPct(double pct) {
         return (pct == Math.floor(pct))
                 ? String.format("%.0f%%", pct)
@@ -1566,89 +1066,6 @@ public class FinancialPlanningScreen {
         return MoneyFormatter.formatNoDecimal(paise);
     }
 
-    /** Ceiling to the nearest ₹10,000 (= 1,000,000 paise). Zero stays zero. */
-    private static long roundUpTo10k(long paise) {
-        if (paise <= 0) return 0;
-        final long UNIT = 1_000_000L; // ₹10,000 in paise
-        return ((paise + UNIT - 1) / UNIT) * UNIT;
-    }
-
-    /** Floor to the nearest ₹10,000 (= 1,000,000 paise). Zero stays zero. */
-    private static long roundDownTo10k(long paise) {
-        if (paise <= 0) return 0;
-        final long UNIT = 1_000_000L; // ₹10,000 in paise
-        return (paise / UNIT) * UNIT;
-    }
-
-    /**
-     * Reverse-calculates the corpus required at retirement so that inflation-growing
-     * withdrawals are fully funded through life expectancy.
-     *
-     * Required corpus = PV of all annual withdrawals discounted at the net-of-tax
-     * post-retirement RoR:
-     *   PV = colAtRetirement × Σ(i=0..n-1) [ ((1+g)/(1+r_net))^i ]
-     * where g = inflationRate, r_net = rorPostRetire × (1 − taxRate).
-     */
-    private static long roundUpTo1Lakh(long paise) {
-        if (paise <= 0) return 0;
-        final long UNIT = 10_000_000L; // â‚¹1,00,000 in paise
-        return ((paise + UNIT - 1) / UNIT) * UNIT;
-    }
-
-    private long computeRequiredCorpusPaise() {
-        LocalDate retireDate   = getRetirementDate();
-        int retirementAge      = getRetirementAgeYears();
-        int totalYears         = params.lifeExpectancy - retirementAge;
-        if (totalYears <= 0) return 0;
-
-        long low = 0;
-        long high = Math.max(1, roundUpTo1Lakh(params.costOfLivingPaise * totalYears));
-        while (!sustainsPostRetirement(high)) {
-            low = high;
-            if (high > Long.MAX_VALUE / 2) return high;
-            high = Math.max(high + 1, high * 2);
-        }
-
-        while (low + 1 < high) {
-            long mid = low + (high - low) / 2;
-            if (sustainsPostRetirement(mid)) {
-                high = mid;
-            } else {
-                low = mid;
-            }
-        }
-        return high;
-    }
-
-    private int getRetirementAgeYears() {
-        LocalDate retireDate = getRetirementDate();
-        return (int) Math.round(ChronoUnit.DAYS.between(selfDob, retireDate) / 365.25);
-    }
-
-    private boolean sustainsPostRetirement(long startingBalancePaise) {
-        LocalDate retireDate   = getRetirementDate();
-        int retirementAge      = getRetirementAgeYears();
-        int totalYears         = params.lifeExpectancy - retirementAge;
-        if (totalYears <= 0) return true;
-
-        double ror             = params.rorPostRetirePct / 100.0;
-        double taxRate         = params.postRetireTaxPct / 100.0;
-        double inflationRate   = params.inflationPct / 100.0;
-        double yearsToRetire   = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
-        double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
-
-        long balance = startingBalancePaise;
-        for (int i = 0; i < totalYears; i++) {
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
-            if (balance < withdrawal) return false;
-
-            long postWithdrawalBalance = balance - withdrawal;
-            long roi = roundDownTo10k(Math.round(postWithdrawalBalance * ror));
-            long tax = roundUpTo10k(Math.round(roi * taxRate));
-            balance = postWithdrawalBalance + roi - tax;
-        }
-        return true;
-    }
 
     private int parseIntSafe(String text, int fallback) {
         try { return Integer.parseInt(text.trim()); }
