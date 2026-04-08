@@ -73,7 +73,7 @@ public class FinancialPlanningScreen {
 
     // ── Forecasted Corpus card (live-updatable) ───────────────────────────────
     private final ExpensesMajorEventsSection expensesMajorEventsSection;
-    private PlanningSectionCard corpusCard;
+    private final ForecastedCorpusSection forecastedCorpusSection;
     private long  forecastedCorpusPaise;
     private PostRetirementProjectionPanel postRetirementPanel;
 
@@ -104,6 +104,16 @@ public class FinancialPlanningScreen {
                 () -> paramsService.save(params),
                 this::openEditDialog,
                 this::refreshForecastCard
+        );
+        this.forecastedCorpusSection = new ForecastedCorpusSection(
+                planningCalculator,
+                this::formatRupees,
+                total -> {
+                    forecastedCorpusPaise = total;
+                    if (postRetirementPanel != null) {
+                        postRetirementPanel.updateInputs(params, selfDob, total);
+                    }
+                }
         );
         buildView();
     }
@@ -559,6 +569,7 @@ public class FinancialPlanningScreen {
 
         // ── Expense rows (refreshable sub-container) ──────────────────────────
     /*
+    Legacy in-class expenses/major-events implementation removed after extraction.
         expenseRowsContainer = new VBox(0);
         card.getChildren().add(expenseRowsContainer);
         populateExpenseRows();
@@ -747,53 +758,18 @@ public class FinancialPlanningScreen {
     // ── Forecasted Corpus card ────────────────────────────────────────────────
 
     private Region buildForecastedCorpusCard() {
-        corpusCard = new PlanningSectionCard("Forecasted Corpus at Retirement", "#86efac");
-        populateCorpusCard();
-        return corpusCard.getRoot();
+        Region card = forecastedCorpusSection.build();
+        refreshForecastCard();
+        return card;
     }
 
     private void populateCorpusCard() {
-        if (corpusCard == null) return;
-        VBox corpusBody = corpusCard.getBody();
-        corpusBody.getChildren().clear();
-
-        FinancialPlanningCalculator.ForecastedCorpusBreakdown forecastedCorpus =
-                planningCalculator.computeForecastedCorpusBreakdown(params, selfDob, corpusBreakdown, futureEarnings);
-        long totalForecasted = forecastedCorpus.totalPaise();
-        forecastedCorpusPaise = totalForecasted;
-
-        if (forecastedCorpusKpiLbl != null)
-            forecastedCorpusKpiLbl.setText(UiUtils.formatCorpusDisplay(totalForecasted));
-
-        if (postRetirementPanel != null) {
-            postRetirementPanel.updateInputs(params, selfDob, totalForecasted);
-        }
-
-        addTableRow(corpusBody, "PF Balance",            formatRupees(forecastedCorpus.pfBalancePaise()),    false, false);
-        addTableRow(corpusBody, "Stocks & MF",           formatRupees(forecastedCorpus.stocksMfPaise()),     false, false);
-        addTableRow(corpusBody, "Cash, Bonds, FDs etc.", formatRupees(forecastedCorpus.cashBondsFdsPaise()), false, false);
-        addTableRow(corpusBody, "Total Forecasted Corpus",
-                formatRupees(totalForecasted), true, totalForecasted < 0);
-
-        long requiredCorpus = planningCalculator.computeRequiredCorpusPaise(params, selfDob);
-        long delta          = totalForecasted - requiredCorpus;
-        boolean isShortfall = delta < 0;
-
-        Label kindLbl = new Label(isShortfall
-                ? "Projected Shortfall vs Required Corpus"
-                : "Projected Surplus vs Required Corpus");
-        kindLbl.getStyleClass().add("fp-corpus-pill-kind");
-
-        Label amountLbl = new Label(UiUtils.formatCorpusDisplay(Math.abs(delta)));
-        amountLbl.getStyleClass().add("fp-corpus-pill-amount");
-
-        VBox pillBox = new VBox(4, kindLbl, amountLbl);
-        pillBox.getStyleClass().addAll("fp-corpus-pill",
-                isShortfall ? "fp-corpus-pill-shortfall" : "fp-corpus-pill-excess");
-        pillBox.setAlignment(Pos.CENTER);
-        pillBox.setMaxWidth(Double.MAX_VALUE);
-        VBox.setMargin(pillBox, new Insets(16, 0, 4, 0));
-        corpusBody.getChildren().add(pillBox);
+        forecastedCorpusSection.refresh(
+                corpusBreakdown,
+                futureEarnings,
+                new ForecastedCorpusSection.PlanInputs(params, selfDob),
+                forecastedCorpusKpiLbl
+        );
     }
 
     private void refreshForecastCard() {
