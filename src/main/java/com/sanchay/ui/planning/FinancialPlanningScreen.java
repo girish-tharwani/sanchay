@@ -6,6 +6,7 @@ import com.sanchay.model.PlanParameters;
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.FinancialPlanningCalculator;
+import com.sanchay.service.MajorEventPlanner;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PlanParamsService;
 import com.sanchay.ui.UiUtils;
@@ -50,6 +51,7 @@ public class FinancialPlanningScreen {
 
     private PlanParamsService paramsService;
     private final FinancialPlanningCalculator planningCalculator;
+    private final MajorEventPlanner majorEventPlanner;
     private PlanParameters    params;
     private double            currentAgeDecimal;
     private LocalDate         selfDob;
@@ -107,6 +109,7 @@ public class FinancialPlanningScreen {
 
     public FinancialPlanningScreen(Runnable navigateToProfile) {
         this.navigateToProfile = navigateToProfile;
+        this.majorEventPlanner = new MajorEventPlanner();
         this.planningCalculator = new FinancialPlanningCalculator();
         buildView();
     }
@@ -666,9 +669,10 @@ public class FinancialPlanningScreen {
         }
 
         long forecastTotal = params.majorEvents.stream()
-                .mapToLong(event -> planningCalculator.computeEventForecast(event, params, selfDob)).sum();
+                .mapToLong(event -> majorEventPlanner.computeEventForecast(event,
+                        planningCalculator.getRetirementDate(params, selfDob))).sum();
         long actualTotal = params.majorEvents.stream()
-                .mapToLong(planningCalculator::computeEventActual).sum();
+                .mapToLong(majorEventPlanner::computeEventActual).sum();
 
         if (majorEventsForecastTotalLbl != null)
             majorEventsForecastTotalLbl.setText(formatRupees(forecastTotal));
@@ -682,8 +686,9 @@ public class FinancialPlanningScreen {
     }
 
     private HBox createEventRow(MajorEvent event) {
-        long forecast = planningCalculator.computeEventForecast(event, params, selfDob);
-        long actual   = planningCalculator.computeEventActual(event);
+        long forecast = majorEventPlanner.computeEventForecast(event,
+                planningCalculator.getRetirementDate(params, selfDob));
+        long actual   = majorEventPlanner.computeEventActual(event);
 
         HBox row = new HBox();
         row.getStyleClass().add("fp-event-row");

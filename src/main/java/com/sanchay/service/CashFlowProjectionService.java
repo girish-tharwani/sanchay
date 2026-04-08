@@ -557,20 +557,26 @@ public class CashFlowProjectionService {
         if (rt.getStartDate() == null) return List.of();
 
         List<LocalDate> result = new ArrayList<>();
-        LocalDate cursor = rt.getStartDate();
-        int count = 0;
+        LocalDate cursor = rt.getLastRecordedDate() != null
+                ? advance(rt.getLastRecordedDate(), rt.getFrequency())
+                : rt.getStartDate();
+        int generated = rt.getPaymentsMade();
+        Integer numberOfPayments = rt.getNumberOfPayments();
+
+        if (numberOfPayments != null && generated >= numberOfPayments) return List.of();
 
         while (!cursor.isAfter(rangeEnd)) {
             int       day        = Math.min(rt.getDueDayOfMonth(), cursor.lengthOfMonth());
             LocalDate occurrence = cursor.withDayOfMonth(day);
 
+            if (rt.getEndDate() != null && occurrence.isAfter(rt.getEndDate())) break;
+
             if (!occurrence.isBefore(rangeStart) && !occurrence.isAfter(rangeEnd)) {
                 result.add(occurrence);
             }
 
-            count++;
-            if (rt.getNumberOfPayments() != null && count >= rt.getNumberOfPayments()) break;
-            if (rt.getEndDate() != null && cursor.isAfter(rt.getEndDate())) break;
+            generated++;
+            if (numberOfPayments != null && generated >= numberOfPayments) break;
 
             cursor = advance(cursor, rt.getFrequency());
         }
