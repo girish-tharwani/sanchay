@@ -56,14 +56,13 @@ public class FinancialPlanningScreen {
     private Label retirementAgeLbl;    // also reused in KPI strip
 
     // ── Corpus breakdown (computed once per buildView) ────────────────────────
-    private FinancialPlanningCalculator.CorpusBreakdown corpusBreakdown;
 
     // ── Future earnings breakdown (computed once per buildView) ───────────────
-    private FinancialPlanningCalculator.FutureEarningsBreakdown futureEarnings;
+    private PlanningSnapshot planningSnapshot;
 
     // ── Live-updatable UI handles ─────────────────────────────────────────────
     private Label lastUpdatedLbl;
-    private VBox  earningsCard;
+    private final FutureEarningsSection futureEarningsSection;
     private Label futureEarningsKpiLbl;
     private Label forecastedCorpusKpiLbl;
 
@@ -105,6 +104,7 @@ public class FinancialPlanningScreen {
                 this::openEditDialog,
                 this::refreshForecastCard
         );
+        this.futureEarningsSection = new FutureEarningsSection(this::formatRupees);
         this.forecastedCorpusSection = new ForecastedCorpusSection(
                 planningCalculator,
                 this::formatRupees,
@@ -146,8 +146,7 @@ public class FinancialPlanningScreen {
 
         initFields();
         updateDerivedLabels();
-        corpusBreakdown = planningCalculator.computeCorpusBreakdown();
-        futureEarnings  = planningCalculator.computeFutureEarnings(params, selfDob);
+        planningSnapshot = computePlanningSnapshot();
 
         VBox content = new VBox(20);
         content.getStyleClass().add("main-panel");
@@ -342,9 +341,9 @@ public class FinancialPlanningScreen {
         col.setPercentWidth(33.33);
         grid.getColumnConstraints().addAll(col, copy(col), copy(col));
 
-        grid.add(kpiCard("Current Corpus", UiUtils.formatCorpusDisplay(corpusBreakdown.totalPaise()), "-brand-mid", false, false), 0, 0);
+        grid.add(kpiCard("Current Corpus", UiUtils.formatCorpusDisplay(planningSnapshot.corpusBreakdown().totalPaise()), "-brand-mid", false, false), 0, 0);
 
-        futureEarningsKpiLbl = new Label(UiUtils.formatCorpusDisplay(futureEarnings.totalPaise()));
+        futureEarningsKpiLbl = new Label(UiUtils.formatCorpusDisplay(planningSnapshot.futureEarnings().totalPaise()));
         futureEarningsKpiLbl.getStyleClass().add("card-value");
         grid.add(kpiCardWithLabel("Future Earnings", futureEarningsKpiLbl, "-brand-light"), 1, 0);
 
@@ -493,6 +492,7 @@ public class FinancialPlanningScreen {
     private Region buildCorpusCard() {
         VBox card = startSectionCard("Current Corpus", "-brand-mid");
 
+        FinancialPlanningCalculator.CorpusBreakdown corpusBreakdown = planningSnapshot.corpusBreakdown();
         addTableRow(card, "Bank Accounts",      formatRupees(corpusBreakdown.bankPaise()),   false, false);
         addTableRow(card, "Equities",           formatRupees(corpusBreakdown.equityPaise()), false, false);
         addTableRow(card, "Mutual Funds",       formatRupees(corpusBreakdown.mfPaise()),     false, false);
@@ -516,49 +516,14 @@ public class FinancialPlanningScreen {
     // ── Future Earnings ───────────────────────────────────────────────────────
 
     private Region buildEarningsCard() {
-        earningsCard = startSectionCard("Future Earnings", "-brand-accent");
-        populateEarningsCard(earningsCard);
-        return earningsCard;
+        Region card = futureEarningsSection.build();
+        futureEarningsSection.refresh(planningSnapshot.futureEarnings(), futureEarningsKpiLbl);
+        return card;
     }
 
-    private void populateEarningsCard(VBox card) {
-        addTableSubHeader(card, "Earnings");
-        addTableRow(card, "Post-tax Income",        formatRupees(futureEarnings.postTaxIncomePaise()), false, false);
-        addTableRow(card, "PF Contributions",       formatRupees(futureEarnings.pfContribPaise()),     false, false);
-        addTableRow(card, "Gratuity at Retirement", formatRupees(futureEarnings.gratuityPaise()),      false, false);
-        addTableRow(card, "PF Interest",            formatRupees(futureEarnings.pfInterestPaise()),    false, false);
-        addTableRow(card, "Subtotal – Earnings",    formatRupees(futureEarnings.earningsSubtotalPaise()), true, false);
-
-        addTableSubHeader(card, "Realized ROI");
-        addTableRow(card, "Bonds Interest", formatRupees(futureEarnings.bondsInterestPaise()), false, false);
-        addTableRow(card, "FDs Interest",   formatRupees(futureEarnings.fdInterestPaise()),    false, false);
-        addTableRow(card, "RDs Interest",   formatRupees(futureEarnings.rdInterestPaise()),    false, false);
-        addTableRow(card, "Total Realized ROI", formatRupees(futureEarnings.realizedRoiSubtotalPaise()), true, false);
-
-        addTableSubHeader(card, "Unrealized ROI (Appreciation)");
-        addTableRow(card, "Equity Appreciation", formatRupees(futureEarnings.equityApprecPaise()), false, false);
-        addTableRow(card, "MF Appreciation",     formatRupees(futureEarnings.mfApprecPaise()),     false, false);
-        addTableRow(card, "Total Unrealized ROI", formatRupees(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
-    }
-
-    private void refreshEarningsCard() {
-        futureEarnings = planningCalculator.computeFutureEarnings(params, selfDob);
-        if (futureEarningsKpiLbl != null)
-            futureEarningsKpiLbl.setText(UiUtils.formatCorpusDisplay(futureEarnings.totalPaise()));
-        if (earningsCard != null) {
-            // Keep header+divider (indices 0,1) and replace all content rows
-            earningsCard.getChildren().subList(2, earningsCard.getChildren().size()).clear();
-            populateEarningsCard(earningsCard);
-        }
-        refreshForecastCard();
-    }
 
     private void refreshComputedSections() {
-        corpusBreakdown = planningCalculator.computeCorpusBreakdown();
-        refreshEarningsCard();
-        if (postRetirementPanel != null) {
-            postRetirementPanel.updateInputs(params, selfDob, forecastedCorpusPaise);
-        }
+        applyPlanningSnapshot(computePlanningSnapshot());
     }
 
     // ── Expenses card (Expenses table + Major Events table) ──────────────────
@@ -567,163 +532,6 @@ public class FinancialPlanningScreen {
         return expensesMajorEventsSection.build(params, selfDob);
     }
 
-        // ── Expense rows (refreshable sub-container) ──────────────────────────
-    /*
-    Legacy in-class expenses/major-events implementation removed after extraction.
-        expenseRowsContainer = new VBox(0);
-        card.getChildren().add(expenseRowsContainer);
-        populateExpenseRows();
-
-        Region divider = new Region();
-        divider.getStyleClass().add("content-divider");
-        divider.setMaxWidth(Double.MAX_VALUE);
-        VBox.setMargin(divider, new Insets(12, 0, 10, 0));
-        card.getChildren().add(divider);
-
-        // ── Major Events section ──────────────────────────────────────────────
-        Label eventsTitle = new Label("MAJOR EVENTS");
-        eventsTitle.getStyleClass().add("section-group-label");
-        card.getChildren().add(eventsTitle);
-
-        Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions.");
-        hint.getStyleClass().add("text-hint");
-        hint.setWrapText(true);
-        card.getChildren().add(hint);
-
-        // Column headers — widths must match data row column widths exactly
-        HBox colHeader = new HBox();
-        colHeader.getStyleClass().add("fp-event-col-header");
-        colHeader.setMaxWidth(Double.MAX_VALUE);
-        Label nameHdr = new Label("Event");
-        nameHdr.getStyleClass().add("fp-table-header-label");
-        nameHdr.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(nameHdr, Priority.ALWAYS);
-        Label forecastHdr = new Label("Forecast");
-        forecastHdr.getStyleClass().add("fp-table-header-label");
-        forecastHdr.setPrefWidth(110);
-        forecastHdr.setAlignment(Pos.CENTER_RIGHT);
-        Label actualHdr = new Label("Actual");
-        actualHdr.getStyleClass().add("fp-table-header-label");
-        actualHdr.setPrefWidth(110);
-        actualHdr.setAlignment(Pos.CENTER_RIGHT);
-        colHeader.getChildren().addAll(nameHdr, forecastHdr, actualHdr);
-        card.getChildren().add(colHeader);
-
-        // Dynamic event rows container
-        majorEventsListBox = new VBox();
-        card.getChildren().add(majorEventsListBox);
-
-        // Total row — two live labels for forecast and actual totals
-        HBox totalRow = new HBox();
-        totalRow.getStyleClass().add("fp-events-total-row");
-        VBox.setMargin(totalRow, new Insets(8, 0, 0, 0));
-        Label totalLbl = new Label("Total");
-        totalLbl.getStyleClass().add("fp-table-label-total");
-        totalLbl.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(totalLbl, Priority.ALWAYS);
-        majorEventsForecastTotalLbl = new Label(MoneyFormatter.symbol() + "0");
-        majorEventsForecastTotalLbl.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
-        majorEventsForecastTotalLbl.setPrefWidth(110);
-        majorEventsForecastTotalLbl.setAlignment(Pos.CENTER_RIGHT);
-        majorEventsActualTotalLbl = new Label(MoneyFormatter.symbol() + "0");
-        majorEventsActualTotalLbl.getStyleClass().addAll("fp-table-value", "fp-table-value-total");
-        majorEventsActualTotalLbl.setPrefWidth(110);
-        majorEventsActualTotalLbl.setAlignment(Pos.CENTER_RIGHT);
-        totalRow.getChildren().addAll(totalLbl, majorEventsForecastTotalLbl, majorEventsActualTotalLbl);
-        card.getChildren().add(totalRow);
-
-        card.getChildren().add(UiUtils.hintLabel("Double-click an event to edit"));
-
-        // "Add Major Event" button
-        Button addBtn = new Button("+ Add Major Event");
-        addBtn.getStyleClass().add("btn-gold");
-        addBtn.setOnAction(e -> {
-            MajorEventDialog dlg = new MajorEventDialog(null);
-            if (dlg.show() == MajorEventDialog.Outcome.SAVED) {
-                params.majorEvents.add(dlg.getResult());
-                paramsService.save(params);
-                refreshMajorEventsList();
-            }
-        });
-        HBox btnRow = new HBox(addBtn);
-        btnRow.setAlignment(Pos.CENTER_RIGHT);
-        btnRow.setPadding(new Insets(8, 0, 0, 0));
-        card.getChildren().add(btnRow);
-
-        refreshMajorEventsList();
-        return card;
-    }
-
-    private void refreshMajorEventsList() {
-        if (majorEventsListBox == null) return;
-        if (params.majorEvents == null) params.majorEvents = new ArrayList<>();
-
-        majorEventsListBox.getChildren().clear();
-
-        if (params.majorEvents.isEmpty()) {
-            Label emptyLbl = new Label("No major events added yet.");
-            emptyLbl.getStyleClass().add("text-hint");
-            VBox.setMargin(emptyLbl, new Insets(6, 0, 2, 0));
-            majorEventsListBox.getChildren().add(emptyLbl);
-        } else {
-            for (MajorEvent event : params.majorEvents) {
-                HBox row = createEventRow(event);
-                row.setOnMouseClicked(e -> {
-                    if (e.getClickCount() == 2) openEditDialog(event);
-                });
-                majorEventsListBox.getChildren().add(row);
-            }
-        }
-
-        long forecastTotal = params.majorEvents.stream()
-                .mapToLong(event -> majorEventPlanner.computeEventForecast(event,
-                        planningCalculator.getRetirementDate(params, selfDob))).sum();
-        long actualTotal = params.majorEvents.stream()
-                .mapToLong(majorEventPlanner::computeEventActual).sum();
-
-        if (majorEventsForecastTotalLbl != null)
-            majorEventsForecastTotalLbl.setText(formatRupees(forecastTotal));
-        if (majorEventsActualTotalLbl != null)
-            majorEventsActualTotalLbl.setText(formatRupees(actualTotal));
-        if (majorEventsKpiLbl != null)
-            majorEventsKpiLbl.setText(UiUtils.formatCorpusDisplay(planningCalculator.computeMajorEventsKpi(params, selfDob)));
-        // Expense rows include a "Major Events" line driven by computeMajorEventsKpi(); refresh it too
-        populateExpenseRows();
-        populateCorpusCard();
-    }
-
-    private HBox createEventRow(MajorEvent event) {
-        long forecast = majorEventPlanner.computeEventForecast(event,
-                planningCalculator.getRetirementDate(params, selfDob));
-        long actual   = majorEventPlanner.computeEventActual(event);
-
-        HBox row = new HBox();
-        row.getStyleClass().add("fp-event-row");
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setMaxWidth(Double.MAX_VALUE);
-        row.setCursor(javafx.scene.Cursor.HAND);
-
-        Label nameLbl = new Label(event.getName());
-        nameLbl.getStyleClass().add("fp-event-name");
-        nameLbl.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(nameLbl, Priority.ALWAYS);
-
-        // Fixed column widths must match the column header widths above
-        Label forecastLbl = new Label(formatRupees(forecast));
-        forecastLbl.getStyleClass().add("fp-table-value");
-        forecastLbl.setPrefWidth(110);
-        forecastLbl.setAlignment(Pos.CENTER_RIGHT);
-
-        Label actualLbl = new Label(formatRupees(actual));
-        actualLbl.getStyleClass().add("fp-table-value");
-        actualLbl.setPrefWidth(110);
-        actualLbl.setAlignment(Pos.CENTER_RIGHT);
-
-        row.getChildren().addAll(nameLbl, forecastLbl, actualLbl);
-        return row;
-    }
-
-    */
 
     private void openEditDialog(MajorEvent event) {
         MajorEventDialog dlg = new MajorEventDialog(event);
@@ -740,20 +548,6 @@ public class FinancialPlanningScreen {
     }
 
 
-    // ── Expense rows (refreshable sub-container) ─────────────────────────────
-
-    /* private void populateExpenseRows() {
-        if (expenseRowsContainer == null) return;
-        expenseRowsContainer.getChildren().clear();
-
-        FinancialPlanningCalculator.ExpenseSummary expenseSummary =
-                planningCalculator.computeExpenseSummary(params, selfDob);
-        addTableSubHeader(expenseRowsContainer, "EXPENSES");
-        addTableRow(expenseRowsContainer, "Loan Payments",  formatRupees(expenseSummary.loanPaymentsPaise()),  false, false);
-        addTableRow(expenseRowsContainer, "Cost of Living", formatRupees(expenseSummary.costOfLivingPaise()),  false, false);
-        addTableRow(expenseRowsContainer, "Major Events",   formatRupees(expenseSummary.majorEventsPaise()),   false, false);
-        addTableRow(expenseRowsContainer, "Total Expenses", formatRupees(expenseSummary.totalPaise()),         true,  true);
-    } */
 
     // ── Forecasted Corpus card ────────────────────────────────────────────────
 
@@ -763,10 +557,29 @@ public class FinancialPlanningScreen {
         return card;
     }
 
+    private PlanningSnapshot computePlanningSnapshot() {
+        return new PlanningSnapshot(
+                planningCalculator.computeCorpusBreakdown(),
+                planningCalculator.computeFutureEarnings(params, selfDob)
+        );
+    }
+
+    private void applyPlanningSnapshot(PlanningSnapshot snapshot) {
+        planningSnapshot = snapshot;
+        futureEarningsSection.refresh(snapshot.futureEarnings(), futureEarningsKpiLbl);
+        forecastedCorpusSection.refresh(
+                snapshot.corpusBreakdown(),
+                snapshot.futureEarnings(),
+                new ForecastedCorpusSection.PlanInputs(params, selfDob),
+                forecastedCorpusKpiLbl
+        );
+        expensesMajorEventsSection.refresh(params, selfDob);
+    }
+
     private void populateCorpusCard() {
         forecastedCorpusSection.refresh(
-                corpusBreakdown,
-                futureEarnings,
+                planningSnapshot.corpusBreakdown(),
+                planningSnapshot.futureEarnings(),
                 new ForecastedCorpusSection.PlanInputs(params, selfDob),
                 forecastedCorpusKpiLbl
         );
@@ -971,4 +784,9 @@ public class FinancialPlanningScreen {
         dlg.showAndWait();
         navigateToProfile.run();
     }
+
+    private record PlanningSnapshot(
+            FinancialPlanningCalculator.CorpusBreakdown corpusBreakdown,
+            FinancialPlanningCalculator.FutureEarningsBreakdown futureEarnings
+    ) {}
 }
