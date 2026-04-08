@@ -363,10 +363,12 @@ class InvestmentPanel {
                 String rdRef = invRdRefCb != null ? invRdRefCb.getValue() : null;
                 if (rdRef == null || rdRef.isBlank())
                     throw new IllegalArgumentException("Please select an RD reference number.");
-                StringBuilder sb = new StringBuilder();
-                parent.appendNote(sb, "RD Ref", rdRef);
-                if (userNotes != null) sb.append("Notes: ").append(userNotes);
-                t.setNotes(sb.toString().stripTrailing());
+                Transaction.FdDetails fd = new Transaction.FdDetails();
+                fd.setRef(rdRef.trim());
+                Transaction.InvestmentDetails rdInv = new Transaction.InvestmentDetails();
+                rdInv.setFd(fd);
+                t.setInvestmentDetails(rdInv);
+                t.setNotes(userNotes);
             }
             default -> t.setNotes(userNotes);
         }
@@ -418,13 +420,14 @@ class InvestmentPanel {
                         }
                         case RECURRING_DEPOSIT -> {
                             if (invRdRefCb != null) {
-                                String rdRef = parent.parseNote(t.getNotes(), "RD Ref");
+                                Transaction.FdDetails fd = t.getInvestmentDetails() != null
+                                        ? t.getInvestmentDetails().getFd() : null;
+                                String rdRef = fd != null ? fd.getRef() : null;
                                 if (rdRef != null) invRdRefCb.setValue(rdRef);
                                 invRdRefCb.setDisable(true);
                                 invRdRefCb.getStyleClass().add("combo-locked");
                             }
-                            String userNotes = parent.parseNote(t.getNotes(), "Notes");
-                            parent.sharedNotes.setText(userNotes != null ? userNotes : "");
+                            parent.sharedNotes.setText(t.getNotes() != null ? t.getNotes() : "");
                         }
                         default -> {}
                     }

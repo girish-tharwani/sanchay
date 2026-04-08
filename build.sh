@@ -1,5 +1,5 @@
 /#!/usr/bin/env bash
-# Wrapper around IntelliJ's bundled Maven.
+# Wrapper around Maven.
 # Usage: ./build.sh [maven goals]   e.g.  ./build.sh compile
 #                                         ./build.sh clean package -DskipTests
 #                                         ./build.sh package-dist   ← builds Windows installer

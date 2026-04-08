@@ -146,10 +146,15 @@ public class RecordRecurringDialog {
                 t.setClassification(cl);
             }
             t.setRecurring(new Transaction.Recurring(r.getId()));
-            // For RD investment schedules, copy the RD Ref into the transaction notes
+            // For RD investment schedules, store the RD reference in investment details.
             String rdRef = r.getRdRef();
-            if (rdRef != null && !rdRef.isBlank())
-                t.setNotes("RD Ref: " + rdRef);
+            if (rdRef != null && !rdRef.isBlank()) {
+                Transaction.FdDetails fd = new Transaction.FdDetails();
+                fd.setRef(rdRef.trim());
+                Transaction.InvestmentDetails rdInv = new Transaction.InvestmentDetails();
+                rdInv.setFd(fd);
+                t.setInvestmentDetails(rdInv);
+            }
             ds.addTransaction(t);
             r.incrementPaymentsMade();
             r.markRecorded(txDate);

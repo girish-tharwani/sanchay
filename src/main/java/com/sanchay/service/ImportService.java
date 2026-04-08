@@ -481,15 +481,17 @@ public class ImportService {
         if (recurring.getTransactionType() != null)
             imported.setType(recurring.getTransactionType());
 
-        // For RD schedules: copy RD Ref from the recurring schedule into the transaction notes
+        // For RD schedules: store the RD reference in investment details.
         String rdRef = recurring.getRdRef();
         if (rdRef != null && !rdRef.isBlank()) {
-            String existing = imported.getNotes();
-            String rdNote = "RD Ref: " + rdRef;
-            if (existing == null || existing.isBlank())
-                imported.setNotes(rdNote);
-            else if (!existing.contains(rdNote))
-                imported.setNotes(existing + " | " + rdNote);
+            if (imported.getInvestmentDetails() == null)
+                imported.setInvestmentDetails(new Transaction.InvestmentDetails());
+            Transaction.FdDetails fd = imported.getInvestmentDetails().getFd();
+            if (fd == null) {
+                fd = new Transaction.FdDetails();
+                imported.getInvestmentDetails().setFd(fd);
+            }
+            fd.setRef(rdRef.trim());
         }
 
         imported.setRecurring(new Transaction.Recurring(recurring.getId()));
