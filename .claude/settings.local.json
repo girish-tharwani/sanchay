@@ -50,7 +50,8 @@
       "Bash(grep -E \"^\\\\s*\\(public|private|protected\\).*\\\\{$\" -A 3)",
       "Bash(grep:*)",
       "Bash(sed:*)",
-      "Bash(mvn compiler:compile -q)"
+      "Bash(mvn compiler:compile -q)",
+      "Bash(git -C D:/Projects/sanchay diff --stat)"
     ]
   },
   "enabledPlugins": {

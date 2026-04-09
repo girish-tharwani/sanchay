@@ -40,6 +40,7 @@ CHANGELOG_v1.1.9.md
 *.iws
 *.ipr
 out/
+.vscode/
 
 # Maven
 target/
