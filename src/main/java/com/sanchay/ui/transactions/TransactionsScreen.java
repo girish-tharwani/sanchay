@@ -23,8 +23,6 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
-//import javafx.scene.paint.Color;
-//import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 
 /** Transactions screen for viewing and managing transactions for a specific account. */
@@ -196,8 +194,6 @@ public class TransactionsScreen {
         search.setMaxWidth(Double.MAX_VALUE);
 
         DataStore ds = DataStore.getInstance();
-        //DatePicker fromPicker = new DatePicker(ds.getActiveFYStart());
-        //DatePicker toPicker   = new DatePicker(ds.getActiveFYEnd());
         // Get today's date
         LocalDate today = LocalDate.now();
 
@@ -321,13 +317,6 @@ public class TransactionsScreen {
             String name = ds.getAccountName(secondId);
             return "—".equals(name) ? "" : name;
         });
-        TableColumn<Transaction, String> catCol  = col("Category", 100,
-                t -> ds.getCategoryName(t.getClassification() != null
-                        ? t.getClassification().getCategoryId() : null));
-        TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
-                t -> ds.getCategoryName(t.getClassification() != null
-                        ? t.getClassification().getSubCategoryId() : null));
-
         // ── Account-type-specific columns (replace Category/Sub-category) ────────
         List<TableColumn<Transaction, ?>> specialtyCols = buildSpecialtyCols(account, ds);
 
@@ -708,31 +697,6 @@ public class TransactionsScreen {
     private boolean isForAccount(Transaction t, Account acc) {
         String id = acc.getId();
         return id.equals(t.getFromAccountId()) || id.equals(t.getToAccountId());
-    }
-
-    private long computeRunningBalance(BankAccount ba) {
-        long balance = ba.getOpeningBalancePaise();
-        for (Transaction t : DataStore.getInstance().getTransactions()) {
-            if (ba.getId().equals(t.getFromAccountId())) balance -= t.getAmountPaise();
-            if (ba.getId().equals(t.getToAccountId()))   balance += t.getAmountPaise();
-        }
-        return balance;
-    }
-
-    private Map<String, Long> buildRunningBalanceMap(BankAccount ba) {
-        Map<String, Long> map = new LinkedHashMap<>();
-        long balance = ba.getOpeningBalancePaise();
-        List<Transaction> sorted = DataStore.getInstance().getTransactions().stream()
-                .filter(t -> ba.getId().equals(t.getFromAccountId())
-                        || ba.getId().equals(t.getToAccountId()))
-                .sorted(Comparator.comparing(Transaction::getDate))
-                .collect(Collectors.toList());
-        for (Transaction t : sorted) {
-            if (ba.getId().equals(t.getFromAccountId())) balance -= t.getAmountPaise();
-            if (ba.getId().equals(t.getToAccountId()))   balance += t.getAmountPaise();
-            map.put(t.getId(), balance);
-        }
-        return map;
     }
 
     private VBox ccStat(String label, String value, String colour) {

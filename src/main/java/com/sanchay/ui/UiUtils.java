@@ -25,7 +25,6 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-//import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
@@ -194,7 +193,7 @@ public final class UiUtils {
 
     private static HBox stepRowPadded(String number, String title, TextFlow desc) {
         HBox row = buildStep(number, title, desc);
-        row.setPadding(new javafx.geometry.Insets(16, 0, 16, 0));
+        row.setPadding(new javafx.geometry.Insets(16, 0, 16, 12));
         return row;
     }
 

@@ -1,11 +1,6 @@
 package com.sanchay.service;
 
 import com.sanchay.model.*;
-//import com.sanchay.service.AmortizationService;
-//import com.sanchay.model.BankAccount.SubType;
-//import com.sanchay.model.InvestmentAccount.InvestmentType;
-//import com.sanchay.model.LoanAccount.LoanType;
-//import com.sanchay.model.RecurringTransaction.Frequency;
 import com.sanchay.model.Transaction.Type;
 
 import java.time.LocalDate;
@@ -29,7 +24,6 @@ public class DataStore {
     private final Map<String, List<AmortizationEntry>> loanSchedules  = new HashMap<>();
     private final List<MarketValueEntry>               marketValues   = new ArrayList<>();
 
-    //private String activeFinancialYear = "FY 2025-26";
     private String dateFormat = "DD/MM/YYYY";
     private String currency   = "INR";
     private String yearFormat = "Indian Financial Year";
@@ -64,7 +58,6 @@ public class DataStore {
         typeRules.clear();
         loanSchedules.clear();
         marketValues.clear();
-        //activeFinancialYear = "FY 2025-26";
         dateFormat  = "DD/MM/YYYY";
         currency    = "INR";
         yearFormat  = "Indian Financial Year";

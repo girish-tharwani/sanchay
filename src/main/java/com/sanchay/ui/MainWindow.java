@@ -282,7 +282,7 @@ public class MainWindow {
                 yield settingsScreen.getView();
             }
             case "Help" -> {
-                if (helpScreen == null) helpScreen = new HelpScreen(this);
+                if (helpScreen == null) helpScreen = new HelpScreen();
                 yield helpScreen.getView();
             }
             default -> new Label("Screen not found: " + screen);

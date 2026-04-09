@@ -49,7 +49,9 @@
       "Bash(grep -rE \"^\\\\s*\\\\}\\\\s*$\" \"D:\\\\Projects\\\\sanchay\\\\src\\\\main\\\\java\\\\com\\\\sanchay\" --include=\"*.java\" -B 3)",
       "Bash(grep -E \"^\\\\s*\\(public|private|protected\\).*\\\\{$\" -A 3)",
       "Bash(grep:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(mvn compiler:compile -q)",
+      "Bash(git -C D:/Projects/sanchay diff --stat)"
     ]
   },
   "enabledPlugins": {

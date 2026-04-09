@@ -26,7 +26,7 @@ public class MarketValueHistoryDialog extends Dialog<Void> {
         DateTimeFormatter fmt = ds.getDateFormatter();
 
         TableView<MarketValueEntry> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         table.setPrefHeight(360);
         table.setPlaceholder(new Label("No market value entries recorded yet."));
 
