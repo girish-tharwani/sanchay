@@ -23,8 +23,6 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
-//import javafx.scene.paint.Color;
-//import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 
 /** Transactions screen for viewing and managing transactions for a specific account. */
@@ -196,8 +194,6 @@ public class TransactionsScreen {
         search.setMaxWidth(Double.MAX_VALUE);
 
         DataStore ds = DataStore.getInstance();
-        //DatePicker fromPicker = new DatePicker(ds.getActiveFYStart());
-        //DatePicker toPicker   = new DatePicker(ds.getActiveFYEnd());
         // Get today's date
         LocalDate today = LocalDate.now();
 

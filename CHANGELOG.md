@@ -1,3 +1,8 @@
+## v0.0.5-Finch — 2026-04-09
+
+### Changed
+- Removed commented-out dead code across DataStore, PersistenceService, UiUtils, TransactionsScreen, FinancialPlanningScreen
+
 ## v0.0.4-Finch — 2026-04-09
 
 ### Changed

@@ -84,8 +84,6 @@ public class PersistenceService {
         try {
             AppSettings s = GSON.fromJson(readFile(p), AppSettings.class);
             if (s != null) {
-                //if (s.activeFinancialYear != null)
-                //    store.setActiveFinancialYearInternal(s.activeFinancialYear);
                 if (s.dateFormat != null)
                     store.setDateFormatInternal(s.dateFormat);
                 if (s.currency != null)
@@ -318,7 +316,6 @@ public class PersistenceService {
 
     public void saveSettings(DataStore store) {
         AppSettings s = new AppSettings();
-        //s.activeFinancialYear    = store.getActiveFinancialYear();
         s.dateFormat             = store.getDateFormat();
         s.currency               = store.getCurrency();
         s.yearFormat             = store.getYearFormat();
