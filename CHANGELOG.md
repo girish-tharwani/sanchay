@@ -1,3 +1,7 @@
+## v1.0.0-Finch — 2026-04-09
+
+baseline for release
+
 ## v0.0.6-Finch — 2026-04-09
 
 ### Added

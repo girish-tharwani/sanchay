@@ -73,7 +73,7 @@ Replace `YYYY-MM-DD` with today's date.
 Stage all modified files and commit. The commit message format is `Rel <Suffix>-v<MAJOR.MINOR.PATCH>` — e.g. for `v0.1.3-Finch` the message is `Rel Finch-v0.1.3`.
 
 ```bash
-git add pom.xml dependency-reduced-pom.xml README.md CHANGELOG.md
+git add -A
 git commit -m "Rel <Suffix>-v<MAJOR.MINOR.PATCH>"
 git push origin dev/<Suffix>
 ```
