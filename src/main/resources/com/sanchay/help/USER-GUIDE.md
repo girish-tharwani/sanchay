@@ -560,12 +560,6 @@ For specific months where you know the forecast will be wrong (e.g. a holiday mo
 
 Go to **Financial Plan**. This screen models your long-term wealth trajectory toward retirement.
 
-The **KPI cards** at the top show:
-- Current Age (from your "Self" member's date of birth)
-- Years to Retirement / Years in Retirement
-- Retirement Age (from plan parameters)
-- Projected Future Earnings and Forecasted Corpus
-
 ### 11.1 Plan Parameters
 
 Click directly on any field to edit it and click **Recalculate** button.
@@ -613,6 +607,102 @@ Major events are significant one-time or recurring expenses you want to plan for
 As you record transactions that match the event's category over time, the **Actual** column updates automatically — so you can track forecast vs. reality.
 
 **Edit or delete:** Double-click an event row, or select it and click **Edit**. In edit mode, a **Delete** button (red) appears.
+
+### 11.3 How the Numbers Are Calculated
+
+This section explains each computed field shown on the Financial Planning screen.
+
+#### Derived Time Fields
+
+These update live whenever you change the Retirement Date or Life Expectancy.
+
+| Field | Formula |
+|---|---|
+| **Current Age** | Exact fractional age from "Self" member's date of birth to today (years + months/12) |
+| **Retirement Age** | Days between date of birth and retirement date ÷ 365.25 |
+| **Years to Retirement** | Days between today and retirement date ÷ 365.25 (minimum 0) |
+| **Years in Retirement** | Life Expectancy − Retirement Age (minimum 0) |
+
+#### Current Corpus
+
+A snapshot of your wealth today, rounded down to the nearest ₹10,000.
+
+| Line | Source |
+|---|---|
+| **Bank Accounts** | Sum of all bank account balances minus total credit card outstanding |
+| **Equities** | 90% of latest recorded market value (or invested amount if no market value recorded) |
+| **Mutual Funds** | 90% of latest recorded market value (or invested amount if no market value recorded) |
+| **Bonds** | Invested amount as of today |
+| **Fixed Deposits** | Invested amount as of today |
+| **Recurring Deposits** | Invested amount as of today |
+| **Provident Fund** | Account balance as of today |
+| **Total** | Sum of all the above |
+
+The 10% haircut on equities and MFs is a conservative buffer for market fluctuation.
+
+#### Future Earnings
+
+Projected money you will receive between today and retirement, grouped into three subtotals.
+
+**Earnings (salary, PF, gratuity)**
+
+- **Post-Tax Income** — every active INCOME recurring schedule is counted for its remaining occurrences up to the retirement date. Schedules linked to a family member's earning profile are included at full value; all other income schedules have the pre-retirement tax rate deducted.
+- **PF Contributions** — future employer/employee PF deposits from salary earning sources, counted occurrence-by-occurrence to retirement.
+- **Gratuity** — computed as `(Monthly Basic+DA ÷ 12) × 15 × Service Years ÷ 26` for each salary source with gratuity enabled, capped at ₹20 lakh per the statutory limit. Service years are from Employment Start Date to retirement date.
+- **PF Interest** — the current PF balance is compounded monthly at the PF rate of return, with monthly deposits added each month; the interest is the final balance minus starting balance minus total deposits.
+
+**Realized Returns (interest already locked in)**
+
+- **Bond Interest** — for each active bond account, the difference between the maturity amount and invested amount across all INVESTMENT transactions that mature before retirement, plus income from any linked recurring schedules. Already-redeemed FD references are excluded.
+- **FD Interest** — same approach as bonds; the resulting interest amount is then reduced by the pre-retirement tax rate.
+- **RD Interest** — for each active RD schedule, `Maturity Amount − (Number of payments × Monthly instalment)`. Taxed at the pre-retirement tax rate.
+
+**Unrealized Returns (projected appreciation)**
+
+- **Equity Appreciation** — current market value grows at the equity RoR compounded annually to retirement; SIP contributions grow using the SIP future value formula (`SIP × ((1+r)^n − 1) / r`); the appreciation is the final projected value minus starting value minus total SIP principal invested.
+- **MF Appreciation** — identical approach using the MF RoR and monthly MF SIP.
+
+All subtotals are floored to the nearest ₹10,000.
+
+#### Expenses Before Retirement
+
+Pre-retirement outflows deducted when building the Forecasted Corpus.
+
+| Line | Calculation |
+|---|---|
+| **Loan Payments** | Sum of all LOAN_PAYMENT recurring schedules counted occurrence-by-occurrence to retirement, rounded up to ₹10,000 |
+| **Cost of Living** | Current annual CoL grown by inflation for each of the years to retirement using the geometric-series formula: `CoL × ((1+i)^n − 1) / i`. If inflation is zero it simplifies to `CoL × n` |
+| **Major Events** | Net present cost of all major events falling before retirement (see §11.2) |
+
+#### Forecasted Retirement Corpus
+
+Your expected wealth at retirement, split into three buckets.
+
+| Bucket | Contents |
+|---|---|
+| **Provident Fund** | Current PF balance + future PF contributions + PF interest earned before retirement |
+| **Stocks & MF** | Current equity + MF corpus (at 90% market value) + equity/MF appreciation + all SIP principal invested before retirement |
+| **Cash, Bonds & FDs** | Current bank + bonds + FD + RD balances + bond/FD/RD interest + post-tax salary income + gratuity − total pre-retirement expenses |
+
+**Total = PF + Stocks & MF + Cash, Bonds & FDs**
+
+A negative Cash bucket means your projected expenses outpace the cash-side earnings; the total corpus can still be positive if the other buckets are large enough.
+
+#### Post-Retirement Projection
+
+A year-by-year table from retirement until life expectancy.
+
+Each year follows this sequence:
+
+1. **Withdrawal** = cost of living at retirement inflated further by `i^year` (inflation compounding each year in retirement) + any loan payments still due that year, both rounded up to ₹10,000.
+2. If the starting balance is still positive, **ROI** = `(Balance − Withdrawal) × post-retire RoR`, rounded down to ₹10,000. **Tax** = ROI × post-retire tax rate, rounded up to ₹10,000.
+3. **Ending Balance** = Starting Balance − Withdrawal + ROI − Tax.
+
+A row is highlighted when the balance turns negative — this is the "corpus depletion" point.
+
+#### Required Corpus
+
+The minimum retirement corpus needed to sustain withdrawals through life expectancy. Calculated by binary search: Sanchay finds the smallest starting balance for which the post-retirement simulation never goes negative before life expectancy.
 
 ---
 

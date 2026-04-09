@@ -177,15 +177,23 @@ public class FinancialPlanningCalculator {
         }
         long pfInterest = Math.max(0, pfBalance - pfStartBalance - (monthlyPfDeposit * totalMonths));
 
+        Set<String> redeemedFdRefs = ds.getTransactions().stream()
+                .filter(tx -> tx.getRedeemDetails() != null
+                        && tx.getRedeemDetails().getOrgnlFDRef() != null)
+                .map(tx -> tx.getRedeemDetails().getOrgnlFDRef())
+                .collect(Collectors.toSet());
+
         long bondsInterest = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
             if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.DEBT_BONDS) continue;
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
             for (Transaction t : ds.getTransactions()) {
                 if (t.getType() != Transaction.Type.INVESTMENT) continue;
                 if (!ia.getId().equals(t.getToAccountId())) continue;
                 if (t.getInvestmentDetails() == null) continue;
                 Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
                 if (fd == null || fd.getMaturityAmountPaise() == null) continue;
+                if (fd.getRef() != null && redeemedFdRefs.contains(fd.getRef())) continue;
                 if (fd.getMaturityDate() != null && fd.getMaturityDate().isAfter(retireDate)) continue;
                 bondsInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
             }
@@ -195,12 +203,6 @@ public class FinancialPlanningCalculator {
                 bondsInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
             }
         }
-
-        Set<String> redeemedFdRefs = ds.getTransactions().stream()
-                .filter(tx -> tx.getRedeemDetails() != null
-                        && tx.getRedeemDetails().getOrgnlFDRef() != null)
-                .map(tx -> tx.getRedeemDetails().getOrgnlFDRef())
-                .collect(Collectors.toSet());
 
         long fdInterest = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
@@ -394,13 +396,15 @@ public class FinancialPlanningCalculator {
         double inflationRate = params.inflationPct / 100.0;
         double yearsToRetire = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
         double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
+        long[] annualLoanPayments = computeAnnualPostRetirementLoanPayments(retireDate, totalYears);
 
         List<PostRetirementRow> rows = new ArrayList<>();
         long balance = startingBalancePaise;
         for (int i = 0; i < totalYears; i++) {
             int year = retirementYear + i;
             int age = retirementAge + i;
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)))
+                    + roundUpTo10k(annualLoanPayments[i]);
 
             if (balance > 0) {
                 long postWithdrawalBalance = balance - withdrawal;
@@ -420,6 +424,20 @@ public class FinancialPlanningCalculator {
             }
         }
         return rows;
+    }
+
+    private long[] computeAnnualPostRetirementLoanPayments(LocalDate retireDate, int totalYears) {
+        long[] annual = new long[totalYears];
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getTransactionType() != Transaction.Type.LOAN_PAYMENT) continue;
+            for (int i = 0; i < totalYears; i++) {
+                LocalDate yearStart = retireDate.plusYears(i);
+                LocalDate yearEnd = retireDate.plusYears(i + 1).minusDays(1);
+                List<LocalDate> occurrences = getOccurrencesInRange(rt, yearStart, yearEnd);
+                annual[i] += rt.getAmountPaise() * occurrences.size();
+            }
+        }
+        return annual;
     }
 
     public LocalDate getRetirementDate(PlanParameters params, LocalDate selfDob) {
@@ -446,10 +464,12 @@ public class FinancialPlanningCalculator {
         double inflationRate = params.inflationPct / 100.0;
         double yearsToRetire = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
         double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
+        long[] annualLoanPayments = computeAnnualPostRetirementLoanPayments(retireDate, totalYears);
 
         long balance = startingBalancePaise;
         for (int i = 0; i < totalYears; i++) {
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)));
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)))
+                    + roundUpTo10k(annualLoanPayments[i]);
             if (balance < withdrawal) return false;
 
             long postWithdrawalBalance = balance - withdrawal;

@@ -15,7 +15,7 @@ Read the current version from `pom.xml`. It follows `MAJOR.MINOR.PATCH-SUFFIX`.
 
 Set the new version in `pom.xml`:
 ```xml
-<version>0.0.2-Barbet</version>
+<version>0.0.2-Civet</version>
 ```
 
 ## Step 3 — Update CHANGELOG.md
@@ -44,7 +44,7 @@ Review both files and update them with new information to align with the changes
 Use the new version string as the commit message.
 ```bash
 git add -A
-git commit -m "v0.0.2-Barbet"
+git commit -m "v0.0.2-Civet"
 git push
 ```
 
