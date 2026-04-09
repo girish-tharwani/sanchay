@@ -14,7 +14,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Help &amp; Support screen — dismissable setup banner + full rendered user guide.
+ * Help &amp; Support screen — About card + full rendered user guide.
  *
  * Layout note: WebView must NOT be placed inside a ScrollPane. JavaFX's ScrollPane
  * applies an internal CacheFilter to its viewport, and compositing a WebView through
@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
  */
 public class HelpScreen {
 
-    private boolean bannerDismissed = false;
     private VBox view;
 
     public HelpScreen() {
@@ -44,10 +43,6 @@ public class HelpScreen {
         title.getStyleClass().add("screen-title");
         view.getChildren().add(title);
 
-        if (!bannerDismissed) {
-            view.getChildren().add(buildGetStartedCard());
-        }
-
         view.getChildren().add(buildAboutSection());
 
         VBox guideSection = buildGuideSection();
@@ -55,37 +50,23 @@ public class HelpScreen {
         view.getChildren().add(guideSection);
     }
 
-    // ── Get Started banner ────────────────────────────────────────────────────
+    // ── Quick Start dialog ────────────────────────────────────────────────────
 
-    private VBox buildGetStartedCard() {
-        VBox card = new VBox(16);
-        card.getStyleClass().add("card-welcome");
-
-        HBox heading = new HBox(10);
-        heading.setAlignment(Pos.CENTER_LEFT);
-        Label icon = new Label("🚀");
-        icon.getStyleClass().add("help-banner-icon");
-        Label titleLbl = new Label("Welcome — let's get you set up");
-        titleLbl.getStyleClass().add("text-step-title");
-        Region headSpacer = new Region();
-        HBox.setHgrow(headSpacer, Priority.ALWAYS);
-        Button dismiss = new Button("Got it — I'll start now");
-        dismiss.getStyleClass().add("btn-gold");
-        dismiss.setOnAction(e -> {
-            bannerDismissed = true;
-            if (card.getParent() instanceof VBox p) p.getChildren().remove(card);
-        });
-        heading.getChildren().addAll(icon, titleLbl, headSpacer, dismiss);
+    private void showQuickStartDialog() {
+        Dialog<Void> dlg = new Dialog<>();
+        UiUtils.initDialog(dlg, "Quick Start", "🚀", 520);
 
         Label intro = new Label(
                 "Before you start recording transactions, complete these three steps in order:");
+        intro.setPadding(new Insets(0, 0, 0, 12));
         intro.getStyleClass().add("text-body-muted");
         intro.setWrapText(true);
 
-        VBox steps = UiUtils.buildGetStartedSteps();
-
-        card.getChildren().addAll(heading, intro, steps);
-        return card;
+        VBox content = new VBox(14, intro, UiUtils.buildGetStartedSteps());
+        content.setPadding(new Insets(12, 6, 0, 0));
+        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dlg.showAndWait();
     }
 
     // ── About ─────────────────────────────────────────────────────────────────
@@ -136,7 +117,12 @@ public class HelpScreen {
         Circle dot = new Circle(4, Color.web("#3db89a"));
         Label heading = new Label("USER GUIDE");
         heading.getStyleClass().add("section-group-label");
-        labelRow.getChildren().addAll(dot, heading);
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
+        Button quickStartBtn = new Button("Quick Start");
+        quickStartBtn.getStyleClass().add("btn-gold");
+        quickStartBtn.setOnAction(e -> showQuickStartDialog());
+        labelRow.getChildren().addAll(dot, heading, headerSpacer, quickStartBtn);
 
         VBox card = new VBox();
         card.getStyleClass().add("help-guide-card");

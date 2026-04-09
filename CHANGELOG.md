@@ -1,3 +1,13 @@
+## v0.0.6-Finch — 2026-04-09
+
+### Added
+- `build.sh setup-installer-checkbox` target: one-time setup to patch the WiX template with a "Launch Sanchay now" checkbox on the installer finish screen
+- `resources/wix/` directory for custom WiX installer resources
+
+### Changed
+- Help screen: replaced always-visible dismissable banner with a gold "Quick Start" button that opens a modal on demand
+- ImportMappingDialog: added padding inside the Detected Columns and Amount Columns info boxes
+
 ## v0.0.5-Finch — 2026-04-09
 
 ### Changed

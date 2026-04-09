@@ -136,6 +136,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         VBox detectedBox = new VBox(6, detectedLbl, pillBox);
         detectedBox.setId("txn-import-mapping-detected-box");
         detectedBox.getStyleClass().add("info-box");
+        detectedBox.setPadding(new Insets(10, 12, 10, 12));
 
         GridPane g = UiUtils.buildFormGrid(160);
         g.setPadding(new Insets(14, 0, 4, 0));
@@ -211,6 +212,7 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         VBox splitSection = new VBox(8, splitTitle, splitGrid);
         splitSection.setId("txn-import-mapping-split-section");
         splitSection.getStyleClass().add("info-box");
+        splitSection.setPadding(new Insets(10, 12, 10, 12));
 
         g.add(splitSection, 0, row++, 2, 1);
 

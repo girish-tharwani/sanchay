@@ -193,7 +193,7 @@ public final class UiUtils {
 
     private static HBox stepRowPadded(String number, String title, TextFlow desc) {
         HBox row = buildStep(number, title, desc);
-        row.setPadding(new javafx.geometry.Insets(16, 0, 16, 0));
+        row.setPadding(new javafx.geometry.Insets(16, 0, 16, 12));
         return row;
     }
 
