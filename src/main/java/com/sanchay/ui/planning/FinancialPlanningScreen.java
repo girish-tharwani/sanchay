@@ -23,7 +23,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
+
 
 /**
  * Financial Planning screen — long-range retirement and wealth projection.
@@ -627,13 +627,6 @@ public class FinancialPlanningScreen {
         VBox.setMargin(header,  new Insets(0, 0, 8,  0));
         VBox.setMargin(divider, new Insets(0, 0, 10, 0));
         return card;
-    }
-
-    private void addTableSubHeader(VBox parent, String label) {
-        Label lbl = new Label(label.toUpperCase());
-        lbl.getStyleClass().add("section-group-label");
-        VBox.setMargin(lbl, new Insets(10, 0, 2, 0));
-        parent.getChildren().add(lbl);
     }
 
     private void addTableRow(VBox parent, String label, String value,

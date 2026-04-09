@@ -1,3 +1,10 @@
+## v0.0.4-Finch — 2026-04-09
+
+### Changed
+- Removed unused dead code: methods, fields, and local variables flagged by IDE across InvestmentPanel, TransactionsScreen, ReportsScreen, RecurringScreen, ImportMappingDialog, FinancialPlanningScreen, HelpScreen, MarketValueHistoryDialog
+- Updated `MarketValueHistoryDialog` to use non-deprecated `CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN`
+- `HelpScreen` constructor no longer takes a `MainWindow` parameter
+
 ## v0.0.3-Finch — 2026-04-09
 
 ### Added

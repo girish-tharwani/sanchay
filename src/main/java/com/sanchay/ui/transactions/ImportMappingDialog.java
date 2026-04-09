@@ -45,8 +45,6 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
     private ComboBox<String> creditCb;
     private ComboBox<String> fmtCb;
     private HBox             singleRow;
-    private HBox             debitRow;
-    private HBox             creditRow;
 
     /**
      * @param account   the account being imported into
@@ -210,8 +208,6 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
         Label splitTitle = new Label("AMOUNT COLUMNS");
         splitTitle.setId("txn-import-mapping-split-title");
         splitTitle.getStyleClass().add("section-group-label");
-        debitRow = new HBox();  // reuse field — content irrelevant, used only for visibility toggle
-        creditRow = new HBox(); // same
         VBox splitSection = new VBox(8, splitTitle, splitGrid);
         splitSection.setId("txn-import-mapping-split-section");
         splitSection.getStyleClass().add("info-box");

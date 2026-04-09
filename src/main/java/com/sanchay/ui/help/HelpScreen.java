@@ -1,7 +1,6 @@
 package com.sanchay.ui.help;
 
 import com.sanchay.service.AppConfig;
-import com.sanchay.ui.MainWindow;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -25,12 +24,10 @@ import java.nio.charset.StandardCharsets;
  */
 public class HelpScreen {
 
-    private final MainWindow mainWindow;
     private boolean bannerDismissed = false;
     private VBox view;
 
-    public HelpScreen(MainWindow mainWindow) {
-        this.mainWindow = mainWindow;
+    public HelpScreen() {
         buildView();
     }
 

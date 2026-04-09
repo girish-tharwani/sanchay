@@ -367,11 +367,4 @@ public class RecurringScreen {
         return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
     }
 
-    private void alert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setTitle(title);
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
-    }
 }

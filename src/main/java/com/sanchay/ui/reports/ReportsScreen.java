@@ -132,7 +132,6 @@ public class ReportsScreen {
         summaryFyPicker.getItems().addAll(buildFYOptions());
         summaryFyPicker.setPromptText("Select FY…");
         summaryFyPicker.setPrefWidth(140);
-        Label fyLabel = summaryFyLabel;
         ComboBox<String> fyPicker = summaryFyPicker;
 
         CheckBox showSubCat = new CheckBox("Show sub-categories");
@@ -496,7 +495,6 @@ public class ReportsScreen {
         ccFyPicker.getItems().addAll(buildFYOptions());
         ccFyPicker.setPromptText("Select FY…");
         ccFyPicker.setPrefWidth(140);
-        Label fyLabel = ccFyLabel;
         ComboBox<String> fyPicker = ccFyPicker;
 
         controls.getChildren().addAll(cardLabel, cardPicker, monthLabel, monthPicker, ccFyLabel, ccFyPicker);
@@ -772,5 +770,4 @@ public class ReportsScreen {
         return box;
     }
 
-    private String fmt(long paise) { return String.format("%,.0f", paise / 100.0); }
 }
