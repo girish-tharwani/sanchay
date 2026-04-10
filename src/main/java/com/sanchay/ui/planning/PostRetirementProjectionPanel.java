@@ -8,7 +8,6 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -20,31 +19,14 @@ import java.util.List;
 import java.util.function.LongFunction;
 
 class PostRetirementProjectionPanel {
-
-    // ── Union type for the table rows ─────────────────────────────────────────
-
-    /** Either a phase-separator header or a real data row. */
-    private abstract static class TableEntry {}
-
-    private static final class PhaseHeaderEntry extends TableEntry {
-        final String text;
-        PhaseHeaderEntry(String text) { this.text = text; }
-    }
-
-    private static final class DataEntry extends TableEntry {
-        final FinancialPlanningCalculator.PostRetirementRow row;
-        DataEntry(FinancialPlanningCalculator.PostRetirementRow row) { this.row = row; }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-
     private enum ProjectionMode { MINIMUM, ACTUAL }
 
     private final FinancialPlanningCalculator planningCalculator;
     private final LongFunction<String> moneyFormatter;
 
     private VBox root;
-    private TableView<TableEntry> table;
+    private VBox tableComments;
+    private TableView<FinancialPlanningCalculator.PostRetirementRow> table;
     private Label minimumProjectionLbl;
     private Label actualProjectionLbl;
     private ProjectionMode projectionMode = ProjectionMode.MINIMUM;
@@ -60,6 +42,9 @@ class PostRetirementProjectionPanel {
     }
 
     Region build() {
+        Label chevron = new Label("▾");
+        chevron.getStyleClass().add("fp-chevron");
+
         minimumProjectionLbl = new Label("Minimum Corpus Projection");
         minimumProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
         minimumProjectionLbl.setPrefWidth(210);
@@ -81,13 +66,28 @@ class PostRetirementProjectionPanel {
         actualProjectionLbl.setMinWidth(190);
         actualProjectionLbl.setAlignment(Pos.CENTER_LEFT);
 
-        HBox header = new HBox(10, minimumProjectionLbl, projectionModeSwitch, actualProjectionLbl);
+        HBox header = new HBox(10, chevron, minimumProjectionLbl, projectionModeSwitch, actualProjectionLbl);
         header.setAlignment(Pos.CENTER_LEFT);
         updateProjectionModeHeader();
 
+        tableComments = buildTableComments();
         table = buildCashFlowTable();
+        tableComments.setVisible(false);
+        tableComments.setManaged(false);
+        table.setVisible(false);
+        table.setManaged(false);
+        chevron.setText("▸");
 
-        root = new VBox(12, header, table);
+        chevron.setOnMouseClicked(e -> {
+            boolean expanding = !table.isManaged();
+            tableComments.setVisible(expanding);
+            tableComments.setManaged(expanding);
+            table.setVisible(expanding);
+            table.setManaged(expanding);
+            chevron.setText(expanding ? "▾" : "▸");
+        });
+
+        root = new VBox(12, header, tableComments, table);
         root.getStyleClass().add("card");
         return root;
     }
@@ -105,134 +105,65 @@ class PostRetirementProjectionPanel {
         table.refresh();
     }
 
-    // ── Data helpers ──────────────────────────────────────────────────────────
-
-    private List<TableEntry> buildTableItems() {
+    private List<FinancialPlanningCalculator.PostRetirementRow> buildTableItems() {
         long balance = projectionMode == ProjectionMode.ACTUAL
                 ? forecastedCorpusPaise
                 : planningCalculator.computeRequiredCorpusPaise(params, selfDob);
-        List<FinancialPlanningCalculator.PostRetirementRow> rows =
-                planningCalculator.computePostRetirementRows(params, selfDob, balance);
-
-        double inf = params.inflationPct;
-        int slowGoAge = FinancialPlanningCalculator.SPENDING_SLOW_GO_AGE;
-        int noGoAge   = FinancialPlanningCalculator.SPENDING_NO_GO_AGE;
-        double reducedInf = Math.max(0, inf - FinancialPlanningCalculator.SPENDING_SLOW_GO_REDUCTION * 100);
-
-        List<TableEntry> items = new ArrayList<>(rows.size() + 3);
-        boolean phase1Hdr = false, phase2Hdr = false, phase3Hdr = false;
-
-        for (FinancialPlanningCalculator.PostRetirementRow row : rows) {
-            if (!phase1Hdr && row.age() < slowGoAge) {
-                int retireAge = planningCalculator.getRetirementAgeYears(params, selfDob);
-                items.add(new PhaseHeaderEntry(
-                        "▸  Active Retirement (age " + retireAge + "–" + (slowGoAge - 1) + ")"
-                        + "  ·  Full Inflation " + fmtPct(inf)));
-                phase1Hdr = true;
-            }
-            if (!phase2Hdr && row.age() >= slowGoAge && row.age() < noGoAge) {
-                items.add(new PhaseHeaderEntry(
-                        "▸  Slow-go Years (age " + slowGoAge + "–" + (noGoAge - 1) + ")"
-                        + "  ·  Inflation " + fmtPct(reducedInf) + "  (−1.5%)"));
-                phase2Hdr = true;
-            }
-            if (!phase3Hdr && row.age() >= noGoAge) {
-                items.add(new PhaseHeaderEntry(
-                        "▸  Healthcare Phase (age " + noGoAge + "+)"
-                        + "  ·  Full Inflation " + fmtPct(inf)));
-                phase3Hdr = true;
-            }
-            items.add(new DataEntry(row));
-        }
-        return items;
+        return new ArrayList<>(planningCalculator.computePostRetirementRows(params, selfDob, balance));
     }
 
-    private static String fmtPct(double pct) {
-        // e.g. 6.0 → "6.0%",  4.5 → "4.5%"
-        if (pct == Math.floor(pct)) return (int) pct + ".0%";
-        return String.format("%.1f%%", pct);
+    private VBox buildTableComments() {
+        VBox comments = new VBox(0);
+        addTableCommentRow(comments, "Three-phase retirement spending model:");
+        addTableCommentRow(comments, "Phase 1  Active retirement, up to 72 years of age: full inflation");
+        addTableCommentRow(comments, "Phase 2  Slow-go retirement, up to 82 years of age: inflation-1.5%");
+        addTableCommentRow(comments, "Phase 3  Healthcare retirement: full inflation");
+        return comments;
     }
 
-    // ── Table construction ────────────────────────────────────────────────────
+    private void addTableCommentRow(VBox parent, String label) {
+        HBox row = new HBox();
+        row.getStyleClass().add("fp-table-row-comment");
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setMaxWidth(Double.MAX_VALUE);
 
-    private TableView<TableEntry> buildCashFlowTable() {
-        TableView<TableEntry> tv = new TableView<>();
+        Label lblNode = new Label(label);
+        lblNode.getStyleClass().add("fp-table-label-comment");
+        lblNode.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(lblNode, javafx.scene.layout.Priority.ALWAYS);
+
+        row.getChildren().add(lblNode);
+        parent.getChildren().add(row);
+    }
+
+    private TableView<FinancialPlanningCalculator.PostRetirementRow> buildCashFlowTable() {
+        TableView<FinancialPlanningCalculator.PostRetirementRow> tv = new TableView<>();
         tv.getStyleClass().add("forecast-table");
         tv.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tv.setEditable(false);
-
-        // Row factory: overlay a full-width label on phase-header rows.
-        // overlay.setManaged(false) — excluded from the row's own layout pass so the
-        // normal cell geometry is untouched.  Adding it LAST in getChildren() puts it
-        // above the cells in z-order so it paints on top.
-        tv.setRowFactory(t -> new TableRow<>() {
-            private final Label overlayLabel = new Label();
-            private final HBox overlay = new HBox(overlayLabel);
-
-            {
-                overlay.getStyleClass().add("phase-header-overlay");
-                overlayLabel.getStyleClass().add("phase-header-label");
-                overlay.setAlignment(Pos.CENTER_LEFT);
-                overlay.setManaged(false);   // must not participate in cell layout
-            }
-
-            @Override
-            protected void layoutChildren() {
-                super.layoutChildren();
-                // Stretch overlay to cover the full row after cells are positioned
-                if (getChildren().contains(overlay)) {
-                    overlay.resizeRelocate(0, 0, getWidth(), getHeight());
-                }
-            }
-
-            @Override
-            protected void updateItem(TableEntry item, boolean empty) {
-                super.updateItem(item, empty);
-                // Always remove first; re-add LAST so z-order is above cells
-                getChildren().remove(overlay);
-                getStyleClass().remove("phase-header-row");
-                setMouseTransparent(false);
-
-                if (!empty && item instanceof PhaseHeaderEntry hdr) {
-                    overlayLabel.setText(hdr.text);
-                    getChildren().add(overlay); // last child → on top
-                    getStyleClass().add("phase-header-row");
-                    setMouseTransparent(true);
-                }
-            }
-
-            @Override
-            public void updateSelected(boolean selected) {
-                super.updateSelected(getItem() instanceof PhaseHeaderEntry ? false : selected);
-            }
-        });
-
         tv.getColumns().addAll(
                 yearCol(), ageCol(), balanceCol(), roiCol(), taxCol(), withdrawalCol(), endingBalanceCol()
         );
         return tv;
     }
 
-    private TableColumn<TableEntry, String> yearCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("Year");
-        col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d ? String.valueOf(d.row.year()) : ""));
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> yearCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Year");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().year())));
         col.setPrefWidth(70);
         return col;
     }
 
-    private TableColumn<TableEntry, String> ageCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("Age");
-        col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d ? String.valueOf(d.row.age()) : ""));
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> ageCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Age");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(String.valueOf(cd.getValue().age())));
         col.setPrefWidth(55);
         return col;
     }
 
-    private TableColumn<TableEntry, String> balanceCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("Starting Balance");
-        col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d ? moneyFormatter.apply(d.row.startingBalancePaise()) : ""));
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> balanceCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Starting Balance");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(moneyFormatter.apply(cd.getValue().startingBalancePaise())));
         col.setPrefWidth(160);
         col.setCellFactory(c -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {
@@ -240,46 +171,40 @@ class PostRetirementProjectionPanel {
                 getStyleClass().remove("post-retirement-cf-depleted");
                 if (empty || item == null || item.isEmpty()) { setText(null); return; }
                 setText(item);
-                TableEntry entry = getTableView().getItems().get(getIndex());
-                if (entry instanceof DataEntry d && d.row.startingDepleted())
+                FinancialPlanningCalculator.PostRetirementRow row = getTableView().getItems().get(getIndex());
+                if (row.startingDepleted())
                     getStyleClass().add("post-retirement-cf-depleted");
             }
         });
         return col;
     }
 
-    private TableColumn<TableEntry, String> roiCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("ROI");
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> roiCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("ROI");
         col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d
-                        ? (d.row.startingDepleted() ? "-" : moneyFormatter.apply(d.row.roiPaise()))
-                        : ""));
+                cd.getValue().startingDepleted() ? "-" : moneyFormatter.apply(cd.getValue().roiPaise())));
         col.setPrefWidth(130);
         return col;
     }
 
-    private TableColumn<TableEntry, String> taxCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("Tax");
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> taxCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Tax");
         col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d
-                        ? (d.row.startingDepleted() ? "-" : moneyFormatter.apply(d.row.taxPaise()))
-                        : ""));
+                cd.getValue().startingDepleted() ? "-" : moneyFormatter.apply(cd.getValue().taxPaise())));
         col.setPrefWidth(110);
         return col;
     }
 
-    private TableColumn<TableEntry, String> withdrawalCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("Withdrawal");
-        col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d ? moneyFormatter.apply(d.row.withdrawalPaise()) : ""));
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> withdrawalCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Withdrawal");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(moneyFormatter.apply(cd.getValue().withdrawalPaise())));
         col.setPrefWidth(130);
         return col;
     }
 
-    private TableColumn<TableEntry, String> endingBalanceCol() {
-        TableColumn<TableEntry, String> col = new TableColumn<>("Ending Balance");
-        col.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue() instanceof DataEntry d ? moneyFormatter.apply(d.row.endingBalancePaise()) : ""));
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> endingBalanceCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Ending Balance");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(moneyFormatter.apply(cd.getValue().endingBalancePaise())));
         col.setPrefWidth(160);
         col.setCellFactory(c -> new TableCell<>() {
             @Override protected void updateItem(String item, boolean empty) {
@@ -287,15 +212,13 @@ class PostRetirementProjectionPanel {
                 getStyleClass().remove("post-retirement-cf-depleted");
                 if (empty || item == null || item.isEmpty()) { setText(null); return; }
                 setText(item);
-                TableEntry entry = getTableView().getItems().get(getIndex());
-                if (entry instanceof DataEntry d && d.row.endingNegative())
+                FinancialPlanningCalculator.PostRetirementRow row = getTableView().getItems().get(getIndex());
+                if (row.endingNegative())
                     getStyleClass().add("post-retirement-cf-depleted");
             }
         });
         return col;
     }
-
-    // ── Mode header ───────────────────────────────────────────────────────────
 
     private void updateProjectionModeHeader() {
         if (minimumProjectionLbl == null || actualProjectionLbl == null) return;

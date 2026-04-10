@@ -60,8 +60,8 @@ public class FinancialPlanningCalculator {
     //   Phase 1 — active retirement  (< SLOW_GO_AGE)      : full inflation
     //   Phase 2 — slow-go retirement (< NO_GO_AGE)        : inflation − SLOW_GO_REDUCTION
     //   Phase 3 — late / healthcare  (≥ NO_GO_AGE)        : full inflation
-    public static final int    SPENDING_SLOW_GO_AGE      = 72;
-    public static final int    SPENDING_NO_GO_AGE        = 82;
+    public static final int    SPENDING_SLOW_GO_AGE      = 73;
+    public static final int    SPENDING_NO_GO_AGE        = 83;
     public static final double SPENDING_SLOW_GO_REDUCTION = 0.015; // 1.5 % per year
 
     private final DataStore ds;

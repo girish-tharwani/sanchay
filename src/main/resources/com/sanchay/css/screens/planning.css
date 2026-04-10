@@ -2,6 +2,15 @@
    Sanchay — screens/planning.css   (Financial Planning screen)
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── Collapsible panel chevron ───────────────────────────────────────────── */
+.fp-chevron {
+    -fx-cursor: hand;
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 20px;
+    -fx-padding: 0 4 0 0;
+}
+.fp-chevron:hover { -fx-text-fill: -brand-mid; }
+
 /* ── Header warning badge — amber pill ───────────────────────────────────── */
 .fp-sample-badge {
     -fx-background-color: #fff7ed;
@@ -121,24 +130,6 @@
 
 /* Post-retirement cash flow table — depleted balance cells shown in red */
 .post-retirement-cf-depleted { -fx-text-fill: -color-error; -fx-font-weight: 700; }
-
-/* ── Phase-separator header rows in the post-retirement corpus table ──────── */
-/* The overlay HBox covers all cells and renders the phase label full-width.   */
-.phase-header-overlay {
-    -fx-background-color: -brand-dark;
-    -fx-padding: 0 0 0 14;
-}
-.phase-header-label {
-    -fx-text-fill: -text-on-dark;
-    -fx-font-size: 11px;
-    -fx-font-weight: 700;
-}
-/* Suppress default row hover/selected tinting — the overlay already covers it */
-.phase-header-row:hover,
-.phase-header-row:selected,
-.phase-header-row:focused {
-    -fx-background-color: transparent;
-}
 
 /* ── Shortfall / excess block on Forecasted Corpus card ─────────────────── */
 .fp-corpus-pill {

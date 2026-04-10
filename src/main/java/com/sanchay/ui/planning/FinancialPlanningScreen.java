@@ -393,6 +393,9 @@ public class FinancialPlanningScreen {
     // ── Plan Parameters ───────────────────────────────────────────────────────
 
     private Node buildParamsCard() {
+        Label chevron = new Label("▾");
+        chevron.getStyleClass().add("fp-chevron");
+
         Label title = new Label("Plan Parameters");
         title.getStyleClass().add("text-section-title");
 
@@ -406,18 +409,40 @@ public class FinancialPlanningScreen {
                 lastUpdatedLbl.setText(formatLastUpdated(params.lastCalculatedDate));
         });
 
-        HBox header = new HBox();
+        HBox header = new HBox(6);
         header.setAlignment(Pos.CENTER_LEFT);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(title, spacer, recalcBtn);
+        header.getChildren().addAll(chevron, title, spacer, recalcBtn);
 
         Region divider = new Region();
         divider.getStyleClass().add("content-divider");
         divider.setMaxWidth(Double.MAX_VALUE);
 
-        VBox card = new VBox(12, header, divider, buildParamGrid());
+        GridPane paramGrid = buildParamGrid();
+        // Start collapsed
+        paramGrid.setVisible(false);
+        paramGrid.setManaged(false);
+        divider.setVisible(false);
+        divider.setManaged(false);
+        recalcBtn.setVisible(false);
+        recalcBtn.setManaged(false);
+        chevron.setText("▸");
+
+        VBox card = new VBox(12, header, divider, paramGrid);
         card.getStyleClass().add("card");
+
+        chevron.setOnMouseClicked(e -> {
+            boolean expanding = !paramGrid.isManaged(); // currently collapsed → expanding
+            paramGrid.setVisible(expanding);
+            paramGrid.setManaged(expanding);
+            divider.setVisible(expanding);
+            divider.setManaged(expanding);
+            recalcBtn.setVisible(expanding);
+            recalcBtn.setManaged(expanding);
+            chevron.setText(expanding ? "▾" : "▸");
+        });
+
         return card;
     }
 
