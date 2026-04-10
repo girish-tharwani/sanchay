@@ -74,8 +74,16 @@ public class AccountsScreen {
             ds.setGroupCollapsed("investment", collapse);
             buildList();
         });
+
+        List<Account> favourites = new ArrayList<>();
+        ds.getAllBankAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
+        ds.getAllCreditCardAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
+        ds.getAllLoanAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
+        ds.getAllInvestmentAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
+
         content.getChildren().addAll(
                 titleRow,
+                buildFavouritesGroup(favourites),
                 buildGroup("Bank Accounts",   "#3db89a",
                         showClosedBank.isSelected() ? ds.getAllBankAccounts()       : ds.getBankAccounts(),
                         "bank", showClosedBank),
@@ -152,6 +160,48 @@ public class AccountsScreen {
         return group;
     }
 
+    private VBox buildFavouritesGroup(List<Account> accounts) {
+        VBox group = new VBox(10);
+        String type = "favourites";
+        boolean collapsed = DataStore.getInstance().isGroupCollapsed(type);
+
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("cursor-hand");
+        header.setOnMouseClicked(e -> {
+            DataStore.getInstance().setGroupCollapsed(type, !collapsed);
+            buildList();
+        });
+
+        Label chevron = new Label(collapsed ? "▸" : "▾");
+        chevron.getStyleClass().addAll("filter-label", "icon-sm");
+
+        Circle dot = new Circle(4);
+        dot.setFill(Color.web("#f0a500"));
+
+        Label h = new Label("FAVOURITES");
+        h.getStyleClass().add("filter-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        header.getChildren().addAll(chevron, dot, h, spacer);
+        group.getChildren().add(header);
+
+        if (!collapsed) {
+            if (accounts.isEmpty()) {
+                Label none = new Label("No favourite accounts. Click ☆ on an account to add it here.");
+                none.getStyleClass().add("text-empty");
+                group.getChildren().add(none);
+            } else {
+                for (Account acc : accounts) {
+                    group.getChildren().add(buildAccountCard(acc));
+                }
+            }
+        }
+        return group;
+    }
+
     private HBox buildAccountCard(Account acc) {
         HBox card = new HBox(12);
         card.getStyleClass().add("card");
@@ -160,17 +210,33 @@ public class AccountsScreen {
 
         boolean active = acc.isActive();
 
-        VBox info = new VBox(3);
-        info.setMinWidth(200);
-        info.setMaxWidth(200);
+        Label starLbl = new Label(acc.isFavourite() ? "★" : "☆");
+        starLbl.getStyleClass().add("cursor-hand");
+        // Inline required: colour is runtime data (favourited vs not)
+        starLbl.setStyle(acc.isFavourite() ? "-fx-text-fill: -brand-accent; -fx-font-size: 13px;" : "-fx-text-fill: -text-hint; -fx-font-size: 13px;");
+        starLbl.setTooltip(new Tooltip(acc.isFavourite() ? "Remove from Favourites" : "Add to Favourites"));
+        starLbl.setOnMouseClicked(e -> {
+            acc.setFavourite(!acc.isFavourite());
+            DataStore.getInstance().saveAccountsNow();
+            buildList();
+            e.consume();
+        });
+
         Label name = new Label(acc.getName());
         name.getStyleClass().add("stat-value");
         // Inline required: text colour is runtime data (active vs closed account)
         name.setStyle(active ? "-fx-text-fill: -brand-dark;" : "-fx-text-fill: -text-hint;");
-        name.setMaxWidth(200);
-        Label sub  = new Label(acc.getAccountType());
+        name.setMaxWidth(170);
+
+        Label sub = new Label(acc.getAccountType());
         sub.getStyleClass().add("text-hint");
-        info.getChildren().addAll(name, sub);
+
+        VBox nameAndType = new VBox(3, name, sub);
+
+        HBox info = new HBox(5, starLbl, nameAndType);
+        info.setAlignment(Pos.TOP_LEFT);
+        info.setMinWidth(200);
+        info.setMaxWidth(200);
 
         Label descLbl = new Label(
                 (acc.getDescription() != null && !acc.getDescription().isBlank())

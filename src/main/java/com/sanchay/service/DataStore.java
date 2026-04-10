@@ -226,7 +226,7 @@ public class DataStore {
     // ── Account group collapse state ──────────────────────────────────────────
 
     public boolean isGroupCollapsed(String type) {
-        return groupCollapsed.getOrDefault(type, true);
+        return groupCollapsed.getOrDefault(type, !"favourites".equals(type));
     }
 
     /** For internal load use only — does not trigger save. */

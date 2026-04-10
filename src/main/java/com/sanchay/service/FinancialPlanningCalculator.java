@@ -56,6 +56,14 @@ public class FinancialPlanningCalculator {
     private static final long ROUND_10K_PAISE = 1_000_000L;
     private static final long ROUND_1_LAKH_PAISE = 10_000_000L;
 
+    // Three-phase retirement spending model (Blanchett / Morningstar):
+    //   Phase 1 — active retirement  (< SLOW_GO_AGE)      : full inflation
+    //   Phase 2 — slow-go retirement (< NO_GO_AGE)        : inflation − SLOW_GO_REDUCTION
+    //   Phase 3 — late / healthcare  (≥ NO_GO_AGE)        : full inflation
+    public static final int    SPENDING_SLOW_GO_AGE      = 73;
+    public static final int    SPENDING_NO_GO_AGE        = 83;
+    public static final double SPENDING_SLOW_GO_REDUCTION = 0.015; // 1.5 % per year
+
     private final DataStore ds;
     private final MajorEventPlanner majorEventPlanner;
 
@@ -403,7 +411,7 @@ public class FinancialPlanningCalculator {
         for (int i = 0; i < totalYears; i++) {
             int year = retirementYear + i;
             int age = retirementAge + i;
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)))
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
 
             if (balance > 0) {
@@ -468,7 +476,7 @@ public class FinancialPlanningCalculator {
 
         long balance = startingBalancePaise;
         for (int i = 0; i < totalYears; i++) {
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * Math.pow(1 + inflationRate, i)))
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
             if (balance < withdrawal) return false;
 
@@ -478,6 +486,31 @@ public class FinancialPlanningCalculator {
             balance = postWithdrawalBalance + roi - tax;
         }
         return true;
+    }
+
+    /**
+     * Returns the cumulative cost-of-living multiplier for a given year into retirement,
+     * applying the three-phase spending model rather than a flat inflation rate.
+     *
+     * @param retirementAge       age at start of retirement
+     * @param inflationRate       annual inflation (e.g. 0.06 for 6 %)
+     * @param yearsIntoRetirement 0 = first year of retirement
+     */
+    private double colGrowthMultiplier(int retirementAge, double inflationRate, int yearsIntoRetirement) {
+        double multiplier = 1.0;
+        for (int y = 0; y < yearsIntoRetirement; y++) {
+            int age = retirementAge + y;
+            double rate;
+            if (age < SPENDING_SLOW_GO_AGE) {
+                rate = inflationRate;                                    // Phase 1: active
+            } else if (age < SPENDING_NO_GO_AGE) {
+                rate = Math.max(0, inflationRate - SPENDING_SLOW_GO_REDUCTION); // Phase 2: slow-go
+            } else {
+                rate = inflationRate;                                    // Phase 3: healthcare
+            }
+            multiplier *= (1.0 + rate);
+        }
+        return multiplier;
     }
 
     private Set<String> collectEarningScheduleIds() {

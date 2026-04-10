@@ -1,37 +1,22 @@
-## v1.0.0-Finch — 2026-04-09
+## v1.0.0-Gaur — 2026-04-10
 
 baseline for release
 
-## v0.0.6-Finch — 2026-04-09
+## v0.0.3-Gaur — 2026-04-10
 
 ### Added
-- `build.sh setup-installer-checkbox` target: one-time setup to patch the WiX template with a "Launch Sanchay now" checkbox on the installer finish screen
-- `resources/wix/` directory for custom WiX installer resources
+- Favourites section at the top of the Accounts screen showing all starred accounts across any type
+- Star toggle (☆/★) inline with each account name to add or remove from Favourites
+- Favourites section expands by default on first launch; all other sections collapse by default on first launch; open/close state is remembered per session thereafter
 
-### Changed
-- Help screen: replaced always-visible dismissable banner with a gold "Quick Start" button that opens a modal on demand
-- ImportMappingDialog: added padding inside the Detected Columns and Amount Columns info boxes
-
-## v0.0.5-Finch — 2026-04-09
-
-### Changed
-- Removed commented-out dead code across DataStore, PersistenceService, UiUtils, TransactionsScreen, FinancialPlanningScreen
-
-## v0.0.4-Finch — 2026-04-09
-
-### Changed
-- Removed unused dead code: methods, fields, and local variables flagged by IDE across InvestmentPanel, TransactionsScreen, ReportsScreen, RecurringScreen, ImportMappingDialog, FinancialPlanningScreen, HelpScreen, MarketValueHistoryDialog
-- Updated `MarketValueHistoryDialog` to use non-deprecated `CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN`
-- `HelpScreen` constructor no longer takes a `MainWindow` parameter
-
-## v0.0.3-Finch — 2026-04-09
+## v0.0.2-Gaur — 2026-04-10
 
 ### Added
-- Section 11.3 in USER-GUIDE.md explaining all Financial Planning calculated fields
-- `/baseline-release` command for versioned release workflow
+- Three-phase retirement spending model in post-retirement corpus projection: full inflation during active retirement (up to 72), reduced inflation (−1.5%) during slow-go years (72–82), full inflation restored for healthcare phase (82+)
+- Phase-separator header rows in the corpus table visually marking each spending phase with its effective inflation rate
 
-## v0.0.2-Finch — 2026-04-08
-Planning screen refactor
+### Changed
+- `-brand-dark` colour token shifted from `#0f3d4a` to `#166e60` (greener teal)
 
-## v0.0.1-Finch — 2026-04-08
+## v0.0.1-Gaur — 2026-04-10
 - Start of new build 
