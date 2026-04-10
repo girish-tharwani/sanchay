@@ -76,6 +76,7 @@
 
 ## Features
 
+- **Favourite accounts** — pin any account to a Favourites section at the top of the Accounts screen for quick access
 - **Multi-account tracking** — bank (savings/current), credit card, loan, and investment accounts in one place
 - **Investment types** — Mutual Funds, Equity, Debt/Bonds, Fixed Deposits, Recurring Deposits, Provident Fund
 - **Loan amortization** — auto-generated reducing-balance schedules with support for mid-loan rate changes
@@ -185,6 +186,8 @@ The home screen. Shows an at-a-glance summary of account balances and recent act
 ### Accounts
 
 Lists all accounts grouped by type. Each account card shows the current balance and key metadata.
+
+**Favourites** — a collapsible section at the top of the screen that collects accounts of any type you have starred. Click the ☆ icon inline with an account name to add it; click ★ to remove it. The Favourites section is expanded by default on first launch; all type sections (Bank, Credit Cards, etc.) start collapsed. Expand/collapse state is remembered for the rest of the session.
 
 **Account types and subtypes:**
 
