@@ -1,3 +1,7 @@
+## v1.0.0-Gaur — 2026-04-10
+
+baseline for release
+
 ## v0.0.3-Gaur — 2026-04-10
 
 ### Added
