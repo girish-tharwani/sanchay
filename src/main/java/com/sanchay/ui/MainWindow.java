@@ -78,7 +78,7 @@ public class MainWindow {
     }
 
     public void show(Stage stage) {
-        stage.initStyle(StageStyle.UNDECORATED);
+        if (stage.getStyle() != StageStyle.UNDECORATED) stage.initStyle(StageStyle.UNDECORATED);
 
         root = new BorderPane();
         root.setLeft(buildSidebar(stage));
@@ -220,6 +220,7 @@ public class MainWindow {
         mainPanelWrapper = new StackPane();
 
         Button fab = new Button("+");
+        fab.setId("fab");
         fab.getStyleClass().add("fab");
         fab.setOnAction(e -> openNewTransactionDialog());
         StackPane.setAlignment(fab, Pos.BOTTOM_RIGHT);

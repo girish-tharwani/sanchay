@@ -126,6 +126,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         typeSection.getChildren().add(expensePanel.getNode());
 
         typeCb.valueProperty().addListener((obs, old, type) -> {
+            if (type == null) return; // transient null during setAll() — ignored
             if (type == Type.INVESTMENT) {
                 standardContent.getChildren().clear();
                 investmentPanel.leftContent.getChildren().setAll(

@@ -1,8 +1,29 @@
-/#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Wrapper around Maven.
-# Usage: ./build.sh [maven goals]   e.g.  ./build.sh compile
-#                                         ./build.sh clean package -DskipTests
-#                                         ./build.sh package-dist   ← builds Windows installer
+#
+# ── General usage ─────────────────────────────────────────────────────────────
+#   ./build.sh compile                         compile main sources
+#   ./build.sh clean package -DskipTests       build fat JAR, skip tests
+#   ./build.sh test                            run ALL tests
+#   ./build.sh package-dist                    build Windows installer (3-step)
+#
+# ── Test selection shortcuts ──────────────────────────────────────────────────
+# Tests carry two @Tag axes:
+#   depth   : smoke | full
+#   feature : transactions | accounts | recurring | ...
+#
+# Shortcut              Equivalent -Dgroups expression         What runs
+# --------------------  --------------------------------------  ---------------------------
+#   test-smoke          groups=smoke                           all smoke tests (any feature)
+#   test-full           groups=full                            all full tests  (any feature)
+#   test-transactions   groups=transactions                    all transaction tests (smoke+full)
+#   test-accounts       groups=accounts                        all account tests     (smoke+full)
+#   test-recurring      groups=recurring                       all recurring tests   (smoke+full)
+#
+# For ad-hoc combinations pass -Dgroups directly, e.g.:
+#   ./build.sh test -Dgroups="smoke & transactions"
+#   ./build.sh test -Dgroups="full & (recurring | transactions)"
+# ──────────────────────────────────────────────────────────────────────────────
 MVN="/d/Program Files/apache-maven-3.9.14/bin/mvn.cmd"
 REPO="C:/Users/Tharwani/.m2/repository"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -13,7 +34,19 @@ WIX_BIN="C:/Program Files (x86)/WiX Toolset v3.14/bin"
 APP_NAME="Sanchay"
 APP_VENDOR="Girish Tharwani"
 
-if [ "$1" = "package-dist" ]; then
+MVN_CMD="$MVN -f $SCRIPT_DIR/pom.xml -Dmaven.repo.local=$REPO"
+
+if [ "$1" = "test-smoke" ]; then
+    $MVN_CMD test -Dgroups=smoke
+elif [ "$1" = "test-full" ]; then
+    $MVN_CMD test -Dgroups=full
+elif [ "$1" = "test-transactions" ]; then
+    $MVN_CMD test -Dgroups=transactions
+elif [ "$1" = "test-accounts" ]; then
+    $MVN_CMD test -Dgroups=accounts
+elif [ "$1" = "test-recurring" ]; then
+    $MVN_CMD test -Dgroups=recurring
+elif [ "$1" = "package-dist" ]; then
     set -e  # abort on any error
 
     # Extract version and build name from pom.xml, e.g. "v1.0.0-Agami"
@@ -27,7 +60,7 @@ if [ "$1" = "package-dist" ]; then
 
     # ── Step 1: Build the fat JAR (JavaFX excluded — comes via runtime image) ──
     echo ">>> [1/3] Maven package..."
-    "$MVN" -f "$SCRIPT_DIR/pom.xml" -Dmaven.repo.local="$REPO" clean package -DskipTests
+    $MVN_CMD clean package -DskipTests
 
     # ── Step 2: jlink — build trimmed JRE with JavaFX modules ────────────────
     echo ">>> [2/3] jlink..."
@@ -77,5 +110,5 @@ if [ "$1" = "package-dist" ]; then
     echo ""
     echo ">>> Done. Installer: installer/${INSTALLER_NAME}.exe"
 else
-    "$MVN" -f "$SCRIPT_DIR/pom.xml" -Dmaven.repo.local="$REPO" "$@"
+    $MVN_CMD "$@"
 fi

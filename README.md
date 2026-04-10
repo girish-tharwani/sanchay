@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v1.0.0-Finch
+- **Version:** v0.0.2-Toucan
 
 ---
 
@@ -122,6 +122,23 @@ The fat JAR excludes JavaFX modules (they are provided by the runtime). To run t
 java --module-path /path/to/javafx/lib \
      --add-modules javafx.controls,javafx.fxml,javafx.graphics \
      -jar target/sanchay-app.jar
+```
+
+### Running Tests
+
+Tests use TestFX + JUnit 5 and require a display. Use `build.sh` shortcuts for tag-based selection:
+
+```bash
+./build.sh test-smoke                               # all smoke tests (any feature)
+./build.sh test-full                                # all full tests  (any feature)
+./build.sh test-transactions                        # all transaction tests
+./build.sh test -Dgroups="smoke & transactions"     # intersection of two tags
+./build.sh test                                     # run everything
+```
+
+Requires `test-config.json` at the project root pointing to test data (not committed):
+```json
+{ "testFolder": "path/to/test-runs", "testDataFolderPath": "path/to/test-data" }
 ```
 
 ---

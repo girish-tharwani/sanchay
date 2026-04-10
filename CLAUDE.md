@@ -30,7 +30,26 @@ README.md at project root contains coding commandments for UI styling and functi
 - **WebView anchor links with `loadContent()`**: When HTML is loaded via `WebEngine.loadContent()`, the page base URL is `about:blank`. Clicking `<a href="#anchor">` triggers a full navigation to `about:blank#anchor` instead of an in-page scroll. Fix by injecting a JavaScript `click` event listener that calls `preventDefault()` and `element.scrollIntoView()` instead.
 
 ### Testing Framework
-No test framework or linter is configured.
+Tests use **TestFX 4.0.18** with **JUnit 5** (`ApplicationTest`). A live JavaFX window is opened per test — a display must be available.
+
+Test classes carry two `@Tag` axes:
+- **depth**: `smoke` (fast sanity check) or `full` (end-to-end with data mutations)
+- **feature**: `transactions`, `accounts`, `recurring`, etc.
+
+Run via `build.sh` shortcuts:
+```bash
+./build.sh test-smoke          # all smoke tests
+./build.sh test-full           # all full tests
+./build.sh test-transactions   # all transaction tests (smoke + full)
+./build.sh test -Dgroups="smoke & transactions"  # intersection
+```
+
+Test isolation: `TransactionsScreenFullTest` copies the source test-data folder (from `testDataFolderPath` in `test-config.json`) into a timestamped run folder under `testFolder` at the start of each class run. All mutations persist there; the source data is never touched.
+
+`test-config.json` at project root (not committed) must contain:
+```json
+{ "testFolder": "...", "testDataFolderPath": "..." }
+```
 
 ## Architecture
 
