@@ -34,18 +34,18 @@ WIX_BIN="C:/Program Files (x86)/WiX Toolset v3.14/bin"
 APP_NAME="Sanchay"
 APP_VENDOR="Girish Tharwani"
 
-MVN_CMD="$MVN -f $SCRIPT_DIR/pom.xml -Dmaven.repo.local=$REPO"
+MVN_CMD=("$MVN" -f "$SCRIPT_DIR/pom.xml" -Dmaven.repo.local="$REPO")
 
 if [ "$1" = "test-smoke" ]; then
-    $MVN_CMD test -Dgroups=smoke
+    "${MVN_CMD[@]}" test -Dgroups=smoke
 elif [ "$1" = "test-full" ]; then
-    $MVN_CMD test -Dgroups=full
+    "${MVN_CMD[@]}" test -Dgroups=full
 elif [ "$1" = "test-transactions" ]; then
-    $MVN_CMD test -Dgroups=transactions
+    "${MVN_CMD[@]}" test -Dgroups=transactions
 elif [ "$1" = "test-accounts" ]; then
-    $MVN_CMD test -Dgroups=accounts
+    "${MVN_CMD[@]}" test -Dgroups=accounts
 elif [ "$1" = "test-recurring" ]; then
-    $MVN_CMD test -Dgroups=recurring
+    "${MVN_CMD[@]}" test -Dgroups=recurring
 elif [ "$1" = "package-dist" ]; then
     set -e  # abort on any error
 
@@ -60,7 +60,7 @@ elif [ "$1" = "package-dist" ]; then
 
     # ── Step 1: Build the fat JAR (JavaFX excluded — comes via runtime image) ──
     echo ">>> [1/3] Maven package..."
-    $MVN_CMD clean package -DskipTests
+    "${MVN_CMD[@]}" clean package -DskipTests
 
     # ── Step 2: jlink — build trimmed JRE with JavaFX modules ────────────────
     echo ">>> [2/3] jlink..."
@@ -110,5 +110,5 @@ elif [ "$1" = "package-dist" ]; then
     echo ""
     echo ">>> Done. Installer: installer/${INSTALLER_NAME}.exe"
 else
-    $MVN_CMD "$@"
+    "${MVN_CMD[@]}" "$@"
 fi
