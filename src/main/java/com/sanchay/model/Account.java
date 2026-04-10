@@ -20,6 +20,7 @@ public abstract class Account {
     private boolean jointAccount;
     private String secondHolderName;
     private String notes;
+    private boolean favourite;
 
     protected Account(String name) {
         this.id = UUID.randomUUID().toString();
@@ -38,6 +39,7 @@ public abstract class Account {
     public String getSecondHolderName() { return secondHolderName; }
     public String getNotes()            { return notes; }
     public boolean isActive()           { return status == Status.ACTIVE; }
+    public boolean isFavourite()        { return favourite; }
 
     public void setName(String name)                       { this.name = name; }
     public void setDescription(String description)         { this.description = description; }
@@ -46,6 +48,7 @@ public abstract class Account {
     public void setJointAccount(boolean jointAccount)      { this.jointAccount = jointAccount; }
     public void setSecondHolderName(String name)           { this.secondHolderName = name; }
     public void setNotes(String notes)                     { this.notes = notes; }
+    public void setFavourite(boolean favourite)            { this.favourite = favourite; }
 
     @Override public String toString() { return name; }
 

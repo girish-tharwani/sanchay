@@ -1,3 +1,10 @@
+## v0.0.3-Gaur — 2026-04-10
+
+### Added
+- Favourites section at the top of the Accounts screen showing all starred accounts across any type
+- Star toggle (☆/★) inline with each account name to add or remove from Favourites
+- Favourites section expands by default on first launch; all other sections collapse by default on first launch; open/close state is remembered per session thereafter
+
 ## v0.0.2-Gaur — 2026-04-10
 
 ### Added
