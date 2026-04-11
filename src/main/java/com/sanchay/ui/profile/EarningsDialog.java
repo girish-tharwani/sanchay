@@ -56,7 +56,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     public EarningsDialog(FamilyMember member) {
         this.member = member;
         UiUtils.initDialog(this, "Earnings — " + member.getName(), MoneyFormatter.symbol(), 950);
-        getDialogPane().setPrefHeight(680);
+        getDialogPane().setMinHeight(720);
 
         TabPane tabs = buildTabPane();
         getDialogPane().setContent(tabs);
@@ -145,6 +145,7 @@ public class EarningsDialog extends Dialog<Boolean> {
                 : buildSimpleForm(src, refs);
 
         Button removeBtn = new Button("Remove this source");
+        removeBtn.getStyleClass().add("btn-secondary");
         removeBtn.setOnAction(e -> removeSource(src, tab, tabs));
         HBox removeRow = new HBox(removeBtn);
         removeRow.setPadding(new Insets(6, 16, 10, 16));
@@ -262,6 +263,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         prefillAccount(refs.simpleAcctCb, src.getDepositAccountId());
 
         refs.simpleDaySp = new Spinner<>(1, 28, src.getDepositDay() > 0 ? src.getDepositDay() : 1);
+        refs.simpleDaySp.setEditable(true);
         refs.simpleDaySp.setMaxWidth(Double.MAX_VALUE);
 
         refs.simpleCatCb = categoryCombo();
@@ -316,6 +318,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         prefillAccount(refs.salAcctCb, src.getDepositAccountId());
 
         refs.salDaySp = new Spinner<>(1, 28, src.getDepositDay() > 0 ? src.getDepositDay() : 1);
+        refs.salDaySp.setEditable(true);
         refs.salDaySp.setMaxWidth(Double.MAX_VALUE);
 
         refs.salCatCb = categoryCombo();
@@ -605,7 +608,7 @@ public class EarningsDialog extends Dialog<Boolean> {
     private ScrollPane scrollPane(GridPane g) {
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(280);
+        sp.setMinHeight(280);
         sp.getStyleClass().add("scroll-transparent");
         return sp;
     }

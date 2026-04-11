@@ -131,6 +131,9 @@
 /* Post-retirement cash flow table — depleted balance cells shown in red */
 .post-retirement-cf-depleted { -fx-text-fill: -color-error; -fx-font-weight: 700; }
 
+/* Phase 1 (active) and Phase 3 (healthcare) rows — subtle teal tint */
+.post-retirement-row-outer { -fx-background-color: -surface-teal-faint; }
+
 /* ── Shortfall / excess block on Forecasted Corpus card ─────────────────── */
 .fp-corpus-pill {
     -fx-padding: 18 24 18 24;

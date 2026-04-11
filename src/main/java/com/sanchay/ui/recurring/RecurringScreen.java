@@ -24,6 +24,10 @@ public class RecurringScreen {
     private final StackPane   view = new StackPane();
     private TableView<RecurringTransaction> allSchedulesTable;
 
+    // Filter state — persisted across in-screen rebuilds (e.g. after edit dialog closes)
+    private Transaction.Type savedTypeFilter = null;
+    private String           savedSearchText = "";
+
     public RecurringScreen(MainWindow mainWindow) {
         if (mainWindow == null)
             throw new IllegalArgumentException("RecurringScreen requires a non-null MainWindow reference.");
@@ -202,9 +206,15 @@ public class RecurringScreen {
         allSchedulesTable.getColumns().addAll(
                 descCol, typeCol, freqCol, amtCol, nextCol, statusCol, paymentsCol, actionsCol);
 
+        // Restore filter state from previous buildView() call within this screen instance
+        typeFilter.setValue(savedTypeFilter);
+        searchField.setText(savedSearchText);
+
         Runnable applyFilter = () -> {
             String q = searchField.getText().toLowerCase().strip();
             Transaction.Type selType = typeFilter.getValue();
+            savedTypeFilter = selType;
+            savedSearchText = searchField.getText();
             List<RecurringTransaction> filtered = ds.getRecurring().stream()
                     .filter(r -> selType == null || r.getTransactionType() == selType)
                     .filter(r -> q.isEmpty() || r.getDescription().toLowerCase().contains(q))

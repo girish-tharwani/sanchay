@@ -47,18 +47,18 @@ final class FutureEarningsSection {
         addTableRow(body, "PF Contribution", moneyFormatter.apply(futureEarnings.pfContribPaise()), false, false);
         addTableRow(body, "Gratuity", moneyFormatter.apply(futureEarnings.gratuityPaise()), false, false);
         addTableRow(body, "PF Interest", moneyFormatter.apply(futureEarnings.pfInterestPaise()), false, false);
-        addTableRow(body, "Subtotal - Earnings", moneyFormatter.apply(futureEarnings.earningsSubtotalPaise()), true, false);
+        addTableRow(body, "Total Earnings", moneyFormatter.apply(futureEarnings.earningsSubtotalPaise()), true, false);
 
-        addTableSubHeader(body, "Realized ROI");
+        addTableSubHeader(body, "Scheduled Interest");
         addTableRow(body, "Bonds Interest", moneyFormatter.apply(futureEarnings.bondsInterestPaise()), false, false);
         addTableRow(body, "FDs Interest", moneyFormatter.apply(futureEarnings.fdInterestPaise()), false, false);
         addTableRow(body, "RDs Interest", moneyFormatter.apply(futureEarnings.rdInterestPaise()), false, false);
-        addTableRow(body, "Total Realized ROI", moneyFormatter.apply(futureEarnings.realizedRoiSubtotalPaise()), true, false);
+        addTableRow(body, "Total Scheduled Interest", moneyFormatter.apply(futureEarnings.realizedRoiSubtotalPaise()), true, false);
 
-        addTableSubHeader(body, "Unrealized ROI (Appreciation)");
+        addTableSubHeader(body, "Projected Appreciation");
         addTableRow(body, "Equity Appreciation", moneyFormatter.apply(futureEarnings.equityApprecPaise()), false, false);
         addTableRow(body, "MF Appreciation", moneyFormatter.apply(futureEarnings.mfApprecPaise()), false, false);
-        addTableRow(body, "Total Unrealized ROI", moneyFormatter.apply(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
+        addTableRow(body, "Total Projected Appreciation", moneyFormatter.apply(futureEarnings.unrealizedRoiSubtotalPaise()), true, false);
     }
 
     private void addTableSubHeader(VBox parent, String label) {
