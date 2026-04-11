@@ -132,6 +132,15 @@ public class Transaction {
         public void   setOrgnlFDRef(String r)     { this.orgnlFDRef = r; }
     }
 
+    public static class SourceInvestment {
+        private String srcAccount; // investment account ID
+        private String refId;      // fd/bond reference number
+        public String getSrcAccount()         { return srcAccount; }
+        public void   setSrcAccount(String s) { this.srcAccount = s; }
+        public String getRefId()              { return refId; }
+        public void   setRefId(String s)      { this.refId = s; }
+    }
+
     // ── Root fields ───────────────────────────────────────────────────────────
 
     private String         id;
@@ -153,6 +162,7 @@ public class Transaction {
     private Recurring        recurring;
     private InvestmentDetails investmentDetails;
     private RedeemDetails    redeemDetails;
+    private SourceInvestment sourceInvestment;
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -234,4 +244,6 @@ public class Transaction {
     public void              setInvestmentDetails(InvestmentDetails i) { this.investmentDetails = i; }
     public RedeemDetails     getRedeemDetails()                     { return redeemDetails; }
     public void              setRedeemDetails(RedeemDetails r)      { this.redeemDetails = r; }
+    public SourceInvestment  getSourceInvestment()                  { return sourceInvestment; }
+    public void              setSourceInvestment(SourceInvestment s){ this.sourceInvestment = s; }
 }

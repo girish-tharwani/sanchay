@@ -66,6 +66,18 @@ public class RecurringTransaction {
     /** MF/Equity/Bonds: units / NAV info at investment time. */
     private String unitsNav;
 
+    /** For INCOME interest schedules: links the schedule to its source FD or Bond investment. */
+    private SourceInvestment sourceInvestment;
+
+    public static class SourceInvestment {
+        private String srcAccount; // investment account ID
+        private String refId;      // fd/bond reference number
+        public String getSrcAccount()        { return srcAccount; }
+        public void   setSrcAccount(String s){ this.srcAccount = s; }
+        public String getRefId()             { return refId; }
+        public void   setRefId(String s)     { this.refId = s; }
+    }
+
     public RecurringTransaction(String description, Transaction.Type type,
                                 Frequency frequency, int dueDayOfMonth,
                                 LocalDate startDate, long amountPaise) {
@@ -147,8 +159,10 @@ public class RecurringTransaction {
     public LocalDate getMaturityDate()      { return maturityDate; }
     public String getFdRef()                { return fdRef; }
     public long getFdMaturityAmountPaise()  { return fdMaturityAmountPaise; }
-    public String getSchemeScript()         { return schemeScript; }
-    public String getUnitsNav()             { return unitsNav; }
+    public String getSchemeScript()                    { return schemeScript; }
+    public String getUnitsNav()                        { return unitsNav; }
+    public SourceInvestment getSourceInvestment()      { return sourceInvestment; }
+    public void setSourceInvestment(SourceInvestment s){ this.sourceInvestment = s; }
 
     /**
      * Returns the calculated date of the last payment when numberOfPayments is set,

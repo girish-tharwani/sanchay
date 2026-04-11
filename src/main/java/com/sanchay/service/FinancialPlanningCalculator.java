@@ -125,6 +125,7 @@ public class FinancialPlanningCalculator {
         long postTaxIncome = 0;
         for (RecurringTransaction rt : ds.getRecurring()) {
             if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
+            if (rt.getSourceInvestment() != null) continue; // interest income — handled in bond/FD buckets
             long occ = countOccurrences(rt, retireDate);
             if (occ <= 0) continue;
             long perOcc = earningSchedIds.contains(rt.getId())
@@ -207,7 +208,8 @@ public class FinancialPlanningCalculator {
             }
             for (RecurringTransaction rt : ds.getRecurring()) {
                 if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
-                if (!ia.getId().equals(rt.getToAccountId())) continue;
+                if (rt.getSourceInvestment() == null) continue;
+                if (!ia.getId().equals(rt.getSourceInvestment().getSrcAccount())) continue;
                 bondsInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
             }
         }
@@ -226,7 +228,8 @@ public class FinancialPlanningCalculator {
             }
             for (RecurringTransaction rt : ds.getRecurring()) {
                 if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
-                if (!ia.getId().equals(rt.getToAccountId())) continue;
+                if (rt.getSourceInvestment() == null) continue;
+                if (!ia.getId().equals(rt.getSourceInvestment().getSrcAccount())) continue;
                 fdInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
             }
         }
