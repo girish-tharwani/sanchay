@@ -68,31 +68,7 @@ public class CashFlowProjectionService {
         Map<String, Long> rawBalances = new LinkedHashMap<>();
 
         for (Account acc : candidates) {
-            if (acc instanceof BankAccount ba) {
-                long bal = ba.getOpeningBalancePaise();
-                for (Transaction t : ds.getTransactions()) {
-                    if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
-                    if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
-                }
-                rawBalances.put(ba.getId(), bal);
-
-            } else if (acc instanceof CreditCardAccount cc) {
-                // CC: negative = outstanding liability
-                long bal = 0;
-                for (Transaction t : ds.getTransactions()) {
-                    if (cc.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
-                    if (cc.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
-                }
-                rawBalances.put(cc.getId(), bal);
-
-            } else if (acc instanceof InvestmentAccount ia) {
-                long invested = ds.getBaseInvestedPaise(ia);
-                rawBalances.put(ia.getId(), invested);
-
-            } else if (acc instanceof LoanAccount la) {
-                long outstanding = ds.getLoanOutstandingPaise(la);
-                rawBalances.put(la.getId(), -outstanding);
-            }
+            rawBalances.put(acc.getId(), ds.getForecastStartingBalancePaise(acc, startDate));
         }
 
         // ── Filter out zero-balance investment accounts ────────────────────────
@@ -137,6 +113,7 @@ public class CashFlowProjectionService {
             if (t.getInvestmentDetails() == null) continue;
             Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
             if (fd == null || fd.getMaturityDate() == null) continue;
+            if (fd.getMaturityDate().isBefore(startDate)) continue;
             YearMonth matMonth = YearMonth.from(fd.getMaturityDate());
             if (matMonth.isBefore(YearMonth.from(startDate)) || matMonth.isAfter(YearMonth.from(endDate))) continue;
             if (!includedIds.contains(t.getToAccountId())) continue;
@@ -154,6 +131,7 @@ public class CashFlowProjectionService {
         for (RecurringTransaction rt : ds.getRecurring()) {
             if (rt.getTransactionType() != Type.INVESTMENT) continue;
             if (rt.getMaturityDate() == null) continue;
+            if (rt.getMaturityDate().isBefore(startDate)) continue;
             if (!includedIds.contains(rt.getToAccountId())) continue;
             Account toAcc = accounts.stream()
                     .filter(a -> a.getId().equals(rt.getToAccountId()))
@@ -183,6 +161,7 @@ public class CashFlowProjectionService {
         for (YearMonth ym : months) {
             LocalDate monthStart = ym.atDay(1);
             LocalDate monthEnd   = ym.atEndOfMonth();
+            LocalDate effectiveStart = monthStart.isBefore(startDate) ? startDate : monthStart;
 
             // Track recurring EXPENSE amount per (categoryId|subCategoryId) so we can
             // subtract it from pattern-based forecasts and avoid double-counting.
@@ -191,7 +170,7 @@ public class CashFlowProjectionService {
             // Apply recurring schedules for this month
             for (RecurringTransaction rt : ds.getRecurring()) {
                 if (rt.getAmountPaise() == 0) continue; // variable / CC reminders — skip
-                List<LocalDate> occurrences = getOccurrencesInRange(rt, monthStart, monthEnd);
+                List<LocalDate> occurrences = getOccurrencesInRange(rt, effectiveStart, monthEnd);
                 if (occurrences.isEmpty()) continue;
                 long amt = rt.getAmountPaise() * occurrences.size();
 
@@ -261,8 +240,13 @@ public class CashFlowProjectionService {
             for (MaturityEvent me : fdMaturities.getOrDefault(ym, List.of())) {
                 if (me.bankId() != null && includedIds.contains(me.bankId()))
                     balances.merge(me.bankId(), me.matAmtPaise(), Long::sum);
-                if (includedIds.contains(me.investId()))
-                    balances.put(me.investId(), 0L);
+                if (includedIds.contains(me.investId())) {
+                    // Subtract only the invested principal of this specific FD.
+                    // Do NOT zero the whole account — other FDs with later maturity
+                    // dates are still active and must retain their balance.
+                    long fdBal = balances.getOrDefault(me.investId(), 0L);
+                    balances.put(me.investId(), Math.max(0L, fdBal - me.investedPaise()));
+                }
                 totalIncomePaise += me.matAmtPaise();
             }
 
