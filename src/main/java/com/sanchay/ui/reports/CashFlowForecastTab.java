@@ -366,6 +366,7 @@ public class CashFlowForecastTab {
             buildDetailedSeries(accounts, result.accountSeries());
         }
 
+        applyDataPointTooltips();
         applyChartSeriesColors();
     }
 
@@ -470,6 +471,33 @@ public class CashFlowForecastTab {
                 }
             }
         });
+    }
+
+    private void applyDataPointTooltips() {
+        for (XYChart.Series<String, Number> series : chart.getData()) {
+            for (XYChart.Data<String, Number> data : series.getData()) {
+                long paise = Math.round(data.getYValue().doubleValue() * 100);
+                String text = series.getName() + "\n"
+                        + data.getXValue() + ": " + MoneyFormatter.formatTableCompact(paise);
+                // nodeProperty listener fires as soon as JavaFX creates the symbol node,
+                // which avoids the timing fragility of Platform.runLater approaches.
+                if (data.getNode() != null) {
+                    attachDataPointTooltip(data.getNode(), text);
+                } else {
+                    data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                        if (newNode != null) attachDataPointTooltip(newNode, text);
+                    });
+                }
+            }
+        }
+    }
+
+    private void attachDataPointTooltip(Node node, String text) {
+        Tooltip tt = new Tooltip(text);
+        tt.setShowDelay(javafx.util.Duration.millis(80));
+        tt.setHideDelay(javafx.util.Duration.millis(100));
+        tt.getStyleClass().add("cash-flow-line-tooltip");
+        Tooltip.install(node, tt);
     }
 
     // ── Forecast table ────────────────────────────────────────────────────────

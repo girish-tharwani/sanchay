@@ -1,3 +1,8 @@
+## v0.0.4-Jay — 2026-04-11
+
+### Added
+- Cash Flow Forecast: data point tooltips on the line chart showing series name, month, and balance on hover
+
 ## v0.0.3-Jay — 2026-04-11
 
 ### Changed

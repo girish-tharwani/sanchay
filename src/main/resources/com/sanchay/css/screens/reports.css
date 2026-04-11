@@ -7,9 +7,9 @@
 
 /* Individual account series */
 
-/* Hide data point symbols by default; show on hover */
-.cash-flow-chart .chart-line-symbol { -fx-background-radius: 3px; -fx-padding: 3px; visibility: hidden; }
-.cash-flow-chart .chart-line-symbol:hover { visibility: visible; }
+/* Slightly larger symbols improve hover hit-testing for tooltips without making the chart look busy. */
+.cash-flow-chart .chart-line-symbol { -fx-background-radius: 5px; -fx-padding: 5px; -fx-opacity: 0.18; }
+.cash-flow-chart .chart-line-symbol:hover { -fx-opacity: 1; }
 
 /* Chart plot area */
 .cash-flow-chart .chart-plot-background { -fx-background-color: -surface-card; }
