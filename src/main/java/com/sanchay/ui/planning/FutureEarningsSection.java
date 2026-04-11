@@ -44,8 +44,8 @@ final class FutureEarningsSection {
 
         addTableSubHeader(body, "Earnings");
         addTableRow(body, "Post-tax Income", moneyFormatter.apply(futureEarnings.postTaxIncomePaise()), false, false);
-        addTableRow(body, "PF Contributions", moneyFormatter.apply(futureEarnings.pfContribPaise()), false, false);
-        addTableRow(body, "Gratuity at Retirement", moneyFormatter.apply(futureEarnings.gratuityPaise()), false, false);
+        addTableRow(body, "PF Contribution", moneyFormatter.apply(futureEarnings.pfContribPaise()), false, false);
+        addTableRow(body, "Gratuity", moneyFormatter.apply(futureEarnings.gratuityPaise()), false, false);
         addTableRow(body, "PF Interest", moneyFormatter.apply(futureEarnings.pfInterestPaise()), false, false);
         addTableRow(body, "Subtotal - Earnings", moneyFormatter.apply(futureEarnings.earningsSubtotalPaise()), true, false);
 

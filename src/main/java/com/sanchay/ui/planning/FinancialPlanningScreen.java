@@ -339,7 +339,7 @@ public class FinancialPlanningScreen {
         col.setPercentWidth(33.33);
         grid.getColumnConstraints().addAll(col, copy(col), copy(col));
 
-        grid.add(kpiCard("Current Corpus", UiUtils.formatCorpusDisplay(planningSnapshot.corpusBreakdown().totalPaise()), "-brand-mid", false, false), 0, 0);
+        grid.add(kpiCard("Current Corpus", UiUtils.formatCorpusDisplay(planningSnapshot.corpusBreakdown().totalPaise()), "-brand-light", false, false), 0, 0);
 
         futureEarningsKpiLbl = new Label(UiUtils.formatCorpusDisplay(planningSnapshot.futureEarnings().totalPaise()));
         futureEarningsKpiLbl.getStyleClass().add("card-value");
@@ -367,7 +367,7 @@ public class FinancialPlanningScreen {
         if (accent)   val.getStyleClass().add("fp-kpi-value-accent");
         if (negative) val.getStyleClass().add("fp-kpi-value-negative");
 
-        VBox card = new VBox(6, lbl, val);
+        VBox card = new VBox(8, lbl, val);
         HBox.setHgrow(card, Priority.ALWAYS);
         card.getStyleClass().add("card-summary");
         // Inline required: stripe colour is data-driven per card
