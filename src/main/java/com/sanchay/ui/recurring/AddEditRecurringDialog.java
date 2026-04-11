@@ -337,10 +337,14 @@ public class AddEditRecurringDialog {
             }
             if (prevFrom != null && accountCb.getItems().contains(prevFrom)) {
                 accountCb.setValue(prevFrom);
-            } else if (hasDefaults && existing.getFromAccountId() != null) {
-                accountCb.getItems().stream()
-                        .filter(a -> a.getId().equals(existing.getFromAccountId()))
-                        .findFirst().ifPresent(accountCb::setValue);
+            } else if (hasDefaults) {
+                String lookupId = t == Transaction.Type.INCOME
+                        ? existing.getToAccountId() : existing.getFromAccountId();
+                if (lookupId != null) {
+                    accountCb.getItems().stream()
+                            .filter(a -> a.getId().equals(lookupId))
+                            .findFirst().ifPresent(accountCb::setValue);
+                }
             }
             if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
                 accountCb.setValue(accountCb.getItems().get(0));
@@ -619,7 +623,11 @@ public class AddEditRecurringDialog {
                 if (!raw.isEmpty()) try { rdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
             }
 
-            String fromAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
+            // For INCOME, accountCb is the destination bank account → toAccountId.
+            // For all other types, accountCb is the source account → fromAccountId.
+            String mainAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
+            String fromAccountId = type == Transaction.Type.INCOME ? null : mainAccountId;
+            if (type == Transaction.Type.INCOME) toAccountId = mainAccountId;
             int autoRecordDays   = autoRecordCb.isSelected() ? autoRecordDaysSp.getValue() : 0;
 
             Integer numPayments = null;
