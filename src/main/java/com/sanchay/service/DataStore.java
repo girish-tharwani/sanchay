@@ -967,6 +967,21 @@ public class DataStore {
         }).sum();
     }
 
+    public long getBankBalancePaise(String bankAccountId) {
+        return getBankAccounts().stream()
+                .filter(ba -> ba.getId().equals(bankAccountId))
+                .findFirst()
+                .map(ba -> {
+                    long bal = ba.getOpeningBalancePaise();
+                    for (Transaction t : transactions) {
+                        if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
+                        if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
+                    }
+                    return bal;
+                })
+                .orElse(0L);
+    }
+
     public long getCreditCardOutstandingPaise(String cardId) {
         long charged = transactions.stream()
                 .filter(t -> t.getType() == Type.EXPENSE && cardId.equals(t.getFromAccountId()))
@@ -1024,6 +1039,22 @@ public class DataStore {
                 + totalInvested
                 - totalLoanOutstanding
                 - getTotalCreditCardOutstandingPaise();
+    }
+
+    public long getForecastStartingBalancePaise(Account account, LocalDate asOf) {
+        if (account instanceof BankAccount ba) {
+            return getBankBalancePaise(ba.getId());
+        }
+        if (account instanceof CreditCardAccount cc) {
+            return -getCreditCardOutstandingPaise(cc.getId());
+        }
+        if (account instanceof LoanAccount la) {
+            return -getLoanOutstandingPaise(la);
+        }
+        if (account instanceof InvestmentAccount ia) {
+            return getInvestedPaiseAsOf(ia, asOf);
+        }
+        return 0L;
     }
 
     public long getMonthlyExpensesPaise() {

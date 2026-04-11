@@ -428,11 +428,18 @@ public class CashFlowForecastTab {
         // of truth instead of duplicating series colours in CSS and code.
         Platform.runLater(() -> {
             for (int i = 0; i < chart.getData().size(); i++) {
-                String color = UiUtils.FORECAST_SERIES_COLORS[i % UiUtils.FORECAST_SERIES_COLORS.length];
+                String color      = UiUtils.FORECAST_SERIES_COLORS[i % UiUtils.FORECAST_SERIES_COLORS.length];
+                String seriesName = chart.getData().get(i).getName();
+
                 Node seriesNode = chart.lookup(".chart-series-line.series" + i);
                 if (seriesNode != null) {
                     String width = (i == 0) ? "3px" : "2px";
                     seriesNode.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: " + width + ";");
+                    Tooltip tt = new Tooltip(seriesName);
+                    tt.setShowDelay(javafx.util.Duration.millis(80));
+                    tt.setHideDelay(javafx.util.Duration.millis(100));
+                    tt.getStyleClass().add("cash-flow-line-tooltip");
+                    Tooltip.install(seriesNode, tt);
                 }
 
                 Node symbolNode = chart.lookup(".default-color" + i + ".chart-line-symbol");

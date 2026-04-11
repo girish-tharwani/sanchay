@@ -156,3 +156,12 @@
 .forecast-btn-include:hover {
     -fx-background-color: rgba(22,163,74,0.22);
 }
+
+.cash-flow-line-tooltip {
+    -fx-background-color: rgba(15,30,40,0.88);
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 5px;
+    -fx-border-width: 0;
+}

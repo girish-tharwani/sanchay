@@ -59,22 +59,25 @@ public final class UiUtils {
 
     /**
      * Series colours for account cash-flow forecast chart (CashFlowForecastTab).
-     * Entries that mirror CSS design tokens:
-     *   [0] #f0a500 ≈ -brand-accent (gold — Total series)
-     *   [1] #2a8a7a ≈ -brand-mid
-     *   [2] #3db89a ≈ -brand-light
-     *   [6] #0f3d4a ≈ -brand-dark
+     * Rules:
+     *   [0] gold is EXCLUSIVE to the Total series — never reuse on an account line.
+     *   Only one green-family colour (teal at [1]) to avoid the "too many greens" problem.
+     *   12 entries cover the maximum expected account count without wrapping/recycling.
      * Runtime-assigned to legend swatch rectangles — cannot use CSS tokens here.
      */
     public static final String[] FORECAST_SERIES_COLORS = {
-        "#f0a500",  // 0 — Total        (≈ -brand-accent / gold)
-        "#2a8a7a",  // 1 — Bank Accounts (≈ -brand-mid / teal)
-        "#e05555",  // 2 — Credit Cards  (red)
-        "#7c3aed",  // 3 — Investments   (purple)
-        "#966f2c",  // 4 — Loans         (amber)
-        "#3db89a",  // 5 — (≈ -brand-light)
-        "#16a34a",  // 6
-        "#0f3d4a",  // 7 — (≈ -brand-dark)
+        "#f0a500",  //  0 — Total    (gold — exclusive, never used for accounts)
+        "#2a8a7a",  //  1 — teal     (single green-family entry)
+        "#e05555",  //  2 — red
+        "#7c3aed",  //  3 — purple
+        "#1d70b5",  //  4 — blue
+        "#e8892b",  //  5 — orange
+        "#c026d3",  //  6 — fuchsia
+        "#0891b2",  //  7 — cyan
+        "#475569",  //  8 — slate
+        "#b45309",  //  9 — brown
+        "#ec4899",  // 10 — pink
+        "#6366f1",  // 11 — indigo
     };
 
 
