@@ -129,18 +129,24 @@ public class DashboardScreen {
 
     private HBox buildCreditCardRow() {
         DataStore ds = DataStore.getInstance();
-        long ccOutstanding = ds.getTotalCreditCardOutstandingPaise();
-        long loanCount     = ds.getActiveLoanAccounts().size();
+        long ccOutstanding   = ds.getTotalCreditCardOutstandingPaise();
+        long loanOutstanding = ds.getActiveLoanAccounts().stream()
+                .mapToLong(ds::getLoanOutstandingPaise).sum();
 
-        String ccStripe = ccOutstanding > 0 ? "#e05555" : "-brand-light";
-        String ccValue  = ccOutstanding > 0
+        String ccStripe   = ccOutstanding   > 0 ? "#e05555" : "-brand-light";
+        String loanStripe = loanOutstanding > 0 ? "#e05555" : "-brand-light";
+
+        String ccValue   = ccOutstanding > 0
                 ? MoneyFormatter.symbol() + MoneyFormatter.format(ccOutstanding).substring(MoneyFormatter.symbol().length())
+                : MoneyFormatter.format(0);
+        String loanValue = loanOutstanding > 0
+                ? MoneyFormatter.symbol() + MoneyFormatter.format(loanOutstanding).substring(MoneyFormatter.symbol().length())
                 : MoneyFormatter.format(0);
 
         HBox row = new HBox(14);
         row.getChildren().addAll(
-                summaryCard("Credit Card Balance", ccValue,                  ccStripe),
-                summaryCard("Active Loans",        String.valueOf(loanCount), "-brand-light")
+                summaryCard("Credit Card Balance",    ccValue,   ccStripe),
+                summaryCard("Outstanding Loan Amount", loanValue, loanStripe)
         );
         return row;
     }

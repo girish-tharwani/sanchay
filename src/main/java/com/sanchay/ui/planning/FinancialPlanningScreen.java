@@ -347,7 +347,7 @@ public class FinancialPlanningScreen {
 
         // Initialised with "" — populateCorpusCard() sets the real value immediately after buildView()
         forecastedCorpusKpiLbl = new Label("");
-        forecastedCorpusKpiLbl.getStyleClass().addAll("card-value", "fp-kpi-value-accent");
+        forecastedCorpusKpiLbl.getStyleClass().addAll("card-value");
         grid.add(kpiCardWithLabel("Forecasted Retirement Corpus", forecastedCorpusKpiLbl, "-brand-accent"), 2, 0);
 
         return grid;

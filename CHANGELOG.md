@@ -1,3 +1,11 @@
+## v0.0.3-Ibis — 2026-04-11
+
+### Changed
+- Dashboard: "Active Loans" summary card replaced with "Outstanding Loan Amount" showing total outstanding principal across all active loans, with red stripe when non-zero
+
+### Fixed
+- Recurring screen: type and description filters are now preserved after editing a schedule via double-click; filters reset only when navigating away and back
+
 ## v0.0.2-Ibis — 2026-04-11
 
 ### Changed
