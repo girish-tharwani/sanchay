@@ -1,3 +1,7 @@
+## v1.0.0-Ibis — 2026-04-11
+
+baseline for release
+
 ## v0.0.3-Ibis — 2026-04-11
 
 ### Changed
