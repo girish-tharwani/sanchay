@@ -141,6 +141,18 @@ class PostRetirementProjectionPanel {
         tv.getStyleClass().add("forecast-table");
         tv.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tv.setEditable(false);
+        tv.setRowFactory(t -> new javafx.scene.control.TableRow<>() {
+            @Override protected void updateItem(FinancialPlanningCalculator.PostRetirementRow row, boolean empty) {
+                super.updateItem(row, empty);
+                if (!empty && row != null) {
+                    boolean outerPhase = row.age() < FinancialPlanningCalculator.SPENDING_SLOW_GO_AGE
+                            || row.age() >= FinancialPlanningCalculator.SPENDING_NO_GO_AGE;
+                    setStyle(outerPhase ? "-fx-background-color: #f0f8f6;" : "");
+                } else {
+                    setStyle("");
+                }
+            }
+        });
         tv.getColumns().addAll(
                 yearCol(), ageCol(), balanceCol(), roiCol(), taxCol(), withdrawalCol(), endingBalanceCol()
         );
