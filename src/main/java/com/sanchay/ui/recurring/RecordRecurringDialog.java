@@ -139,6 +139,12 @@ public class RecordRecurringDialog {
                 t.setToAccountId(toAccountCb.getValue().getId());
             else
                 t.setToAccountId(r.getToAccountId());
+            if (r.getSourceInvestment() != null) {
+                Transaction.SourceInvestment si = new Transaction.SourceInvestment();
+                si.setSrcAccount(r.getSourceInvestment().getSrcAccount());
+                si.setRefId(r.getSourceInvestment().getRefId());
+                t.setSourceInvestment(si);
+            }
             if (r.getCategoryId() != null || r.getSubCategoryId() != null) {
                 Transaction.Classification cl = new Transaction.Classification();
                 cl.setCategoryId(r.getCategoryId());

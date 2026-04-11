@@ -7,7 +7,7 @@
 
     <groupId>com.sanchay</groupId>
     <artifactId>sanchay</artifactId>
-    <version>v1.0.0-Gaur</version>
+    <version>v1.0.0-Heron</version>
     <packaging>jar</packaging>
 
     <properties>

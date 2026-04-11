@@ -15,6 +15,8 @@ import javafx.util.StringConverter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Dialog for adding or editing a recurring transaction schedule.
@@ -272,6 +274,66 @@ public class AddEditRecurringDialog {
             }
         });
 
+        // ── Source Investment fields (INCOME + Interest category only) ───────
+        Set<String> redeemedRefs = ds.getTransactions().stream()
+                .filter(t -> t.getRedeemDetails() != null && t.getRedeemDetails().getOrgnlFDRef() != null)
+                .map(t -> t.getRedeemDetails().getOrgnlFDRef())
+                .collect(Collectors.toSet());
+
+        ComboBox<InvestmentAccount> srcInvestCb = new ComboBox<>();
+        srcInvestCb.setMaxWidth(Double.MAX_VALUE);
+        srcInvestCb.setPromptText("Select bond or FD account");
+        ds.getInvestmentAccounts().stream()
+                .filter(ia -> ia.getInvestmentStatus() != InvestmentAccount.InvestmentStatus.REDEEMED
+                        && (ia.getInvestmentType() == InvestmentAccount.InvestmentType.DEBT_BONDS
+                         || ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT))
+                .forEach(srcInvestCb.getItems()::add);
+
+        ComboBox<String> srcRefCb = new ComboBox<>();
+        srcRefCb.setMaxWidth(Double.MAX_VALUE);
+        srcRefCb.setPromptText("Select reference (optional)");
+
+        srcInvestCb.setOnAction(e -> {
+            srcRefCb.getItems().clear();
+            srcRefCb.setValue(null);
+            InvestmentAccount ia = srcInvestCb.getValue();
+            if (ia == null) return;
+            List<String> refs = ds.getTransactions().stream()
+                    .filter(t -> t.getType() == Transaction.Type.INVESTMENT
+                              && ia.getId().equals(t.getToAccountId())
+                              && t.getInvestmentDetails() != null
+                              && t.getInvestmentDetails().getFd() != null
+                              && t.getInvestmentDetails().getFd().getRef() != null
+                              && !t.getInvestmentDetails().getFd().getRef().isBlank()
+                              && !redeemedRefs.contains(t.getInvestmentDetails().getFd().getRef()))
+                    .map(t -> t.getInvestmentDetails().getFd().getRef())
+                    .distinct().sorted()
+                    .collect(Collectors.toList());
+            srcRefCb.getItems().setAll(refs);
+        });
+
+        GridPane sg = miniGrid();
+        UiUtils.addFormRow(sg, 0, "Source Investment", srcInvestCb);
+        UiUtils.addFormRow(sg, 1, "Reference No.",     srcRefCb);
+        VBox srcInvestBox = new VBox(8, sg);
+        srcInvestBox.setVisible(false);
+        srcInvestBox.setManaged(false);
+
+        Runnable refreshSrcInvest = () -> {
+            boolean show = typeCb.getValue() == Transaction.Type.INCOME
+                    && catCb.getValue() != null
+                    && catCb.getValue().getName().toLowerCase().contains("interest");
+            srcInvestBox.setVisible(show);
+            srcInvestBox.setManaged(show);
+            if (!show) {
+                srcInvestCb.setValue(null);
+                srcRefCb.getItems().clear();
+                srcRefCb.setValue(null);
+            }
+        };
+
+        catCb.valueProperty().addListener((obs, old, sel) -> refreshSrcInvest.run());
+
         // ── Refresh logic ─────────────────────────────────────────────────────
         Runnable refreshInvFields = () -> {
             invDynamicBox.getChildren().clear();
@@ -337,10 +399,14 @@ public class AddEditRecurringDialog {
             }
             if (prevFrom != null && accountCb.getItems().contains(prevFrom)) {
                 accountCb.setValue(prevFrom);
-            } else if (hasDefaults && existing.getFromAccountId() != null) {
-                accountCb.getItems().stream()
-                        .filter(a -> a.getId().equals(existing.getFromAccountId()))
-                        .findFirst().ifPresent(accountCb::setValue);
+            } else if (hasDefaults) {
+                String lookupId = t == Transaction.Type.INCOME
+                        ? existing.getToAccountId() : existing.getFromAccountId();
+                if (lookupId != null) {
+                    accountCb.getItems().stream()
+                            .filter(a -> a.getId().equals(lookupId))
+                            .findFirst().ifPresent(accountCb::setValue);
+                }
             }
             if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
                 accountCb.setValue(accountCb.getItems().get(0));
@@ -373,7 +439,7 @@ public class AddEditRecurringDialog {
             if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
         };
 
-        typeCb.setOnAction(e -> refreshToAccount.run());
+        typeCb.setOnAction(e -> { refreshToAccount.run(); refreshSrcInvest.run(); });
         invDestCb.setOnAction(e -> refreshInvFields.run());
 
         // ── Auto-record ───────────────────────────────────────────────────────
@@ -473,6 +539,18 @@ public class AddEditRecurringDialog {
             }
         }
 
+        // Prefill source investment (triggers refreshSrcInvest via catCb listener above)
+        if (hasDefaults && existing.getSourceInvestment() != null) {
+            String srcAccId = existing.getSourceInvestment().getSrcAccount();
+            srcInvestCb.getItems().stream()
+                    .filter(ia -> ia.getId().equals(srcAccId))
+                    .findFirst().ifPresent(ia -> {
+                        srcInvestCb.setValue(ia); // triggers ref list reload via setOnAction
+                        String refId = existing.getSourceInvestment().getRefId();
+                        if (refId != null) srcRefCb.setValue(refId);
+                    });
+        }
+
         // ── Layout ────────────────────────────────────────────────────────────
         int row = 0;
         UiUtils.addFormRow(g, row++, "Description*",     descFld);
@@ -488,6 +566,7 @@ public class AddEditRecurringDialog {
         g.add(invDynamicBox,    0, row++, 2, 1);
         UiUtils.addFormRow(g, row++, "Category",         catCb);
         UiUtils.addFormRow(g, row++, "Sub-category",     subCatCb);
+        g.add(srcInvestBox,     0, row++, 2, 1);
         g.add(autoRecordBox,    0, row,   2, 1);
 
         ScrollPane sp = new ScrollPane(g);
@@ -619,7 +698,11 @@ public class AddEditRecurringDialog {
                 if (!raw.isEmpty()) try { rdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
             }
 
-            String fromAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
+            // For INCOME, accountCb is the destination bank account → toAccountId.
+            // For all other types, accountCb is the source account → fromAccountId.
+            String mainAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
+            String fromAccountId = type == Transaction.Type.INCOME ? null : mainAccountId;
+            if (type == Transaction.Type.INCOME) toAccountId = mainAccountId;
             int autoRecordDays   = autoRecordCb.isSelected() ? autoRecordDaysSp.getValue() : 0;
 
             Integer numPayments = null;
@@ -646,6 +729,7 @@ public class AddEditRecurringDialog {
                 r.setRdMaturityAmountPaise(rdMatAmt);
                 r.setAutoRecordAfterDays(autoRecordDays);
                 r.setNumberOfPayments(numPayments);
+                r.setSourceInvestment(buildSourceInvestment(srcInvestBox, srcInvestCb, srcRefCb));
                 r.setStatus(RecurringTransaction.Status.ACTIVE);
                 ds.addRecurring(r);
             } else {
@@ -670,6 +754,7 @@ public class AddEditRecurringDialog {
                 existing.setRdMaturityAmountPaise(rdMatAmt);
                 existing.setAutoRecordAfterDays(autoRecordDays);
                 existing.setNumberOfPayments(numPayments);
+                existing.setSourceInvestment(buildSourceInvestment(srcInvestBox, srcInvestCb, srcRefCb));
                 ds.saveRecurringNow();
             }
             return null;
@@ -699,6 +784,15 @@ public class AddEditRecurringDialog {
     private static Double parseRate(String s) {
         if (s == null || s.isBlank()) return null;
         try { return Double.parseDouble(s.trim()); } catch (NumberFormatException e) { return null; }
+    }
+
+    private static RecurringTransaction.SourceInvestment buildSourceInvestment(
+            VBox srcInvestBox, ComboBox<InvestmentAccount> srcInvestCb, ComboBox<String> srcRefCb) {
+        if (!srcInvestBox.isVisible() || srcInvestCb.getValue() == null) return null;
+        RecurringTransaction.SourceInvestment si = new RecurringTransaction.SourceInvestment();
+        si.setSrcAccount(srcInvestCb.getValue().getId());
+        si.setRefId(srcRefCb.getValue()); // may be null if no ref selected
+        return si;
     }
 
 

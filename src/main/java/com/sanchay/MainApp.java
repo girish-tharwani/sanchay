@@ -73,7 +73,13 @@ public class MainApp extends Application {
         AppConfig.Config cfg = AppConfig.read();
 
         if (AppConfig.isValid(cfg)) {
-            // Happy path — folder exists, proceed
+            // Happy path — folder exists, proceed.
+            // Re-stamp the file if the running version differs from what was recorded.
+            if (!AppConfig.APP_VERSION.equals(cfg.appVersion) || !AppConfig.APP_BUILD.equals(cfg.appBuild)) {
+                try {
+                    AppConfig.write(cfg.dataFolderPath);
+                } catch (Exception ignored) {}
+            }
             return cfg.dataFolderPath;
         }
 

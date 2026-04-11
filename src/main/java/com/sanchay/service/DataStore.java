@@ -906,8 +906,13 @@ public class DataStore {
                 t.setRecurring(new Transaction.Recurring(r.getId()));
                 t.setSourceIndicator(Transaction.SourceIndicator.MANUAL);
                 transactions.add(t);
+                r.incrementPaymentsMade();
                 r.markRecorded(nextDue);
                 anyRecorded = true;
+                if (r.isPaymentLimitReached()) {
+                    deleteRecurring(r.getId());
+                    break;
+                }
                 nextDue = r.getNextDueDate();
             }
         }

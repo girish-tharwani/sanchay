@@ -51,7 +51,8 @@
       "Bash(grep:*)",
       "Bash(sed:*)",
       "Bash(mvn compiler:compile -q)",
-      "Bash(git -C D:/Projects/sanchay diff --stat)"
+      "Bash(git -C D:/Projects/sanchay diff --stat)",
+      "Bash(mvn compile:*)"
     ]
   },
   "enabledPlugins": {
