@@ -71,7 +71,7 @@ public final class UiUtils {
         "#2a8a7a",  // 1 — Bank Accounts (≈ -brand-mid / teal)
         "#e05555",  // 2 — Credit Cards  (red)
         "#7c3aed",  // 3 — Investments   (purple)
-        "#f59e0b",  // 4 — Loans         (amber)
+        "#966f2c",  // 4 — Loans         (amber)
         "#3db89a",  // 5 — (≈ -brand-light)
         "#16a34a",  // 6
         "#0f3d4a",  // 7 — (≈ -brand-dark)

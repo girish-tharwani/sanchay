@@ -53,6 +53,7 @@ public class CashFlowProjectionService {
         List<Account> candidates = new ArrayList<>();
         candidates.addAll(ds.getBankAccounts());
         candidates.addAll(ds.getCreditCardAccounts());
+        candidates.addAll(ds.getActiveLoanAccounts());
         ds.getInvestmentAccounts().stream()
                 .filter(ia -> {
                     InvestmentAccount.InvestmentType t = ia.getInvestmentType();
@@ -87,6 +88,10 @@ public class CashFlowProjectionService {
             } else if (acc instanceof InvestmentAccount ia) {
                 long invested = ds.getBaseInvestedPaise(ia);
                 rawBalances.put(ia.getId(), invested);
+
+            } else if (acc instanceof LoanAccount la) {
+                long outstanding = ds.getLoanOutstandingPaise(la);
+                rawBalances.put(la.getId(), -outstanding);
             }
         }
 
@@ -226,6 +231,12 @@ public class CashFlowProjectionService {
                             balances.merge(fromId, -amt, Long::sum);
                             totalExpensePaise += amt;
                         }
+                        if (toId != null && includedIds.contains(toId)) {
+                            long principalPaid = getProjectedLoanPrincipalPaid(toId, occurrences);
+                            if (principalPaid > 0) {
+                                balances.merge(toId, principalPaid, Long::sum);
+                            }
+                        }
                     }
                     case CC_PAYMENT -> {
                         if (fromId != null && includedIds.contains(fromId)) {
@@ -340,6 +351,22 @@ public class CashFlowProjectionService {
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
                 .orElse(null);
+    }
+
+    private long getProjectedLoanPrincipalPaid(String loanAccountId, List<LocalDate> occurrences) {
+        if (loanAccountId == null || occurrences == null || occurrences.isEmpty()) return 0;
+
+        List<AmortizationEntry> schedule = ds.getSchedule(loanAccountId);
+        if (schedule == null || schedule.isEmpty()) return 0;
+
+        long principalPaid = 0;
+        for (LocalDate occurrence : occurrences) {
+            long scheduledPrincipal = AmortizationService.getScheduledPrincipalForDate(schedule, occurrence);
+            if (scheduledPrincipal > 0) {
+                principalPaid += scheduledPrincipal;
+            }
+        }
+        return principalPaid;
     }
 
     // ── Expense Forecasting ──────────────────────────────────────────────────
