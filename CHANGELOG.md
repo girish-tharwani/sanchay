@@ -1,3 +1,14 @@
+## v0.0.3-Heron — 2026-04-11
+
+### Added
+- Search bar on the Recurring Transactions screen with a type filter dropdown and description text search
+
+### Fixed
+- Empty filler rows in the Recurring Transactions table no longer show stray dashes in the Next Due and Type columns
+
+### Changed
+- `/init-new-build` command now validates that the current branch is `main`, the working tree is clean, and local `main` is in sync with `origin/main` before creating the new branch with `git checkout -b dev/<BuildName>`
+
 ## v0.0.2-Heron — 2026-04-11
 
 ### Added

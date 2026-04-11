@@ -15,6 +15,7 @@ import javafx.scene.layout.*;
 //import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /** Recurring Transactions screen. */
 public class RecurringScreen {
@@ -73,9 +74,36 @@ public class RecurringScreen {
         VBox.setMargin(allHeader, new Insets(6, 0, 0, 0));
         content.getChildren().add(allHeader);
 
+        // ── Filter bar ────────────────────────────────────────────────────────
+        ComboBox<Transaction.Type> typeFilter = new ComboBox<>();
+        typeFilter.getItems().add(null);
+        typeFilter.getItems().addAll(
+                Transaction.Type.EXPENSE, Transaction.Type.INCOME, Transaction.Type.TRANSFER,
+                Transaction.Type.CC_PAYMENT, Transaction.Type.LOAN_PAYMENT, Transaction.Type.INVESTMENT);
+        typeFilter.setPromptText("All Types");
+        typeFilter.getStyleClass().add("filter-field");
+        typeFilter.setPrefWidth(130);
+        typeFilter.setCellFactory(lv -> new ListCell<>() {
+            @Override protected void updateItem(Transaction.Type t, boolean empty) {
+                super.updateItem(t, empty);
+                setText(empty ? null : (t == null ? "All Types" : UiUtils.badgeText(t)));
+            }
+        });
+        typeFilter.setButtonCell(typeFilter.getCellFactory().call(null));
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search description…");
+        searchField.getStyleClass().add("filter-field");
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+        searchField.setMaxWidth(Double.MAX_VALUE);
+
+        HBox filterRow = new HBox(10, typeFilter, searchField);
+        filterRow.getStyleClass().add("filter-bar");
+        filterRow.setAlignment(Pos.CENTER_LEFT);
+        content.getChildren().add(filterRow);
+
         allSchedulesTable = new TableView<>();
         allSchedulesTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        allSchedulesTable.getItems().addAll(ds.getRecurring());
 
         TableColumn<RecurringTransaction, String> descCol = col("Description", 180,
                 RecurringTransaction::getDescription, "cell-desc");
@@ -86,8 +114,8 @@ public class RecurringScreen {
         typeCol.setCellFactory(tc -> new TableCell<>() {
             @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
-                RecurringTransaction r = getTableRow().getItem();
+                RecurringTransaction r = empty ? null : getTableRow().getItem();
+                if (r == null) { setGraphic(null); return; }
                 Label badge = new Label(UiUtils.badgeText(r.getTransactionType()));
                 badge.getStyleClass().add(
                         "badge-" + r.getTransactionType().name().toLowerCase().replace("_", "-"));
@@ -106,7 +134,8 @@ public class RecurringScreen {
         nextCol.setCellFactory(tc -> new TableCell<>() {
             @Override protected void updateItem(java.time.LocalDate date, boolean empty) {
                 super.updateItem(date, empty);
-                setText(empty || date == null ? "—" : date.format(fmt));
+                if (empty) { setText(null); return; }
+                setText(date == null ? "—" : date.format(fmt));
             }
         });
         nextCol.setComparator(java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
@@ -172,6 +201,19 @@ public class RecurringScreen {
 
         allSchedulesTable.getColumns().addAll(
                 descCol, typeCol, freqCol, amtCol, nextCol, statusCol, paymentsCol, actionsCol);
+
+        Runnable applyFilter = () -> {
+            String q = searchField.getText().toLowerCase().strip();
+            Transaction.Type selType = typeFilter.getValue();
+            List<RecurringTransaction> filtered = ds.getRecurring().stream()
+                    .filter(r -> selType == null || r.getTransactionType() == selType)
+                    .filter(r -> q.isEmpty() || r.getDescription().toLowerCase().contains(q))
+                    .collect(Collectors.toList());
+            allSchedulesTable.getItems().setAll(filtered);
+        };
+        typeFilter.valueProperty().addListener((obs, o, n) -> applyFilter.run());
+        searchField.textProperty().addListener((obs, o, n) -> applyFilter.run());
+        applyFilter.run();
 
         HBox tableFooter = new HBox();
         tableFooter.getStyleClass().add("table-footer");

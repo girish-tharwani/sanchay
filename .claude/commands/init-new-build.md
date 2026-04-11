@@ -8,18 +8,37 @@ The argument is available as `$ARGUMENTS`.
 
 ---
 
-## Step 1 — Validate the current branch
+## Step 1 — Validate starting state and create branch
 
-Run:
+Run the following checks in order. Stop and report the specific failure if any condition is not met.
+
+### 1a — Must be on main
 ```bash
 git branch --show-current
 ```
+If the result is not `main`, stop:
+> Current branch is not `main`. Please switch to `main` before running this command.
 
-The branch **must** be `dev/$ARGUMENTS` (case-sensitive). If it is not, stop immediately and tell the user:
+### 1b — Working tree must be clean
+```bash
+git status --porcelain
+```
+If there is any output (staged, unstaged, or untracked files), stop:
+> Working tree is not clean. Please commit or stash all changes before running this command.
 
-> Current branch is not `dev/$ARGUMENTS`. Please switch to the correct branch before running this command.
+### 1c — Must be in sync with origin/main
+```bash
+git fetch origin
+git rev-list --count --left-right main...origin/main
+```
+If the output is not `0\t0`, stop:
+> Local main is not in sync with origin/main. Please pull or push as needed before running this command.
 
-Do not proceed further if the branch check fails.
+### 1d — Create the new branch
+All checks passed. Create and switch to the new branch:
+```bash
+git checkout -b dev/$ARGUMENTS
+```
 
 ---
 
