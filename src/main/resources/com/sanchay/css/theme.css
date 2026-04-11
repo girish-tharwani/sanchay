@@ -1,14 +1,15 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Sanchay — theme.css   (design tokens — colours, typography)
-   All other CSS files reference these tokens; no hex literals outside this file.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/*
+   Sanchay - theme.css
+   Design tokens for colors and typography.
+   Other CSS files reference these tokens; avoid raw hex literals outside this file.
+*/
 
 .root {
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
     -fx-font-size: 13px;
     -fx-background-color: #eef4f5;
 
-    /* Brand colours — teal palette */
+    /* Brand colors */
     -brand-dark:         #166e60;
     -brand-mid:          #2a8a7a;
     -brand-light:        #3db89a;
@@ -26,20 +27,20 @@
     -text-muted:     #7aa4b0;
     -text-on-dark:   #FFFFFF;
 
-    /* Status colours — used only in badges/icons */
+    /* Status colors used in badges and icons */
     -color-income:   #27AE60;
     -color-expense:  #E74C3C;
     -color-transfer: #2E75B6;
     -color-invest:   #8E44AD;
 
     /* Extended neutrals */
-    -text-label:              #1A1A2E;   /* form field labels — slightly bluer dark */
-    -text-hint:               #9E9E9E;   /* placeholder, disabled, hint text */
-    -surface-page:            #eef4f5;   /* main scroll-pane / screen background */
-    -surface-subtle:          #f8fbfc;   /* dialog headers, table footers */
-    -surface-field:           #f0f6f7;   /* text-field / combo default fill */
-    -surface-teal-faint:      #f0f8f6;   /* match-dialog unselected row */
-    -surface-datepicker-header: #d8f0ec; /* DatePicker popup month/year bar */
+    -text-label:                #1A1A2E;
+    -text-hint:                 #9E9E9E;
+    -surface-page:              #eef4f5;
+    -surface-subtle:            #f8fbfc;
+    -surface-field:             #f0f6f7;
+    -surface-teal-faint:        #f0f8f6;
+    -surface-datepicker-header: #d8f0ec;
 
     /* Semantic status */
     -color-success:      #27AE60;
@@ -47,17 +48,6 @@
     -color-error:        #c0392b;
     -color-warning:      #B7450D;
     -color-warning-bg:   #FFF3E0;
-    -color-warning-text: #856404;        /* amber warning prose (different hue from -color-warning) */
-    -text-neutral:       #595959;        /* neutral gray text — CC stats, non-teal informational labels */
-
-    /* Chart series tokens — referenced by screens/reports.css and ChartPalette constants */
-    /* s0=Total(gold), s1=BankAccounts(teal), s2=CreditCards(red), s3=Investments(purple), s4=Loans(amber) */
-    -chart-color-total: -brand-accent;
-    -chart-color-s1:    #2a8a7a;
-    -chart-color-s2:    #e05555;
-    -chart-color-s3:    #7c3aed;
-    -chart-color-s4:    #966f2c;
-    -chart-color-s5:    #3db89a;
-    -chart-color-s6:    #16a34a;
-    -chart-color-s7:    #0f3d4a;
+    -color-warning-text: #856404;
+    -text-neutral:       #595959;
 }

@@ -6,6 +6,7 @@ import com.sanchay.service.DataStore;
 import com.sanchay.service.ForecastStateService;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -342,6 +343,8 @@ public class CashFlowForecastTab {
         } else {
             buildDetailedSeries(accounts, result.accountSeries());
         }
+
+        applyChartSeriesColors();
     }
 
     private void buildDetailedSeries(List<Account> accounts,
@@ -416,6 +419,28 @@ public class CashFlowForecastTab {
             legendPane.getChildren().add(buildLegendEntry(groupName, color));
             seriesIdx++;
         }
+    }
+
+    private void applyChartSeriesColors() {
+        // Intentional deviation from the usual CSS-first styling approach:
+        // this chart also renders a custom Java-built legend, and keeping the
+        // forecast palette in Java gives the legend and chart lines one source
+        // of truth instead of duplicating series colours in CSS and code.
+        Platform.runLater(() -> {
+            for (int i = 0; i < chart.getData().size(); i++) {
+                String color = UiUtils.FORECAST_SERIES_COLORS[i % UiUtils.FORECAST_SERIES_COLORS.length];
+                Node seriesNode = chart.lookup(".chart-series-line.series" + i);
+                if (seriesNode != null) {
+                    String width = (i == 0) ? "3px" : "2px";
+                    seriesNode.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: " + width + ";");
+                }
+
+                Node symbolNode = chart.lookup(".default-color" + i + ".chart-line-symbol");
+                if (symbolNode != null) {
+                    symbolNode.setStyle("-fx-background-color: " + color + ", white;");
+                }
+            }
+        });
     }
 
     // ── Forecast table ────────────────────────────────────────────────────────
