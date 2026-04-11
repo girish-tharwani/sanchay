@@ -45,7 +45,7 @@ public class CashFlowForecastTab {
             YearMonth yearMonth
     ) {}
 
-    // Chart colours are defined in UiUtils.FORECAST_SERIES_COLORS / FORECAST_GROUP_COLORS.
+    // Chart colours are defined in UiUtils.FORECAST_SERIES_COLORS.
 
     private static final DateTimeFormatter MONTH_FMT =
             DateTimeFormatter.ofPattern("MMM yy", Locale.ENGLISH);
@@ -370,10 +370,12 @@ public class CashFlowForecastTab {
         groupToIds.put("Bank Accounts", new ArrayList<>());
         groupToIds.put("Credit Cards",  new ArrayList<>());
         groupToIds.put("Investments",   new ArrayList<>());
+        groupToIds.put("Loans",         new ArrayList<>());
 
         for (Account acc : accounts) {
             if      (acc instanceof BankAccount)         groupToIds.get("Bank Accounts").add(acc.getId());
             else if (acc instanceof CreditCardAccount)   groupToIds.get("Credit Cards").add(acc.getId());
+            else if (acc instanceof LoanAccount)         groupToIds.get("Loans").add(acc.getId());
             else                                         groupToIds.get("Investments").add(acc.getId());
         }
 
@@ -387,6 +389,7 @@ public class CashFlowForecastTab {
                 .orElse(List.of());
 
         int n = dateLabels.size();
+        int seriesIdx = 1; // 0 is already taken by the Total series
 
         for (Map.Entry<String, List<String>> entry : groupToIds.entrySet()) {
             String groupName = entry.getKey();
@@ -409,8 +412,9 @@ public class CashFlowForecastTab {
             }
             chart.getData().add(series);
 
-            String color = UiUtils.FORECAST_GROUP_COLORS.getOrDefault(groupName, UiUtils.FORECAST_SERIES_COLORS[1]);
+            String color = UiUtils.FORECAST_SERIES_COLORS[seriesIdx % UiUtils.FORECAST_SERIES_COLORS.length];
             legendPane.getChildren().add(buildLegendEntry(groupName, color));
+            seriesIdx++;
         }
     }
 

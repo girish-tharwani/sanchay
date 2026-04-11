@@ -51,12 +51,13 @@
     -text-neutral:       #595959;        /* neutral gray text — CC stats, non-teal informational labels */
 
     /* Chart series tokens — referenced by screens/reports.css and ChartPalette constants */
+    /* s0=Total(gold), s1=BankAccounts(teal), s2=CreditCards(red), s3=Investments(purple), s4=Loans(amber) */
     -chart-color-total: -brand-accent;
     -chart-color-s1:    #2a8a7a;
-    -chart-color-s2:    #3db89a;
-    -chart-color-s3:    #16a34a;
-    -chart-color-s4:    #e05555;
-    -chart-color-s5:    #7c3aed;
-    -chart-color-s6:    #0f3d4a;
-    -chart-color-s7:    #f59e0b;
+    -chart-color-s2:    #e05555;
+    -chart-color-s3:    #7c3aed;
+    -chart-color-s4:    #f59e0b;
+    -chart-color-s5:    #3db89a;
+    -chart-color-s6:    #16a34a;
+    -chart-color-s7:    #0f3d4a;
 }

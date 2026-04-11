@@ -67,25 +67,16 @@ public final class UiUtils {
      * Runtime-assigned to legend swatch rectangles — cannot use CSS tokens here.
      */
     public static final String[] FORECAST_SERIES_COLORS = {
-        "#f0a500",  // 0 — Total (≈ -brand-accent)
-        "#2a8a7a",  // 1 — (≈ -brand-mid)
-        "#3db89a",  // 2 — (≈ -brand-light)
-        "#16a34a",  // 3
-        "#e05555",  // 4
-        "#7c3aed",  // 5
-        "#0f3d4a",  // 6 — (≈ -brand-dark)
-        "#f59e0b",  // 7
+        "#f0a500",  // 0 — Total        (≈ -brand-accent / gold)
+        "#2a8a7a",  // 1 — Bank Accounts (≈ -brand-mid / teal)
+        "#e05555",  // 2 — Credit Cards  (red)
+        "#7c3aed",  // 3 — Investments   (purple)
+        "#f59e0b",  // 4 — Loans         (amber)
+        "#3db89a",  // 5 — (≈ -brand-light)
+        "#16a34a",  // 6
+        "#0f3d4a",  // 7 — (≈ -brand-dark)
     };
 
-    /**
-     * Group-level colours for summarised cash-flow view (>5 accounts).
-     * Runtime-assigned — same reason as FORECAST_SERIES_COLORS.
-     */
-    public static final Map<String, String> FORECAST_GROUP_COLORS = Map.of(
-        "Bank Accounts", "#2a8a7a",   // ≈ -brand-mid
-        "Credit Cards",  "#e05555",
-        "Investments",   "#f59e0b"
-    );
 
     /**
      * Applies the app stylesheet to a dialog's DialogPane.
