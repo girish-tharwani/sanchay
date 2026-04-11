@@ -24,7 +24,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Locale;
 
 /**
  * Third tab in ReportsScreen: projects account balances as a multi-series
@@ -35,14 +34,15 @@ public class CashFlowForecastTab {
     // ── Table row model ───────────────────────────────────────────────────────
 
     public record ForecastTableRow(
-            String   month,
-            String   category,
-            String   subCategory,
-            String   amount,
-            String   method,
-            boolean  excluded,
-            String   categoryId,
-            String   subCategoryId,
+            String    month,
+            String    category,
+            String    subCategory,
+            String    amount,
+            long      amountPaise,
+            String    method,
+            boolean   excluded,
+            String    categoryId,
+            String    subCategoryId,
             YearMonth yearMonth
     ) {}
 
@@ -65,11 +65,11 @@ public class CashFlowForecastTab {
     private FlowPane                    legendPane;
     private Label                       summaryStrip;
     private Label                       warningBar;
-    private Label                       statBalance;
-    private Label                       statIncome;
-    private Label                       statExpense;
-    private Label                       statNet;
     private TableView<ForecastTableRow> forecastTable;
+    private ComboBox<String>            monthFilterCombo;
+    private ComboBox<String>            categoryFilterCombo;
+    private Label                       forecastTotalValue;
+    private List<ForecastTableRow>      allForecastRows      = new ArrayList<>();
     private boolean                     refreshing           = false;
     private boolean                     showDetailedAccounts = false;
 
@@ -88,16 +88,6 @@ public class CashFlowForecastTab {
     private ScrollPane buildView() {
         VBox root = new VBox(16);
         root.setPadding(new Insets(24));
-
-        // Stat card value labels (created early for use in filter row)
-        statBalance = new Label();
-        statBalance.getStyleClass().add("cash-flow-stat-value");
-        statIncome = new Label();
-        statIncome.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-pos");
-        statExpense = new Label();
-        statExpense.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-neg");
-        statNet = new Label();
-        statNet.getStyleClass().add("cash-flow-stat-value");
 
         // Period picker
         periodPicker = new ComboBox<>();
@@ -127,15 +117,6 @@ public class CashFlowForecastTab {
 
         HBox filterRow = new HBox(12, periodLabel, periodPicker, detailToggle, regenerateBtn);
         filterRow.setAlignment(Pos.CENTER_LEFT);
-
-        // Stat cards on a dedicated second row — equal width, full span
-        HBox statsRow = new HBox(12,
-                buildCompactStatCard("Projected Balance",        statBalance),
-                buildCompactStatCard("Total Projected Income",   statIncome),
-                buildCompactStatCard("Total Projected Expenses", statExpense),
-                buildCompactStatCard("Net Cash Flow",            statNet));
-        for (Node n : statsRow.getChildren()) HBox.setHgrow(n, Priority.ALWAYS);
-        statsRow.setMaxWidth(Double.MAX_VALUE);
 
         // Warning bar — hidden by default
         warningBar = new Label();
@@ -169,16 +150,80 @@ public class CashFlowForecastTab {
         Label tableTitle = new Label("Forecasted Expenses");
         tableTitle.getStyleClass().add("forecast-section-title");
 
+        // Forecast table filter bar
+        HBox tableFilterBar = buildTableFilterBar();
+
         // Forecast table
         forecastTable = buildForecastTable();
 
-        root.getChildren().addAll(filterRow, statsRow, warningBar, summaryStrip, chartCard, tableTitle, forecastTable);
+        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, tableTitle, tableFilterBar, forecastTable);
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
         sp.setFitToHeight(false);
         sp.getStyleClass().add("edge-to-edge");
         return sp;
+    }
+
+    private HBox buildTableFilterBar() {
+        Label monthLbl = new Label("MONTH");
+        monthLbl.getStyleClass().add("filter-label");
+
+        monthFilterCombo = new ComboBox<>();
+        monthFilterCombo.setPromptText("All Months");
+        monthFilterCombo.getStyleClass().add("filter-field");
+        monthFilterCombo.setPrefWidth(120);
+        monthFilterCombo.valueProperty().addListener((obs, o, n) -> applyTableFilter());
+
+        Region sep = new Region();
+        sep.getStyleClass().add("filter-separator");
+
+        Label catLbl = new Label("CATEGORY");
+        catLbl.getStyleClass().add("filter-label");
+
+        categoryFilterCombo = new ComboBox<>();
+        categoryFilterCombo.setPromptText("All Categories");
+        categoryFilterCombo.getStyleClass().add("filter-field");
+        categoryFilterCombo.setPrefWidth(150);
+        categoryFilterCombo.valueProperty().addListener((obs, o, n) -> applyTableFilter());
+
+        Button clearBtn = new Button("Clear");
+        clearBtn.getStyleClass().add("btn-secondary");
+        clearBtn.setOnAction(e -> {
+            monthFilterCombo.setValue(null);
+            categoryFilterCombo.setValue(null);
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label totalLbl = new Label("Total:");
+        totalLbl.getStyleClass().add("filter-label");
+
+        forecastTotalValue = new Label("—");
+        forecastTotalValue.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-neg");
+
+        HBox bar = new HBox(10, monthLbl, monthFilterCombo, sep, catLbl, categoryFilterCombo, clearBtn,
+                spacer, totalLbl, forecastTotalValue);
+        bar.getStyleClass().add("filter-bar");
+        bar.setAlignment(Pos.CENTER_LEFT);
+        return bar;
+    }
+
+    private void applyTableFilter() {
+        String selMonth = monthFilterCombo.getValue();
+        String selCat   = categoryFilterCombo.getValue();
+        List<ForecastTableRow> filtered = allForecastRows.stream()
+                .filter(r -> selMonth == null || selMonth.equals(r.month()))
+                .filter(r -> selCat   == null || selCat.equals(r.category()))
+                .collect(Collectors.toList());
+        forecastTable.getItems().setAll(filtered);
+
+        long totalPaise = filtered.stream()
+                .filter(r -> !r.excluded())
+                .mapToLong(ForecastTableRow::amountPaise)
+                .sum();
+        forecastTotalValue.setText(MoneyFormatter.formatTableCompact(totalPaise));
     }
 
     private TableView<ForecastTableRow> buildForecastTable() {
@@ -229,15 +274,6 @@ public class CashFlowForecastTab {
             @Override public Number fromString(String s) { return 0; }
         });
         return yAxis;
-    }
-
-    private VBox buildCompactStatCard(String label, Label valueLabel) {
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("cash-flow-compact-stat-label");
-        VBox card = new VBox(2, lbl, valueLabel);
-        card.getStyleClass().add("cash-flow-compact-stat-card");
-        card.setMaxWidth(Double.MAX_VALUE);
-        return card;
     }
 
     private Node buildLegendEntry(String name, String hexColor) {
@@ -300,20 +336,6 @@ public class CashFlowForecastTab {
 
         // Build chart
         rebuildChart(result);
-
-        // Stat cards
-        long lastTotal = result.totalSeries().isEmpty() ? 0
-                : result.totalSeries().get(result.totalSeries().size() - 1).balancePaise();
-        long income  = result.totalProjectedIncomePaise();
-        long expense = result.totalProjectedExpensesPaise();
-        long net     = income - expense;
-
-        statBalance.setText(MoneyFormatter.formatTableCompact(lastTotal));
-        applyPosNeg(statBalance, lastTotal);
-        statIncome.setText(MoneyFormatter.formatTableCompact(income));
-        statExpense.setText(MoneyFormatter.formatTableCompact(expense));
-        statNet.setText(MoneyFormatter.formatTableCompact(net));
-        applyPosNeg(statNet, net);
 
         // Forecast table
         updateForecastTable(result.forecastedExpenses());
@@ -453,13 +475,14 @@ public class CashFlowForecastTab {
     // ── Forecast table ────────────────────────────────────────────────────────
 
     private void updateForecastTable(List<CashFlowProjectionService.ForecastedExpense> forecasts) {
-        forecastTable.getItems().clear();
+        allForecastRows = new ArrayList<>();
         for (CashFlowProjectionService.ForecastedExpense fe : forecasts) {
-            forecastTable.getItems().add(new ForecastTableRow(
+            allForecastRows.add(new ForecastTableRow(
                     fe.month().format(MONTH_FMT),
                     getCategoryName(fe.categoryId()),
                     getCategoryName(fe.subCategoryId()),
                     MoneyFormatter.formatTableCompact(fe.amountPaise()),
+                    fe.amountPaise(),
                     fe.excluded() ? "Excluded" : fe.method(),
                     fe.excluded(),
                     fe.categoryId(),
@@ -467,6 +490,28 @@ public class CashFlowForecastTab {
                     fe.month()
             ));
         }
+
+        // Repopulate filter combos, preserving current selections where still valid
+        String prevMonth = monthFilterCombo.getValue();
+        String prevCat   = categoryFilterCombo.getValue();
+
+        List<String> months = allForecastRows.stream()
+                .map(ForecastTableRow::month)
+                .distinct()
+                .collect(Collectors.toList());
+        List<String> categories = allForecastRows.stream()
+                .map(ForecastTableRow::category)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        monthFilterCombo.getItems().setAll(months);
+        monthFilterCombo.setValue(months.contains(prevMonth) ? prevMonth : null);
+
+        categoryFilterCombo.getItems().setAll(categories);
+        categoryFilterCombo.setValue(categories.contains(prevCat) ? prevCat : null);
+
+        applyTableFilter();
     }
 
     // ── Custom table cells ────────────────────────────────────────────────────
@@ -676,11 +721,6 @@ public class CashFlowForecastTab {
         };
     }
 
-
-    private void applyPosNeg(Label lbl, long paise) {
-        lbl.getStyleClass().removeAll("cash-flow-stat-value-pos", "cash-flow-stat-value-neg");
-        lbl.getStyleClass().add(paise >= 0 ? "cash-flow-stat-value-pos" : "cash-flow-stat-value-neg");
-    }
 
     private String getCategoryName(String categoryId) {
         if (categoryId == null) return "";
