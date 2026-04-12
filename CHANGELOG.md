@@ -1,3 +1,7 @@
+## v1.0.0-Kiwi — 2026-04-12
+
+baseline for release
+
 ## v0.0.6-Kiwi — 2026-04-12
 
 ### Fixed
