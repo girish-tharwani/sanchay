@@ -14,10 +14,12 @@ public class ReportsScreen {
 
     private final StackPane view;
     private final ExpenseReportTab summaryTab;
+    private final ExpenseTrendTab  trendTab;
     private final CashFlowForecastTab cashFlowTab;
 
     public ReportsScreen() {
         summaryTab  = new ExpenseReportTab();
+        trendTab    = new ExpenseTrendTab();
         cashFlowTab = new CashFlowForecastTab();
 
         TabPane tabPane = new TabPane();
@@ -26,10 +28,13 @@ public class ReportsScreen {
         Tab t1 = new Tab("Expense Report");
         t1.setContent(summaryTab.getView());
 
-        Tab t2 = new Tab("Cash Flow Forecast");
-        t2.setContent(cashFlowTab.getView());
+        Tab t2 = new Tab("Expense Trend");
+        t2.setContent(trendTab.getView());
 
-        tabPane.getTabs().addAll(t1, t2);
+        Tab t3 = new Tab("Cash Flow Forecast");
+        t3.setContent(cashFlowTab.getView());
+
+        tabPane.getTabs().addAll(t1, t2, t3);
 
         VBox panel = new VBox(0);
         panel.getStyleClass().add("main-panel");
@@ -48,6 +53,7 @@ public class ReportsScreen {
     /** Re-queries DataStore and redraws all tabs. Called by MainWindow on every navigation. */
     public void refresh() {
         summaryTab.refresh();
+        trendTab.refresh();
         cashFlowTab.refresh();
     }
 }

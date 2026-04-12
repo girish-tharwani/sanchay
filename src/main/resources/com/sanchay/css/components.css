@@ -437,6 +437,31 @@
     -fx-border-color: -brand-mid;
 }
 
+/* MenuButton styled to match ComboBox appearance */
+.menu-button-as-combo {
+    -fx-background-color: -surface-field;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-width: 1px;
+    -fx-padding: 4px 4px 4px 10px;
+    -fx-text-fill: -text-primary;
+    -fx-font-size: 13px;
+}
+.menu-button-as-combo:hover, .menu-button-as-combo:showing {
+    -fx-background-color: white;
+    -fx-border-color: -brand-mid;
+}
+.menu-button-as-combo .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0 6px 0 6px;
+}
+.menu-button-as-combo .arrow-button .arrow {
+    -fx-background-color: -text-secondary;
+}
+
 /* Flat style for filter-bar controls */
 .filter-field, .filter-field .text-field {
     -fx-border-color: transparent;

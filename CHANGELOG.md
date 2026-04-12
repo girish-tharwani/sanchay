@@ -1,3 +1,16 @@
+## v0.0.5-Kiwi — 2026-04-12
+
+### Added
+- Expense Trend tab in Reports: tabular view of net expenses (EXPENSE minus REFUND) by category and sub-category across current + up to 4 past years; category filter with multi-select; Total row; CSV export
+- Category filter on Expense Trend tab — selection persisted to `report_prefs.json` across restarts
+- Category filter on Expense Report tab — selection persisted to `report_prefs.json` across restarts
+- `ReportPrefsService` — loads/saves hidden category sets for both report tabs
+
+### Changed
+- All three Reports tabs now share consistent styling: teal page background, 24px padding, `text-section-title` headings, default ComboBox appearance
+- `menu-button-as-combo` CSS class added to components.css for MenuButtons that must match ComboBox styling
+- Clear button removed from Expense Report tab (category selections are now persisted instead of reset)
+
 ## v0.0.4-Kiwi — 2026-04-12
 
 ### Changed

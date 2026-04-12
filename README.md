@@ -173,6 +173,7 @@ This file contains only the pointer to your data folder. You can change the data
 | `plan_params.json` | Financial planning parameters |
 | `forecast_overrides.json` | Manual amount corrections and exclusions applied to the cash flow forecast |
 | `forecast_account_selection.json` | Persisted account selection and "show sum" toggle for the forecast chart |
+| `report_prefs.json` | Persisted hidden-category selections for Expense Report and Expense Trend tabs |
 
 All monetary amounts are stored as **long integers in paise** (1/100th of the base currency unit) to avoid floating-point rounding errors.
 
@@ -265,7 +266,7 @@ Recurring entries are auto-created by the system when you set up an RD, loan wit
 
 ### Reports & Cash Flow Forecast
 
-The Reports screen has two tabs, each managed by its own class (`ExpenseReportTab`, `CashFlowForecastTab`). `ReportsScreen` is a thin coordinator that owns the `TabPane` and delegates all rendering and refresh logic to the tab classes.
+The Reports screen has three tabs, each managed by its own class (`ExpenseReportTab`, `ExpenseTrendTab`, `CashFlowForecastTab`). `ReportsScreen` is a thin coordinator that owns the `TabPane` and delegates all rendering and refresh logic to the tab classes.
 
 ---
 
@@ -276,10 +277,26 @@ Category-by-month breakdown of spending.
 **Filters:**
 - **Year selector** — Financial Year or Calendar Year picker, defaulting to the current FY/year. Format follows the app's Year Format setting.
 - **Month selector** — optional single-month drill-down within the selected year
-- **Category filter** — multi-select `MenuButton` that hides/shows categories in both the chart and the table; the menu stays open after each toggle for multiple selections. A **Clear** button resets all filters to the current FY.
+- **Category filter** — multi-select `MenuButton` that hides/shows categories in both the chart and the table; the menu stays open after each toggle for multiple selections. Selection is persisted to `report_prefs.json`.
 - **Show sub-categories** — checkbox in the chart section header that expands each category bar to show per-sub-category breakdown in the table
 
 **Export:** **⬇ Download CSV** saves the current view (selected year/month, active category filter, sub-category state) as a `.csv` file via a file-save dialog.
+
+---
+
+#### Expense Trend tab
+
+Year-over-year comparison of net expenses (EXPENSE minus REFUND) in a tabular grid.
+
+**Columns:** one per year — current year plus up to 4 past years (selected via the Past Years picker).
+
+**Rows:** expense categories alphabetically, sub-categories indented below each parent, and a bold **TOTAL** row at the bottom. Zero amounts are shown as blank.
+
+**Category filter** — same multi-select `MenuButton` as Expense Report; selection is persisted to `report_prefs.json`.
+
+**Year format** follows the app's Year Format setting (Indian Financial Year or Calendar Year).
+
+**Export:** **⬇ Download CSV** exports the current filtered view including the Total row.
 
 ---
 
