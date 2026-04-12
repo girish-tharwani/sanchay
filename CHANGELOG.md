@@ -1,3 +1,11 @@
+## v0.0.4-Kiwi — 2026-04-12
+
+### Changed
+- Accounts screen group collapse state is no longer persisted — on every app start only Favourites is expanded, all other groups are collapsed
+
+### Fixed
+- Removed stale `activeFinancialYear` field from settings.json (all consuming code was already commented out)
+
 ## v0.0.3-Kiwi — 2026-04-12
 
 ### Added

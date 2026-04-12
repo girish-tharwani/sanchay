@@ -51,7 +51,6 @@ public class PersistenceService {
     }
 
     public static class AppSettings {
-        public String  activeFinancialYear    = "FY 2025-26";
         public String  dateFormat             = "DD/MM/YYYY";
         public String  currency               = "INR";
         public String  yearFormat             = "Indian Financial Year";
@@ -90,10 +89,6 @@ public class PersistenceService {
                     store.setCurrencyInternal(s.currency);
                 if (s.yearFormat != null)
                     store.setYearFormatInternal(s.yearFormat);
-                store.setGroupCollapsedInternal("bank",       s.bankGroupCollapsed);
-                store.setGroupCollapsedInternal("cc",         s.ccGroupCollapsed);
-                store.setGroupCollapsedInternal("loan",       s.loanGroupCollapsed);
-                store.setGroupCollapsedInternal("investment", s.investmentGroupCollapsed);
                 store.setExpenseForecastAnalysisMonthsInternal(s.expenseForecastAnalysisMonths);
             }
         } catch (Exception e) {
@@ -319,10 +314,6 @@ public class PersistenceService {
         s.dateFormat             = store.getDateFormat();
         s.currency               = store.getCurrency();
         s.yearFormat             = store.getYearFormat();
-        s.bankGroupCollapsed       = store.isGroupCollapsed("bank");
-        s.ccGroupCollapsed         = store.isGroupCollapsed("cc");
-        s.loanGroupCollapsed       = store.isGroupCollapsed("loan");
-        s.investmentGroupCollapsed = store.isGroupCollapsed("investment");
         s.expenseForecastAnalysisMonths = store.getExpenseForecastAnalysisMonths();
         atomicWrite(SETTINGS, GSON.toJson(s));
     }
