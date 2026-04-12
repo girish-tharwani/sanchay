@@ -25,7 +25,7 @@ import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 
-class MonthlyExpenseSummaryTab {
+class ExpenseReportTab {
 
     private final ScrollPane view;
     private Runnable refresh;
@@ -35,7 +35,7 @@ class MonthlyExpenseSummaryTab {
     /** Category names the user has explicitly hidden. Empty = show all. */
     private final Set<String> hiddenCategories = new HashSet<>();
 
-    MonthlyExpenseSummaryTab() {
+    ExpenseReportTab() {
         view = buildView();
     }
 

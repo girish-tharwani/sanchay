@@ -1,3 +1,8 @@
+## v0.0.10-Jay — 2026-04-12
+
+### Changed
+- Renamed `MonthlyExpenseSummaryTab` to `ExpenseReportTab`; tab label changed from "Monthly Expense Summary" to "Expense Report"
+
 ## v0.0.9-Jay — 2026-04-12
 
 ### Added

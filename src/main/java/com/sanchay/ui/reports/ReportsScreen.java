@@ -13,17 +13,17 @@ import javafx.scene.layout.*;
 public class ReportsScreen {
 
     private final StackPane view;
-    private final MonthlyExpenseSummaryTab summaryTab;
+    private final ExpenseReportTab summaryTab;
     private final CashFlowForecastTab cashFlowTab;
 
     public ReportsScreen() {
-        summaryTab  = new MonthlyExpenseSummaryTab();
+        summaryTab  = new ExpenseReportTab();
         cashFlowTab = new CashFlowForecastTab();
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Tab t1 = new Tab("Monthly Expense Summary");
+        Tab t1 = new Tab("Expense Report");
         t1.setContent(summaryTab.getView());
 
         Tab t2 = new Tab("Cash Flow Forecast");
