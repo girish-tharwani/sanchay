@@ -39,7 +39,7 @@ No test framework or linter is configured.
 
 ### Key Singletons
 - **`DataStore`** — Central in-memory cache of all financial data. All UI screens read/write through `DataStore.getInstance()`.
-- **`PersistenceService`** — Serializes/deserializes 11 JSON files (accounts, transactions, recurring, categories, members, settings, import_mappings, category_rules, type_rules, loan_schedules, market_values) using GSON with a custom `LocalDate` adapter.
+- **`PersistenceService`** — Serializes/deserializes 11 JSON files (accounts, transactions, recurring, categories, members, settings, import_mappings, category_rules, type_rules, loan_schedules, market_values) using GSON with a custom `LocalDate` adapter. Two additional files are owned by other services: `forecast_overrides.json` and `forecast_account_selection.json` by `ForecastStateService`, and `plan_params.json` by `PlanParamsService`.
 - **`AppConfig`** — Manages the two-tier config separation (app install vs. data folder).
 
 ### Layers
@@ -102,6 +102,12 @@ Each dialog has its own class. Extracted dialog classes by package:
 **`ui/common/`**
 - `SingleInputDialog` — generic single text-field dialog
 
+**`ui/reports/`**
+- `ReportsScreen` — thin coordinator; owns the `TabPane` and calls `refresh()` on each tab class on every navigation
+- `ExpenseReportTab` — Expense Report tab: category-by-month chart and table, FY/CY year picker, category multi-select filter, sub-category toggle, CSV export
+- `CashFlowForecastTab` — Cash Flow Forecast tab: line chart with data-point tooltips, horizon picker, override editing, account selection state
+- `AccountSelectionDialog` — modal dialog for picking which accounts appear in the cash flow chart; up to 10 accounts in four labelled groups with tri-state group checkboxes; MF/Equity accounts shown as permanently disabled; includes "Show sum of all accounts" toggle
+
 **`ui/help/`**
 - `HelpScreen` — full Help & Support screen; renders USER-GUIDE.md via `MarkdownRenderer` inside a `ScrollPane`
 - `MarkdownRenderer` — converts Markdown to a native JavaFX node tree (H1–H4, paragraphs, inline bold/code, lists, code blocks, horizontal rules); no WebView or javafx-web dependency
@@ -126,9 +132,11 @@ Each dialog has its own class. Extracted dialog classes by package:
 Each panel receives a `TransactionDialog parent` reference in its constructor and accesses shared fields and helper methods through it. Panel fields are package-private so `TransactionDialog` can read them for auto-suggest routing, context-account pre-population, and focus management. To add a new transaction type: add a `*Panel` class, add it to `typeCb.getItems()`, wire `panelNodeFor()`, `save()`, `prefillFromTransaction()`, `applyContextAccount()`, `setContextAccount()`, and `focusFirstEmpty()` in `TransactionDialog`.
 
 ### Business Logic Services
-- **`CashFlowProjectionService`** — Projects account balances month-by-month using recurring transactions, maturity events, overrides, and seasonality factors. Used by Reports/Forecasting screens.
+- **`CashFlowProjectionService`** — Projects account balances month-by-month using recurring transactions, maturity events, overrides, and seasonality factors. Used by `CashFlowForecastTab`.
+- **`ForecastStateService`** — Loads and saves forecast overrides (`forecast_overrides.json`) and account selection state (`forecast_account_selection.json`). Override uniqueness key is `(categoryId, subCategoryId, month)`.
 - **`ImportService`** — Parses clipboard CSV/TSV, auto-detects delimiters, matches imports to existing transactions, and auto-categorizes via rules.
 - **`AmortizationService`** — Generates reducing-balance loan schedules; handles mid-loan interest rate changes.
+- **`PlanParamsService`** — Loads and saves financial planning parameters to `plan_params.json`.
 
 ### Data Model Conventions
 - **Amounts are stored in paise** (long integers, 1/100th of the base currency unit) — never use floating point for money.

@@ -82,7 +82,8 @@
 - **Loan amortization** — auto-generated reducing-balance schedules with support for mid-loan rate changes
 - **Recurring schedules** — monthly, quarterly, half-yearly, annual, and alternate-year with optional auto-recording
 - **CSV import & reconciliation** — two-pass deduplication that merges imported rows with existing manual entries, auto-categorization via rules
-- **Cash flow forecasting** — month-by-month balance projection using scheduled transactions, FD/RD maturities, and AI-analysed expense patterns
+- **Cash flow forecasting** — month-by-month balance projection using scheduled transactions, FD/RD maturities, and AI-analysed expense patterns; up to 36-month horizon with per-account selection and override corrections
+- **Expense reporting** — category-by-month breakdown with multi-select category filter, sub-category drill-down, and CSV export
 - **Retirement planning** — corpus projections, major life event tracking, expense forecasting
 - **Family member tracking** — attribute transactions and income to specific members
 - **Portable data** — all data lives in a user-chosen folder; move to a cloud drive or external disk at any time
@@ -170,6 +171,8 @@ This file contains only the pointer to your data folder. You can change the data
 | `loan_schedules.json` | Generated amortization schedules |
 | `market_values.json` | Investment market value snapshots |
 | `plan_params.json` | Financial planning parameters |
+| `forecast_overrides.json` | Manual amount corrections and exclusions applied to the cash flow forecast |
+| `forecast_account_selection.json` | Persisted account selection and "show sum" toggle for the forecast chart |
 
 All monetary amounts are stored as **long integers in paise** (1/100th of the base currency unit) to avoid floating-point rounding errors.
 
@@ -262,11 +265,31 @@ Recurring entries are auto-created by the system when you set up an RD, loan wit
 
 ### Reports & Cash Flow Forecast
 
-The Reports screen includes a **Cash Flow Forecast** tab that projects account balances month-by-month over a user-specified date range.
+The Reports screen has two tabs, each managed by its own class (`ExpenseReportTab`, `CashFlowForecastTab`). `ReportsScreen` is a thin coordinator that owns the `TabPane` and delegates all rendering and refresh logic to the tab classes.
 
-**Projection inputs:**
-- Start and end date
-- Optional `ForecastOverride` entries (per-account, per-month manual adjustments or exclusions)
+---
+
+#### Expense Report tab
+
+Category-by-month breakdown of spending.
+
+**Filters:**
+- **Year selector** — Financial Year or Calendar Year picker, defaulting to the current FY/year. Format follows the app's Year Format setting.
+- **Month selector** — optional single-month drill-down within the selected year
+- **Category filter** — multi-select `MenuButton` that hides/shows categories in both the chart and the table; the menu stays open after each toggle for multiple selections. A **Clear** button resets all filters to the current FY.
+- **Show sub-categories** — checkbox in the chart section header that expands each category bar to show per-sub-category breakdown in the table
+
+**Export:** **⬇ Download CSV** saves the current view (selected year/month, active category filter, sub-category state) as a `.csv` file via a file-save dialog.
+
+---
+
+#### Cash Flow Forecast tab
+
+Projects account balances month-by-month over a user-selected time horizon.
+
+**Horizon options:** Next 6 Months, Next 12 Months, Next 24 Months, Next 36 Months, or the current Financial Year.
+
+**Account selection** — a **Choose Accounts** dialog (`AccountSelectionDialog`) lets you pick up to 10 accounts to display on the chart. Accounts are presented in four labelled groups (Bank, Credit Cards, Loans, Investments) with tri-state group header checkboxes. MF and Equity investment accounts appear in the Investments group as permanently disabled rows — visual cue that they are excluded from projection. A **"Show sum of all accounts"** toggle controls whether the thick gold total line appears on the chart. Selection and the show-sum toggle are persisted to `forecast_account_selection.json`.
 
 **What the projection models:**
 - Recurring scheduled transactions (income and expenses)
@@ -275,10 +298,11 @@ The Reports screen includes a **Cash Flow Forecast** tab that projects account b
 - AI-generated expense forecasts per sub-category (with confidence scores)
 - Discretionary spending subtracted from recurring totals to avoid double-counting
 
-**Projection outputs per account:**
-- Month-by-month balance series
-- Total projected income and expenses for the period
-- Warnings (e.g., "EMI not set up for loan account X")
+**Overrides** — double-click any forecast row in the table to correct a projected amount for a specific month. Corrections are persisted to `forecast_overrides.json` and applied on the next projection run.
+
+**Chart features:**
+- Data point tooltips show series name, month, and balance on hover
+- Series legend tooltips show the full account name
 
 Only bank and eligible investment accounts (FD, RD, Debt/Bonds) are included in the balance projection. Equity, MF, and PF accounts are excluded as their balances are market-linked.
 
@@ -432,7 +456,7 @@ MainApp (JavaFX Application)
     ├── CashFlowProjectionService  ─ Month-by-month balance forecasting
     ├── ImportService              ─ CSV parse, dedup, reconcile, auto-categorize
     ├── AmortizationService        ─ Loan schedule generation
-    ├── ForecastStateService       ─ Cached forecast state management
+    ├── ForecastStateService       ─ Forecast overrides + account selection persistence
     ├── PlanParamsService          ─ Financial planning parameter persistence
     ├── DescriptionNormalizer      ─ Transaction description normalisation
     ├── MoneyFormatter             ─ Amount and currency symbol formatting
