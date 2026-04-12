@@ -14,33 +14,46 @@ import java.util.stream.Collectors;
  * Modal dialog for choosing which accounts appear in the detailed cash-flow
  * chart.  Accounts are presented in four labelled groups with tri-state group
  * header checkboxes.  A hard cap of {@value #MAX} accounts is enforced.
+ *
+ * <p>MF and Equity investment accounts are shown in the Investments group but
+ * are permanently disabled — they provide a visual cue that these account types
+ * are excluded from cash-flow projection.
+ *
+ * <p>A "Show sum of all accounts" toggle controls whether the thick gold total
+ * line appears on the chart.
  */
 class AccountSelectionDialog {
 
     static final int MAX = 10;
 
+    record Result(Set<String> selection, boolean showSum) {}
+
     private record AccountGroup(String name, List<Account> accounts) {}
 
     /**
-     * Shows the dialog and returns the new selection, or {@code Optional.empty()}
-     * when the user cancelled.
+     * Shows the dialog and returns the new state, or {@code Optional.empty()} when cancelled.
      *
-     * @param allAccounts accounts currently in the projection (already filtered)
-     * @param current     previously persisted selection; {@code null}/empty → treat as "all selected"
+     * @param allAccounts   accounts currently in the projection (already filtered)
+     * @param current       previously persisted selection; {@code null}/empty → treat as "all selected"
+     * @param currentShowSum previously persisted showSum preference
      */
-    static Optional<Set<String>> show(List<Account> allAccounts, Set<String> current) {
+    static Optional<Result> show(List<Account> allAccounts, Set<String> current, boolean currentShowSum) {
         if (allAccounts == null || allAccounts.isEmpty()) return Optional.empty();
 
-        // Resolve working selection — intersect saved IDs with currently projected accounts
-        Set<String> allIds = allAccounts.stream()
+        // Separate selectable accounts from always-disabled ones
+        List<Account> selectable = allAccounts.stream()
+                .filter(a -> !isViewOnly(a))
+                .collect(Collectors.toList());
+
+        // Resolve working selection — only selectable accounts count
+        Set<String> allSelectableIds = selectable.stream()
                 .map(Account::getId)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<String> workingSel = (current == null || current.isEmpty())
-                ? new LinkedHashSet<>(allIds)
-                : allIds.stream()
+                ? new LinkedHashSet<>(allSelectableIds)
+                : allSelectableIds.stream()
                         .filter(current::contains)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
-        // Enforce hard cap on initial load
         if (workingSel.size() > MAX) {
             workingSel = workingSel.stream().limit(MAX)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -50,13 +63,20 @@ class AccountSelectionDialog {
         List<AccountGroup> groups = buildGroups(allAccounts);
 
         // ── Dialog shell ──────────────────────────────────────────────────────
-        Dialog<Set<String>> dlg = new Dialog<>();
+        Dialog<Result> dlg = new Dialog<>();
         UiUtils.applyStylesheet(dlg);
         UiUtils.setDialogHeader(dlg, "📊", "Choose Accounts",
                 "Select up to " + MAX + " accounts to show in the detailed chart");
         dlg.getDialogPane().setPrefWidth(420);
 
-        // Counter badge (top-right of the list)
+        // ── Sum toggle (top) ──────────────────────────────────────────────────
+        CheckBox showSumCb = new CheckBox("Show sum of all accounts");
+        showSumCb.setSelected(currentShowSum);
+        showSumCb.getStyleClass().add("acsel-group-cb");
+        Separator sep = new Separator();
+        sep.setPadding(new Insets(4, 0, 4, 0));
+
+        // Counter badge
         Label counterLbl = new Label();
         counterLbl.getStyleClass().add("acsel-counter");
         syncCounter(counterLbl, sel.size());
@@ -71,64 +91,71 @@ class AccountSelectionDialog {
         for (AccountGroup group : groups) {
             if (group.accounts().isEmpty()) continue;
 
-            List<CheckBox> accCbs = new ArrayList<>();
+            List<CheckBox> accCbs      = new ArrayList<>();
+            List<Account>  groupSelectable = new ArrayList<>();
 
-            // Account checkboxes (built before group so handler can reference them)
             for (Account acc : group.accounts()) {
                 CheckBox cb = new CheckBox(acc.getName());
-                cb.setSelected(sel.contains(acc.getId()));
-                cb.getStyleClass().add("acsel-account-cb");
+                boolean viewOnly = isViewOnly(acc);
+                if (viewOnly) {
+                    cb.setSelected(false);
+                    cb.setDisable(true);
+                    cb.getStyleClass().add("acsel-account-cb");
+                } else {
+                    cb.setSelected(sel.contains(acc.getId()));
+                    cb.getStyleClass().add("acsel-account-cb");
+                    allAccCbs.add(cb);
+                    cbToAcc.put(cb, acc);
+                    groupSelectable.add(acc);
+                }
                 accCbs.add(cb);
-                allAccCbs.add(cb);
-                cbToAcc.put(cb, acc);
             }
 
-            // Group header checkbox (tri-state)
+            // Group header checkbox (tri-state, driven only by selectable accounts)
             CheckBox groupCb = new CheckBox(group.name());
             groupCb.getStyleClass().add("acsel-group-cb");
-            syncGroupState(groupCb, group.accounts(), sel);
+            syncGroupState(groupCb, groupSelectable, sel);
 
-            // Wire account checkbox clicks
-            for (int i = 0; i < accCbs.size(); i++) {
-                CheckBox cb  = accCbs.get(i);
-                Account  acc = group.accounts().get(i);
+            // Wire selectable account checkbox clicks
+            for (Account acc : groupSelectable) {
+                CheckBox cb = accCbs.get(group.accounts().indexOf(acc));
                 cb.setOnAction(ev -> {
                     if (cb.isSelected()) sel.add(acc.getId());
                     else                 sel.remove(acc.getId());
-                    syncGroupState(groupCb, group.accounts(), sel);
+                    syncGroupState(groupCb, groupSelectable, sel);
                     syncCounter(counterLbl, sel.size());
                     syncDisabled(allAccCbs, cbToAcc, sel);
                 });
             }
 
-            // Wire group checkbox click
+            // Wire group checkbox click — only affects selectable accounts
             groupCb.setOnAction(ev -> {
-                boolean allChk = group.accounts().stream().allMatch(a -> sel.contains(a.getId()));
+                boolean allChk = groupSelectable.stream().allMatch(a -> sel.contains(a.getId()));
                 if (allChk) {
-                    // Deselect all in this group
-                    for (int i = 0; i < group.accounts().size(); i++) {
-                        sel.remove(group.accounts().get(i).getId());
-                        accCbs.get(i).setSelected(false);
+                    for (Account a : groupSelectable) {
+                        sel.remove(a.getId());
+                        CheckBox cb = accCbs.get(group.accounts().indexOf(a));
+                        cb.setSelected(false);
                     }
                 } else {
-                    // Select as many as the remaining headroom allows
                     int room  = MAX - sel.size();
                     int added = 0;
-                    for (int i = 0; i < group.accounts().size(); i++) {
-                        Account a = group.accounts().get(i);
+                    for (Account a : groupSelectable) {
                         if (!sel.contains(a.getId()) && added < room) {
                             sel.add(a.getId());
-                            accCbs.get(i).setSelected(true);
+                            accCbs.get(group.accounts().indexOf(a)).setSelected(true);
                             added++;
                         }
                     }
                 }
-                syncGroupState(groupCb, group.accounts(), sel);
+                syncGroupState(groupCb, groupSelectable, sel);
                 syncCounter(counterLbl, sel.size());
                 syncDisabled(allAccCbs, cbToAcc, sel);
             });
 
-            // Indented account rows under the group header
+            // Disable group header if there are no selectable accounts in the group
+            if (groupSelectable.isEmpty()) groupCb.setDisable(true);
+
             VBox accBox = new VBox(5);
             accBox.setPadding(new Insets(2, 0, 0, 26));
             accCbs.forEach(cb -> accBox.getChildren().add(cb));
@@ -136,12 +163,12 @@ class AccountSelectionDialog {
             listBox.getChildren().add(new VBox(6, groupCb, accBox));
         }
 
-        syncDisabled(allAccCbs, cbToAcc, sel); // initial disabled state
+        syncDisabled(allAccCbs, cbToAcc, sel);
 
         // ── Scroll + content layout ───────────────────────────────────────────
         ScrollPane scroll = new ScrollPane(listBox);
         scroll.setFitToWidth(true);
-        scroll.setPrefHeight(Math.min(340,
+        scroll.setPrefHeight(Math.min(320,
                 allAccounts.size() * 29 + groups.size() * 38 + 24));
         scroll.getStyleClass().add("edge-to-edge");
 
@@ -149,7 +176,7 @@ class AccountSelectionDialog {
         counterRow.setAlignment(Pos.CENTER_RIGHT);
         counterRow.setPadding(new Insets(0, 2, 6, 0));
 
-        VBox content = new VBox(0, counterRow, scroll);
+        VBox content = new VBox(8, showSumCb, sep, counterRow, scroll);
         content.setPadding(new Insets(10, 16, 4, 16));
         dlg.getDialogPane().setContent(content);
 
@@ -157,12 +184,21 @@ class AccountSelectionDialog {
         ButtonType cancelBt = new ButtonType("Cancel",          ButtonBar.ButtonData.CANCEL_CLOSE);
         dlg.getDialogPane().getButtonTypes().addAll(applyBt, cancelBt);
 
-        dlg.setResultConverter(bt -> bt == applyBt ? new LinkedHashSet<>(sel) : null);
+        dlg.setResultConverter(bt -> bt == applyBt
+                ? new Result(new LinkedHashSet<>(sel), showSumCb.isSelected())
+                : null);
 
         return dlg.showAndWait().filter(Objects::nonNull);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** MF and Equity accounts are shown but cannot be selected — they are excluded from projection. */
+    private static boolean isViewOnly(Account acc) {
+        if (!(acc instanceof InvestmentAccount inv)) return false;
+        return inv.getInvestmentType() == InvestmentAccount.InvestmentType.MUTUAL_FUNDS
+            || inv.getInvestmentType() == InvestmentAccount.InvestmentType.EQUITY;
+    }
 
     private static List<AccountGroup> buildGroups(List<Account> accounts) {
         List<Account> banks   = accounts.stream().filter(a -> a instanceof BankAccount).toList();
@@ -177,13 +213,17 @@ class AccountSelectionDialog {
         return out;
     }
 
-    /** Sets the group checkbox to selected / indeterminate / unchecked based on how many accounts in the group are selected. */
-    private static void syncGroupState(CheckBox groupCb, List<Account> accs, Set<String> sel) {
-        long n = accs.stream().filter(a -> sel.contains(a.getId())).count();
+    private static void syncGroupState(CheckBox groupCb, List<Account> selectable, Set<String> sel) {
+        if (selectable.isEmpty()) {
+            groupCb.setIndeterminate(false);
+            groupCb.setSelected(false);
+            return;
+        }
+        long n = selectable.stream().filter(a -> sel.contains(a.getId())).count();
         if (n == 0) {
             groupCb.setIndeterminate(false);
             groupCb.setSelected(false);
-        } else if (n == accs.size()) {
+        } else if (n == selectable.size()) {
             groupCb.setIndeterminate(false);
             groupCb.setSelected(true);
         } else {
@@ -202,7 +242,6 @@ class AccountSelectionDialog {
         }
     }
 
-    /** Disables unselected checkboxes when the cap is reached; re-enables them when headroom opens. */
     private static void syncDisabled(List<CheckBox> allCbs,
                                      Map<CheckBox, Account> cbToAcc,
                                      Set<String> sel) {

@@ -359,15 +359,18 @@ public class CashFlowForecastTab {
         chart.getData().clear();
         legendPane.getChildren().clear();
 
-        // Series 0: Total (always first so CSS .series0 applies)
-        XYChart.Series<String, Number> totalSeries = new XYChart.Series<>();
-        totalSeries.setName("Total");
-        for (CashFlowProjectionService.ProjectionPoint p : result.totalSeries()) {
-            totalSeries.getData().add(
-                    new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
+        // Series 0: Total (always first so CSS .series0 applies) — omitted when showSum is off
+        boolean showSum = forecastState.isShowSum();
+        if (showSum) {
+            XYChart.Series<String, Number> totalSeries = new XYChart.Series<>();
+            totalSeries.setName("Total");
+            for (CashFlowProjectionService.ProjectionPoint p : result.totalSeries()) {
+                totalSeries.getData().add(
+                        new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
+            }
+            chart.getData().add(totalSeries);
+            legendPane.getChildren().add(buildLegendEntry("Total of Accounts", UiUtils.FORECAST_SERIES_COLORS[0]));
         }
-        chart.getData().add(totalSeries);
-        legendPane.getChildren().add(buildLegendEntry("Total of Accounts", UiUtils.FORECAST_SERIES_COLORS[0]));
 
         List<Account> accounts = result.accounts();
         boolean grouped = accounts.size() > 5 && !showDetailedAccounts;
@@ -473,14 +476,20 @@ public class CashFlowForecastTab {
         // this chart also renders a custom Java-built legend, and keeping the
         // forecast palette in Java gives the legend and chart lines one source
         // of truth instead of duplicating series colours in CSS and code.
+        boolean showSumNow = forecastState.isShowSum();
         Platform.runLater(() -> {
             for (int i = 0; i < chart.getData().size(); i++) {
-                String color      = UiUtils.FORECAST_SERIES_COLORS[i % UiUtils.FORECAST_SERIES_COLORS.length];
+                // When showSum is true, index 0 is the Total series (gold, 3 px).
+                // When showSum is false, account series start at chart index 0 but
+                // should still map to palette index 1+ to match legend colours.
+                int colorIdx  = showSumNow ? i : i + 1;
+                String color  = UiUtils.FORECAST_SERIES_COLORS[colorIdx % UiUtils.FORECAST_SERIES_COLORS.length];
+                boolean isTotal = showSumNow && i == 0;
                 String seriesName = chart.getData().get(i).getName();
 
                 Node seriesNode = chart.lookup(".chart-series-line.series" + i);
                 if (seriesNode != null) {
-                    String width = (i == 0) ? "3px" : "2px";
+                    String width = isTotal ? "3px" : "2px";
                     seriesNode.setStyle("-fx-stroke: " + color + "; -fx-stroke-width: " + width + ";");
                     Tooltip tt = new Tooltip(seriesName);
                     tt.setShowDelay(javafx.util.Duration.millis(80));
@@ -734,9 +743,11 @@ public class CashFlowForecastTab {
 
     private void onChooseAccountsClicked() {
         if (lastProjectionResult == null) return;
-        AccountSelectionDialog.show(lastProjectionResult.accounts(), forecastState.getAccountSelection())
-                .ifPresent(newSel -> {
-                    forecastState.saveAccountSelection(newSel);
+        AccountSelectionDialog.show(lastProjectionResult.accounts(),
+                        forecastState.getAccountSelection(), forecastState.isShowSum())
+                .ifPresent(result -> {
+                    forecastState.saveAccountSelection(result.selection());
+                    forecastState.saveShowSum(result.showSum());
                     updateChooseAccountsVisibility();
                     refresh();
                 });

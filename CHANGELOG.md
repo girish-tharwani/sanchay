@@ -1,3 +1,9 @@
+## v0.0.8-Jay — 2026-04-12
+
+### Added
+- Cash Flow Forecast: "Show sum of all accounts" toggle in the Choose Accounts dialog; when off, the thick gold total line is hidden and the Y-axis rescales to the visible series
+- Cash Flow Forecast: MF and Equity investment accounts now appear in the Investments group of the account selector as permanently disabled rows, giving a visual cue that they are excluded from projection
+
 ## v0.0.7-Jay — 2026-04-12
 
 ### Changed

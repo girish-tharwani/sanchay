@@ -25,10 +25,14 @@ public class ForecastStateService {
     private static final String SELECTION_FILE = "forecast_account_selection.json";
     private static final Gson   GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    /** Wrapper stored in {@value #SELECTION_FILE}. */
+    private record SelectionState(List<String> ids, boolean showSum) {}
+
     private final Path dataFolder;
     private final List<ForecastOverride> overrides = new ArrayList<>();
     /** {@code null} means "all accounts" (default — no file on disk). */
     private Set<String> accountSelection = null;
+    private boolean showSum = true;
 
     public ForecastStateService(String dataFolderPath) {
         this.dataFolder = Paths.get(dataFolderPath);
@@ -81,6 +85,9 @@ public class ForecastStateService {
         return accountSelection == null ? null : Collections.unmodifiableSet(accountSelection);
     }
 
+    /** Returns whether the "Total of all accounts" sum line should be shown on the chart. */
+    public boolean isShowSum() { return showSum; }
+
     /**
      * Persists the account selection.  Pass {@code null} or an empty set to reset
      * to "show all".
@@ -88,13 +95,18 @@ public class ForecastStateService {
     public void saveAccountSelection(Set<String> ids) {
         if (ids == null || ids.isEmpty()) {
             accountSelection = null;
-            try { Files.deleteIfExists(dataFolder.resolve(SELECTION_FILE)); } catch (IOException ignored) {}
         } else {
             accountSelection = ids.stream()
                     .limit(10) // hard cap — matches dialog enforcement
                     .collect(Collectors.toCollection(LinkedHashSet::new));
-            persistAccountSelection();
         }
+        persistAccountSelection();
+    }
+
+    /** Persists the showSum preference alongside the account selection. */
+    public void saveShowSum(boolean value) {
+        showSum = value;
+        persistAccountSelection();
     }
 
     // ── Persistence ───────────────────────────────────────────────────────────
@@ -104,10 +116,20 @@ public class ForecastStateService {
         if (!Files.exists(file)) return;
         try {
             String json = Files.readString(file, StandardCharsets.UTF_8);
-            Type listType = new TypeToken<List<String>>() {}.getType();
-            List<String> loaded = GSON.fromJson(json, listType);
-            if (loaded != null && !loaded.isEmpty())
-                accountSelection = new LinkedHashSet<>(loaded);
+            // Support legacy format (plain list) and new wrapper format
+            if (json.trim().startsWith("[")) {
+                Type listType = new TypeToken<List<String>>() {}.getType();
+                List<String> loaded = GSON.fromJson(json, listType);
+                if (loaded != null && !loaded.isEmpty())
+                    accountSelection = new LinkedHashSet<>(loaded);
+            } else {
+                SelectionState state = GSON.fromJson(json, SelectionState.class);
+                if (state != null) {
+                    if (state.ids() != null && !state.ids().isEmpty())
+                        accountSelection = new LinkedHashSet<>(state.ids());
+                    showSum = state.showSum();
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -116,9 +138,10 @@ public class ForecastStateService {
     private void persistAccountSelection() {
         Path target = dataFolder.resolve(SELECTION_FILE);
         Path tmp    = dataFolder.resolve(SELECTION_FILE + ".tmp");
+        List<String> ids = accountSelection == null ? List.of() : new ArrayList<>(accountSelection);
         try {
             Files.createDirectories(dataFolder);
-            Files.writeString(tmp, GSON.toJson(new ArrayList<>(accountSelection)), StandardCharsets.UTF_8);
+            Files.writeString(tmp, GSON.toJson(new SelectionState(ids, showSum)), StandardCharsets.UTF_8);
             Files.move(tmp, target,
                     StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
