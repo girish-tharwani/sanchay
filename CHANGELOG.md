@@ -1,3 +1,7 @@
+## v1.0.0-Jay — 2026-04-12
+
+baseline for release
+
 ## v0.1.0-Jay — 2026-04-12
 ### Added
 Added the option of 36 months cash flow forecast
