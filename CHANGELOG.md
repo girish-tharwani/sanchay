@@ -1,3 +1,8 @@
+## v0.0.6-Jay — 2026-04-12
+
+### Removed
+- Credit Card Report tab from Reports screen
+
 ## v0.0.5-Jay — 2026-04-12
 
 ### Fixed

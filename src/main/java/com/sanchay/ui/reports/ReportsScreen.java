@@ -1,6 +1,5 @@
 package com.sanchay.ui.reports;
 
-import com.sanchay.model.CreditCardAccount;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
@@ -36,12 +35,9 @@ public class ReportsScreen {
 
     private StackPane view;
     private Runnable summaryRefresh;
-    private Runnable ccRefresh;
     private CashFlowForecastTab cashFlowTab;
     private ComboBox<String> summaryFyPicker;
     private Label summaryFyLabel;
-    private ComboBox<String> ccFyPicker;
-    private Label ccFyLabel;
 
     public ReportsScreen() { buildView(); }
 
@@ -51,7 +47,6 @@ public class ReportsScreen {
     public void refresh() {
         updateYearPickers();
         if (summaryRefresh != null) summaryRefresh.run();
-        if (ccRefresh      != null) ccRefresh.run();
         if (cashFlowTab    != null) cashFlowTab.refresh();
     }
 
@@ -65,11 +60,6 @@ public class ReportsScreen {
             summaryFyPicker.setPromptText(promptText);
             summaryFyLabel.setText(labelText);
         }
-        if (ccFyPicker != null) {
-            ccFyPicker.getItems().setAll(options);
-            ccFyPicker.setPromptText(promptText);
-            ccFyLabel.setText(labelText);
-        }
     }
 
     private void buildView() {
@@ -79,13 +69,10 @@ public class ReportsScreen {
         Tab summaryTab = new Tab("Monthly Expense Summary");
         summaryTab.setContent(buildMonthlySummaryTab());
 
-        Tab ccTab = new Tab("Credit Card Report");
-        ccTab.setContent(buildCreditCardTab());
-
         cashFlowTab = new CashFlowForecastTab();
         Tab forecastTab = new Tab("Cash Flow Forecast");
         forecastTab.setContent(cashFlowTab.getView());
-        tabPane.getTabs().addAll(summaryTab, ccTab, forecastTab);
+        tabPane.getTabs().addAll(summaryTab, forecastTab);
 
         VBox panel = new VBox(0);
         panel.getStyleClass().add("main-panel");
@@ -452,205 +439,7 @@ public class ReportsScreen {
         return section;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // TAB 2 — Credit Card Report
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private ScrollPane buildCreditCardTab() {
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(16, 0, 24, 0));
-
-        LocalDate now = LocalDate.now();
-
-        // ── Controls ─────────────────────────────────────────────────────────
-        HBox controls = new HBox(12);
-        controls.setAlignment(Pos.CENTER_LEFT);
-
-        Label cardLabel = new Label("CARD");
-        cardLabel.getStyleClass().add("filter-label");
-        ComboBox<String> cardPicker = new ComboBox<>();
-        cardPicker.getStyleClass().add("filter-field");
-        cardPicker.getItems().add("All Cards");
-        DataStore.getInstance().getCreditCardAccounts()
-                .forEach(cc -> cardPicker.getItems().add(cc.getName()));
-        cardPicker.setValue("All Cards");
-
-        Label monthLabel = new Label("MONTH");
-        monthLabel.getStyleClass().add("filter-label");
-        ComboBox<String> monthPicker = new ComboBox<>();
-        monthPicker.getStyleClass().add("filter-field");
-        List<LocalDate> ccMonths = new ArrayList<>();
-        for (int i = 0; i < 12; i++) {
-            LocalDate m = now.minusMonths(i);
-            ccMonths.add(m);
-            monthPicker.getItems().add(
-                    m.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + m.getYear());
-        }
-        monthPicker.setValue(monthPicker.getItems().get(0));
-
-        ccFyLabel = new Label("FY");
-        ccFyLabel.getStyleClass().add("filter-label");
-        ccFyPicker = new ComboBox<>();
-        ccFyPicker.getStyleClass().add("filter-field");
-        ccFyPicker.getItems().addAll(buildFYOptions());
-        ccFyPicker.setPromptText("Select FY…");
-        ccFyPicker.setPrefWidth(140);
-        ComboBox<String> fyPicker = ccFyPicker;
-
-        controls.getChildren().addAll(cardLabel, cardPicker, monthLabel, monthPicker, ccFyLabel, ccFyPicker);
-        root.getChildren().add(controls);
-
-        // ── Dynamic content ───────────────────────────────────────────────────
-        VBox dynamicContent = new VBox(20);
-        root.getChildren().add(dynamicContent);
-
-        // ── Mutual-exclusion + refresh ────────────────────────────────────────
-        boolean[] updating = {false};
-
-        ccRefresh = () -> {
-            String fyVal = fyPicker.getValue();
-            int mIdx = monthPicker.getSelectionModel().getSelectedIndex();
-
-            LocalDate from, to;
-            String label;
-
-            if (fyVal != null && !fyVal.isEmpty()) {
-                LocalDate[] r = parseFYRange(fyVal);
-                from = r[0]; to = r[1];
-                label = fyVal;
-            } else if (mIdx >= 0 && mIdx < ccMonths.size()) {
-                LocalDate m = ccMonths.get(mIdx);
-                from = m.withDayOfMonth(1);
-                to   = m.withDayOfMonth(m.lengthOfMonth());
-                label = m.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + m.getYear();
-            } else {
-                return;
-            }
-
-            String selectedCard = cardPicker.getValue();
-            List<CreditCardAccount> allCards = DataStore.getInstance().getCreditCardAccounts();
-            List<CreditCardAccount> filtered = "All Cards".equals(selectedCard)
-                    ? allCards
-                    : allCards.stream().filter(cc -> cc.getName().equals(selectedCard))
-                              .collect(Collectors.toList());
-
-            dynamicContent.getChildren().setAll(
-                    buildCCSummaryCards(filtered, from, to, label, DataStore.getInstance()),
-                    buildCCCategoryBars(filtered, from, to, label, DataStore.getInstance()),
-                    buildCCTransactionTable(filtered, from, to, label, DataStore.getInstance())
-            );
-        };
-
-        fyPicker.setOnAction(e -> {
-            if (updating[0]) return;
-            String v = fyPicker.getValue();
-            if (v != null && !v.isEmpty()) {
-                updating[0] = true;
-                monthPicker.getSelectionModel().clearSelection();
-                updating[0] = false;
-            }
-            ccRefresh.run();
-        });
-
-        monthPicker.setOnAction(e -> {
-            if (updating[0]) return;
-            if (monthPicker.getValue() != null) {
-                updating[0] = true;
-                fyPicker.getSelectionModel().clearSelection();
-                updating[0] = false;
-            }
-            ccRefresh.run();
-        });
-
-        cardPicker.setOnAction(e -> ccRefresh.run());
-        ccRefresh.run();
-
-        ScrollPane sp = new ScrollPane(root);
-        sp.setFitToWidth(true);
-        sp.getStyleClass().add("scroll-page-bg");
-        return sp;
-    }
-
-    private HBox buildCCSummaryCards(List<CreditCardAccount> cards, LocalDate from, LocalDate to,
-                                     String periodLabel, DataStore ds) {
-        HBox cardRow = new HBox(14);
-        for (CreditCardAccount cc : cards) {
-            long outstanding = ds.getCreditCardOutstandingPaise(cc.getId());
-            long available   = Math.min(cc.getCreditLimitPaise(), cc.getCreditLimitPaise() - outstanding);
-            long periodSpend = ds.getTransactions().stream()
-                    .filter(t -> t.getType() == Transaction.Type.EXPENSE
-                              && cc.getId().equals(t.getFromAccountId())
-                              && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
-                    .mapToLong(Transaction::getAmountPaise).sum();
-            VBox card = new VBox(10); card.getStyleClass().add("card");
-            Label name = new Label(cc.getName());
-            name.getStyleClass().add("text-title-md");
-            HBox stats = new HBox(16);
-            stats.getChildren().addAll(
-                    ccStat(periodLabel,   MoneyFormatter.formatNoDecimal(periodSpend),  periodSpend > 0 ? "-color-error" : "-brand-dark"),
-                    ccStat("Outstanding", MoneyFormatter.formatNoDecimal(outstanding),  outstanding > 0 ? "-color-error" : "-brand-dark"),
-                    ccStat("Available",   MoneyFormatter.formatNoDecimal(available),    "-brand-mid"),
-                    ccStat("Issuer",      cc.getBankIssuer(),       "-brand-dark")
-            );
-            card.getChildren().addAll(name, stats);
-            HBox.setHgrow(card, Priority.ALWAYS);
-            cardRow.getChildren().add(card);
-        }
-        return cardRow;
-    }
-
-    private VBox buildCCCategoryBars(List<CreditCardAccount> cards, LocalDate from, LocalDate to,
-                                     String label, DataStore ds) {
-        Set<String> cardIds = cards.stream().map(CreditCardAccount::getId).collect(Collectors.toSet());
-        Map<String, Long> byCategory = ds.getTransactions().stream()
-                .filter(t -> t.getType() == Transaction.Type.EXPENSE
-                          && cardIds.contains(t.getFromAccountId())
-                          && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
-                .collect(Collectors.groupingBy(
-                        t -> ds.getCategoryName(t.getClassification() != null
-                                ? t.getClassification().getCategoryId() : null),
-                        Collectors.summingLong(Transaction::getAmountPaise)));
-
-        long total = byCategory.values().stream().mapToLong(Long::longValue).sum();
-        return buildCategoryBarChart("CC Spending by Category — " + label,
-                "No CC expenses for this period.", byCategory, total, false);
-    }
-
-    private VBox buildCCTransactionTable(List<CreditCardAccount> cards, LocalDate from, LocalDate to,
-                                         String label, DataStore ds) {
-        VBox section = new VBox(10);
-        Label heading = new Label("Credit Card Transactions — " + label);
-        heading.getStyleClass().add("text-section-title");
-
-        Set<String> cardIds = cards.stream().map(CreditCardAccount::getId).collect(Collectors.toSet());
-        List<Transaction> txs = ds.getTransactions().stream()
-                .filter(t -> (t.getType() == Transaction.Type.EXPENSE || t.getType() == Transaction.Type.CC_PAYMENT)
-                          && (cardIds.contains(t.getFromAccountId()) || cardIds.contains(t.getToAccountId()))
-                          && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
-                .sorted(Comparator.comparing(Transaction::getDate).reversed())
-                .collect(Collectors.toList());
-
-        TableView<Transaction> table = new TableView<>(FXCollections.observableArrayList(txs));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPrefHeight(220);
-        TableColumn<Transaction, String> amtCol2 = rCol("Amount", 110, t -> t.getTypedSignedAmountInr());
-        table.getColumns().addAll(
-                rCol("Date",        90,  t -> t.getDate().format(DateTimeFormatter.ofPattern("dd MMM"))),
-                rCol("Description", 0,   t -> t.getDescription(), "cell-desc"),
-                rCol("Card",        140, t -> ds.getAccountName(
-                        t.getType() == Transaction.Type.CC_PAYMENT ? t.getToAccountId() : t.getFromAccountId())),
-                rCol("Category",    130, t -> ds.getCategoryName(t.getClassification() != null
-                        ? t.getClassification().getCategoryId() : null)),
-                amtCol2
-        );
-        VBox tableCard = new VBox();
-        tableCard.getStyleClass().add("table-card");
-        tableCard.getChildren().add(table);
-        section.getChildren().addAll(heading, tableCard);
-        return section;
-    }
-
-    // ── Shared flat bar chart builder (used by CC tab and flat mode of summary tab) ──
+    // ── Shared flat bar chart builder (used by flat mode of summary tab) ──
 
     private VBox buildCategoryBarChart(String headingText, String emptyMessage,
                                        Map<String, Long> byCategory, long total,
@@ -758,16 +547,5 @@ public class ReportsScreen {
         return col;
     }
 
-    private VBox ccStat(String label, String value, String color) {
-        VBox box = new VBox(3);
-        Label lbl = new Label(label.toUpperCase());
-        lbl.getStyleClass().add("card-title");
-        Label val = new Label(value);
-        val.getStyleClass().add("text-value-lg");
-        // Inline required: colour is runtime data (positive/negative/neutral)
-        val.setStyle("-fx-text-fill: " + color + ";");
-        box.getChildren().addAll(lbl, val);
-        return box;
-    }
 
 }
