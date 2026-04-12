@@ -53,6 +53,7 @@ public class CashFlowProjectionService {
         List<Account> candidates = new ArrayList<>();
         candidates.addAll(ds.getBankAccounts());
         candidates.addAll(ds.getCreditCardAccounts());
+        candidates.addAll(ds.getActiveLoanAccounts());
         ds.getInvestmentAccounts().stream()
                 .filter(ia -> {
                     InvestmentAccount.InvestmentType t = ia.getInvestmentType();
@@ -67,27 +68,7 @@ public class CashFlowProjectionService {
         Map<String, Long> rawBalances = new LinkedHashMap<>();
 
         for (Account acc : candidates) {
-            if (acc instanceof BankAccount ba) {
-                long bal = ba.getOpeningBalancePaise();
-                for (Transaction t : ds.getTransactions()) {
-                    if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
-                    if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
-                }
-                rawBalances.put(ba.getId(), bal);
-
-            } else if (acc instanceof CreditCardAccount cc) {
-                // CC: negative = outstanding liability
-                long bal = 0;
-                for (Transaction t : ds.getTransactions()) {
-                    if (cc.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
-                    if (cc.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
-                }
-                rawBalances.put(cc.getId(), bal);
-
-            } else if (acc instanceof InvestmentAccount ia) {
-                long invested = ds.getBaseInvestedPaise(ia);
-                rawBalances.put(ia.getId(), invested);
-            }
+            rawBalances.put(acc.getId(), ds.getForecastStartingBalancePaise(acc, startDate));
         }
 
         // ── Filter out zero-balance investment accounts ────────────────────────
@@ -132,6 +113,9 @@ public class CashFlowProjectionService {
             if (t.getInvestmentDetails() == null) continue;
             Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
             if (fd == null || fd.getMaturityDate() == null) continue;
+            // No exact-date guard here — already-processed FDs have balance 0 and are
+            // excluded from includedIds by the zero-balance filter above, so no
+            // double-count risk. The matMonth check below handles past months.
             YearMonth matMonth = YearMonth.from(fd.getMaturityDate());
             if (matMonth.isBefore(YearMonth.from(startDate)) || matMonth.isAfter(YearMonth.from(endDate))) continue;
             if (!includedIds.contains(t.getToAccountId())) continue;
@@ -149,6 +133,7 @@ public class CashFlowProjectionService {
         for (RecurringTransaction rt : ds.getRecurring()) {
             if (rt.getTransactionType() != Type.INVESTMENT) continue;
             if (rt.getMaturityDate() == null) continue;
+            // No exact-date guard — same reasoning as FD maturities above.
             if (!includedIds.contains(rt.getToAccountId())) continue;
             Account toAcc = accounts.stream()
                     .filter(a -> a.getId().equals(rt.getToAccountId()))
@@ -178,6 +163,13 @@ public class CashFlowProjectionService {
         for (YearMonth ym : months) {
             LocalDate monthStart = ym.atDay(1);
             LocalDate monthEnd   = ym.atEndOfMonth();
+            // Always use monthStart — not today — as the range floor.
+            // getOccurrencesInRange already deduplicates via lastRecordedDate/cursor:
+            // recorded occurrences advance the cursor past themselves, so there is no
+            // double-count risk. Using today as the floor was wrong because it silently
+            // drops overdue-but-unrecorded occurrences (e.g. salary due Apr 1 not yet
+            // posted when today is Apr 12), understating every projected balance.
+            LocalDate effectiveStart = monthStart;
 
             // Track recurring EXPENSE amount per (categoryId|subCategoryId) so we can
             // subtract it from pattern-based forecasts and avoid double-counting.
@@ -186,7 +178,7 @@ public class CashFlowProjectionService {
             // Apply recurring schedules for this month
             for (RecurringTransaction rt : ds.getRecurring()) {
                 if (rt.getAmountPaise() == 0) continue; // variable / CC reminders — skip
-                List<LocalDate> occurrences = getOccurrencesInRange(rt, monthStart, monthEnd);
+                List<LocalDate> occurrences = getOccurrencesInRange(rt, effectiveStart, monthEnd);
                 if (occurrences.isEmpty()) continue;
                 long amt = rt.getAmountPaise() * occurrences.size();
 
@@ -226,6 +218,12 @@ public class CashFlowProjectionService {
                             balances.merge(fromId, -amt, Long::sum);
                             totalExpensePaise += amt;
                         }
+                        if (toId != null && includedIds.contains(toId)) {
+                            long principalPaid = getProjectedLoanPrincipalPaid(toId, occurrences);
+                            if (principalPaid > 0) {
+                                balances.merge(toId, principalPaid, Long::sum);
+                            }
+                        }
                     }
                     case CC_PAYMENT -> {
                         if (fromId != null && includedIds.contains(fromId)) {
@@ -250,8 +248,13 @@ public class CashFlowProjectionService {
             for (MaturityEvent me : fdMaturities.getOrDefault(ym, List.of())) {
                 if (me.bankId() != null && includedIds.contains(me.bankId()))
                     balances.merge(me.bankId(), me.matAmtPaise(), Long::sum);
-                if (includedIds.contains(me.investId()))
-                    balances.put(me.investId(), 0L);
+                if (includedIds.contains(me.investId())) {
+                    // Subtract only the invested principal of this specific FD.
+                    // Do NOT zero the whole account — other FDs with later maturity
+                    // dates are still active and must retain their balance.
+                    long fdBal = balances.getOrDefault(me.investId(), 0L);
+                    balances.put(me.investId(), Math.max(0L, fdBal - me.investedPaise()));
+                }
                 totalIncomePaise += me.matAmtPaise();
             }
 
@@ -340,6 +343,22 @@ public class CashFlowProjectionService {
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
                 .orElse(null);
+    }
+
+    private long getProjectedLoanPrincipalPaid(String loanAccountId, List<LocalDate> occurrences) {
+        if (loanAccountId == null || occurrences == null || occurrences.isEmpty()) return 0;
+
+        List<AmortizationEntry> schedule = ds.getSchedule(loanAccountId);
+        if (schedule == null || schedule.isEmpty()) return 0;
+
+        long principalPaid = 0;
+        for (LocalDate occurrence : occurrences) {
+            long scheduledPrincipal = AmortizationService.getScheduledPrincipalForDate(schedule, occurrence);
+            if (scheduledPrincipal > 0) {
+                principalPaid += scheduledPrincipal;
+            }
+        }
+        return principalPaid;
     }
 
     // ── Expense Forecasting ──────────────────────────────────────────────────
@@ -452,6 +471,10 @@ public class CashFlowProjectionService {
         YearMonth startMonth = YearMonth.from(forecastStart);
         YearMonth endMonth   = YearMonth.from(forecastEnd);
 
+        // Track which (catId|subCatId|month) are covered by a pattern-based forecast,
+        // so that recurring-schedule rows can fill in any gaps.
+        Set<String> coveredMonthKeys = new HashSet<>();
+
         for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
             for (ExpensePattern pattern : patterns) {
                 long baseAmount    = pattern.avgMonthlyPaise();
@@ -493,6 +516,46 @@ public class CashFlowProjectionService {
                 forecasts.add(new ForecastedExpense(
                         pattern.categoryId(), pattern.subCategoryId(),
                         ym, finalAmount, confidence, method, excluded));
+                coveredMonthKeys.add(pattern.categoryId() + "|" + pattern.subCategoryId() + "|" + ym);
+            }
+        }
+
+        // ── Step 2: Recurring EXPENSE schedules not covered by any pattern ────────
+        // Omission rules (min 3 months history, confidence threshold) only apply to
+        // pattern-based forecasts. Any explicitly registered recurring EXPENSE schedule
+        // must appear in the table regardless of historical depth.
+        // Inter-account flow types (CC_PAYMENT, LOAN_PAYMENT, INVESTMENT, TRANSFER) are
+        // intentionally excluded here — they affect the chart but not the expense table.
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getStatus() != RecurringTransaction.Status.ACTIVE) continue;
+            if (rt.getTransactionType() != Type.EXPENSE) continue;
+            if (rt.getCategoryId() == null || rt.getSubCategoryId() == null) continue;
+            if (rt.getAmountPaise() == 0) continue; // variable / CC reminders — skip
+
+            for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
+                String monthKey = rt.getCategoryId() + "|" + rt.getSubCategoryId() + "|" + ym;
+                if (coveredMonthKeys.contains(monthKey)) continue; // already covered by pattern
+
+                List<LocalDate> occurrences = getOccurrencesInRange(rt, ym.atDay(1), ym.atEndOfMonth());
+                if (occurrences.isEmpty()) continue;
+
+                long amt = rt.getAmountPaise() * occurrences.size();
+
+                ForecastOverride applicable = findOverride(overrides, rt.getCategoryId(), rt.getSubCategoryId(), ym);
+                boolean excluded = false;
+                if (applicable != null) {
+                    if (applicable.isExcluded()) {
+                        excluded = true;
+                    } else if (applicable.getOverrideAmountPaise() != null) {
+                        amt = applicable.getOverrideAmountPaise();
+                    }
+                }
+
+                forecasts.add(new ForecastedExpense(
+                        rt.getCategoryId(), rt.getSubCategoryId(),
+                        ym, amt, 1.0, "Recurring Schedule", excluded));
+                // Mark covered so a second recurring entry for the same sub-cat/month doesn't double-add
+                coveredMonthKeys.add(monthKey);
             }
         }
 

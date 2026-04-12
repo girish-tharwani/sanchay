@@ -4,21 +4,12 @@
 
 /* ── Chart series colours ────────────────────────────────────────────────── */
 /* Total series — gold, thicker */
-.cash-flow-chart .chart-series-line.series0 { -fx-stroke: -chart-color-total; -fx-stroke-width: 3px; }
-.cash-flow-chart .default-color0.chart-line-symbol { -fx-background-color: -chart-color-total, white; }
 
 /* Individual account series */
-.cash-flow-chart .chart-series-line.series1 { -fx-stroke: -chart-color-s1; -fx-stroke-width: 2px; }
-.cash-flow-chart .chart-series-line.series2 { -fx-stroke: -chart-color-s2; -fx-stroke-width: 2px; }
-.cash-flow-chart .chart-series-line.series3 { -fx-stroke: -chart-color-s3; -fx-stroke-width: 2px; }
-.cash-flow-chart .chart-series-line.series4 { -fx-stroke: -chart-color-s4; -fx-stroke-width: 2px; }
-.cash-flow-chart .chart-series-line.series5 { -fx-stroke: -chart-color-s5; -fx-stroke-width: 2px; }
-.cash-flow-chart .chart-series-line.series6 { -fx-stroke: -chart-color-s6; -fx-stroke-width: 2px; }
-.cash-flow-chart .chart-series-line.series7 { -fx-stroke: -chart-color-s7; -fx-stroke-width: 2px; }
 
-/* Hide data point symbols by default; show on hover */
-.cash-flow-chart .chart-line-symbol { -fx-background-radius: 3px; -fx-padding: 3px; visibility: hidden; }
-.cash-flow-chart .chart-line-symbol:hover { visibility: visible; }
+/* Slightly larger symbols improve hover hit-testing for tooltips without making the chart look busy. */
+.cash-flow-chart .chart-line-symbol { -fx-background-radius: 5px; -fx-padding: 5px; -fx-opacity: 0.18; }
+.cash-flow-chart .chart-line-symbol:hover { -fx-opacity: 1; }
 
 /* Chart plot area */
 .cash-flow-chart .chart-plot-background { -fx-background-color: -surface-card; }
@@ -164,4 +155,39 @@
 }
 .forecast-btn-include:hover {
     -fx-background-color: rgba(22,163,74,0.22);
+}
+
+.cash-flow-line-tooltip {
+    -fx-background-color: rgba(15,30,40,0.88);
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 5px;
+    -fx-border-width: 0;
+}
+
+/* ── Account Selection Dialog ────────────────────────────────────────────── */
+.acsel-group-cb {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-primary;
+}
+
+.acsel-account-cb {
+    -fx-font-size: 12px;
+    -fx-text-fill: -text-secondary;
+}
+
+.acsel-counter {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-mid;
+    -fx-background-color: rgba(42,138,122,0.10);
+    -fx-background-radius: 12px;
+    -fx-padding: 3 12 3 12;
+}
+
+.acsel-counter.acsel-counter-full {
+    -fx-text-fill: -color-error;
+    -fx-background-color: rgba(224,85,85,0.12);
 }

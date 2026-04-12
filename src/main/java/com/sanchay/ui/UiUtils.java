@@ -59,33 +59,27 @@ public final class UiUtils {
 
     /**
      * Series colours for account cash-flow forecast chart (CashFlowForecastTab).
-     * Entries that mirror CSS design tokens:
-     *   [0] #f0a500 ≈ -brand-accent (gold — Total series)
-     *   [1] #2a8a7a ≈ -brand-mid
-     *   [2] #3db89a ≈ -brand-light
-     *   [6] #0f3d4a ≈ -brand-dark
+     * Rules:
+     *   [0] gold is EXCLUSIVE to the Total series — never reuse on an account line.
+     *   Only one green-family colour (teal at [1]) to avoid the "too many greens" problem.
+     *   12 entries cover the maximum expected account count without wrapping/recycling.
      * Runtime-assigned to legend swatch rectangles — cannot use CSS tokens here.
      */
     public static final String[] FORECAST_SERIES_COLORS = {
-        "#f0a500",  // 0 — Total (≈ -brand-accent)
-        "#2a8a7a",  // 1 — (≈ -brand-mid)
-        "#3db89a",  // 2 — (≈ -brand-light)
-        "#16a34a",  // 3
-        "#e05555",  // 4
-        "#7c3aed",  // 5
-        "#0f3d4a",  // 6 — (≈ -brand-dark)
-        "#f59e0b",  // 7
+        "#f0a500",  //  0 — Total    (gold — exclusive, never used for accounts)
+        "#2a8a7a",  //  1 — teal     (single green-family entry)
+        "#e05555",  //  2 — red
+        "#7c3aed",  //  3 — purple
+        "#1d70b5",  //  4 — blue
+        "#e8892b",  //  5 — orange
+        "#c026d3",  //  6 — fuchsia
+        "#0891b2",  //  7 — cyan
+        "#475569",  //  8 — slate
+        "#b45309",  //  9 — brown
+        "#ec4899",  // 10 — pink
+        "#6366f1",  // 11 — indigo
     };
 
-    /**
-     * Group-level colours for summarised cash-flow view (>5 accounts).
-     * Runtime-assigned — same reason as FORECAST_SERIES_COLORS.
-     */
-    public static final Map<String, String> FORECAST_GROUP_COLORS = Map.of(
-        "Bank Accounts", "#2a8a7a",   // ≈ -brand-mid
-        "Credit Cards",  "#e05555",
-        "Investments",   "#f59e0b"
-    );
 
     /**
      * Applies the app stylesheet to a dialog's DialogPane.
