@@ -784,7 +784,7 @@ public class CashFlowForecastTab {
         String  fyLabel    = isIndianFY ? "This Financial Year" : "This Calendar Year";
         String  current    = periodPicker.getValue();
         periodPicker.getItems().setAll(
-                "Next 6 Months", "Next 12 Months", "Next 24 Months", fyLabel);
+                "Next 6 Months", "Next 12 Months", "Next 24 Months", "Next 36 Months", fyLabel);
         if (current != null && periodPicker.getItems().contains(current)) {
             periodPicker.setValue(current);
         } else if (current != null) {
@@ -797,6 +797,7 @@ public class CashFlowForecastTab {
         return switch (selected) {
             case "Next 6 Months"  -> new LocalDate[]{ today, today.plusMonths(6) };
             case "Next 24 Months" -> new LocalDate[]{ today, today.plusMonths(24) };
+            case "Next 36 Months" -> new LocalDate[]{ today, today.plusMonths(36) };
             case "This Financial Year" -> {
                 int fyStartYear = today.getMonthValue() >= 4 ? today.getYear() : today.getYear() - 1;
                 yield new LocalDate[]{ today, LocalDate.of(fyStartYear + 1, 3, 31) };
