@@ -1,3 +1,8 @@
+## v0.0.7-Jay — 2026-04-12
+
+### Changed
+- Extracted Monthly Expense Summary tab into `MonthlyExpenseSummaryTab`; `ReportsScreen` is now a thin coordinator matching the pattern of `CashFlowForecastTab`
+
 ## v0.0.6-Jay — 2026-04-12
 
 ### Removed
