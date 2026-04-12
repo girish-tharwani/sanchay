@@ -61,6 +61,7 @@ public class CashFlowForecastTab {
 
     private ComboBox<String>            periodPicker;
     private ToggleButton                detailToggle;
+    private Button                      chooseAccountsBtn;
     private LineChart<String, Number>   chart;
     private FlowPane                    legendPane;
     private Label                       summaryStrip;
@@ -72,6 +73,7 @@ public class CashFlowForecastTab {
     private List<ForecastTableRow>      allForecastRows      = new ArrayList<>();
     private boolean                     refreshing           = false;
     private boolean                     showDetailedAccounts = false;
+    private CashFlowProjectionService.ProjectionResult lastProjectionResult;
 
     // ── Construction ─────────────────────────────────────────────────────────
 
@@ -107,15 +109,23 @@ public class CashFlowForecastTab {
         detailToggle.setOnAction(e -> {
             showDetailedAccounts = detailToggle.isSelected();
             detailToggle.setText(showDetailedAccounts ? "Show Summary" : "Show Details");
+            updateChooseAccountsVisibility();
             if (!refreshing) refresh();
         });
+
+        // "Choose Accounts" button — shown only while in detail mode
+        chooseAccountsBtn = new Button("Choose Accounts");
+        chooseAccountsBtn.getStyleClass().add("btn-gold");
+        chooseAccountsBtn.setVisible(false);
+        chooseAccountsBtn.setManaged(false);
+        chooseAccountsBtn.setOnAction(e -> onChooseAccountsClicked());
 
         // Regenerate Projections button
         Button regenerateBtn = new Button("Regenerate Projections");
         regenerateBtn.getStyleClass().add("btn-gold");
         regenerateBtn.setOnAction(e -> onRegenerateClicked());
 
-        HBox filterRow = new HBox(12, periodLabel, periodPicker, detailToggle, regenerateBtn);
+        HBox filterRow = new HBox(12, periodLabel, periodPicker, detailToggle, chooseAccountsBtn, regenerateBtn);
         filterRow.setAlignment(Pos.CENTER_LEFT);
 
         // Warning bar — hidden by default
@@ -314,6 +324,7 @@ public class CashFlowForecastTab {
 
         CashFlowProjectionService.ProjectionResult result =
                 projService.compute(startDate, endDate, forecastState.getOverrides());
+        lastProjectionResult = result;
 
         // Summary strip
         summaryStrip.setText("Cash flow forecast: " + selected
@@ -333,6 +344,7 @@ public class CashFlowForecastTab {
         boolean manyAccounts = result.accounts().size() > 5;
         detailToggle.setVisible(manyAccounts);
         detailToggle.setManaged(manyAccounts);
+        updateChooseAccountsVisibility();
 
         // Build chart
         rebuildChart(result);
@@ -372,6 +384,18 @@ public class CashFlowForecastTab {
 
     private void buildDetailedSeries(List<Account> accounts,
                                      Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries) {
+        Set<String> selection = forecastState.getAccountSelection();
+        List<Account> toShow;
+        if (selection == null || selection.isEmpty()) {
+            toShow = accounts;
+        } else {
+            toShow = accounts.stream()
+                    .filter(a -> selection.contains(a.getId()))
+                    .collect(Collectors.toList());
+            if (toShow.isEmpty()) toShow = accounts; // safety fallback
+        }
+        accounts = toShow;
+
         for (int i = 0; i < accounts.size(); i++) {
             Account acc = accounts.get(i);
             XYChart.Series<String, Number> series = new XYChart.Series<>();
@@ -693,6 +717,29 @@ public class CashFlowForecastTab {
         Optional<ButtonType> result = dlg.showAndWait();
         if (result.isEmpty() || result.get() == cancel) return Optional.empty();
         return Optional.of(result.get() == allMonths);
+    }
+
+    private void updateChooseAccountsVisibility() {
+        // "Choose Accounts" is only relevant in detail mode AND when there are many accounts
+        boolean show = showDetailedAccounts && detailToggle.isManaged();
+        chooseAccountsBtn.setVisible(show);
+        chooseAccountsBtn.setManaged(show);
+        if (show) {
+            Set<String> sel = forecastState.getAccountSelection();
+            chooseAccountsBtn.setText((sel == null || sel.isEmpty())
+                    ? "Choose Accounts"
+                    : "Choose Accounts (" + sel.size() + ")");
+        }
+    }
+
+    private void onChooseAccountsClicked() {
+        if (lastProjectionResult == null) return;
+        AccountSelectionDialog.show(lastProjectionResult.accounts(), forecastState.getAccountSelection())
+                .ifPresent(newSel -> {
+                    forecastState.saveAccountSelection(newSel);
+                    updateChooseAccountsVisibility();
+                    refresh();
+                });
     }
 
     private void onRegenerateClicked() {

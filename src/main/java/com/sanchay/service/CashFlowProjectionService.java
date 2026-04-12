@@ -113,7 +113,9 @@ public class CashFlowProjectionService {
             if (t.getInvestmentDetails() == null) continue;
             Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
             if (fd == null || fd.getMaturityDate() == null) continue;
-            if (fd.getMaturityDate().isBefore(startDate)) continue;
+            // No exact-date guard here — already-processed FDs have balance 0 and are
+            // excluded from includedIds by the zero-balance filter above, so no
+            // double-count risk. The matMonth check below handles past months.
             YearMonth matMonth = YearMonth.from(fd.getMaturityDate());
             if (matMonth.isBefore(YearMonth.from(startDate)) || matMonth.isAfter(YearMonth.from(endDate))) continue;
             if (!includedIds.contains(t.getToAccountId())) continue;
@@ -131,7 +133,7 @@ public class CashFlowProjectionService {
         for (RecurringTransaction rt : ds.getRecurring()) {
             if (rt.getTransactionType() != Type.INVESTMENT) continue;
             if (rt.getMaturityDate() == null) continue;
-            if (rt.getMaturityDate().isBefore(startDate)) continue;
+            // No exact-date guard — same reasoning as FD maturities above.
             if (!includedIds.contains(rt.getToAccountId())) continue;
             Account toAcc = accounts.stream()
                     .filter(a -> a.getId().equals(rt.getToAccountId()))
@@ -161,7 +163,13 @@ public class CashFlowProjectionService {
         for (YearMonth ym : months) {
             LocalDate monthStart = ym.atDay(1);
             LocalDate monthEnd   = ym.atEndOfMonth();
-            LocalDate effectiveStart = monthStart.isBefore(startDate) ? startDate : monthStart;
+            // Always use monthStart — not today — as the range floor.
+            // getOccurrencesInRange already deduplicates via lastRecordedDate/cursor:
+            // recorded occurrences advance the cursor past themselves, so there is no
+            // double-count risk. Using today as the floor was wrong because it silently
+            // drops overdue-but-unrecorded occurrences (e.g. salary due Apr 1 not yet
+            // posted when today is Apr 12), understating every projected balance.
+            LocalDate effectiveStart = monthStart;
 
             // Track recurring EXPENSE amount per (categoryId|subCategoryId) so we can
             // subtract it from pattern-based forecasts and avoid double-counting.

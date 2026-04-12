@@ -408,7 +408,7 @@ public class AddEditRecurringDialog {
                             .findFirst().ifPresent(accountCb::setValue);
                 }
             }
-            if (accountCb.getValue() == null && !accountCb.getItems().isEmpty())
+            if (accountCb.getValue() == null && !accountCb.getItems().isEmpty() && !hasDefaults)
                 accountCb.setValue(accountCb.getItems().get(0));
 
             boolean showTo = t == Transaction.Type.TRANSFER

@@ -1,3 +1,8 @@
+## v0.0.5-Jay — 2026-04-12
+
+### Fixed
+- Recurring schedule editor no longer auto-selects the first bank account as From Account when editing an auto-created PF schedule that has no source account set
+
 ## v0.0.4-Jay — 2026-04-11
 
 ### Added

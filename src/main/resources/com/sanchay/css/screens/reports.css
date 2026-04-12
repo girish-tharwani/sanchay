@@ -165,3 +165,29 @@
     -fx-background-radius: 5px;
     -fx-border-width: 0;
 }
+
+/* ── Account Selection Dialog ────────────────────────────────────────────── */
+.acsel-group-cb {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-primary;
+}
+
+.acsel-account-cb {
+    -fx-font-size: 12px;
+    -fx-text-fill: -text-secondary;
+}
+
+.acsel-counter {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-mid;
+    -fx-background-color: rgba(42,138,122,0.10);
+    -fx-background-radius: 12px;
+    -fx-padding: 3 12 3 12;
+}
+
+.acsel-counter.acsel-counter-full {
+    -fx-text-fill: -color-error;
+    -fx-background-color: rgba(224,85,85,0.12);
+}
