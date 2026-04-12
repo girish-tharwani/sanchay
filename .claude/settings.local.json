@@ -54,7 +54,8 @@
       "Bash(git -C D:/Projects/sanchay diff --stat)",
       "Bash(mvn compile:*)",
       "Bash(pip install:*)",
-      "Bash(cat D:/Projects/sanchay/logs/*.log)"
+      "Bash(cat D:/Projects/sanchay/logs/*.log)",
+      "Bash(mvn compiler:compile)"
     ]
   },
   "enabledPlugins": {

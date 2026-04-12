@@ -463,6 +463,10 @@ public class CashFlowProjectionService {
         YearMonth startMonth = YearMonth.from(forecastStart);
         YearMonth endMonth   = YearMonth.from(forecastEnd);
 
+        // Track which (catId|subCatId|month) are covered by a pattern-based forecast,
+        // so that recurring-schedule rows can fill in any gaps.
+        Set<String> coveredMonthKeys = new HashSet<>();
+
         for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
             for (ExpensePattern pattern : patterns) {
                 long baseAmount    = pattern.avgMonthlyPaise();
@@ -504,6 +508,46 @@ public class CashFlowProjectionService {
                 forecasts.add(new ForecastedExpense(
                         pattern.categoryId(), pattern.subCategoryId(),
                         ym, finalAmount, confidence, method, excluded));
+                coveredMonthKeys.add(pattern.categoryId() + "|" + pattern.subCategoryId() + "|" + ym);
+            }
+        }
+
+        // ── Step 2: Recurring EXPENSE schedules not covered by any pattern ────────
+        // Omission rules (min 3 months history, confidence threshold) only apply to
+        // pattern-based forecasts. Any explicitly registered recurring EXPENSE schedule
+        // must appear in the table regardless of historical depth.
+        // Inter-account flow types (CC_PAYMENT, LOAN_PAYMENT, INVESTMENT, TRANSFER) are
+        // intentionally excluded here — they affect the chart but not the expense table.
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getStatus() != RecurringTransaction.Status.ACTIVE) continue;
+            if (rt.getTransactionType() != Type.EXPENSE) continue;
+            if (rt.getCategoryId() == null || rt.getSubCategoryId() == null) continue;
+            if (rt.getAmountPaise() == 0) continue; // variable / CC reminders — skip
+
+            for (YearMonth ym = startMonth; !ym.isAfter(endMonth); ym = ym.plusMonths(1)) {
+                String monthKey = rt.getCategoryId() + "|" + rt.getSubCategoryId() + "|" + ym;
+                if (coveredMonthKeys.contains(monthKey)) continue; // already covered by pattern
+
+                List<LocalDate> occurrences = getOccurrencesInRange(rt, ym.atDay(1), ym.atEndOfMonth());
+                if (occurrences.isEmpty()) continue;
+
+                long amt = rt.getAmountPaise() * occurrences.size();
+
+                ForecastOverride applicable = findOverride(overrides, rt.getCategoryId(), rt.getSubCategoryId(), ym);
+                boolean excluded = false;
+                if (applicable != null) {
+                    if (applicable.isExcluded()) {
+                        excluded = true;
+                    } else if (applicable.getOverrideAmountPaise() != null) {
+                        amt = applicable.getOverrideAmountPaise();
+                    }
+                }
+
+                forecasts.add(new ForecastedExpense(
+                        rt.getCategoryId(), rt.getSubCategoryId(),
+                        ym, amt, 1.0, "Recurring Schedule", excluded));
+                // Mark covered so a second recurring entry for the same sub-cat/month doesn't double-add
+                coveredMonthKeys.add(monthKey);
             }
         }
 
