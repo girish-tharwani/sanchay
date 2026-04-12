@@ -5,6 +5,7 @@ import com.sanchay.model.Transaction;
 import javafx.scene.control.CustomMenuItem;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
+import com.sanchay.service.ReportPrefsService;
 import com.sanchay.ui.UiUtils;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 class ExpenseReportTab {
 
     private final ScrollPane view;
+    private final ReportPrefsService reportPrefs;
     private Runnable refresh;
     private ComboBox<String> fyPicker;
     private Label fyLabel;
@@ -36,6 +38,8 @@ class ExpenseReportTab {
     private final Set<String> hiddenCategories = new HashSet<>();
 
     ExpenseReportTab() {
+        reportPrefs = new ReportPrefsService(DataStore.getInstance().getDataFolderPath());
+        hiddenCategories.addAll(reportPrefs.getExpenseReportHidden());
         view = buildView();
     }
 
@@ -54,7 +58,7 @@ class ExpenseReportTab {
             String prev = fyPicker.getValue();
             fyPicker.getItems().setAll(options);
             fyPicker.setPromptText(isIndianFY ? "Select FY…" : "Select Year…");
-            fyLabel.setText(isIndianFY ? "FY" : "YEAR");
+            fyLabel.setText(isIndianFY ? "Financial Year:" : "Year:");
             if (prev != null && fyPicker.getItems().contains(prev))
                 fyPicker.setValue(prev);
         }
@@ -73,6 +77,7 @@ class ExpenseReportTab {
             cb.setOnAction(e -> {
                 if (cb.isSelected()) hiddenCategories.remove(cat.getName());
                 else hiddenCategories.add(cat.getName());
+                reportPrefs.saveExpenseReportHidden(hiddenCategories);
                 syncCatMenuLabel();
                 if (refresh != null) refresh.run();
             });
@@ -98,16 +103,15 @@ class ExpenseReportTab {
 
     private ScrollPane buildView() {
         VBox root = new VBox(20);
-        root.setPadding(new Insets(16, 0, 24, 0));
+        root.setPadding(new Insets(24));
 
         // ── Controls ──────────────────────────────────────────────────────────
         HBox controls = new HBox(12);
         controls.setAlignment(Pos.CENTER_LEFT);
 
-        Label monthLabel = new Label("MONTH");
-        monthLabel.getStyleClass().add("filter-label");
+        Label monthLabel = new Label("Month:");
+        monthLabel.getStyleClass().add("form-label");
         ComboBox<String> monthPicker = new ComboBox<>();
-        monthPicker.getStyleClass().add("filter-field");
         List<LocalDate> months = new ArrayList<>();
         LocalDate now = LocalDate.now();
         for (int i = 0; i < 12; i++) {
@@ -119,9 +123,8 @@ class ExpenseReportTab {
         // No default month — FY is the default filter
 
         fyLabel = new Label("FY");
-        fyLabel.getStyleClass().add("filter-label");
+        fyLabel.getStyleClass().add("form-label");
         fyPicker = new ComboBox<>();
-        fyPicker.getStyleClass().add("filter-field");
         fyPicker.getItems().addAll(buildFYOptions());
         fyPicker.setPromptText("Select FY…");
         fyPicker.setPrefWidth(140);
@@ -131,11 +134,8 @@ class ExpenseReportTab {
         else if (!fyPicker.getItems().isEmpty())           fyPicker.setValue(fyPicker.getItems().get(0));
 
         catMenu = new MenuButton("All Categories");
-        catMenu.getStyleClass().add("filter-field");
+        catMenu.getStyleClass().add("menu-button-as-combo");
         catMenu.setPrefWidth(160);
-
-        Button clearBtn = new Button("Clear");
-        clearBtn.getStyleClass().add("btn-secondary");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -143,7 +143,7 @@ class ExpenseReportTab {
         downloadBtn.getStyleClass().add("btn-gold");
 
         controls.getChildren().addAll(
-                fyLabel, fyPicker, monthLabel, monthPicker, catMenu, clearBtn, spacer, downloadBtn);
+                fyLabel, fyPicker, monthLabel, monthPicker, catMenu, spacer, downloadBtn);
         root.getChildren().add(controls);
 
         // ── Show sub-categories checkbox — lives above the transaction table ──
@@ -211,18 +211,6 @@ class ExpenseReportTab {
         });
 
         showSubCat.selectedProperty().addListener((obs, o, n) -> refresh.run());
-
-        clearBtn.setOnAction(e -> {
-            updating[0] = true;
-            monthPicker.getSelectionModel().clearSelection();
-            String fy = currentFYLabel();
-            if (fyPicker.getItems().contains(fy))     fyPicker.setValue(fy);
-            else if (!fyPicker.getItems().isEmpty())  fyPicker.setValue(fyPicker.getItems().get(0));
-            hiddenCategories.clear();
-            rebuildCategoryMenu();
-            updating[0] = false;
-            refresh.run();
-        });
 
         downloadBtn.setOnAction(e -> {
             String fyVal = fyPicker.getValue();

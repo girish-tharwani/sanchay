@@ -58,10 +58,11 @@ class CategoryTransactionsDialog {
 
         Dialog<Void> dlg = new Dialog<>();
         UiUtils.initDialog(dlg, "Transactions — " + cat.getName(), "#", 700);
-        dlg.getDialogPane().setPrefHeight(500);
+        dlg.getDialogPane().setPrefHeight(700);
 
         VBox content = new VBox(12);
         content.setPadding(new Insets(16));
+        VBox.setVgrow(content, Priority.ALWAYS);
 
         Label countLbl = new Label(txns.size() + " transaction" + (txns.size() == 1 ? "" : "s") + " in '" + cat.getName() + "'");
         countLbl.getStyleClass().add("text-section-title");
@@ -73,7 +74,9 @@ class CategoryTransactionsDialog {
         } else {
             TableView<Transaction> table = new TableView<>();
             table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-            table.setPrefHeight(380);
+            table.setMinHeight(200);
+            table.setMaxHeight(Double.MAX_VALUE);
+            VBox.setVgrow(table, Priority.ALWAYS);
 
             TableColumn<Transaction, String> dateCol = new TableColumn<>("DATE");
             dateCol.setCellValueFactory(c ->
@@ -95,7 +98,7 @@ class CategoryTransactionsDialog {
             });
 
             TableColumn<Transaction, Void> typeCol = new TableColumn<>("TYPE");
-            typeCol.setPrefWidth(90);
+            typeCol.setPrefWidth(95);
             typeCol.setCellFactory(tc -> new TableCell<>() {
                 @Override protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
@@ -107,7 +110,10 @@ class CategoryTransactionsDialog {
             TableColumn<Transaction, String> accountCol = new TableColumn<>("ACCOUNT");
             accountCol.setCellValueFactory(c ->
                     new javafx.beans.property.SimpleStringProperty(
-                            ds.getAccountName(c.getValue().getFromAccountId())));
+                            ds.getAccountName(
+                                    c.getValue().getFromAccountId() != null
+                                            ? c.getValue().getFromAccountId()
+                                            : c.getValue().getToAccountId())));
             accountCol.setPrefWidth(130);
 
             TableColumn<Transaction, String> subCatCol = new TableColumn<>("SUB-CATEGORY");
@@ -174,10 +180,7 @@ class CategoryTransactionsDialog {
             content.getChildren().addAll(countLbl, table, UiUtils.hintLabel("Double-click a row to edit"));
         }
 
-        ScrollPane sp = new ScrollPane(content);
-        sp.setFitToWidth(true);
-        sp.getStyleClass().add("scroll-transparent");
-        dlg.getDialogPane().setContent(sp);
+        dlg.getDialogPane().setContent(content);
         dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dlg.showAndWait();
     }

@@ -38,6 +38,15 @@ public class DashboardScreen {
     /** Held as a field so pending items can be refreshed in-place after Record/Skip. */
     private VBox pendingContainer;
 
+    /**
+     * Card and its body label are held as fields so the onSaved callback can
+     * update the count or hide the card without rebuilding the whole screen.
+     */
+    private VBox  uncategorizedCard;
+    private Label uncatBodyLabel;
+    /** Parent of all main content — needed to insert/remove uncategorized card. */
+    private VBox  pageContent;
+
     public DashboardScreen(MainWindow mainWindow, boolean showWelcomeBanner) {
         this.mainWindow = mainWindow;
         this.showWelcomeBanner = showWelcomeBanner;
@@ -48,9 +57,9 @@ public class DashboardScreen {
     public void refresh() { buildView(); }
 
     private void buildView() {
-        VBox content = new VBox(20);
-        content.getStyleClass().add("main-panel");
-        content.setPadding(new Insets(28, 28, 28, 28));
+        pageContent = new VBox(20);
+        pageContent.getStyleClass().add("main-panel");
+        pageContent.setPadding(new Insets(28, 28, 28, 28));
 
         // ── Page header: title + date ─────────────────────────────────────────
         Label title = new Label("Dashboard");
@@ -60,20 +69,30 @@ public class DashboardScreen {
         dateLabel.getStyleClass().add("dialog-subtitle");
 
         VBox titleGroup = new VBox(2, title, dateLabel);
-        content.getChildren().add(titleGroup);
+        pageContent.getChildren().add(titleGroup);
 
         if (showWelcomeBanner && !bannerDismissed) {
-            content.getChildren().add(buildGetStartedCard());
+            pageContent.getChildren().add(buildGetStartedCard());
         }
 
-        content.getChildren().addAll(
+        pageContent.getChildren().addAll(
                 buildSummaryRow(),
                 buildCreditCardRow(),
-                buildPendingCard(),
-                buildRecentTransactions()
+                buildPendingCard()
         );
 
-        view = new ScrollPane(content);
+        long uncatCount = computeUncategorizedCount();
+        if (uncatCount > 0) {
+            uncategorizedCard = buildUncategorizedCard(uncatCount);
+            pageContent.getChildren().add(uncategorizedCard);
+        } else {
+            uncategorizedCard = null;
+            uncatBodyLabel    = null;
+        }
+
+        pageContent.getChildren().add(buildRecentTransactions());
+
+        view = new ScrollPane(pageContent);
         view.setFitToWidth(true);
         view.getStyleClass().add("scroll-page-bg");
     }
@@ -114,20 +133,39 @@ public class DashboardScreen {
 
     // ── Summary stat cards ────────────────────────────────────────────────────
 
-    private HBox buildSummaryRow() {
+    private GridPane buildSummaryRow() {
         DataStore ds = DataStore.getInstance();
-        HBox row = new HBox(14);
-        row.setFillHeight(true);
-        row.getChildren().addAll(
-                summaryCard("Net Worth",        UiUtils.formatCorpusDisplay(computeCurrentCorpusPaise()),      "-brand-accent"),
-                summaryCard("Bank Balance",     UiUtils.formatCorpusDisplay(ds.getTotalBankBalancePaise()),    "-brand-light"),
-                summaryCard("Monthly Expenses", UiUtils.formatCorpusDisplay(computeAvgMonthlyExpensesPaise()), "-brand-light"),
-                summaryCard("Monthly Income",   UiUtils.formatCorpusDisplay(computeAvgMonthlyIncomePaise()),   "-brand-light")
-        );
+
+        VBox c1 = summaryCard("Net Worth",        UiUtils.formatCorpusDisplay(computeCurrentCorpusPaise()),      "-brand-accent");
+        VBox c2 = summaryCard("Bank Balance",     UiUtils.formatCorpusDisplay(ds.getTotalBankBalancePaise()),    "-brand-light");
+        VBox c3 = summaryCard("Monthly Expenses", UiUtils.formatCorpusDisplay(computeAvgMonthlyExpensesPaise()), "-brand-light");
+        VBox c4 = summaryCard("Monthly Income",   UiUtils.formatCorpusDisplay(computeAvgMonthlyIncomePaise()),   "-brand-light");
+        for (VBox c : new VBox[]{c1, c2, c3, c4}) c.setMaxWidth(Double.MAX_VALUE);
+
+        ColumnConstraints col = new ColumnConstraints();
+        col.setPercentWidth(25);
+        col.setFillWidth(true);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(25);
+        col2.setFillWidth(true);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(25);
+        col3.setFillWidth(true);
+        ColumnConstraints col4 = new ColumnConstraints();
+        col4.setPercentWidth(25);
+        col4.setFillWidth(true);
+
+        GridPane row = new GridPane();
+        row.setHgap(14);
+        row.getColumnConstraints().addAll(col, col2, col3, col4);
+        row.add(c1, 0, 0);
+        row.add(c2, 1, 0);
+        row.add(c3, 2, 0);
+        row.add(c4, 3, 0);
         return row;
     }
 
-    private HBox buildCreditCardRow() {
+    private GridPane buildCreditCardRow() {
         DataStore ds = DataStore.getInstance();
         long ccOutstanding   = ds.getTotalCreditCardOutstandingPaise();
         long loanOutstanding = ds.getActiveLoanAccounts().stream()
@@ -143,11 +181,23 @@ public class DashboardScreen {
                 ? MoneyFormatter.symbol() + MoneyFormatter.format(loanOutstanding).substring(MoneyFormatter.symbol().length())
                 : MoneyFormatter.format(0);
 
-        HBox row = new HBox(14);
-        row.getChildren().addAll(
-                summaryCard("Credit Card Balance",    ccValue,   ccStripe),
-                summaryCard("Outstanding Loan Amount", loanValue, loanStripe)
-        );
+        VBox ccCard   = summaryCard("Credit Card Balance",    ccValue,   ccStripe);
+        VBox loanCard = summaryCard("Outstanding Loan Amount", loanValue, loanStripe);
+        ccCard.setMaxWidth(Double.MAX_VALUE);
+        loanCard.setMaxWidth(Double.MAX_VALUE);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(50);
+        col1.setFillWidth(true);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(50);
+        col2.setFillWidth(true);
+
+        GridPane row = new GridPane();
+        row.setHgap(14);
+        row.getColumnConstraints().addAll(col1, col2);
+        row.add(ccCard, 0, 0);
+        row.add(loanCard, 1, 0);
         return row;
     }
 
@@ -254,6 +304,76 @@ public class DashboardScreen {
 
         item.getChildren().addAll(typeBadge, details, amount, record, skip);
         return item;
+    }
+
+    // ── Uncategorized transactions alert card ─────────────────────────────────
+
+    private VBox buildUncategorizedCard(long count) {
+        VBox card = new VBox(0);
+        card.getStyleClass().add("table-card");
+
+        // Header row: amber dot + title + "Review & Fix →"
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(16, 20, 14, 20));
+
+        Circle dot = new Circle(4);
+        // Inline required: amber warning colour is data-driven, no matching CSS token
+        dot.setStyle("-fx-fill: #b45309;");
+
+        Label titleLbl = new Label("UNCATEGORIZED TRANSACTIONS");
+        titleLbl.getStyleClass().add("section-group-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Hyperlink fixLink = new Hyperlink("Review & Fix →");
+        fixLink.getStyleClass().add("link-teal");
+        fixLink.setOnAction(e ->
+                new com.sanchay.ui.categories.UncategorizedReviewDialog(this::onUncategorizedSaved).show());
+
+        header.getChildren().addAll(dot, titleLbl, spacer, fixLink);
+
+        Region sep = new Region();
+        sep.getStyleClass().add("sep-teal");
+        sep.setMaxWidth(Double.MAX_VALUE);
+
+        // Body label
+        uncatBodyLabel = new Label();
+        uncatBodyLabel.getStyleClass().add("text-body-muted");
+        uncatBodyLabel.setPadding(new Insets(12, 20, 14, 20));
+        updateUncatBodyLabel(count);
+
+        card.getChildren().addAll(header, sep, uncatBodyLabel);
+        return card;
+    }
+
+    private void onUncategorizedSaved() {
+        long remaining = computeUncategorizedCount();
+        if (remaining == 0) {
+            if (uncategorizedCard != null && pageContent != null) {
+                pageContent.getChildren().remove(uncategorizedCard);
+            }
+            uncategorizedCard = null;
+            uncatBodyLabel    = null;
+        } else if (uncatBodyLabel != null) {
+            updateUncatBodyLabel(remaining);
+        }
+    }
+
+    private void updateUncatBodyLabel(long count) {
+        uncatBodyLabel.setText(count + " transaction" + (count == 1 ? "" : "s")
+                + " without a category — reports and forecasts may be incomplete.");
+    }
+
+    private long computeUncategorizedCount() {
+        return DataStore.getInstance().getTransactions().stream()
+                .filter(t -> (t.getType() == Transaction.Type.EXPENSE
+                           || t.getType() == Transaction.Type.INCOME
+                           || t.getType() == Transaction.Type.REFUND)
+                        && (t.getClassification() == null
+                            || t.getClassification().getCategoryId() == null))
+                .count();
     }
 
     // ── Recent transactions ───────────────────────────────────────────────────

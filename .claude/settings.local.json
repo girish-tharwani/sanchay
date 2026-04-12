@@ -55,7 +55,9 @@
       "Bash(mvn compile:*)",
       "Bash(pip install:*)",
       "Bash(cat D:/Projects/sanchay/logs/*.log)",
-      "Bash(mvn compiler:compile)"
+      "Bash(mvn compiler:compile)",
+      "Bash(bash build.sh compile-force)",
+      "Bash(mvn clean:*)"
     ]
   },
   "enabledPlugins": {

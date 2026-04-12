@@ -39,7 +39,7 @@ No test framework or linter is configured.
 
 ### Key Singletons
 - **`DataStore`** — Central in-memory cache of all financial data. All UI screens read/write through `DataStore.getInstance()`.
-- **`PersistenceService`** — Serializes/deserializes 11 JSON files (accounts, transactions, recurring, categories, members, settings, import_mappings, category_rules, type_rules, loan_schedules, market_values) using GSON with a custom `LocalDate` adapter. Two additional files are owned by other services: `forecast_overrides.json` and `forecast_account_selection.json` by `ForecastStateService`, and `plan_params.json` by `PlanParamsService`.
+- **`PersistenceService`** — Serializes/deserializes 11 JSON files (accounts, transactions, recurring, categories, members, settings, import_mappings, category_rules, type_rules, loan_schedules, market_values) using GSON with a custom `LocalDate` adapter. Additional files owned by other services: `forecast_overrides.json` and `forecast_account_selection.json` by `ForecastStateService`; `plan_params.json` by `PlanParamsService`; `report_prefs.json` by `ReportPrefsService`.
 - **`AppConfig`** — Manages the two-tier config separation (app install vs. data folder).
 
 ### Layers
@@ -85,6 +85,7 @@ Each dialog has its own class. Extracted dialog classes by package:
 - `ReassignCategoryDialog` — reassign transactions from one category to another
 - `MoveSubCategoryDialog` — move a sub-category to a different parent
 - `CategoryTransactionsDialog` — read/edit transactions for a category
+- `UncategorizedReviewDialog` — bulk-categorize uncategorized EXPENSE/INCOME/REFUND transactions; inline category+sub-category selectors per row, interim save, auto-closes when all rows are done
 
 **`ui/accounts/`**
 - `AccountDialog` — create/edit any account type
@@ -104,7 +105,8 @@ Each dialog has its own class. Extracted dialog classes by package:
 
 **`ui/reports/`**
 - `ReportsScreen` — thin coordinator; owns the `TabPane` and calls `refresh()` on each tab class on every navigation
-- `ExpenseReportTab` — Expense Report tab: category-by-month chart and table, FY/CY year picker, category multi-select filter, sub-category toggle, CSV export
+- `ExpenseReportTab` — Expense Report tab: category-by-month chart and table, FY/CY year picker, category multi-select filter (persisted via `ReportPrefsService`), sub-category toggle, CSV export
+- `ExpenseTrendTab` — Expense Trend tab: year-over-year net expense grid (EXPENSE minus REFUND) by category/sub-category; past years picker; category multi-select filter (persisted via `ReportPrefsService`); Total row; CSV export
 - `CashFlowForecastTab` — Cash Flow Forecast tab: line chart with data-point tooltips, horizon picker, override editing, account selection state
 - `AccountSelectionDialog` — modal dialog for picking which accounts appear in the cash flow chart; up to 10 accounts in four labelled groups with tri-state group checkboxes; MF/Equity accounts shown as permanently disabled; includes "Show sum of all accounts" toggle
 
@@ -137,6 +139,7 @@ Each panel receives a `TransactionDialog parent` reference in its constructor an
 - **`ImportService`** — Parses clipboard CSV/TSV, auto-detects delimiters, matches imports to existing transactions, and auto-categorizes via rules.
 - **`AmortizationService`** — Generates reducing-balance loan schedules; handles mid-loan interest rate changes.
 - **`PlanParamsService`** — Loads and saves financial planning parameters to `plan_params.json`.
+- **`ReportPrefsService`** — Loads and saves hidden-category selections for Expense Report and Expense Trend tabs to `report_prefs.json`.
 
 ### Data Model Conventions
 - **Amounts are stored in paise** (long integers, 1/100th of the base currency unit) — never use floating point for money.

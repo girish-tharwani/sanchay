@@ -236,7 +236,6 @@ public class DataStore {
 
     public void setGroupCollapsed(String type, boolean val) {
         groupCollapsed.put(type, val);
-        if (persistence != null) persistence.saveSettings(this);
     }
 
     // ── Financial Year helpers ────────────────────────────────────────────────

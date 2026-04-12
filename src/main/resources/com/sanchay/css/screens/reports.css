@@ -99,13 +99,11 @@
 }
 
 .forecast-table .column-header .label {
-    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-text-fill: -brand-mid;
 }
 
 .forecast-table .table-cell {
-    -fx-font-size: 12px;
     -fx-text-fill: -text-primary;
 }
 

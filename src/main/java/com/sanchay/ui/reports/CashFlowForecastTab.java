@@ -103,7 +103,7 @@ public class CashFlowForecastTab {
 
         // Detail toggle — only shown when >5 accounts
         detailToggle = new ToggleButton("Show Details");
-        detailToggle.getStyleClass().add("btn-gold");
+        detailToggle.getStyleClass().add("btn-secondary");
         detailToggle.setVisible(false);
         detailToggle.setManaged(false);
         detailToggle.setOnAction(e -> {
@@ -115,14 +115,14 @@ public class CashFlowForecastTab {
 
         // "Choose Accounts" button — shown only while in detail mode
         chooseAccountsBtn = new Button("Choose Accounts");
-        chooseAccountsBtn.getStyleClass().add("btn-gold");
+        chooseAccountsBtn.getStyleClass().add("btn-secondary");
         chooseAccountsBtn.setVisible(false);
         chooseAccountsBtn.setManaged(false);
         chooseAccountsBtn.setOnAction(e -> onChooseAccountsClicked());
 
         // Regenerate Projections button
         Button regenerateBtn = new Button("Regenerate Projections");
-        regenerateBtn.getStyleClass().add("btn-gold");
+        regenerateBtn.getStyleClass().add("btn-secondary");
         regenerateBtn.setOnAction(e -> onRegenerateClicked());
 
         HBox filterRow = new HBox(12, periodLabel, periodPicker, detailToggle, chooseAccountsBtn, regenerateBtn);
@@ -138,7 +138,7 @@ public class CashFlowForecastTab {
 
         // Summary strip
         summaryStrip = new Label();
-        summaryStrip.getStyleClass().add("cash-flow-summary-strip");
+        summaryStrip.getStyleClass().add("text-section-title");
         summaryStrip.setMaxWidth(Double.MAX_VALUE);
 
         // Chart
@@ -158,7 +158,7 @@ public class CashFlowForecastTab {
 
         // "Forecasted Expenses" section title
         Label tableTitle = new Label("Forecasted Expenses");
-        tableTitle.getStyleClass().add("forecast-section-title");
+        tableTitle.getStyleClass().add("text-section-title");
 
         // Forecast table filter bar
         HBox tableFilterBar = buildTableFilterBar();
@@ -171,7 +171,7 @@ public class CashFlowForecastTab {
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
         sp.setFitToHeight(false);
-        sp.getStyleClass().add("edge-to-edge");
+        sp.getStyleClass().add("scroll-page-bg");
         return sp;
     }
 
@@ -242,29 +242,29 @@ public class CashFlowForecastTab {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setEditable(false);
 
-        TableColumn<ForecastTableRow, String> monthCol = new TableColumn<>("Month");
+        TableColumn<ForecastTableRow, String> monthCol = new TableColumn<>("MONTH");
         monthCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().month()));
         monthCol.setPrefWidth(100);
 
-        TableColumn<ForecastTableRow, String> categoryCol = new TableColumn<>("Category");
+        TableColumn<ForecastTableRow, String> categoryCol = new TableColumn<>("CATEGORY");
         categoryCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().category()));
         categoryCol.setPrefWidth(140);
 
-        TableColumn<ForecastTableRow, String> subCategoryCol = new TableColumn<>("Sub-Category");
+        TableColumn<ForecastTableRow, String> subCategoryCol = new TableColumn<>("SUB-CATEGORY");
         subCategoryCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().subCategory()));
         subCategoryCol.setPrefWidth(140);
 
-        TableColumn<ForecastTableRow, String> amountCol = new TableColumn<>("Amount");
+        TableColumn<ForecastTableRow, String> amountCol = new TableColumn<>("AMOUNT");
         amountCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().amount()));
         amountCol.setPrefWidth(120);
         amountCol.setCellFactory(col -> new AmountCell());
 
-        TableColumn<ForecastTableRow, String> methodCol = new TableColumn<>("Method");
+        TableColumn<ForecastTableRow, String> methodCol = new TableColumn<>("METHOD");
         methodCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().method()));
         methodCol.setPrefWidth(180);
         methodCol.setCellFactory(col -> buildExcludedAwareCell());
 
-        TableColumn<ForecastTableRow, Void> actionCol = new TableColumn<>("Include");
+        TableColumn<ForecastTableRow, Void> actionCol = new TableColumn<>("INCLUDE");
         actionCol.setPrefWidth(80);
         actionCol.setCellFactory(col -> new ActionCell());
 
@@ -327,7 +327,7 @@ public class CashFlowForecastTab {
         lastProjectionResult = result;
 
         // Summary strip
-        summaryStrip.setText("Cash flow forecast: " + selected
+        summaryStrip.setText("Cash flow forecast —  " + selected
                 + "  (" + startDate.format(MONTH_FMT) + " → " + endDate.format(MONTH_FMT) + ")");
 
         // Warnings

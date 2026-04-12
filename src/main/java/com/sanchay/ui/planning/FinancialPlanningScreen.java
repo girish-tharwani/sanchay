@@ -368,7 +368,7 @@ public class FinancialPlanningScreen {
         if (negative) val.getStyleClass().add("fp-kpi-value-negative");
 
         VBox card = new VBox(8, lbl, val);
-        HBox.setHgrow(card, Priority.ALWAYS);
+        card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("card-summary");
         // Inline required: stripe colour is data-driven per card
         card.setStyle("-fx-background-color: " + stripeColor + ", white; "
@@ -382,7 +382,7 @@ public class FinancialPlanningScreen {
         lbl.getStyleClass().add("card-title");
 
         VBox card = new VBox(6, lbl, valueLabel);
-        HBox.setHgrow(card, Priority.ALWAYS);
+        card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("card-summary");
         // Inline required: stripe colour is data-driven per card
         card.setStyle("-fx-background-color: " + stripeColor + ", white; "

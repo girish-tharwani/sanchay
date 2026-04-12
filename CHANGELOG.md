@@ -1,64 +1,50 @@
-## v1.0.0-Jay — 2026-04-12
+## v1.0.0-Kiwi — 2026-04-12
 
 baseline for release
 
-## v0.1.0-Jay — 2026-04-12
-### Added
-Added the option of 36 months cash flow forecast
-
-## v0.0.10-Jay — 2026-04-12
-
-### Changed
-- Renamed `MonthlyExpenseSummaryTab` to `ExpenseReportTab`; tab label changed from "Monthly Expense Summary" to "Expense Report"
-
-## v0.0.9-Jay — 2026-04-12
-
-### Added
-- Monthly Expense Summary: category multi-select filter (hides/shows categories in both chart and table; menu stays open for multiple selections)
-- Monthly Expense Summary: Clear button resets all filters to current FY
-
-### Changed
-- Monthly Expense Summary: default filter is now current FY instead of current month
-- Monthly Expense Summary: filter bar reordered — FY first, then Month
-- Monthly Expense Summary: "Show sub-categories" checkbox moved into the chart section header, aligned with the Total row
-- Monthly Expense Summary: category selector uses `CustomMenuItem` to stay open after each toggle
-
-## v0.0.8-Jay — 2026-04-12
-
-### Added
-- Cash Flow Forecast: "Show sum of all accounts" toggle in the Choose Accounts dialog; when off, the thick gold total line is hidden and the Y-axis rescales to the visible series
-- Cash Flow Forecast: MF and Equity investment accounts now appear in the Investments group of the account selector as permanently disabled rows, giving a visual cue that they are excluded from projection
-
-## v0.0.7-Jay — 2026-04-12
-
-### Changed
-- Extracted Monthly Expense Summary tab into `MonthlyExpenseSummaryTab`; `ReportsScreen` is now a thin coordinator matching the pattern of `CashFlowForecastTab`
-
-## v0.0.6-Jay — 2026-04-12
-
-### Removed
-- Credit Card Report tab from Reports screen
-
-## v0.0.5-Jay — 2026-04-12
+## v0.0.6-Kiwi — 2026-04-12
 
 ### Fixed
-- Recurring schedule editor no longer auto-selects the first bank account as From Account when editing an auto-created PF schedule that has no source account set
+- Forecasted Expenses table header and cell font sizes now match the All Expense Transactions table
 
-## v0.0.4-Jay — 2026-04-11
+## v0.0.5-Kiwi — 2026-04-12
 
 ### Added
-- Cash Flow Forecast: data point tooltips on the line chart showing series name, month, and balance on hover
-
-## v0.0.3-Jay — 2026-04-11
+- Expense Trend tab in Reports: tabular view of net expenses (EXPENSE minus REFUND) by category and sub-category across current + up to 4 past years; category filter with multi-select; Total row; CSV export
+- Category filter on Expense Trend tab — selection persisted to `report_prefs.json` across restarts
+- Category filter on Expense Report tab — selection persisted to `report_prefs.json` across restarts
+- `ReportPrefsService` — loads/saves hidden category sets for both report tabs
 
 ### Changed
-- Cash Flow Forecast: removed the four stat tiles (Total Projected Income, Total Cash Outflows, Net Cash Flow, Projected Balance) and all associated calculation logic
+- All three Reports tabs now share consistent styling: teal page background, 24px padding, `text-section-title` headings, default ComboBox appearance
+- `menu-button-as-combo` CSS class added to components.css for MenuButtons that must match ComboBox styling
+- Clear button removed from Expense Report tab (category selections are now persisted instead of reset)
 
-## v0.0.2-Jay — 2026-04-11
+## v0.0.4-Kiwi — 2026-04-12
+
+### Changed
+- Accounts screen group collapse state is no longer persisted — on every app start only Favourites is expanded, all other groups are collapsed
 
 ### Fixed
-- Cash Flow Forecast: FD maturity no longer zeros the entire "All FDs" account balance — only the maturing FD's principal is subtracted, leaving other active FDs intact
+- Removed stale `activeFinancialYear` field from settings.json (all consuming code was already commented out)
 
-## v0.0.1-Jay — 2026-04-11
+## v0.0.3-Kiwi — 2026-04-12
+
+### Added
+- Dashboard alert card for uncategorized EXPENSE / INCOME / REFUND transactions — shows count and a "Review & Fix →" link that opens a bulk-categorize dialog; card auto-hides when count reaches zero
+- Uncategorized review dialog: table of uncategorized transactions with inline category and sub-category selectors, interim save support, and auto-close when all rows are categorized
+
+### Fixed
+- Category Transactions dialog: table now expands to fill available height (removed wrapping ScrollPane that was preventing VBox grow)
+- Category Transactions dialog: ACCOUNT column now shows the correct account for REFUND transactions (falls back to `toAccountId` when `fromAccountId` is null)
+
+## v0.0.2-Kiwi — 2026-04-12
+
+### Changed
+- Dashboard summary cards (top row) now each occupy exactly 25% of available width
+- Dashboard credit card / loan cards now each occupy exactly 50% of available width
+- Financial Planning KPI strip cards now each occupy exactly 33% of available width
+
+## v0.0.1-Kiwi — 2026-04-12
 
 - Start of new build
