@@ -1,6 +1,8 @@
 package com.sanchay.ui.reports;
 
+import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
+import javafx.scene.control.CustomMenuItem;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
@@ -29,6 +31,9 @@ class MonthlyExpenseSummaryTab {
     private Runnable refresh;
     private ComboBox<String> fyPicker;
     private Label fyLabel;
+    private MenuButton catMenu;
+    /** Category names the user has explicitly hidden. Empty = show all. */
+    private final Set<String> hiddenCategories = new HashSet<>();
 
     MonthlyExpenseSummaryTab() {
         view = buildView();
@@ -38,6 +43,7 @@ class MonthlyExpenseSummaryTab {
 
     void refresh() {
         updateYearPicker();
+        rebuildCategoryMenu();
         if (refresh != null) refresh.run();
     }
 
@@ -45,10 +51,47 @@ class MonthlyExpenseSummaryTab {
         boolean isIndianFY = "Indian Financial Year".equals(DataStore.getInstance().getYearFormat());
         List<String> options = isIndianFY ? buildFYOptions() : buildCYOptions();
         if (fyPicker != null) {
+            String prev = fyPicker.getValue();
             fyPicker.getItems().setAll(options);
             fyPicker.setPromptText(isIndianFY ? "Select FY…" : "Select Year…");
             fyLabel.setText(isIndianFY ? "FY" : "YEAR");
+            if (prev != null && fyPicker.getItems().contains(prev))
+                fyPicker.setValue(prev);
         }
+    }
+
+    // ── Category menu ─────────────────────────────────────────────────────────
+
+    private void rebuildCategoryMenu() {
+        if (catMenu == null) return;
+        List<Category> cats = DataStore.getInstance().getExpenseCategories();
+        catMenu.getItems().clear();
+        for (Category cat : cats) {
+            CheckBox cb = new CheckBox(cat.getName());
+            cb.setSelected(!hiddenCategories.contains(cat.getName()));
+            cb.getStyleClass().add("acsel-account-cb");
+            cb.setOnAction(e -> {
+                if (cb.isSelected()) hiddenCategories.remove(cat.getName());
+                else hiddenCategories.add(cat.getName());
+                syncCatMenuLabel();
+                if (refresh != null) refresh.run();
+            });
+            // hideOnClick=false keeps the menu open after each toggle
+            CustomMenuItem item = new CustomMenuItem(cb, false);
+            catMenu.getItems().add(item);
+        }
+        syncCatMenuLabel();
+    }
+
+    private void syncCatMenuLabel() {
+        long total   = catMenu.getItems().size();
+        long checked = catMenu.getItems().stream()
+                .filter(i -> i instanceof CustomMenuItem ci
+                          && ci.getContent() instanceof CheckBox cb
+                          && cb.isSelected())
+                .count();
+        catMenu.setText(checked == total ? "All Categories"
+                : checked + " of " + total + " categories");
     }
 
     // ── Build ─────────────────────────────────────────────────────────────────
@@ -73,7 +116,7 @@ class MonthlyExpenseSummaryTab {
             monthPicker.getItems().add(
                     m.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + m.getYear());
         }
-        monthPicker.setValue(monthPicker.getItems().get(0));
+        // No default month — FY is the default filter
 
         fyLabel = new Label("FY");
         fyLabel.getStyleClass().add("filter-label");
@@ -82,17 +125,30 @@ class MonthlyExpenseSummaryTab {
         fyPicker.getItems().addAll(buildFYOptions());
         fyPicker.setPromptText("Select FY…");
         fyPicker.setPrefWidth(140);
+        // Default: current FY
+        String defaultFY = currentFYLabel();
+        if (fyPicker.getItems().contains(defaultFY))      fyPicker.setValue(defaultFY);
+        else if (!fyPicker.getItems().isEmpty())           fyPicker.setValue(fyPicker.getItems().get(0));
 
-        CheckBox showSubCat = new CheckBox("Show sub-categories");
-        showSubCat.getStyleClass().add("text-hint");
+        catMenu = new MenuButton("All Categories");
+        catMenu.getStyleClass().add("filter-field");
+        catMenu.setPrefWidth(160);
+
+        Button clearBtn = new Button("Clear");
+        clearBtn.getStyleClass().add("btn-secondary");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Button downloadBtn = new Button("⬇ Download CSV");
         downloadBtn.getStyleClass().add("btn-gold");
 
-        controls.getChildren().addAll(monthLabel, monthPicker, fyLabel, fyPicker, showSubCat, spacer, downloadBtn);
+        controls.getChildren().addAll(
+                fyLabel, fyPicker, monthLabel, monthPicker, catMenu, clearBtn, spacer, downloadBtn);
         root.getChildren().add(controls);
+
+        // ── Show sub-categories checkbox — lives above the transaction table ──
+        CheckBox showSubCat = new CheckBox("Show sub-categories");
+        showSubCat.getStyleClass().add("text-hint");
 
         // ── Dynamic content ───────────────────────────────────────────────────
         VBox dynamicContent = new VBox(20);
@@ -118,6 +174,7 @@ class MonthlyExpenseSummaryTab {
                 to   = m.withDayOfMonth(m.lengthOfMonth());
                 label = m.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + m.getYear();
             } else {
+                dynamicContent.getChildren().clear();
                 return;
             }
 
@@ -127,7 +184,7 @@ class MonthlyExpenseSummaryTab {
                     .mapToLong(Long::longValue).sum();
 
             dynamicContent.getChildren().setAll(
-                    buildExpByCatSection(data, total, label, showSubCat.isSelected()),
+                    buildExpByCatSection(data, total, label, showSubCat.isSelected(), showSubCat),
                     buildSummaryExpenseTable(from, to, label)
             );
         };
@@ -155,6 +212,18 @@ class MonthlyExpenseSummaryTab {
 
         showSubCat.selectedProperty().addListener((obs, o, n) -> refresh.run());
 
+        clearBtn.setOnAction(e -> {
+            updating[0] = true;
+            monthPicker.getSelectionModel().clearSelection();
+            String fy = currentFYLabel();
+            if (fyPicker.getItems().contains(fy))     fyPicker.setValue(fy);
+            else if (!fyPicker.getItems().isEmpty())  fyPicker.setValue(fyPicker.getItems().get(0));
+            hiddenCategories.clear();
+            rebuildCategoryMenu();
+            updating[0] = false;
+            refresh.run();
+        });
+
         downloadBtn.setOnAction(e -> {
             String fyVal = fyPicker.getValue();
             int mIdx = monthPicker.getSelectionModel().getSelectedIndex();
@@ -177,6 +246,7 @@ class MonthlyExpenseSummaryTab {
             exportExpByCatCsv(data, total, label, showSubCat.isSelected(), downloadBtn);
         });
 
+        rebuildCategoryMenu();
         refresh.run();
 
         ScrollPane sp = new ScrollPane(root);
@@ -198,6 +268,7 @@ class MonthlyExpenseSummaryTab {
                     String rSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
                     String cat = ds.getCategoryName(rCatId);
                     if ("—".equals(cat)) cat = "(Uncategorized)";
+                    if (!hiddenCategories.isEmpty() && hiddenCategories.contains(cat)) return;
                     String subCat = rSubCatId != null ? ds.getCategoryName(rSubCatId) : "";
                     result.computeIfAbsent(cat, k -> new LinkedHashMap<>())
                           .merge(subCat, t.getAmountPaise(), Long::sum);
@@ -208,24 +279,28 @@ class MonthlyExpenseSummaryTab {
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     private VBox buildExpByCatSection(Map<String, Map<String, Long>> data, long grandTotal,
-                                      String label, boolean showSubCat) {
+                                      String label, boolean showSubCat, CheckBox showSubCatCb) {
         if (showSubCat) {
-            return buildTwoLevelCategoryBars(data, grandTotal, label);
+            return buildTwoLevelCategoryBars(data, grandTotal, label, showSubCatCb);
         }
         Map<String, Long> flat = new LinkedHashMap<>();
         data.forEach((cat, subMap) ->
                 flat.put(cat, subMap.values().stream().mapToLong(Long::longValue).sum()));
         return buildCategoryBarChart("Expenses by Category — " + label,
-                "No expense transactions for this period.", flat, grandTotal, true);
+                "No expense transactions for this period.", flat, grandTotal, true, showSubCatCb);
     }
 
     private VBox buildTwoLevelCategoryBars(Map<String, Map<String, Long>> data,
-                                            long grandTotal, String label) {
+                                            long grandTotal, String label, CheckBox showSubCatCb) {
         VBox section = new VBox(10);
         Label heading = new Label("Expenses by Category — " + label);
         heading.getStyleClass().add("text-section-title");
         Label totalLbl = new Label("Total: " + MoneyFormatter.format(grandTotal));
         totalLbl.getStyleClass().add("section-group-label");
+        Region totalSpacer = new Region();
+        HBox.setHgrow(totalSpacer, Priority.ALWAYS);
+        HBox totalRow = new HBox(totalLbl, totalSpacer, showSubCatCb);
+        totalRow.setAlignment(Pos.CENTER_LEFT);
 
         VBox bars = new VBox(6);
         bars.getStyleClass().add("card");
@@ -242,12 +317,12 @@ class MonthlyExpenseSummaryTab {
                     .collect(Collectors.toList());
 
             for (Map.Entry<String, Map<String, Long>> catEntry : sorted) {
-                String catName      = catEntry.getKey();
+                String catName           = catEntry.getKey();
                 Map<String, Long> subMap = catEntry.getValue();
-                long catTotal       = subMap.values().stream().mapToLong(Long::longValue).sum();
-                double catPct       = grandTotal > 0 ? catTotal * 100.0 / grandTotal : 0;
-                String colour       = UiUtils.CHART_PALETTE[ci++ % UiUtils.CHART_PALETTE.length];
-                boolean noSubCats   = subMap.size() == 1 && subMap.containsKey("");
+                long catTotal            = subMap.values().stream().mapToLong(Long::longValue).sum();
+                double catPct            = grandTotal > 0 ? catTotal * 100.0 / grandTotal : 0;
+                String colour            = UiUtils.CHART_PALETTE[ci++ % UiUtils.CHART_PALETTE.length];
+                boolean noSubCats        = subMap.size() == 1 && subMap.containsKey("");
 
                 if (noSubCats) {
                     bars.getChildren().add(buildBarRow(catName, catTotal, catPct, colour, 0));
@@ -277,7 +352,7 @@ class MonthlyExpenseSummaryTab {
                 }
             }
         }
-        section.getChildren().addAll(heading, totalLbl, bars);
+        section.getChildren().addAll(heading, totalRow, bars);
         return section;
     }
 
@@ -309,7 +384,7 @@ class MonthlyExpenseSummaryTab {
 
     private VBox buildCategoryBarChart(String headingText, String emptyMessage,
                                        Map<String, Long> byCategory, long total,
-                                       boolean showTotal) {
+                                       boolean showTotal, CheckBox showSubCatCb) {
         VBox section = new VBox(10);
         Label heading = new Label(headingText);
         heading.getStyleClass().add("text-section-title");
@@ -318,7 +393,11 @@ class MonthlyExpenseSummaryTab {
         if (showTotal) {
             Label totalLbl = new Label("Total: " + MoneyFormatter.format(total));
             totalLbl.getStyleClass().add("section-group-label");
-            section.getChildren().add(totalLbl);
+            Region totalSpacer = new Region();
+            HBox.setHgrow(totalSpacer, Priority.ALWAYS);
+            HBox totalRow = new HBox(totalLbl, totalSpacer, showSubCatCb);
+            totalRow.setAlignment(Pos.CENTER_LEFT);
+            section.getChildren().add(totalRow);
         }
 
         VBox bars = new VBox(8);
@@ -349,7 +428,8 @@ class MonthlyExpenseSummaryTab {
 
         List<Transaction> txs = DataStore.getInstance().getTransactions().stream()
                 .filter(t -> t.getType() == Transaction.Type.EXPENSE
-                          && !t.getDate().isBefore(from) && !t.getDate().isAfter(to))
+                          && !t.getDate().isBefore(from) && !t.getDate().isAfter(to)
+                          && !isCategoryHidden(t))
                 .sorted(Comparator.comparing(Transaction::getDate).reversed())
                 .collect(Collectors.toList());
 
@@ -369,6 +449,14 @@ class MonthlyExpenseSummaryTab {
         tableCard.getChildren().add(table);
         section.getChildren().addAll(heading, tableCard);
         return section;
+    }
+
+    private boolean isCategoryHidden(Transaction t) {
+        if (hiddenCategories.isEmpty()) return false;
+        String catId = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
+        String catName = DataStore.getInstance().getCategoryName(catId);
+        if ("—".equals(catName)) catName = "(Uncategorized)";
+        return hiddenCategories.contains(catName);
     }
 
     // ── Export ────────────────────────────────────────────────────────────────
@@ -423,6 +511,19 @@ class MonthlyExpenseSummaryTab {
     }
 
     // ── Year picker helpers ───────────────────────────────────────────────────
+
+    /** Returns the FY/CY label string for the current date. */
+    private String currentFYLabel() {
+        LocalDate today = LocalDate.now();
+        boolean isIndianFY = "Indian Financial Year".equals(DataStore.getInstance().getYearFormat());
+        if (isIndianFY) {
+            int y = today.getYear(), m = today.getMonthValue();
+            int s = (m >= 4) ? y : y - 1;
+            return "FY " + s + "-" + String.valueOf(s + 1).substring(2);
+        } else {
+            return String.valueOf(today.getYear());
+        }
+    }
 
     private List<String> buildFYOptions() {
         return DataStore.getInstance().getTransactions().stream()

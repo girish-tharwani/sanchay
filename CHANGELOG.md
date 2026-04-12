@@ -1,3 +1,15 @@
+## v0.0.9-Jay — 2026-04-12
+
+### Added
+- Monthly Expense Summary: category multi-select filter (hides/shows categories in both chart and table; menu stays open for multiple selections)
+- Monthly Expense Summary: Clear button resets all filters to current FY
+
+### Changed
+- Monthly Expense Summary: default filter is now current FY instead of current month
+- Monthly Expense Summary: filter bar reordered — FY first, then Month
+- Monthly Expense Summary: "Show sub-categories" checkbox moved into the chart section header, aligned with the Total row
+- Monthly Expense Summary: category selector uses `CustomMenuItem` to stay open after each toggle
+
 ## v0.0.8-Jay — 2026-04-12
 
 ### Added
