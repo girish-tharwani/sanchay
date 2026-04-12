@@ -1,3 +1,8 @@
+## v0.0.6-Kiwi — 2026-04-12
+
+### Fixed
+- Forecasted Expenses table header and cell font sizes now match the All Expense Transactions table
+
 ## v0.0.5-Kiwi — 2026-04-12
 
 ### Added
