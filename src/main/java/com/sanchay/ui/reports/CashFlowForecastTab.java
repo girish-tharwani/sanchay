@@ -327,7 +327,7 @@ public class CashFlowForecastTab {
         lastProjectionResult = result;
 
         // Summary strip
-        summaryStrip.setText("Cash flow forecast: " + selected
+        summaryStrip.setText("Cash flow forecast —  " + selected
                 + "  (" + startDate.format(MONTH_FMT) + " → " + endDate.format(MONTH_FMT) + ")");
 
         // Warnings
