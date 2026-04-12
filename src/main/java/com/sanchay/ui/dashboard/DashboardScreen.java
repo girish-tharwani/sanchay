@@ -38,6 +38,15 @@ public class DashboardScreen {
     /** Held as a field so pending items can be refreshed in-place after Record/Skip. */
     private VBox pendingContainer;
 
+    /**
+     * Card and its body label are held as fields so the onSaved callback can
+     * update the count or hide the card without rebuilding the whole screen.
+     */
+    private VBox  uncategorizedCard;
+    private Label uncatBodyLabel;
+    /** Parent of all main content — needed to insert/remove uncategorized card. */
+    private VBox  pageContent;
+
     public DashboardScreen(MainWindow mainWindow, boolean showWelcomeBanner) {
         this.mainWindow = mainWindow;
         this.showWelcomeBanner = showWelcomeBanner;
@@ -48,9 +57,9 @@ public class DashboardScreen {
     public void refresh() { buildView(); }
 
     private void buildView() {
-        VBox content = new VBox(20);
-        content.getStyleClass().add("main-panel");
-        content.setPadding(new Insets(28, 28, 28, 28));
+        pageContent = new VBox(20);
+        pageContent.getStyleClass().add("main-panel");
+        pageContent.setPadding(new Insets(28, 28, 28, 28));
 
         // ── Page header: title + date ─────────────────────────────────────────
         Label title = new Label("Dashboard");
@@ -60,20 +69,30 @@ public class DashboardScreen {
         dateLabel.getStyleClass().add("dialog-subtitle");
 
         VBox titleGroup = new VBox(2, title, dateLabel);
-        content.getChildren().add(titleGroup);
+        pageContent.getChildren().add(titleGroup);
 
         if (showWelcomeBanner && !bannerDismissed) {
-            content.getChildren().add(buildGetStartedCard());
+            pageContent.getChildren().add(buildGetStartedCard());
         }
 
-        content.getChildren().addAll(
+        pageContent.getChildren().addAll(
                 buildSummaryRow(),
                 buildCreditCardRow(),
-                buildPendingCard(),
-                buildRecentTransactions()
+                buildPendingCard()
         );
 
-        view = new ScrollPane(content);
+        long uncatCount = computeUncategorizedCount();
+        if (uncatCount > 0) {
+            uncategorizedCard = buildUncategorizedCard(uncatCount);
+            pageContent.getChildren().add(uncategorizedCard);
+        } else {
+            uncategorizedCard = null;
+            uncatBodyLabel    = null;
+        }
+
+        pageContent.getChildren().add(buildRecentTransactions());
+
+        view = new ScrollPane(pageContent);
         view.setFitToWidth(true);
         view.getStyleClass().add("scroll-page-bg");
     }
@@ -285,6 +304,76 @@ public class DashboardScreen {
 
         item.getChildren().addAll(typeBadge, details, amount, record, skip);
         return item;
+    }
+
+    // ── Uncategorized transactions alert card ─────────────────────────────────
+
+    private VBox buildUncategorizedCard(long count) {
+        VBox card = new VBox(0);
+        card.getStyleClass().add("table-card");
+
+        // Header row: amber dot + title + "Review & Fix →"
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(16, 20, 14, 20));
+
+        Circle dot = new Circle(4);
+        // Inline required: amber warning colour is data-driven, no matching CSS token
+        dot.setStyle("-fx-fill: #b45309;");
+
+        Label titleLbl = new Label("UNCATEGORIZED TRANSACTIONS");
+        titleLbl.getStyleClass().add("section-group-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Hyperlink fixLink = new Hyperlink("Review & Fix →");
+        fixLink.getStyleClass().add("link-teal");
+        fixLink.setOnAction(e ->
+                new com.sanchay.ui.categories.UncategorizedReviewDialog(this::onUncategorizedSaved).show());
+
+        header.getChildren().addAll(dot, titleLbl, spacer, fixLink);
+
+        Region sep = new Region();
+        sep.getStyleClass().add("sep-teal");
+        sep.setMaxWidth(Double.MAX_VALUE);
+
+        // Body label
+        uncatBodyLabel = new Label();
+        uncatBodyLabel.getStyleClass().add("text-body-muted");
+        uncatBodyLabel.setPadding(new Insets(12, 20, 14, 20));
+        updateUncatBodyLabel(count);
+
+        card.getChildren().addAll(header, sep, uncatBodyLabel);
+        return card;
+    }
+
+    private void onUncategorizedSaved() {
+        long remaining = computeUncategorizedCount();
+        if (remaining == 0) {
+            if (uncategorizedCard != null && pageContent != null) {
+                pageContent.getChildren().remove(uncategorizedCard);
+            }
+            uncategorizedCard = null;
+            uncatBodyLabel    = null;
+        } else if (uncatBodyLabel != null) {
+            updateUncatBodyLabel(remaining);
+        }
+    }
+
+    private void updateUncatBodyLabel(long count) {
+        uncatBodyLabel.setText(count + " transaction" + (count == 1 ? "" : "s")
+                + " without a category — reports and forecasts may be incomplete.");
+    }
+
+    private long computeUncategorizedCount() {
+        return DataStore.getInstance().getTransactions().stream()
+                .filter(t -> (t.getType() == Transaction.Type.EXPENSE
+                           || t.getType() == Transaction.Type.INCOME
+                           || t.getType() == Transaction.Type.REFUND)
+                        && (t.getClassification() == null
+                            || t.getClassification().getCategoryId() == null))
+                .count();
     }
 
     // ── Recent transactions ───────────────────────────────────────────────────

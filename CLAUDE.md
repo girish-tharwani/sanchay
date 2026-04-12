@@ -85,6 +85,7 @@ Each dialog has its own class. Extracted dialog classes by package:
 - `ReassignCategoryDialog` — reassign transactions from one category to another
 - `MoveSubCategoryDialog` — move a sub-category to a different parent
 - `CategoryTransactionsDialog` — read/edit transactions for a category
+- `UncategorizedReviewDialog` — bulk-categorize uncategorized EXPENSE/INCOME/REFUND transactions; inline category+sub-category selectors per row, interim save, auto-closes when all rows are done
 
 **`ui/accounts/`**
 - `AccountDialog` — create/edit any account type
