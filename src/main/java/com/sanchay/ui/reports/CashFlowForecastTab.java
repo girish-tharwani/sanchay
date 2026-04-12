@@ -359,8 +359,9 @@ public class CashFlowForecastTab {
         chart.getData().clear();
         legendPane.getChildren().clear();
 
-        // Series 0: Total (always first so CSS .series0 applies) — omitted when showSum is off
-        boolean showSum = forecastState.isShowSum();
+        // Summary view always shows the overall total.
+        // The persisted "show sum" preference only applies while in detailed view.
+        boolean showSum = !showDetailedAccounts || forecastState.isShowSum();
         if (showSum) {
             XYChart.Series<String, Number> totalSeries = new XYChart.Series<>();
             totalSeries.setName("Total");
@@ -476,7 +477,7 @@ public class CashFlowForecastTab {
         // this chart also renders a custom Java-built legend, and keeping the
         // forecast palette in Java gives the legend and chart lines one source
         // of truth instead of duplicating series colours in CSS and code.
-        boolean showSumNow = forecastState.isShowSum();
+        boolean showSumNow = !showDetailedAccounts || forecastState.isShowSum();
         Platform.runLater(() -> {
             for (int i = 0; i < chart.getData().size(); i++) {
                 // When showSum is true, index 0 is the Total series (gold, 3 px).
