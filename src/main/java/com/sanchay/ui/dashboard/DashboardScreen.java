@@ -114,20 +114,39 @@ public class DashboardScreen {
 
     // ── Summary stat cards ────────────────────────────────────────────────────
 
-    private HBox buildSummaryRow() {
+    private GridPane buildSummaryRow() {
         DataStore ds = DataStore.getInstance();
-        HBox row = new HBox(14);
-        row.setFillHeight(true);
-        row.getChildren().addAll(
-                summaryCard("Net Worth",        UiUtils.formatCorpusDisplay(computeCurrentCorpusPaise()),      "-brand-accent"),
-                summaryCard("Bank Balance",     UiUtils.formatCorpusDisplay(ds.getTotalBankBalancePaise()),    "-brand-light"),
-                summaryCard("Monthly Expenses", UiUtils.formatCorpusDisplay(computeAvgMonthlyExpensesPaise()), "-brand-light"),
-                summaryCard("Monthly Income",   UiUtils.formatCorpusDisplay(computeAvgMonthlyIncomePaise()),   "-brand-light")
-        );
+
+        VBox c1 = summaryCard("Net Worth",        UiUtils.formatCorpusDisplay(computeCurrentCorpusPaise()),      "-brand-accent");
+        VBox c2 = summaryCard("Bank Balance",     UiUtils.formatCorpusDisplay(ds.getTotalBankBalancePaise()),    "-brand-light");
+        VBox c3 = summaryCard("Monthly Expenses", UiUtils.formatCorpusDisplay(computeAvgMonthlyExpensesPaise()), "-brand-light");
+        VBox c4 = summaryCard("Monthly Income",   UiUtils.formatCorpusDisplay(computeAvgMonthlyIncomePaise()),   "-brand-light");
+        for (VBox c : new VBox[]{c1, c2, c3, c4}) c.setMaxWidth(Double.MAX_VALUE);
+
+        ColumnConstraints col = new ColumnConstraints();
+        col.setPercentWidth(25);
+        col.setFillWidth(true);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(25);
+        col2.setFillWidth(true);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(25);
+        col3.setFillWidth(true);
+        ColumnConstraints col4 = new ColumnConstraints();
+        col4.setPercentWidth(25);
+        col4.setFillWidth(true);
+
+        GridPane row = new GridPane();
+        row.setHgap(14);
+        row.getColumnConstraints().addAll(col, col2, col3, col4);
+        row.add(c1, 0, 0);
+        row.add(c2, 1, 0);
+        row.add(c3, 2, 0);
+        row.add(c4, 3, 0);
         return row;
     }
 
-    private HBox buildCreditCardRow() {
+    private GridPane buildCreditCardRow() {
         DataStore ds = DataStore.getInstance();
         long ccOutstanding   = ds.getTotalCreditCardOutstandingPaise();
         long loanOutstanding = ds.getActiveLoanAccounts().stream()
@@ -143,11 +162,23 @@ public class DashboardScreen {
                 ? MoneyFormatter.symbol() + MoneyFormatter.format(loanOutstanding).substring(MoneyFormatter.symbol().length())
                 : MoneyFormatter.format(0);
 
-        HBox row = new HBox(14);
-        row.getChildren().addAll(
-                summaryCard("Credit Card Balance",    ccValue,   ccStripe),
-                summaryCard("Outstanding Loan Amount", loanValue, loanStripe)
-        );
+        VBox ccCard   = summaryCard("Credit Card Balance",    ccValue,   ccStripe);
+        VBox loanCard = summaryCard("Outstanding Loan Amount", loanValue, loanStripe);
+        ccCard.setMaxWidth(Double.MAX_VALUE);
+        loanCard.setMaxWidth(Double.MAX_VALUE);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(50);
+        col1.setFillWidth(true);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(50);
+        col2.setFillWidth(true);
+
+        GridPane row = new GridPane();
+        row.setHgap(14);
+        row.getColumnConstraints().addAll(col1, col2);
+        row.add(ccCard, 0, 0);
+        row.add(loanCard, 1, 0);
         return row;
     }
 
