@@ -191,7 +191,7 @@ public class CashFlowForecastTab {
         cashFlowTable = buildCashFlowTable();
         VBox cashFlowTabContent = new VBox(8, cashFlowFilterBar, cashFlowTable);
         cashFlowTabContent.setPadding(new Insets(10, 0, 0, 0));
-        Tab cashFlowTab = new Tab("Recurring Cash Flows", cashFlowTabContent);
+        Tab cashFlowTab = new Tab("Recurring Transactions", cashFlowTabContent);
         cashFlowTab.setClosable(false);
 
         TabPane tableTabPane = new TabPane(expensesTab, cashFlowTab);
@@ -726,9 +726,19 @@ public class CashFlowForecastTab {
         applyTableFilter();
     }
 
+    private boolean isProvidentFund(String accountId) {
+        if (accountId == null) return false;
+        return ds.getAccounts().stream()
+                .filter(a -> a.getId().equals(accountId))
+                .filter(a -> a instanceof com.sanchay.model.InvestmentAccount)
+                .map(a -> ((com.sanchay.model.InvestmentAccount) a).getInvestmentType())
+                .anyMatch(t -> t == com.sanchay.model.InvestmentAccount.InvestmentType.PROVIDENT_FUND);
+    }
+
     private void updateCashFlowTable(List<CashFlowProjectionService.ProjectedCashFlowRow> rows) {
         allCashFlowRows = new ArrayList<>();
         for (CashFlowProjectionService.ProjectedCashFlowRow r : rows) {
+            if (isProvidentFund(r.fromAccountId()) || isProvidentFund(r.toAccountId())) continue;
             allCashFlowRows.add(new CashFlowTableRow(
                     r.month().format(MONTH_FMT),
                     r.scheduleName(),
