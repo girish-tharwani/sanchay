@@ -26,7 +26,17 @@ public class CashFlowProjectionService {
                                   long amountPaise, double confidence, String method,
                                   boolean excluded) {}
 
-    public record ExpensePattern(String categoryId, String subCategoryId, long avgMonthlyPaise, 
+    /** A non-EXPENSE recurring schedule occurrence included in the projection. */
+    public record ProjectedCashFlowRow(
+            YearMonth         month,
+            String            scheduleName,
+            String            fromAccountId,
+            String            toAccountId,
+            long              amountPaise,
+            Transaction.Type  type
+    ) {}
+
+    public record ExpensePattern(String categoryId, String subCategoryId, long avgMonthlyPaise,
                                Map<Month, Double> seasonalFactors, 
                                double trendSlope, int dataPoints) {}
 
@@ -37,7 +47,8 @@ public class CashFlowProjectionService {
             long                               totalProjectedIncomePaise,
             long                               totalProjectedExpensesPaise,
             List<String>                       warnings,
-            List<ForecastedExpense>            forecastedExpenses
+            List<ForecastedExpense>            forecastedExpenses,
+            List<ProjectedCashFlowRow>         projectedCashFlows
     ) {}
 
     // ── Main entry point ──────────────────────────────────────────────────────
@@ -156,7 +167,8 @@ public class CashFlowProjectionService {
         Map<String, List<ProjectionPoint>> accountSeries = new LinkedHashMap<>();
         for (Account acc : accounts) accountSeries.put(acc.getId(), new ArrayList<>());
 
-        List<ProjectionPoint> totalSeries = new ArrayList<>();
+        List<ProjectionPoint>      totalSeries        = new ArrayList<>();
+        List<ProjectedCashFlowRow> projectedCashFlows = new ArrayList<>();
         long totalIncomePaise  = 0;
         long totalExpensePaise = 0;
 
@@ -242,6 +254,18 @@ public class CashFlowProjectionService {
                     }
                     default -> { /* REDEEM, GAIN, LOSE — skip */ }
                 }
+
+                // Collect non-EXPENSE rows for the "Recurring Cash Flows" UI table
+                if (type != Type.EXPENSE && type != Type.REDEEM
+                        && type != Type.GAIN && type != Type.LOSE) {
+                    projectedCashFlows.add(new ProjectedCashFlowRow(
+                            ym,
+                            rt.getDescription() != null ? rt.getDescription() : "",
+                            fromId,
+                            toId,
+                            amt,
+                            type));
+                }
             }
 
             // Apply FD maturities for this month
@@ -256,6 +280,9 @@ public class CashFlowProjectionService {
                     balances.put(me.investId(), Math.max(0L, fdBal - me.investedPaise()));
                 }
                 totalIncomePaise += me.matAmtPaise();
+                projectedCashFlows.add(new ProjectedCashFlowRow(
+                        ym, maturityLabel(me.investId(), accounts), me.investId(), me.bankId(),
+                        me.matAmtPaise(), Type.REDEEM));
             }
 
             // Apply RD maturities for this month
@@ -265,6 +292,9 @@ public class CashFlowProjectionService {
                 if (includedIds.contains(me.investId()))
                     balances.put(me.investId(), 0L);
                 totalIncomePaise += me.matAmtPaise();
+                projectedCashFlows.add(new ProjectedCashFlowRow(
+                        ym, maturityLabel(me.investId(), accounts), me.investId(), me.bankId(),
+                        me.matAmtPaise(), Type.REDEEM));
             }
 
             // Apply forecasted expenses for this month — discretionary portion only.
@@ -315,7 +345,8 @@ public class CashFlowProjectionService {
                 totalIncomePaise,
                 totalExpensePaise,
                 warnings,
-                forecastedExpenses
+                forecastedExpenses,
+                projectedCashFlows
         );
     }
 
@@ -613,6 +644,20 @@ public class CashFlowProjectionService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private String maturityLabel(String investId, List<Account> accounts) {
+        for (Account a : accounts) {
+            if (a.getId().equals(investId) && a instanceof InvestmentAccount ia) {
+                return switch (ia.getInvestmentType()) {
+                    case FIXED_DEPOSIT     -> "FD Maturity";
+                    case RECURRING_DEPOSIT -> "RD Maturity";
+                    case DEBT_BONDS        -> "Bond Maturity";
+                    default                -> "Maturity";
+                };
+            }
+        }
+        return "Maturity";
+    }
 
     private List<LocalDate> getOccurrencesInRange(RecurringTransaction rt,
                                                    LocalDate rangeStart, LocalDate rangeEnd) {

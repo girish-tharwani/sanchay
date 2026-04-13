@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v1.0.0-Kiwi
+- **Version:** v1.1.0-Kiwi
 
 ---
 

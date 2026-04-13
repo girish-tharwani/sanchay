@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public class CashFlowForecastTab {
 
-    // ── Table row model ───────────────────────────────────────────────────────
+    // ── Table row models ──────────────────────────────────────────────────────
 
     public record ForecastTableRow(
             String    month,
@@ -43,6 +43,16 @@ public class CashFlowForecastTab {
             boolean   excluded,
             String    categoryId,
             String    subCategoryId,
+            YearMonth yearMonth
+    ) {}
+
+    public record CashFlowTableRow(
+            String    month,
+            String    scheduleName,
+            String    fromAccount,
+            String    toAccount,
+            String    amount,
+            long      amountPaise,
             YearMonth yearMonth
     ) {}
 
@@ -71,6 +81,14 @@ public class CashFlowForecastTab {
     private ComboBox<String>            categoryFilterCombo;
     private Label                       forecastTotalValue;
     private List<ForecastTableRow>      allForecastRows      = new ArrayList<>();
+
+    // Second table — recurring cash flows
+    private TableView<CashFlowTableRow> cashFlowTable;
+    private ComboBox<String>            cashFlowMonthFilter;
+    private ComboBox<String>            cashFlowFromFilter;
+    private ComboBox<String>            cashFlowToFilter;
+    private List<CashFlowTableRow>      allCashFlowRows      = new ArrayList<>();
+
     private boolean                     refreshing           = false;
     private boolean                     showDetailedAccounts = false;
     private CashFlowProjectionService.ProjectionResult lastProjectionResult;
@@ -156,17 +174,28 @@ public class CashFlowForecastTab {
         VBox chartCard = new VBox(4, chart, legendPane);
         chartCard.getStyleClass().add("card-wrapper");
 
-        // "Forecasted Expenses" section title
-        Label tableTitle = new Label("Forecasted Expenses");
-        tableTitle.getStyleClass().add("text-section-title");
+        // ── Tabbed table area ─────────────────────────────────────────────────
 
-        // Forecast table filter bar
+        // Tab 1 — Forecasted Expenses
         HBox tableFilterBar = buildTableFilterBar();
-
-        // Forecast table
         forecastTable = buildForecastTable();
+        VBox expensesTabContent = new VBox(8, tableFilterBar, forecastTable);
+        expensesTabContent.setPadding(new Insets(10, 0, 0, 0));
+        Tab expensesTab = new Tab("Forecasted Expenses", expensesTabContent);
+        expensesTab.setClosable(false);
 
-        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, tableTitle, tableFilterBar, forecastTable);
+        // Tab 2 — Recurring Cash Flows
+        HBox cashFlowFilterBar = buildCashFlowFilterBar();
+        cashFlowTable = buildCashFlowTable();
+        VBox cashFlowTabContent = new VBox(8, cashFlowFilterBar, cashFlowTable);
+        cashFlowTabContent.setPadding(new Insets(10, 0, 0, 0));
+        Tab cashFlowTab = new Tab("Recurring Cash Flows", cashFlowTabContent);
+        cashFlowTab.setClosable(false);
+
+        TabPane tableTabPane = new TabPane(expensesTab, cashFlowTab);
+        tableTabPane.getStyleClass().add("forecast-tab-pane");
+
+        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, tableTabPane);
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
@@ -218,6 +247,101 @@ public class CashFlowForecastTab {
         bar.getStyleClass().add("filter-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
+    }
+
+    private HBox buildCashFlowFilterBar() {
+        Label monthLbl = new Label("MONTH");
+        monthLbl.getStyleClass().add("filter-label");
+
+        cashFlowMonthFilter = new ComboBox<>();
+        cashFlowMonthFilter.setPromptText("All Months");
+        cashFlowMonthFilter.getStyleClass().add("filter-field");
+        cashFlowMonthFilter.setPrefWidth(120);
+        fixPromptText(cashFlowMonthFilter);
+        cashFlowMonthFilter.valueProperty().addListener((obs, o, n) -> applyCashFlowFilter());
+
+        Region sep1 = new Region();
+        sep1.getStyleClass().add("filter-separator");
+
+        Label fromLbl = new Label("FROM");
+        fromLbl.getStyleClass().add("filter-label");
+
+        cashFlowFromFilter = new ComboBox<>();
+        cashFlowFromFilter.setPromptText("All Accounts");
+        cashFlowFromFilter.getStyleClass().add("filter-field");
+        cashFlowFromFilter.setPrefWidth(150);
+        fixPromptText(cashFlowFromFilter);
+        cashFlowFromFilter.valueProperty().addListener((obs, o, n) -> applyCashFlowFilter());
+
+        Region sep2 = new Region();
+        sep2.getStyleClass().add("filter-separator");
+
+        Label toLbl = new Label("TO");
+        toLbl.getStyleClass().add("filter-label");
+
+        cashFlowToFilter = new ComboBox<>();
+        cashFlowToFilter.setPromptText("All Accounts");
+        cashFlowToFilter.getStyleClass().add("filter-field");
+        cashFlowToFilter.setPrefWidth(150);
+        fixPromptText(cashFlowToFilter);
+        cashFlowToFilter.valueProperty().addListener((obs, o, n) -> applyCashFlowFilter());
+
+        Button clearBtn = new Button("Clear");
+        clearBtn.getStyleClass().add("btn-secondary");
+        clearBtn.setOnAction(e -> {
+            cashFlowMonthFilter.setValue(null);
+            cashFlowFromFilter.setValue(null);
+            cashFlowToFilter.setValue(null);
+        });
+
+        HBox bar = new HBox(10, monthLbl, cashFlowMonthFilter, sep1,
+                fromLbl, cashFlowFromFilter, sep2, toLbl, cashFlowToFilter, clearBtn);
+        bar.getStyleClass().add("filter-bar");
+        bar.setAlignment(Pos.CENTER_LEFT);
+        return bar;
+    }
+
+    private void applyCashFlowFilter() {
+        String selMonth = cashFlowMonthFilter.getValue();
+        String selFrom  = cashFlowFromFilter.getValue();
+        String selTo    = cashFlowToFilter.getValue();
+        List<CashFlowTableRow> filtered = allCashFlowRows.stream()
+                .filter(r -> selMonth == null || selMonth.equals(r.month()))
+                .filter(r -> selFrom  == null || selFrom.equals(r.fromAccount()))
+                .filter(r -> selTo    == null || selTo.equals(r.toAccount()))
+                .collect(Collectors.toList());
+        cashFlowTable.getItems().setAll(filtered);
+    }
+
+    private TableView<CashFlowTableRow> buildCashFlowTable() {
+        TableView<CashFlowTableRow> table = new TableView<>();
+        table.getStyleClass().add("forecast-table");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setEditable(false);
+        table.setPlaceholder(new Label("No recurring cash flows in this period."));
+
+        TableColumn<CashFlowTableRow, String> monthCol = new TableColumn<>("MONTH");
+        monthCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().month()));
+        monthCol.setPrefWidth(100);
+
+        TableColumn<CashFlowTableRow, String> nameCol = new TableColumn<>("SCHEDULE NAME");
+        nameCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().scheduleName()));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<CashFlowTableRow, String> fromCol = new TableColumn<>("FROM ACCOUNT");
+        fromCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().fromAccount()));
+        fromCol.setPrefWidth(160);
+
+        TableColumn<CashFlowTableRow, String> toCol = new TableColumn<>("TO ACCOUNT");
+        toCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().toAccount()));
+        toCol.setPrefWidth(160);
+
+        TableColumn<CashFlowTableRow, String> amountCol = new TableColumn<>("AMOUNT");
+        amountCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().amount()));
+        amountCol.setPrefWidth(120);
+
+        table.getColumns().addAll(monthCol, nameCol, fromCol, toCol, amountCol);
+        return table;
     }
 
     private void applyTableFilter() {
@@ -351,6 +475,9 @@ public class CashFlowForecastTab {
 
         // Forecast table
         updateForecastTable(result.forecastedExpenses());
+
+        // Recurring cash flows table
+        updateCashFlowTable(result.projectedCashFlows());
     }
 
     // ── Chart building ────────────────────────────────────────────────────────
@@ -574,6 +701,45 @@ public class CashFlowForecastTab {
         categoryFilterCombo.setValue(categories.contains(prevCat) ? prevCat : null);
 
         applyTableFilter();
+    }
+
+    private void updateCashFlowTable(List<CashFlowProjectionService.ProjectedCashFlowRow> rows) {
+        allCashFlowRows = new ArrayList<>();
+        for (CashFlowProjectionService.ProjectedCashFlowRow r : rows) {
+            allCashFlowRows.add(new CashFlowTableRow(
+                    r.month().format(MONTH_FMT),
+                    r.scheduleName(),
+                    getAccountName(r.fromAccountId()),
+                    getAccountName(r.toAccountId()),
+                    MoneyFormatter.formatTableCompact(r.amountPaise()),
+                    r.amountPaise(),
+                    r.month()
+            ));
+        }
+
+        String prevMonth = cashFlowMonthFilter.getValue();
+        String prevFrom  = cashFlowFromFilter.getValue();
+        String prevTo    = cashFlowToFilter.getValue();
+
+        List<String> months = allCashFlowRows.stream()
+                .map(CashFlowTableRow::month).distinct().collect(Collectors.toList());
+        List<String> fromAccounts = allCashFlowRows.stream()
+                .map(CashFlowTableRow::fromAccount).filter(s -> !"—".equals(s))
+                .distinct().sorted().collect(Collectors.toList());
+        List<String> toAccounts = allCashFlowRows.stream()
+                .map(CashFlowTableRow::toAccount).filter(s -> !"—".equals(s))
+                .distinct().sorted().collect(Collectors.toList());
+
+        cashFlowMonthFilter.getItems().setAll(months);
+        cashFlowMonthFilter.setValue(months.contains(prevMonth) ? prevMonth : null);
+
+        cashFlowFromFilter.getItems().setAll(fromAccounts);
+        cashFlowFromFilter.setValue(fromAccounts.contains(prevFrom) ? prevFrom : null);
+
+        cashFlowToFilter.getItems().setAll(toAccounts);
+        cashFlowToFilter.setValue(toAccounts.contains(prevTo) ? prevTo : null);
+
+        applyCashFlowFilter();
     }
 
     // ── Custom table cells ────────────────────────────────────────────────────
@@ -817,5 +983,28 @@ public class CashFlowForecastTab {
                 .map(com.sanchay.model.Category::getName)
                 .findFirst()
                 .orElse("Unknown");
+    }
+
+    /**
+     * JavaFX does not reliably restore prompt text on a non-editable ComboBox after
+     * setValue(null) once an item has been selected. A custom button cell fixes this.
+     */
+    private static void fixPromptText(ComboBox<String> combo) {
+        combo.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText((item == null || empty) ? combo.getPromptText() : item);
+            }
+        });
+    }
+
+    private String getAccountName(String accountId) {
+        if (accountId == null) return "—";
+        return ds.getAccounts().stream()
+                .filter(a -> a.getId().equals(accountId))
+                .map(com.sanchay.model.Account::getName)
+                .findFirst()
+                .orElse("—");
     }
 }
