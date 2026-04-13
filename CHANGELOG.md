@@ -1,3 +1,6 @@
+## v1.1.0-Kiwi — 2026-04-12 
+Cashflow tab enhancements
+
 ## v1.0.0-Kiwi — 2026-04-12
 
 baseline for release

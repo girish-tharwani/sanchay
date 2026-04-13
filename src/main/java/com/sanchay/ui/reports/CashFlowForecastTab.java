@@ -79,6 +79,7 @@ public class CashFlowForecastTab {
     private TableView<ForecastTableRow> forecastTable;
     private ComboBox<String>            monthFilterCombo;
     private ComboBox<String>            categoryFilterCombo;
+    private TextField                   forecastSearchField;
     private Label                       forecastTotalValue;
     private List<ForecastTableRow>      allForecastRows      = new ArrayList<>();
 
@@ -87,6 +88,7 @@ public class CashFlowForecastTab {
     private ComboBox<String>            cashFlowMonthFilter;
     private ComboBox<String>            cashFlowFromFilter;
     private ComboBox<String>            cashFlowToFilter;
+    private TextField                   cashFlowSearchField;
     private List<CashFlowTableRow>      allCashFlowRows      = new ArrayList<>();
 
     private boolean                     refreshing           = false;
@@ -226,11 +228,18 @@ public class CashFlowForecastTab {
         categoryFilterCombo.setPrefWidth(150);
         categoryFilterCombo.valueProperty().addListener((obs, o, n) -> applyTableFilter());
 
+        forecastSearchField = new TextField();
+        forecastSearchField.setPromptText("Search description…");
+        forecastSearchField.getStyleClass().add("filter-field");
+        forecastSearchField.setPrefWidth(180);
+        forecastSearchField.textProperty().addListener((obs, o, n) -> applyTableFilter());
+
         Button clearBtn = new Button("Clear");
         clearBtn.getStyleClass().add("btn-secondary");
         clearBtn.setOnAction(e -> {
             monthFilterCombo.setValue(null);
             categoryFilterCombo.setValue(null);
+            forecastSearchField.clear();
         });
 
         Region spacer = new Region();
@@ -242,8 +251,8 @@ public class CashFlowForecastTab {
         forecastTotalValue = new Label("—");
         forecastTotalValue.getStyleClass().addAll("cash-flow-stat-value", "cash-flow-stat-value-neg");
 
-        HBox bar = new HBox(10, monthLbl, monthFilterCombo, sep, catLbl, categoryFilterCombo, clearBtn,
-                spacer, totalLbl, forecastTotalValue);
+        HBox bar = new HBox(10, monthLbl, monthFilterCombo, sep, catLbl, categoryFilterCombo,
+                forecastSearchField, clearBtn, spacer, totalLbl, forecastTotalValue);
         bar.getStyleClass().add("filter-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
@@ -286,16 +295,24 @@ public class CashFlowForecastTab {
         fixPromptText(cashFlowToFilter);
         cashFlowToFilter.valueProperty().addListener((obs, o, n) -> applyCashFlowFilter());
 
+        cashFlowSearchField = new TextField();
+        cashFlowSearchField.setPromptText("Search description…");
+        cashFlowSearchField.getStyleClass().add("filter-field");
+        cashFlowSearchField.setPrefWidth(180);
+        cashFlowSearchField.textProperty().addListener((obs, o, n) -> applyCashFlowFilter());
+
         Button clearBtn = new Button("Clear");
         clearBtn.getStyleClass().add("btn-secondary");
         clearBtn.setOnAction(e -> {
             cashFlowMonthFilter.setValue(null);
             cashFlowFromFilter.setValue(null);
             cashFlowToFilter.setValue(null);
+            cashFlowSearchField.clear();
         });
 
         HBox bar = new HBox(10, monthLbl, cashFlowMonthFilter, sep1,
-                fromLbl, cashFlowFromFilter, sep2, toLbl, cashFlowToFilter, clearBtn);
+                fromLbl, cashFlowFromFilter, sep2, toLbl, cashFlowToFilter,
+                cashFlowSearchField, clearBtn);
         bar.getStyleClass().add("filter-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
@@ -305,10 +322,12 @@ public class CashFlowForecastTab {
         String selMonth = cashFlowMonthFilter.getValue();
         String selFrom  = cashFlowFromFilter.getValue();
         String selTo    = cashFlowToFilter.getValue();
+        String q        = cashFlowSearchField.getText().toLowerCase().strip();
         List<CashFlowTableRow> filtered = allCashFlowRows.stream()
                 .filter(r -> selMonth == null || selMonth.equals(r.month()))
                 .filter(r -> selFrom  == null || selFrom.equals(r.fromAccount()))
                 .filter(r -> selTo    == null || selTo.equals(r.toAccount()))
+                .filter(r -> q.isEmpty() || r.scheduleName().toLowerCase().contains(q))
                 .collect(Collectors.toList());
         cashFlowTable.getItems().setAll(filtered);
     }
@@ -347,9 +366,13 @@ public class CashFlowForecastTab {
     private void applyTableFilter() {
         String selMonth = monthFilterCombo.getValue();
         String selCat   = categoryFilterCombo.getValue();
+        String q        = forecastSearchField.getText().toLowerCase().strip();
         List<ForecastTableRow> filtered = allForecastRows.stream()
                 .filter(r -> selMonth == null || selMonth.equals(r.month()))
                 .filter(r -> selCat   == null || selCat.equals(r.category()))
+                .filter(r -> q.isEmpty()
+                        || r.category().toLowerCase().contains(q)
+                        || r.subCategory().toLowerCase().contains(q))
                 .collect(Collectors.toList());
         forecastTable.getItems().setAll(filtered);
 
