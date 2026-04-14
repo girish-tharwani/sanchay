@@ -69,12 +69,13 @@ public class RecordRecurringDialog {
             } else {
                 ds.getBankAccounts().forEach(fromAccountCb.getItems()::add);
             }
-            if (r.getFromAccountId() != null)
+            if (r.getFromAccountId() != null) {
                 fromAccountCb.getItems().stream()
                         .filter(a -> a.getId().equals(r.getFromAccountId()))
                         .findFirst().ifPresent(fromAccountCb::setValue);
-            if (fromAccountCb.getValue() == null && !fromAccountCb.getItems().isEmpty())
-                fromAccountCb.setValue(fromAccountCb.getItems().get(0));
+                if (fromAccountCb.getValue() == null && !fromAccountCb.getItems().isEmpty())
+                    fromAccountCb.setValue(fromAccountCb.getItems().get(0));
+            }
             fromAccountCb.setMaxWidth(Double.MAX_VALUE);
             addDialogField(g, "From Account:", fromAccountCb, row++);
         }

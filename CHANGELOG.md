@@ -1,3 +1,8 @@
+## v0.0.4-Lark — 2026-04-14
+
+### Fixed
+- Record Recurring dialog no longer auto-selects the first bank account as From Account when the schedule has no from account set (e.g. PF and ESPP investment schedules)
+
 ## v0.0.3-Lark — 2026-04-14
 
 ### Added
