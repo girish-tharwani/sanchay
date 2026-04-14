@@ -310,11 +310,18 @@ public class FinancialPlanningScreen {
         lastUpdatedLbl = new Label(formatLastUpdated(params.lastCalculatedDate));
         lastUpdatedLbl.getStyleClass().add("fp-last-updated");
 
+        Label helpHintLbl = new Label("Check Help to understand how these amounts are calculated.");
+        helpHintLbl.getStyleClass().add("fp-last-updated");
+        helpHintLbl.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox rightBlock = new VBox(2, lastUpdatedLbl, helpHintLbl);
+        rightBlock.setAlignment(Pos.CENTER_RIGHT);
+
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(new VBox(2, title, subtitle), spacer, lastUpdatedLbl);
+        header.getChildren().addAll(new VBox(2, title, subtitle), spacer, rightBlock);
         return header;
     }
 

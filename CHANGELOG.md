@@ -1,53 +1,27 @@
-## v1.1.0-Kiwi — 2026-04-12 
-Cashflow tab enhancements
-
-## v1.0.0-Kiwi — 2026-04-12
+## v1.0.0-Lark — 2026-04-14
 
 baseline for release
 
-## v0.0.6-Kiwi — 2026-04-12
+## v0.0.4-Lark — 2026-04-14
 
 ### Fixed
-- Forecasted Expenses table header and cell font sizes now match the All Expense Transactions table
+- Record Recurring dialog no longer auto-selects the first bank account as From Account when the schedule has no from account set (e.g. PF and ESPP investment schedules)
 
-## v0.0.5-Kiwi — 2026-04-12
+## v0.0.3-Lark — 2026-04-14
 
 ### Added
-- Expense Trend tab in Reports: tabular view of net expenses (EXPENSE minus REFUND) by category and sub-category across current + up to 4 past years; category filter with multi-select; Total row; CSV export
-- Category filter on Expense Trend tab — selection persisted to `report_prefs.json` across restarts
-- Category filter on Expense Report tab — selection persisted to `report_prefs.json` across restarts
-- `ReportPrefsService` — loads/saves hidden category sets for both report tabs
+- Structured Salary income sources now support an optional Share Purchase Plan (ESPP): checkbox below Gratuity enables a monthly contribution amount field and an equity account selector; the contribution is deducted post-tax from the bank deposit amount and creates a recurring INVESTMENT schedule (from account blank, auto-record after 1 day) linked to the chosen equity account
+- PF recurring schedule is now also created with auto-record after 1 day
 
-### Changed
-- All three Reports tabs now share consistent styling: teal page background, 24px padding, `text-section-title` headings, default ComboBox appearance
-- `menu-button-as-combo` CSS class added to components.css for MenuButtons that must match ComboBox styling
-- Clear button removed from Expense Report tab (category selections are now persisted instead of reset)
-
-## v0.0.4-Kiwi — 2026-04-12
-
-### Changed
-- Accounts screen group collapse state is no longer persisted — on every app start only Favourites is expanded, all other groups are collapsed
+## v0.0.2-Lark — 2026-04-14
 
 ### Fixed
-- Removed stale `activeFinancialYear` field from settings.json (all consuming code was already commented out)
-
-## v0.0.3-Kiwi — 2026-04-12
-
-### Added
-- Dashboard alert card for uncategorized EXPENSE / INCOME / REFUND transactions — shows count and a "Review & Fix →" link that opens a bulk-categorize dialog; card auto-hides when count reaches zero
-- Uncategorized review dialog: table of uncategorized transactions with inline category and sub-category selectors, interim save support, and auto-close when all rows are categorized
-
-### Fixed
-- Category Transactions dialog: table now expands to fill available height (removed wrapping ScrollPane that was preventing VBox grow)
-- Category Transactions dialog: ACCOUNT column now shows the correct account for REFUND transactions (falls back to `toAccountId` when `fromAccountId` is null)
-
-## v0.0.2-Kiwi — 2026-04-12
+- Record Recurring dialog now uses correct account filters per transaction type: EXPENSE shows bank + credit card accounts in From; CC_PAYMENT, TRANSFER, LOAN_PAYMENT, INVESTMENT show bank accounts only in From; CC_PAYMENT, INVESTMENT, and LOAN_PAYMENT now show a type-specific To Account dropdown (credit cards, investment accounts, and loan accounts respectively)
 
 ### Changed
-- Dashboard summary cards (top row) now each occupy exactly 25% of available width
-- Dashboard credit card / loan cards now each occupy exactly 50% of available width
-- Financial Planning KPI strip cards now each occupy exactly 33% of available width
+- Financial Planning screen header now shows a "Check Help to understand how these amounts are calculated." hint line beneath the last-updated date
+- USER-GUIDE Post-Retirement Projection section updated to reflect three-phase spending model, Minimum/Actual projection toggle, table columns, and two-cell depletion highlighting
 
-## v0.0.1-Kiwi — 2026-04-12
+## v0.0.1-Lark — 2026-04-13
 
 - Start of new build

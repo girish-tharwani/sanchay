@@ -55,7 +55,7 @@ public class RecordRecurringDialog {
         DataStore ds = DataStore.getInstance();
         Transaction.Type rType = r.getTransactionType();
 
-        // From Account — shown for all types that debit an account
+        // From Account — shown for all types that debit a bank/CC account
         ComboBox<Account> fromAccountCb = new ComboBox<>();
         boolean showFromAccount = rType == Transaction.Type.EXPENSE
                 || rType == Transaction.Type.CC_PAYMENT
@@ -63,27 +63,40 @@ public class RecordRecurringDialog {
                 || rType == Transaction.Type.LOAN_PAYMENT
                 || rType == Transaction.Type.INVESTMENT;
         if (showFromAccount) {
-            ds.getAccounts().stream()
-                    .filter(a -> a.isActive() && !(a instanceof CreditCardAccount))
-                    .forEach(fromAccountCb.getItems()::add);
-            if (r.getFromAccountId() != null)
+            if (rType == Transaction.Type.EXPENSE) {
+                ds.getBankAccounts().forEach(fromAccountCb.getItems()::add);
+                ds.getCreditCardAccounts().forEach(fromAccountCb.getItems()::add);
+            } else {
+                ds.getBankAccounts().forEach(fromAccountCb.getItems()::add);
+            }
+            if (r.getFromAccountId() != null) {
                 fromAccountCb.getItems().stream()
                         .filter(a -> a.getId().equals(r.getFromAccountId()))
                         .findFirst().ifPresent(fromAccountCb::setValue);
-            if (fromAccountCb.getValue() == null && !fromAccountCb.getItems().isEmpty())
-                fromAccountCb.setValue(fromAccountCb.getItems().get(0));
+                if (fromAccountCb.getValue() == null && !fromAccountCb.getItems().isEmpty())
+                    fromAccountCb.setValue(fromAccountCb.getItems().get(0));
+            }
             fromAccountCb.setMaxWidth(Double.MAX_VALUE);
             addDialogField(g, "From Account:", fromAccountCb, row++);
         }
 
-        // To Account — shown for Income and Transfer
+        // To Account — destination account, varies by type
         ComboBox<Account> toAccountCb = new ComboBox<>();
         boolean showToAccount = rType == Transaction.Type.INCOME
-                || rType == Transaction.Type.TRANSFER;
+                || rType == Transaction.Type.TRANSFER
+                || rType == Transaction.Type.CC_PAYMENT
+                || rType == Transaction.Type.INVESTMENT
+                || rType == Transaction.Type.LOAN_PAYMENT;
         if (showToAccount) {
-            ds.getAccounts().stream()
-                    .filter(a -> a.isActive() && a instanceof BankAccount)
-                    .forEach(toAccountCb.getItems()::add);
+            if (rType == Transaction.Type.INCOME || rType == Transaction.Type.TRANSFER) {
+                ds.getBankAccounts().forEach(toAccountCb.getItems()::add);
+            } else if (rType == Transaction.Type.CC_PAYMENT) {
+                ds.getCreditCardAccounts().forEach(toAccountCb.getItems()::add);
+            } else if (rType == Transaction.Type.INVESTMENT) {
+                ds.getInvestmentAccounts().forEach(toAccountCb.getItems()::add);
+            } else if (rType == Transaction.Type.LOAN_PAYMENT) {
+                ds.getActiveLoanAccounts().forEach(toAccountCb.getItems()::add);
+            }
             if (r.getToAccountId() != null)
                 toAccountCb.getItems().stream()
                         .filter(a -> a.getId().equals(r.getToAccountId()))

@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v1.1.0-Kiwi
+- **Version:** v1.0.0-Lark
 
 ---
 
@@ -362,9 +362,9 @@ Long-range retirement and wealth planning screen.
 
 | Phase | Age range | Effective inflation |
 |---|---|---|
-| Active Retirement | Retirement age – 71 | Full inflation |
-| Slow-go Years | 72 – 81 | Inflation − 1.5% |
-| Healthcare Phase | 82+ | Full inflation |
+| Active Retirement | Retirement age – 72 | Full inflation |
+| Slow-go Years | 73 – 82 | Inflation − 1.5% |
+| Healthcare Phase | 83+ | Full inflation |
 
 Phase-separator rows in the table mark each transition with the effective rate. The same model drives the Required Corpus calculation.
 
