@@ -51,6 +51,9 @@ public class EarningsDialog extends Dialog<Boolean> {
         ComboBox<Category> salCatCb;
         ComboBox<InvestmentAccount> salPfAcctCb;
         CheckBox gratuityChk;
+        CheckBox esppChk;
+        TextField esppAmtFld;
+        ComboBox<InvestmentAccount> esppAcctCb;
     }
 
     public EarningsDialog(FamilyMember member) {
@@ -340,6 +343,33 @@ public class EarningsDialog extends Dialog<Boolean> {
         refs.gratuityChk = new CheckBox("Include in breakdown");
         refs.gratuityChk.setSelected(src.isGratuityEnabled());
 
+        refs.esppChk = new CheckBox("Include in breakdown");
+        refs.esppChk.setSelected(src.isEsppEnabled());
+
+        refs.esppAmtFld = tf(src.isEsppEnabled() && src.getEsppAmountPaise() > 0
+                ? fmtAmt(src.getEsppAmountPaise()) : "");
+        refs.esppAmtFld.setPromptText("monthly amount");
+
+        refs.esppAcctCb = equityAccountCombo();
+        prefillEsppAccount(refs.esppAcctCb, src.getEsppScheduleId());
+
+        Label esppAmtLbl  = new Label("SPP Amount (monthly, ₹)*");
+        esppAmtLbl.getStyleClass().add("text-form-value");
+        esppAmtLbl.setMinWidth(155);
+        Label esppAcctLbl = new Label("SPP Investment Account");
+        esppAcctLbl.getStyleClass().add("text-form-value");
+        esppAcctLbl.setMinWidth(155);
+
+        Runnable toggleEspp = () -> {
+            boolean on = refs.esppChk.isSelected();
+            esppAmtLbl.setVisible(on);   esppAmtLbl.setManaged(on);
+            refs.esppAmtFld.setVisible(on); refs.esppAmtFld.setManaged(on);
+            esppAcctLbl.setVisible(on);  esppAcctLbl.setManaged(on);
+            refs.esppAcctCb.setVisible(on); refs.esppAcctCb.setManaged(on);
+        };
+        toggleEspp.run();
+        refs.esppChk.selectedProperty().addListener((o, ov, nv) -> toggleEspp.run());
+
         int r = 0;
         row(g, r++, "Description*",               refs.descFld);
         row(g, r++, "Basic + DA (annual)*",        refs.salBasicFld);
@@ -352,7 +382,10 @@ public class EarningsDialog extends Dialog<Boolean> {
         row(g, r++, "Category",                    refs.salCatCb);
         row(g, r++, "PF Account",                  refs.salPfAcctCb);
         g.add(createPfLink, 1, r++);
-        row(g, r,   "Gratuity",                    refs.gratuityChk);
+        row(g, r++, "Gratuity",                    refs.gratuityChk);
+        row(g, r++, "Share Purchase Plan",         refs.esppChk);
+        g.add(esppAmtLbl,       0, r); g.add(refs.esppAmtFld,  1, r++); GridPane.setFillWidth(refs.esppAmtFld, true);
+        g.add(esppAcctLbl,      0, r); g.add(refs.esppAcctCb,  1, r);   GridPane.setFillWidth(refs.esppAcctCb, true);
 
         Node rightPanel = new SalaryDeductionPanel().build(refs, configured);
 
@@ -375,13 +408,14 @@ public class EarningsDialog extends Dialog<Boolean> {
      */
     private class SalaryDeductionPanel {
 
-        private final Label calcGross, calcEmpPf, calcTds, calcInHand,
+        private final Label calcGross, calcEmpPf, calcTds, calcEspp, calcInHand,
                             calcEmpEpf, calcEps, calcPfDeposit, calcEpsDeposit, calcGratuity;
 
         SalaryDeductionPanel() {
             calcGross      = calcVal();
             calcEmpPf      = calcVal();
             calcTds        = calcVal();
+            calcEspp       = calcVal();
             calcInHand     = calcVal();
             calcEmpEpf     = calcVal();
             calcEps        = calcVal();
@@ -407,6 +441,7 @@ public class EarningsDialog extends Dialog<Boolean> {
             calcRow(calc, cr++, "Gross Monthly:",              calcGross);
             calcRow(calc, cr++, "Employee PF (12% + VPF):",    calcEmpPf);
             calcRow(calc, cr++, "Estimated Monthly TDS:",      calcTds);
+            calcRow(calc, cr++, "Share Purchase Plan:",        calcEspp);
             calc.add(new Separator(), 0, cr++, 2, 1);
             calcRow(calc, cr++, "Net In-hand:",                calcInHand);
             calc.add(new Separator(), 0, cr++, 2, 1);
@@ -425,6 +460,8 @@ public class EarningsDialog extends Dialog<Boolean> {
             refs.salTaxFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
             refs.salVpfFld  .textProperty().addListener((o, ov, nv) -> recalc.run());
             refs.gratuityChk.selectedProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.esppChk    .selectedProperty().addListener((o, ov, nv) -> recalc.run());
+            refs.esppAmtFld .textProperty().addListener((o, ov, nv) -> recalc.run());
             if (runInitialCalc) recalc.run();
 
             Label calcTitle = new Label("Salary Breakdown (Monthly)");
@@ -451,7 +488,9 @@ public class EarningsDialog extends Dialog<Boolean> {
             long mandatoryEpf = Math.round(basicMo * 0.12);
             long totalEmpPf   = Math.round(basicMo * (0.12 + vpfPct / 100.0));
             long tds          = Math.round((gross - mandatoryEpf) * taxPct / 100.0);
-            long inHand       = gross - totalEmpPf - tds;
+            boolean showEspp = refs.esppChk != null && refs.esppChk.isSelected();
+            long espp         = showEspp ? parseAmountStr(refs.esppAmtFld.getText()) : 0;
+            long inHand       = gross - totalEmpPf - tds - espp;
             long empEpf       = Math.max(0L, Math.round(basicMo * 0.12) - 125_000L);
             long eps          = basicMo > 0 ? Math.min(125_000L, Math.round(basicMo * 0.0833)) : 0;
             long pfDeposit    = totalEmpPf + empEpf;
@@ -462,6 +501,7 @@ public class EarningsDialog extends Dialog<Boolean> {
             calcGross     .setText(fmtR(gross));
             calcEmpPf     .setText(fmtR(totalEmpPf));
             calcTds       .setText(fmtR(tds));
+            calcEspp      .setText(showEspp ? fmtR(espp) : "—");
             calcInHand    .setText(fmtR(inHand));
             calcEmpEpf    .setText(fmtR(empEpf));
             calcEps       .setText(basicMo > 0 ? fmtR(eps) : "—");
@@ -478,6 +518,7 @@ public class EarningsDialog extends Dialog<Boolean> {
             for (EarningSource src : pendingDeletes) {
                 if (src.getRecurringScheduleId() != null) ds.deleteRecurring(src.getRecurringScheduleId());
                 if (src.getPfScheduleId() != null)        ds.deleteRecurring(src.getPfScheduleId());
+                if (src.getEsppScheduleId() != null)      ds.deleteRecurring(src.getEsppScheduleId());
             }
 
             List<EarningSource> savedSources = new ArrayList<>();
@@ -532,6 +573,12 @@ public class EarningsDialog extends Dialog<Boolean> {
         src.setDepositDay(refs.salDaySp.getValue());
         src.setCategoryId(refs.salCatCb.getValue() != null ? refs.salCatCb.getValue().getId() : null);
         src.setGratuityEnabled(refs.gratuityChk.isSelected());
+        src.setEsppEnabled(refs.esppChk.isSelected());
+        if (src.isEsppEnabled()) {
+            src.setEsppAmountPaise(parsePaise(refs.esppAmtFld, "SPP Monthly Amount"));
+        } else {
+            src.setEsppAmountPaise(0);
+        }
         if (src.computeScheduleAmountPaise() <= 0)
             throw new IllegalArgumentException(
                     "Computed in-hand is zero or negative for \"" + src.getSourceName() + "\" — check inputs.");
@@ -572,6 +619,36 @@ public class EarningsDialog extends Dialog<Boolean> {
                 long empEpf    = Math.max(0L, Math.round(basicMo * 0.12) - 125_000L);
                 createOrUpdatePfSchedule(src, empPf + empEpf, pfAcct.getId());
             }
+
+            if (src.isEsppEnabled() && refs.esppAcctCb.getValue() != null) {
+                createOrUpdateEsppSchedule(src, src.getEsppAmountPaise(), refs.esppAcctCb.getValue().getId());
+            } else if (!src.isEsppEnabled() && src.getEsppScheduleId() != null) {
+                ds.deleteRecurring(src.getEsppScheduleId());
+                src.setEsppScheduleId(null);
+            }
+        }
+    }
+
+    private void createOrUpdateEsppSchedule(EarningSource src, long amountPaise, String esppAccountId) {
+        String desc = member.getName() + " — Share Purchase Plan (" + src.getSourceName() + ")";
+        RecurringTransaction existing = ds.findRecurringById(src.getEsppScheduleId());
+        if (existing != null) {
+            existing.setAmountPaise(amountPaise);
+            existing.setToAccountId(esppAccountId);
+            existing.setDueDayOfMonth(src.getDepositDay());
+            existing.setDescription(desc);
+            existing.setStatus(RecurringTransaction.Status.ACTIVE);
+            ds.saveRecurringNow();
+        } else {
+            RecurringTransaction rt = new RecurringTransaction(
+                    desc, Transaction.Type.INVESTMENT,
+                    RecurringTransaction.Frequency.MONTHLY, src.getDepositDay(),
+                    LocalDate.now(), amountPaise);
+            rt.setToAccountId(esppAccountId);
+            rt.setAutoRecordAfterDays(1);
+            rt.setAutoCreated(true);
+            ds.addRecurring(rt);
+            src.setEsppScheduleId(rt.getId());
         }
     }
 
@@ -591,6 +668,7 @@ public class EarningsDialog extends Dialog<Boolean> {
                     RecurringTransaction.Frequency.MONTHLY, src.getDepositDay(),
                     LocalDate.now(), amountPaise);
             rt.setToAccountId(pfAccountId);
+            rt.setAutoRecordAfterDays(1);
             rt.setAutoCreated(true);
             ds.addRecurring(rt);
             src.setPfScheduleId(rt.getId());
@@ -676,6 +754,25 @@ public class EarningsDialog extends Dialog<Boolean> {
     private void prefillPfAccount(ComboBox<InvestmentAccount> cb, String pfScheduleId) {
         if (pfScheduleId == null) return;
         RecurringTransaction sched = ds.findRecurringById(pfScheduleId);
+        if (sched == null || sched.getToAccountId() == null) return;
+        String acctId = sched.getToAccountId();
+        cb.getItems().stream().filter(a -> acctId.equals(a.getId()))
+                .findFirst().ifPresent(cb::setValue);
+    }
+
+    private ComboBox<InvestmentAccount> equityAccountCombo() {
+        ComboBox<InvestmentAccount> cb = new ComboBox<>();
+        cb.setMaxWidth(Double.MAX_VALUE);
+        cb.setPromptText("Select equity account (optional)");
+        ds.getInvestmentAccounts().stream()
+                .filter(a -> a.getInvestmentType() == InvestmentAccount.InvestmentType.EQUITY)
+                .forEach(cb.getItems()::add);
+        return cb;
+    }
+
+    private void prefillEsppAccount(ComboBox<InvestmentAccount> cb, String esppScheduleId) {
+        if (esppScheduleId == null) return;
+        RecurringTransaction sched = ds.findRecurringById(esppScheduleId);
         if (sched == null || sched.getToAccountId() == null) return;
         String acctId = sched.getToAccountId();
         cb.getItems().stream().filter(a -> acctId.equals(a.getId()))

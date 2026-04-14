@@ -35,6 +35,9 @@ public class EarningSource {
     private double  vpfPct;
     private boolean gratuityEnabled;
     private String  pfScheduleId;
+    private boolean esppEnabled;
+    private long    esppAmountPaise;   // monthly contribution
+    private String  esppScheduleId;
 
     /** No-arg constructor — assigns a new UUID. */
     public EarningSource() {
@@ -62,7 +65,8 @@ public class EarningSource {
         long mandEpf      = Math.round(basicMo * 0.12);
         long totalPf      = Math.round(basicMo * (0.12 + vpfPct / 100.0));
         long tds          = Math.round((gross - mandEpf) * estimatedTaxRatePct / 100.0);
-        return gross - totalPf - tds;
+        long base         = gross - totalPf - tds;
+        return esppEnabled ? base - esppAmountPaise : base;
     }
 
     /**
@@ -113,6 +117,9 @@ public class EarningSource {
     public double getVpfPct()               { return vpfPct; }
     public boolean isGratuityEnabled()      { return gratuityEnabled; }
     public String getPfScheduleId()         { return pfScheduleId; }
+    public boolean isEsppEnabled()          { return esppEnabled; }
+    public long   getEsppAmountPaise()      { return esppAmountPaise; }
+    public String getEsppScheduleId()       { return esppScheduleId; }
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
@@ -133,4 +140,7 @@ public class EarningSource {
     public void setVpfPct(double vpfPct)                          { this.vpfPct = vpfPct; }
     public void setGratuityEnabled(boolean gratuityEnabled)       { this.gratuityEnabled = gratuityEnabled; }
     public void setPfScheduleId(String pfScheduleId)              { this.pfScheduleId = pfScheduleId; }
+    public void setEsppEnabled(boolean esppEnabled)               { this.esppEnabled = esppEnabled; }
+    public void setEsppAmountPaise(long esppAmountPaise)          { this.esppAmountPaise = esppAmountPaise; }
+    public void setEsppScheduleId(String esppScheduleId)          { this.esppScheduleId = esppScheduleId; }
 }

@@ -1,3 +1,9 @@
+## v0.0.3-Lark — 2026-04-14
+
+### Added
+- Structured Salary income sources now support an optional Share Purchase Plan (ESPP): checkbox below Gratuity enables a monthly contribution amount field and an equity account selector; the contribution is deducted post-tax from the bank deposit amount and creates a recurring INVESTMENT schedule (from account blank, auto-record after 1 day) linked to the chosen equity account
+- PF recurring schedule is now also created with auto-record after 1 day
+
 ## v0.0.2-Lark — 2026-04-14
 
 ### Fixed
