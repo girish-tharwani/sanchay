@@ -1,3 +1,7 @@
+## v1.0.0-Lark — 2026-04-14
+
+baseline for release
+
 ## v0.0.4-Lark — 2026-04-14
 
 ### Fixed
