@@ -651,13 +651,13 @@ Projected money you will receive between today and retirement, grouped into thre
 - **Gratuity** — computed as `(Monthly Basic+DA ÷ 12) × 15 × Service Years ÷ 26` for each salary source with gratuity enabled, capped at ₹20 lakh per the statutory limit. Service years are from Employment Start Date to retirement date.
 - **PF Interest** — the current PF balance is compounded monthly at the PF rate of return, with monthly deposits added each month; the interest is the final balance minus starting balance minus total deposits.
 
-**Realized Returns (interest already locked in)**
+**Scheduled Interests (interest already locked in)**
 
 - **Bond Interest** — for each active bond account, the difference between the maturity amount and invested amount across all INVESTMENT transactions that mature before retirement, plus income from any linked recurring schedules. Already-redeemed FD references are excluded.
 - **FD Interest** — same approach as bonds; the resulting interest amount is then reduced by the pre-retirement tax rate.
 - **RD Interest** — for each active RD schedule, `Maturity Amount − (Number of payments × Monthly instalment)`. Taxed at the pre-retirement tax rate.
 
-**Unrealized Returns (projected appreciation)**
+**Projected Appreciation (expected market returns)**
 
 - **Equity Appreciation** — current market value grows at the equity RoR compounded annually to retirement; SIP contributions grow using the SIP future value formula (`SIP × ((1+r)^n − 1) / r`); the appreciation is the final projected value minus starting value minus total SIP principal invested.
 - **MF Appreciation** — identical approach using the MF RoR and monthly MF SIP.
@@ -690,15 +690,34 @@ A negative Cash bucket means your projected expenses outpace the cash-side earni
 
 #### Post-Retirement Projection
 
-A year-by-year table from retirement until life expectancy.
+A year-by-year table (Year, Age, Starting Balance, ROI, Tax, Withdrawal, Ending Balance) running from retirement until life expectancy.
 
-Each year follows this sequence:
+A toggle at the top of the card switches between two projection modes:
 
-1. **Withdrawal** = cost of living at retirement inflated further by `i^year` (inflation compounding each year in retirement) + any loan payments still due that year, both rounded up to ₹10,000.
-2. If the starting balance is still positive, **ROI** = `(Balance − Withdrawal) × post-retire RoR`, rounded down to ₹10,000. **Tax** = ROI × post-retire tax rate, rounded up to ₹10,000.
+- **Minimum Corpus Projection** — seeds the table with the Required Corpus (the smallest starting balance that never depletes before life expectancy).
+- **Actual Corpus Projection** — seeds the table with your Forecasted Corpus.
+
+**Three-phase spending model**
+
+Withdrawal inflation is not flat — it follows the Blanchett / Morningstar spending curve:
+
+| Phase | Age range | Inflation applied to CoL |
+|---|---|---|
+| 1 — Active retirement | Up to 72 | Full inflation rate |
+| 2 — Slow-go retirement | 73 – 82 | Inflation − 1.5% (floored at 0%) |
+| 3 — Healthcare retirement | 83 and above | Full inflation rate |
+
+Each year's sequence:
+
+1. **Withdrawal** = CoL at retirement grown by the phase-appropriate inflation compounded year-by-year + any loan payments still due that year, both rounded up to ₹10,000.
+2. If the starting balance is positive, **ROI** = `max(0, Balance − Withdrawal) × post-retire RoR`, rounded down to ₹10,000. **Tax** = ROI × post-retire tax rate, rounded up to ₹10,000. If balance is already ≤ 0, ROI and Tax are both 0.
 3. **Ending Balance** = Starting Balance − Withdrawal + ROI − Tax.
 
-A row is highlighted when the balance turns negative — this is the "corpus depletion" point.
+**Row highlighting**
+
+- Phase 1 (active) and Phase 3 (healthcare) rows have a green tint; Phase 2 (slow-go) rows are unshaded, visually marking the three spending phases.
+- The **Starting Balance** cell is highlighted when the corpus was already depleted at the start of that year.
+- The **Ending Balance** cell is highlighted when the balance turns negative — this is the corpus depletion point.
 
 #### Required Corpus
 
