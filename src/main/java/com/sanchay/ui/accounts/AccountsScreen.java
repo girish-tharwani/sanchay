@@ -107,6 +107,7 @@ public class AccountsScreen {
 
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scroll.getStyleClass().add("scroll-page-bg");
 
         view.getChildren().setAll(scroll);

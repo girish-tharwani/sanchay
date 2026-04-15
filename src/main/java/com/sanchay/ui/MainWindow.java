@@ -107,7 +107,7 @@ public class MainWindow {
         StackPane outerRoot = new StackPane(root, wcBar);
         StackPane.setAlignment(wcBar, Pos.TOP_RIGHT);
 
-        Scene scene = new Scene(outerRoot, 1185, 750);
+        Scene scene = new Scene(outerRoot, 1180, 750);
         for (String f : new String[]{
                 "/com/sanchay/css/theme.css",
                 "/com/sanchay/css/components.css",

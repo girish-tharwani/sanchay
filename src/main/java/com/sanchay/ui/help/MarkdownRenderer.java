@@ -54,7 +54,7 @@ class MarkdownRenderer {
             // Horizontal rule
             if (line.startsWith("---")) {
                 Separator sep = new Separator();
-                sep.getStyleClass().add("separator");
+                sep.getStyleClass().add("guide-hr");
                 sep.setPrefHeight(0.5);
                 root.getChildren().add(sep);
                 i++; continue;

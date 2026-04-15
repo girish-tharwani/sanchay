@@ -51,7 +51,7 @@
     -fx-text-fill: -text-secondary;
 }
 
-.separator {
+.guide-hr {
     -fx-background-color: -brand-dark;
     -fx-border-color: transparent;
 }
