@@ -21,6 +21,7 @@ public abstract class Account {
     private String secondHolderName;
     private String notes;
     private boolean favourite;
+    private int displayOrder = 0;
 
     protected Account(String name) {
         this.id = UUID.randomUUID().toString();
@@ -49,6 +50,8 @@ public abstract class Account {
     public void setSecondHolderName(String name)           { this.secondHolderName = name; }
     public void setNotes(String notes)                     { this.notes = notes; }
     public void setFavourite(boolean favourite)            { this.favourite = favourite; }
+    public int  getDisplayOrder()                          { return displayOrder; }
+    public void setDisplayOrder(int displayOrder)          { this.displayOrder = displayOrder; }
 
     @Override public String toString() { return name; }
 

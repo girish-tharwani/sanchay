@@ -75,34 +75,34 @@ public class AccountsScreen {
             buildList();
         });
 
-        Comparator<Account> byName = Comparator.comparing(Account::getName, String.CASE_INSENSITIVE_ORDER);
+        Comparator<Account> byOrder = Comparator.comparingInt(Account::getDisplayOrder);
 
         List<Account> favourites = new ArrayList<>();
         ds.getAllBankAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
         ds.getAllCreditCardAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
         ds.getAllLoanAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
         ds.getAllInvestmentAccounts().stream().filter(Account::isFavourite).forEach(favourites::add);
-        favourites.sort(byName);
+        favourites.sort(byOrder);
 
         content.getChildren().addAll(
                 titleRow,
                 buildFavouritesGroup(favourites),
                 buildGroup("Bank Accounts",   "#3db89a",
                         (showClosedBank.isSelected() ? ds.getAllBankAccounts()       : ds.getBankAccounts())
-                                .stream().sorted(byName).collect(java.util.stream.Collectors.toList()),
-                        "bank", showClosedBank),
+                                .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
+                        "bank", showClosedBank, ds.getAllBankAccounts()),
                 buildGroup("Credit Cards",    "#a78bfa",
                         (showClosedCC.isSelected()   ? ds.getAllCreditCardAccounts() : ds.getCreditCardAccounts())
-                                .stream().sorted(byName).collect(java.util.stream.Collectors.toList()),
-                        "cc", showClosedCC),
+                                .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
+                        "cc", showClosedCC, ds.getAllCreditCardAccounts()),
                 buildGroup("Loan Accounts",   "#f87171",
                         (showClosedLoan.isSelected()  ? ds.getAllLoanAccounts()       : ds.getActiveLoanAccounts())
-                                .stream().sorted(byName).collect(java.util.stream.Collectors.toList()),
-                        "loan", showClosedLoan),
+                                .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
+                        "loan", showClosedLoan, ds.getAllLoanAccounts()),
                 buildGroup("Investments",     "#f0a500",
                         (showClosedInvestment.isSelected() ? ds.getAllInvestmentAccounts() : ds.getInvestmentAccounts())
-                                .stream().sorted(byName).collect(java.util.stream.Collectors.toList()),
-                        "investment", showClosedInvestment)
+                                .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
+                        "investment", showClosedInvestment, ds.getAllInvestmentAccounts())
         );
 
         ScrollPane scroll = new ScrollPane(content);
@@ -112,7 +112,8 @@ public class AccountsScreen {
         view.getChildren().setAll(scroll);
     }
 
-    private <T extends Account> VBox buildGroup(String heading, String dotColor, List<T> accounts, String type, CheckBox showClosedCb) {
+    private <T extends Account> VBox buildGroup(String heading, String dotColor, List<T> accounts,
+                                                String type, CheckBox showClosedCb, List<T> allInGroup) {
         VBox group = new VBox(10);
 
         boolean collapsed = DataStore.getInstance().isGroupCollapsed(type);
@@ -147,9 +148,18 @@ public class AccountsScreen {
         if (collapsed) {
             header.getChildren().addAll(chevron, dot, h, spacer, addBtn);
         } else {
+            Button reorderBtn = new Button("⇅ Reorder");
+            reorderBtn.getStyleClass().add("btn-secondary");
+            reorderBtn.setStyle("-fx-padding: 5px 10px;");
+            reorderBtn.setOnAction(e -> {
+                new ReorderAccountsDialog(heading, new java.util.ArrayList<>(allInGroup));
+                buildList();
+            });
+            reorderBtn.setOnMouseClicked(javafx.event.Event::consume);
+
             showClosedCb.getStyleClass().add("text-hint");
             showClosedCb.setOnAction(e -> buildList());
-            header.getChildren().addAll(chevron, dot, h, spacer, showClosedCb, addBtn);
+            header.getChildren().addAll(chevron, dot, h, spacer, showClosedCb, reorderBtn, addBtn);
         }
         group.getChildren().add(header);
 
