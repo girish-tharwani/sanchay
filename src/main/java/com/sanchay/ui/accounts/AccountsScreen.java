@@ -228,9 +228,7 @@ public class AccountsScreen {
         boolean active = acc.isActive();
 
         Label starLbl = new Label(acc.isFavourite() ? "★" : "☆");
-        starLbl.getStyleClass().add("cursor-hand");
-        // Inline required: colour is runtime data (favourited vs not)
-        starLbl.setStyle(acc.isFavourite() ? "-fx-text-fill: -brand-accent; -fx-font-size: 13px;" : "-fx-text-fill: -text-hint; -fx-font-size: 13px;");
+        starLbl.getStyleClass().addAll("cursor-hand", acc.isFavourite() ? "account-star-active" : "account-star-inactive");
         starLbl.setTooltip(new Tooltip(acc.isFavourite() ? "Remove from Favourites" : "Add to Favourites"));
         starLbl.setOnMouseClicked(e -> {
             acc.setFavourite(!acc.isFavourite());
@@ -240,9 +238,7 @@ public class AccountsScreen {
         });
 
         Label name = new Label(acc.getName());
-        name.getStyleClass().add("stat-value");
-        // Inline required: text colour is runtime data (active vs closed account)
-        name.setStyle(active ? "-fx-text-fill: -brand-dark;" : "-fx-text-fill: -text-hint;");
+        name.getStyleClass().addAll("stat-value", active ? "account-name-active" : "account-name-inactive");
         name.setMaxWidth(170);
 
         Label sub = new Label(acc.getAccountType());

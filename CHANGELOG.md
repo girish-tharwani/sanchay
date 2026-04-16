@@ -1,3 +1,13 @@
+## v0.0.5-Myna — 2026-04-16
+
+### Changed
+- `AccountsScreen`: star label and account name label state colours moved from `setStyle()` to CSS classes (`.account-star-active/inactive`, `.account-name-active/inactive`)
+- `CategoriesScreen`: category and sub-category name label active/inactive states moved from `setStyle()` to CSS classes (`.category-name-active/inactive`, `.subcategory-name-active/inactive`)
+- `ImportCompleteDialog`: all four `setStyle()` blocks replaced with CSS classes — gradient header icon, per-line check badge (success/neutral states), and count number
+
+### Added
+- `components.css`: state classes for account card labels, category name labels, and import dialog elements (`.import-success-header`, `.import-check-badge-*`, `.import-stat-count-*`)
+
 ## v0.0.4-Myna — 2026-04-16
 
 ### Fixed

@@ -1104,6 +1104,73 @@
     -fx-font-weight: 700;
 }
 
+/* ── Account card state classes ─────────────────────────────────────────── */
+
+.account-star-active   { -fx-text-fill: -brand-accent; -fx-font-size: 13px; }
+.account-star-inactive { -fx-text-fill: -text-hint;    -fx-font-size: 13px; }
+
+.account-name-active   { -fx-text-fill: -brand-dark; }
+.account-name-inactive { -fx-text-fill: -text-hint;  }
+
+/* ── Category / sub-category name state classes ──────────────────────────── */
+
+.category-name-active   { -fx-text-fill: -text-label; }
+.category-name-inactive { -fx-text-fill: -text-hint; -fx-font-style: italic; }
+
+/* Sub-category rows use 12px size in addition to the state-driven colour */
+.subcategory-name-active   { -fx-font-size: 12px; -fx-text-fill: -text-label; }
+.subcategory-name-inactive { -fx-font-size: 12px; -fx-text-fill: -text-hint; -fx-font-style: italic; }
+
+/* ── Import Complete Dialog ──────────────────────────────────────────────── */
+
+/* Gradient circle icon in the dialog header */
+.import-success-header {
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, -brand-mid, -brand-light);
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-min-width: 40;
+    -fx-max-width: 40;
+    -fx-min-height: 40;
+    -fx-max-height: 40;
+    -fx-background-radius: 20;
+    -fx-alignment: CENTER;
+    -fx-padding: 0;
+}
+
+/* Per-line check/skip badge — base shape */
+.import-check-badge {
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-min-width: 20;
+    -fx-max-width: 20;
+    -fx-min-height: 20;
+    -fx-max-height: 20;
+    -fx-padding: 0;
+    -fx-alignment: CENTER;
+}
+
+/* Success state: new/reconciled rows with count > 0 */
+.import-check-badge-success {
+    -fx-background-color: #f0fdf4;
+    -fx-text-fill: #16a34a;
+    -fx-border-color: #bbf7d0;
+}
+
+/* Neutral state: skipped rows or zero-count rows */
+.import-check-badge-neutral {
+    -fx-background-color: #f8fbfc;
+    -fx-text-fill: #7aa4b0;
+    -fx-border-color: -brand-mid-15;
+}
+
+/* Count number — fixed size/weight; colour toggled by active/zero modifier */
+.import-stat-count        { -fx-font-size: 18px; -fx-font-weight: 700; -fx-min-width: 28; -fx-alignment: CENTER_RIGHT; }
+.import-stat-count-active { -fx-text-fill: -brand-dark; }
+.import-stat-count-zero   { -fx-text-fill: -text-hint;  }
+
 /* ── Typography utility classes ──────────────────────────────────────────── */
 
 /* Link-style button in button bars (e.g. "About Sanchay" in HelpDialog) */

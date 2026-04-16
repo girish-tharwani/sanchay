@@ -151,9 +151,7 @@ public class CategoriesScreen {
 
         Label nameLbl = new Label(cat.getName());
         nameLbl.setMinWidth(180);
-        nameLbl.getStyleClass().add("stat-value");
-        // Inline required: active/inactive text colour and style are runtime data
-        nameLbl.setStyle(cat.isActive() ? "-fx-text-fill: -text-label;" : "-fx-text-fill: -text-hint; -fx-font-style: italic;");
+        nameLbl.getStyleClass().addAll("stat-value", cat.isActive() ? "category-name-active" : "category-name-inactive");
 
         Label statusLbl = new Label(cat.isActive() ? "Active" : "Inactive");
         statusLbl.getStyleClass().add(cat.isActive() ? "status-active" : "status-closed");
@@ -259,9 +257,7 @@ public class CategoriesScreen {
 
             Label nameLbl = new Label(sub.getName());
             nameLbl.setMinWidth(160);
-            // Inline required: active/inactive text colour and style are runtime data
-            nameLbl.setStyle("-fx-font-size: 12px;"
-                    + (sub.isActive() ? " -fx-text-fill: -text-label;" : " -fx-text-fill: -text-hint; -fx-font-style: italic;"));
+            nameLbl.getStyleClass().add(sub.isActive() ? "subcategory-name-active" : "subcategory-name-inactive");
 
             Label statusLbl = new Label(sub.isActive() ? "Active" : "Inactive");
             statusLbl.getStyleClass().add(sub.isActive() ? "status-active" : "status-closed");
