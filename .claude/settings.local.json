@@ -57,7 +57,8 @@
       "Bash(cat D:/Projects/sanchay/logs/*.log)",
       "Bash(mvn compiler:compile)",
       "Bash(bash build.sh compile-force)",
-      "Bash(mvn clean:*)"
+      "Bash(mvn clean:*)",
+      "Bash(find \"D:/Projects/sanchay/src/main/java/com/sanchay/ui\" -name \"*Screen.java\" -exec wc -l {} +)"
     ]
   },
   "enabledPlugins": {

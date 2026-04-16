@@ -3,11 +3,9 @@ package com.sanchay.ui.transactions;
 import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
 import com.sanchay.service.DataStore;
-//import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
-//import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -15,7 +13,6 @@ import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
-//import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**

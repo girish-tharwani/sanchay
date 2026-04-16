@@ -69,7 +69,33 @@ Look for:
 
 Mark confidence level: "definitely dead" vs. "possibly dead — needs user confirmation" (e.g., if a method could be called via reflection or FXML that you haven't seen).
 
-### Step 0.5 — Map cross-class wiring
+### Step 0.5 — Identify oversized classes and their seams
+
+A class is a **split candidate** if it meets one or more of these criteria:
+- More than ~400 lines (strong smell above ~600)
+- Has multiple distinct initialization paths (e.g., a "new" constructor and an "edit" constructor that each set up completely different state)
+- Contains fields that are only ever accessed by a subset of its methods — these are signs of a hidden sub-object
+- Has groups of methods that call each other heavily but rarely interact with the rest of the class
+- Mixes clearly different concerns (e.g., UI layout + persistence + business calculation + formatting all in one class)
+- Contains large switch/if-else chains that route to completely independent code paths — each arm is a candidate for its own class
+- Has an inner class, anonymous class, or large lambda that could stand alone
+
+For each split candidate, **identify the seams** — the natural boundaries where the class could be divided without a tangle of cross-dependencies:
+
+1. **Group fields by which methods access them.** Fields only touched by methods M1–M5 and never by M6–M10 suggest two cohesive clusters.
+2. **Look for coordinator vs. worker patterns.** If one part of a class only wires things together and another part does the actual work, the worker can be extracted.
+3. **Look for type-dispatch seams.** A class that has a `switch(type)` or `if (type == X)` threading through multiple methods often means each type belongs in its own class, with the dispatcher becoming a thin coordinator.
+4. **Look for lifecycle seams.** If a class has clearly distinct "setup", "interaction", and "teardown" phases that don't share state, those phases may belong in separate collaborators.
+
+For each split candidate, record:
+- Class name and line count
+- Proposed split: what would be extracted, what the extracted class would be named and responsible for
+- Estimated field/method distribution after the split
+- Risk level: **low** (extracted class has no back-reference to the parent), **medium** (some shared state needs careful threading), **high** (the class is highly entangled and splitting could break behavior)
+
+Do not split yet. Flag for the remediation plan.
+
+### Step 0.6 — Map cross-class wiring
 
 For every case where one UI class directly calls a method on another UI class (controller-to-controller coupling), document:
 - The calling class and method
@@ -82,7 +108,7 @@ Also look for:
 - Static mutable state used to pass data between screens
 - Singleton controllers or "god objects" that accumulate responsibilities
 
-### Step 0.6 — Flag logic issues and stubs (do not fix yet)
+### Step 0.7 — Flag logic issues and stubs (do not fix yet)
 
 While reading the code, note but do not act on:
 - **Logic bugs**: any code that appears to produce incorrect results or handle edge cases wrong
@@ -91,16 +117,17 @@ While reading the code, note but do not act on:
 
 These are flagged for the user's awareness, not resolved during the refactoring.
 
-### Step 0.7 — Produce the audit report
+### Step 0.8 — Produce the audit report
 
 Compile all findings into a single structured report with these sections:
 1. **Class inventory** (from 0.1)
 2. **Dialog inconsistencies** (from 0.2)
 3. **Duplication clusters** (from 0.3)
 4. **Dead code candidates** (from 0.4)
-5. **Wiring problems** (from 0.5)
-6. **Flagged logic issues / stubs** (from 0.6)
-7. **Recommended refactoring order** — prioritize by risk (low-risk first) and impact (high-impact first). Typically: dead code removal → duplication extraction → dialog extraction → wiring cleanup.
+5. **Oversized class split candidates** (from 0.5)
+6. **Wiring problems** (from 0.6)
+7. **Flagged logic issues / stubs** (from 0.7)
+8. **Recommended refactoring order** — prioritize by risk (low-risk first) and impact (high-impact first). Typically: dead code removal → duplication extraction → class splits → dialog extraction → wiring cleanup.
 
 Present this report to the user and get confirmation before proceeding to any code changes.
 
@@ -168,6 +195,46 @@ Within private implementation details (not public API), also address:
 - **Poor variable/method naming**: rename private variables and methods to better express their intent — do NOT rename public or package-visible members
 - **Deep conditionals**: simplify deeply nested if/else chains using early returns, guard clauses, or extracted boolean methods
 - **Single responsibility**: if a private method is doing two unrelated things, split it
+
+---
+
+## Phase 2.5: Split Oversized Classes
+
+Work through each split candidate identified in Step 0.5, lowest risk first.
+
+### 2.5.1 — Confirm the seam before cutting
+
+Before splitting, re-read the class and verify the seam identified in the audit still holds:
+- Confirm the fields in the proposed extracted class are not accessed by the methods staying behind.
+- Confirm the methods in the proposed extracted class don't need to call methods staying behind (if they do, the extracted class will need a back-reference — acceptable, but note it).
+- Confirm the parent class can be reduced to a coordinator: it sets up the extracted class and delegates to it, with no duplication of logic.
+
+If the seam does not hold cleanly after re-examination, reduce the scope of the split — extract only the clearly separable part rather than forcing an artificial boundary.
+
+### 2.5.2 — Choose the right split pattern
+
+| Situation | Pattern |
+|---|---|
+| A class has one concern that is clearly larger and more complex than the rest | **Extract a sub-component class.** The parent creates and owns the extracted class; calls into it via well-defined methods. |
+| A class has a `switch(type)` / `if (type == X)` routing through multiple methods | **Extract per-type handler classes.** Each case becomes a class; the parent becomes a coordinator that selects and delegates. |
+| A large method drives a complex sub-workflow (setup, calculation, teardown) | **Extract a private helper class or builder.** Lives in the same file or the same package if it's package-private. |
+| A class mixes UI and non-UI concerns | **Extract the non-UI logic into a service or calculator class.** The UI class calls it and binds results. |
+| An inner class has grown large enough to stand on its own | **Promote to a top-level class** in the same package. |
+
+### 2.5.3 — Execution steps
+
+1. **Create the new class file.** Give it a clear, single-responsibility name. Package it alongside the parent unless there is a better logical home.
+2. **Move fields and methods.** Start with fields — move them to the new class and update all references. Then move methods. The IDE's refactor tools can help but verify each move compiles.
+3. **Wire the parent to the new class.** The parent should hold a reference to the extracted class (injected via constructor or created in the parent's constructor). All calls to the extracted methods go through this reference.
+4. **Pass shared state explicitly.** If the extracted class needs something from the parent (e.g., a DataStore reference, a shared field), pass it via the extracted class's constructor — never via a back-reference to the parent class.
+5. **Verify the split did not change behavior.** Line-by-line compare the before and after: method bodies should be identical, just relocated.
+
+### 2.5.4 — What not to do
+
+- **Do not split just to hit a line-count target.** A 600-line class with one clear responsibility is better than two 300-line classes with an artificial boundary and a tangle of mutual references.
+- **Do not split if it requires making previously private state public.** If the only way to split is to expose internal fields, the seam is wrong — find a different one.
+- **Do not introduce inheritance to accomplish a split** unless the codebase already uses inheritance for this purpose. Prefer composition.
+- **Do not split a class that is in the middle of a cascade of other refactoring work.** Finish duplication extraction and dead code removal first so the split operates on clean, minimal code.
 
 ---
 
