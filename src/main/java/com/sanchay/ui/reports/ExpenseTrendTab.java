@@ -254,13 +254,12 @@ class ExpenseTrendTab {
         Region bg = new Region();
         bg.setMaxWidth(Double.MAX_VALUE);
         bg.setMaxHeight(Double.MAX_VALUE);
-        bg.setStyle("-fx-background-color: rgba(42,138,122,0.07);");
+        bg.getStyleClass().add("trend-row-category");
         GridPane.setColumnSpan(bg, GridPane.REMAINING);
         grid.add(bg, 0, row);
 
         Label nameLbl = new Label(name);
-        // Inline required: bold + brand-dark for category-level rows (data-driven weight)
-        nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: -brand-dark; -fx-font-size: 12px;");
+        nameLbl.getStyleClass().add("trend-row-category-lbl");
         nameLbl.setMaxWidth(Double.MAX_VALUE);
         GridPane.setMargin(nameLbl, new Insets(8, 14, 8, 14));
         grid.add(nameLbl, 0, row);
@@ -277,8 +276,7 @@ class ExpenseTrendTab {
         Region border = new Region();
         border.setMaxWidth(Double.MAX_VALUE);
         border.setMaxHeight(Double.MAX_VALUE);
-        border.setStyle("-fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent; " +
-                        "-fx-border-width: 0 0 1px 0;");
+        border.getStyleClass().add("trend-row-subcategory");
         GridPane.setColumnSpan(border, GridPane.REMAINING);
         grid.add(border, 0, row);
 
@@ -306,21 +304,19 @@ class ExpenseTrendTab {
         Region bg = new Region();
         bg.setMaxWidth(Double.MAX_VALUE);
         bg.setMaxHeight(Double.MAX_VALUE);
-        bg.setStyle("-fx-background-color: rgba(42,138,122,0.13);");
+        bg.getStyleClass().add("trend-row-total");
         GridPane.setColumnSpan(bg, GridPane.REMAINING);
         grid.add(bg, 0, row);
 
         Label nameLbl = new Label("TOTAL");
-        // Inline required: bold + brand-dark, slightly larger for the summary total row
-        nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: -brand-dark; -fx-font-size: 13px;");
+        nameLbl.getStyleClass().add("trend-row-total-lbl");
         nameLbl.setMaxWidth(Double.MAX_VALUE);
         GridPane.setMargin(nameLbl, new Insets(10, 14, 10, 14));
         grid.add(nameLbl, 0, row);
 
         for (int i = 0; i < amounts.length; i++) {
             Label amtLbl = amountLabel(amounts[i], true);
-            // Inline required: slightly larger font for total row to match the label weight
-            amtLbl.setStyle(amtLbl.getStyle() + " -fx-font-size: 13px;");
+            amtLbl.getStyleClass().add("trend-row-total-amt");
             GridPane.setMargin(amtLbl, new Insets(10, 14, 10, 0));
             grid.add(amtLbl, i + 1, row);
         }

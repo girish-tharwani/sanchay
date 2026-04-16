@@ -1,3 +1,17 @@
+## v0.0.4-Myna — 2026-04-16
+
+### Fixed
+- `TransactionDialog`: scroll pane content area now shows white background, matching all other dialogs
+
+### Changed
+- `ExpenseTrendTab`: category, sub-category, and total row styles moved from inline `setStyle()` to CSS classes (`.trend-row-category`, `.trend-row-subcategory`, `.trend-row-total`, etc.)
+- `HelpDialog`, `EarningsDialog`, `AddEditRecurringDialog`, `AccountsScreen`: recurring typography patterns moved from `setStyle()` to CSS utility classes (`.text-link-button`, `.text-result-value`, `.inv-type-hint`, `.btn-compact`)
+
+### Added
+- `theme.css`: `-brand-mid-13` alpha token
+- `reports.css`: six `.trend-row-*` classes for Expense Trend table row styling
+- `components.css`: four typography utility classes — `.text-link-button`, `.text-result-value`, `.inv-type-hint`, `.btn-compact`
+
 ## v0.0.3-Myna — 2026-04-16
 
 ### Added

@@ -150,8 +150,7 @@ public class AccountsScreen {
             header.getChildren().addAll(chevron, dot, h, spacer, addBtn);
         } else {
             Button reorderBtn = new Button("⇅ Reorder");
-            reorderBtn.getStyleClass().add("btn-secondary");
-            reorderBtn.setStyle("-fx-padding: 5px 10px;");
+            reorderBtn.getStyleClass().addAll("btn-secondary", "btn-compact");
             reorderBtn.setOnAction(e -> {
                 new ReorderAccountsDialog(heading, new java.util.ArrayList<>(allInGroup));
                 buildList();

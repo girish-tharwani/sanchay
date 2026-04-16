@@ -226,3 +226,40 @@
     -fx-text-fill: -color-error;
     -fx-background-color: rgba(224,85,85,0.12);
 }
+
+/* ── Expense Trend Tab row patterns ──────────────────────────────────────── */
+
+/* Background region spanning all columns for category header rows */
+.trend-row-category {
+    -fx-background-color: -brand-mid-07;
+}
+
+/* Name label inside a category header row */
+.trend-row-category-lbl {
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+    -fx-font-size: 12px;
+}
+
+/* Bottom-border region for sub-category rows (decorative separator) */
+.trend-row-subcategory {
+    -fx-border-color: transparent transparent -brand-mid-12 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+/* Background region for the TOTAL summary row */
+.trend-row-total {
+    -fx-background-color: -brand-mid-13;
+}
+
+/* Name label inside the TOTAL row */
+.trend-row-total-lbl {
+    -fx-font-weight: bold;
+    -fx-text-fill: -brand-dark;
+    -fx-font-size: 13px;
+}
+
+/* Amount labels inside the TOTAL row — slightly larger to match the label weight */
+.trend-row-total-amt {
+    -fx-font-size: 13px;
+}

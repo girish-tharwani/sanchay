@@ -137,8 +137,7 @@ public class AddEditRecurringDialog {
         });
 
         Label invTypeLbl = new Label("—");
-        // Inline required: needs italic + hint colour (text-hint class has no italic variant)
-        invTypeLbl.setStyle("-fx-text-fill: -text-hint; -fx-font-style: italic;");
+        invTypeLbl.getStyleClass().add("inv-type-hint");
 
         ComboBox<Account> ccpCardCb = new ComboBox<>();
         ccpCardCb.setPromptText("Select credit card");

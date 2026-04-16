@@ -422,9 +422,7 @@ public class EarningsDialog extends Dialog<Boolean> {
             calcPfDeposit  = calcVal();
             calcEpsDeposit = calcVal();
             calcGratuity   = calcVal();
-            calcInHand.getStyleClass().add("text-success");
-            // Inline required: font-weight and size are layout emphasis, not colour — no token covers them
-            calcInHand.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+            calcInHand.getStyleClass().addAll("text-success", "text-result-value");
         }
 
         /** Builds and returns the right-panel VBox; wires recalc listeners on refs. */

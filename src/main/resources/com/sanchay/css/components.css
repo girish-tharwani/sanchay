@@ -634,6 +634,12 @@
 }
 
 /* ── Dialog pane ─────────────────────────────────────────────────────────── */
+#txn-scroll-pane,
+#txn-scroll-pane .viewport {
+    -fx-background-color: white;
+    -fx-background: white;
+}
+
 .dialog-pane {
     -fx-background-color: white;
     -fx-border-color: -brand-mid-25;
@@ -1096,4 +1102,30 @@
     -fx-text-fill: white;
     -fx-font-size: 11px;
     -fx-font-weight: 700;
+}
+
+/* ── Typography utility classes ──────────────────────────────────────────── */
+
+/* Link-style button in button bars (e.g. "About Sanchay" in HelpDialog) */
+.text-link-button {
+    -fx-font-size: 13px;
+    -fx-underline: true;
+    -fx-padding: 4 0;
+}
+
+/* Bold result value label in inline calculation panels (e.g. EarningsDialog in-hand total) */
+.text-result-value {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+/* Italic hint label shown below type selectors (e.g. investment type hint in AddEditRecurringDialog) */
+.inv-type-hint {
+    -fx-text-fill: -text-hint;
+    -fx-font-style: italic;
+}
+
+/* Compact padding override for secondary action buttons that need tighter padding than the default */
+.btn-compact {
+    -fx-padding: 5px 10px;
 }
