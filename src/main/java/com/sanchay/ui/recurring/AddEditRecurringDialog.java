@@ -101,6 +101,13 @@ public class AddEditRecurringDialog {
         amtFld.setPromptText("Leave blank for variable (e.g. CC Payment)");
         amtFld.setMaxWidth(Double.MAX_VALUE);
 
+        // ── Payment Mode ──────────────────────────────────────────────────────
+        ComboBox<String> payModeCb = new ComboBox<>();
+        payModeCb.setMaxWidth(Double.MAX_VALUE);
+        payModeCb.getItems().addAll("UPI", "Net Banking", "Debit Card", "Credit Card",
+                "Cash", "Cheque", "Auto-debit", "Internal Transfer");
+        payModeCb.setValue("Net Banking");
+
         // ── From Account (contents vary by type) ──────────────────────────────
         DataStore ds = DataStore.getInstance();
         ComboBox<Account> accountCb = new ComboBox<>();
@@ -439,7 +446,18 @@ public class AddEditRecurringDialog {
             if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
         };
 
-        typeCb.setOnAction(e -> { refreshToAccount.run(); refreshSrcInvest.run(); });
+        // Auto-default payment mode: Expense + CC account → "Credit Card", else "Net Banking"
+        Runnable refreshPayMode = () -> {
+            if (typeCb.getValue() == Transaction.Type.EXPENSE
+                    && accountCb.getValue() instanceof CreditCardAccount) {
+                payModeCb.setValue("Credit Card");
+            } else {
+                payModeCb.setValue("Net Banking");
+            }
+        };
+        accountCb.valueProperty().addListener((obs, old, acct) -> refreshPayMode.run());
+
+        typeCb.setOnAction(e -> { refreshToAccount.run(); refreshSrcInvest.run(); refreshPayMode.run(); });
         invDestCb.setOnAction(e -> refreshInvFields.run());
 
         // ── Auto-record ───────────────────────────────────────────────────────
@@ -528,6 +546,14 @@ public class AddEditRecurringDialog {
         // Trigger initial state (also populates accountCb)
         refreshToAccount.run();
 
+        // Restore saved payment mode when editing (overrides the smart default)
+        if (hasDefaults && existing.getPaymentMode() != null) {
+            String modeStr = existing.getPaymentMode().name().replace('_', ' ');
+            payModeCb.getItems().stream()
+                    .filter(item -> item.equalsIgnoreCase(modeStr))
+                    .findFirst().ifPresent(payModeCb::setValue);
+        }
+
         if (hasDefaults && existing.getCategoryId() != null) {
             catMaster.stream()
                     .filter(c -> c.getId().equals(existing.getCategoryId()))
@@ -562,6 +588,7 @@ public class AddEditRecurringDialog {
         VBox numPaymentsBox = new VBox(4, numPaymentsFld, lastPaymentHint);
         UiUtils.addFormRow(g, row++, "No. of Payments", numPaymentsBox);
         g.add(accountLbl, 0, row); g.add(accountCb, 1, row); GridPane.setFillWidth(accountCb, true); row++;
+        UiUtils.addFormRow(g, row++, "Payment Mode",     payModeCb);
         g.add(toAccountSection, 0, row++, 2, 1);
         g.add(invDynamicBox,    0, row++, 2, 1);
         UiUtils.addFormRow(g, row++, "Category",         catCb);
@@ -730,6 +757,7 @@ public class AddEditRecurringDialog {
                 r.setAutoRecordAfterDays(autoRecordDays);
                 r.setNumberOfPayments(numPayments);
                 r.setSourceInvestment(buildSourceInvestment(srcInvestBox, srcInvestCb, srcRefCb));
+                r.setPaymentMode(parsePayMode(payModeCb.getValue()));
                 r.setStatus(RecurringTransaction.Status.ACTIVE);
                 ds.addRecurring(r);
             } else {
@@ -755,6 +783,7 @@ public class AddEditRecurringDialog {
                 existing.setAutoRecordAfterDays(autoRecordDays);
                 existing.setNumberOfPayments(numPayments);
                 existing.setSourceInvestment(buildSourceInvestment(srcInvestBox, srcInvestCb, srcRefCb));
+                existing.setPaymentMode(parsePayMode(payModeCb.getValue()));
                 ds.saveRecurringNow();
             }
             return null;
@@ -775,6 +804,12 @@ public class AddEditRecurringDialog {
         c2.setHgrow(Priority.ALWAYS);
         g.getColumnConstraints().addAll(c1, c2);
         return g;
+    }
+
+    private static Transaction.PaymentMode parsePayMode(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return Transaction.PaymentMode.valueOf(s.replace(' ', '_').toUpperCase()); }
+        catch (IllegalArgumentException ignored) { return null; }
     }
 
     private static String nullIfBlank(String s) {

@@ -18,8 +18,7 @@ public class Transaction {
     }
 
     public enum PaymentMode {
-        UPI, NET_BANKING, DEBIT_CARD, CREDIT_CARD, CASH, CHEQUE, AUTO_DEBIT,
-        NEFT, IMPS, INTERNAL_TRANSFER
+        UPI, NET_BANKING, DEBIT_CARD, CREDIT_CARD, CASH, CHEQUE, AUTO_DEBIT, INTERNAL_TRANSFER
     }
 
     public enum SourceIndicator {

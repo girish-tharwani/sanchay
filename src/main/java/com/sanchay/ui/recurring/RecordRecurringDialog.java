@@ -164,6 +164,10 @@ public class RecordRecurringDialog {
                 cl.setSubCategoryId(r.getSubCategoryId());
                 t.setClassification(cl);
             }
+            if (r.getPaymentMode() != null) {
+                if (t.getPayment() == null) t.setPayment(new Transaction.Payment());
+                t.getPayment().setMode(r.getPaymentMode());
+            }
             t.setRecurring(new Transaction.Recurring(r.getId()));
             // For RD investment schedules, store the RD reference in investment details.
             String rdRef = r.getRdRef();

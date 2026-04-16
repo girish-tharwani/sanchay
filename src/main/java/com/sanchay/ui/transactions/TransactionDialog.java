@@ -595,8 +595,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         cb.setMaxWidth(Double.MAX_VALUE);
         cb.setPromptText("optional");
         cb.getItems().addAll("UPI", "Net Banking", "Debit Card", "Credit Card",
-                "Cash", "Cheque", "Auto-debit", "NEFT", "IMPS");
-        cb.setValue("UPI");
+                "Cash", "Cheque", "Auto-debit", "Internal Transfer");
+        cb.setValue("Net Banking");
         return cb;
     }
 

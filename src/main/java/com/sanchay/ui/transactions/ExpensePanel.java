@@ -39,6 +39,10 @@ class ExpensePanel {
         parent.setNodeId(acctCb, "txn-expense-account-combo");
         modeCb    = parent.payModeCombo();
         parent.setNodeId(modeCb, "txn-expense-payment-mode-combo");
+        acctCb.valueProperty().addListener((obs, old, acct) -> {
+            if (acct instanceof CreditCardAccount) modeCb.setValue("Credit Card");
+            else if (acct != null)                 modeCb.setValue("Net Banking");
+        });
         familyFld = parent.tf("optional");
         parent.setNodeId(familyFld, "txn-expense-family-member-field");
         refFld    = parent.tf("optional");

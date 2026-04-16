@@ -161,6 +161,9 @@ public class CashFlowForecastTab {
         summaryStrip.getStyleClass().add("text-section-title");
         summaryStrip.setMaxWidth(Double.MAX_VALUE);
 
+        Label forecastSubtitle = new Label("Excluding market investments");
+        forecastSubtitle.getStyleClass().add("dialog-subtitle");
+
         // Chart
         CategoryAxis xAxis = new CategoryAxis();
         NumberAxis   yAxis = buildYAxis();
@@ -197,7 +200,8 @@ public class CashFlowForecastTab {
         TabPane tableTabPane = new TabPane(expensesTab, cashFlowTab);
         tableTabPane.getStyleClass().add("forecast-tab-pane");
 
-        root.getChildren().addAll(filterRow, warningBar, summaryStrip, chartCard, tableTabPane);
+        VBox summaryBlock = new VBox(2, summaryStrip, forecastSubtitle);
+        root.getChildren().addAll(filterRow, warningBar, summaryBlock, chartCard, tableTabPane);
 
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
