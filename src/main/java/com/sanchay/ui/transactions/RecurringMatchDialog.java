@@ -48,7 +48,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         subtitle.getStyleClass().add("text-hint");
 
         // ── Imported block ────────────────────────────────────────────────────
-        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
+        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", UiUtils.HEX_BRAND_LIGHT);
 
         VBox importedBlock = new VBox(4);
         importedBlock.setId("txn-recurring-match-imported-block");
@@ -64,7 +64,7 @@ public class RecurringMatchDialog extends Dialog<RecurringTransaction> {
         importedBlock.getChildren().addAll(importedChip, importedInfo);
 
         // ── Candidates ────────────────────────────────────────────────────────
-        HBox matchesSecLabel = UiUtils.buildSectionLabel("Matching recurring schedule(s)", "#f0a500");
+        HBox matchesSecLabel = UiUtils.buildSectionLabel("Matching recurring schedule(s)", UiUtils.HEX_BRAND_ACCENT);
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);

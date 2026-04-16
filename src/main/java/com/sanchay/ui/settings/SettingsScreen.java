@@ -2,6 +2,7 @@ package com.sanchay.ui.settings;
 
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.wizard.PreferencesSetupDialog;
 
 import java.util.function.BiConsumer;
@@ -61,7 +62,7 @@ public class SettingsScreen {
         labelRow.setAlignment(Pos.CENTER_LEFT);
         // Shape.fill cannot be set via style class; brand accent stays inline
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
-                javafx.scene.paint.Color.web("#3db89a"));
+                javafx.scene.paint.Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
         h.getStyleClass().add("section-group-label");
         labelRow.getChildren().addAll(dot, h);

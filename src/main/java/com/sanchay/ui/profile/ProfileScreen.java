@@ -53,7 +53,7 @@ public class ProfileScreen {
         HBox labelRow = new HBox(8);
         labelRow.setAlignment(Pos.CENTER_LEFT);
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
-                javafx.scene.paint.Color.web("#3db89a"));
+                javafx.scene.paint.Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
         h.getStyleClass().add("section-group-label");
         labelRow.getChildren().addAll(dot, h);

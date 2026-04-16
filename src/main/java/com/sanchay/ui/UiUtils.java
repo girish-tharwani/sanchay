@@ -48,9 +48,15 @@ public final class UiUtils {
         "/com/sanchay/css/theme.css",
         "/com/sanchay/css/components.css",
         "/com/sanchay/css/layout.css",
-        "/com/sanchay/css/screens/reports.css",
-        "/com/sanchay/css/screens/planning.css"
+        "/com/sanchay/css/reports.css",
+        "/com/sanchay/css/planning.css",
+        "/com/sanchay/css/screens/help.css"
     };
+
+    /** Brand palette hex literals — centralised so a palette change is a single edit. */
+    public static final String HEX_BRAND_LIGHT  = "#3db89a";
+    public static final String HEX_BRAND_MID    = "#2a8a7a";
+    public static final String HEX_BRAND_ACCENT = "#f0a500";
 
     /** Shared chart palette — used by ReportsScreen bar/pie charts (category breakdown). */
     public static final String[] CHART_PALETTE = {

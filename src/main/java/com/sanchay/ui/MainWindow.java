@@ -112,8 +112,8 @@ public class MainWindow {
                 "/com/sanchay/css/theme.css",
                 "/com/sanchay/css/components.css",
                 "/com/sanchay/css/layout.css",
-                "/com/sanchay/css/screens/reports.css",
-                "/com/sanchay/css/screens/planning.css",
+                "/com/sanchay/css/reports.css",
+                "/com/sanchay/css/planning.css",
                 "/com/sanchay/css/screens/help.css"}) {
             scene.getStylesheets().add(getClass().getResource(f).toExternalForm());
         }

@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Sanchay — screens/planning.css   (Financial Planning screen)
+   Sanchay — planning.css   (Financial Planning screen)
+   Loaded globally by MainWindow and UiUtils — not scoped to a single screen.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Collapsible panel chevron ───────────────────────────────────────────── */
@@ -31,7 +32,7 @@
 /* ── Plan Parameters grid ───────────────────────────────────────────────── */
 /* Each cell (label side or value side) shares this class */
 .fp-param-row {
-    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-color: transparent transparent -brand-mid-12 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 7 10 7 10;
     -fx-min-height: 34;
@@ -55,13 +56,13 @@
     -fx-text-fill: -text-muted;
 }
 .fp-table-row {
-    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-color: transparent transparent -brand-mid-12 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 7 10 7 10;
 }
 .fp-table-row-total {
     -fx-background-color: -surface-hover;
-    -fx-border-color: rgba(42,138,122,0.18) transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-color: -brand-mid-18 transparent -brand-mid-18 transparent;
     -fx-border-width: 1 0 1 0;
     -fx-padding: 7 10 7 10;
 }
@@ -79,12 +80,12 @@
 
 /* ── Major Events card ──────────────────────────────────────────────────── */
 .fp-event-col-header {
-    -fx-border-color: transparent transparent rgba(42,138,122,0.22) transparent;
+    -fx-border-color: transparent transparent -brand-mid-22 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 4 10 6 10;
 }
 .fp-event-row {
-    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-color: transparent transparent -brand-mid-12 transparent;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 8 10 8 10;
 }
@@ -97,7 +98,7 @@
 /* Events total row — subtle teal surface like table-footer */
 .fp-events-total-row {
     -fx-background-color: -surface-hover;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
     -fx-border-width: 1;

@@ -4,7 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.MainWindow;
-//import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -87,7 +87,7 @@ public class AccountsScreen {
         content.getChildren().addAll(
                 titleRow,
                 buildFavouritesGroup(favourites),
-                buildGroup("Bank Accounts",   "#3db89a",
+                buildGroup("Bank Accounts",   UiUtils.HEX_BRAND_LIGHT,
                         (showClosedBank.isSelected() ? ds.getAllBankAccounts()       : ds.getBankAccounts())
                                 .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
                         "bank", showClosedBank, ds.getAllBankAccounts()),
@@ -99,7 +99,7 @@ public class AccountsScreen {
                         (showClosedLoan.isSelected()  ? ds.getAllLoanAccounts()       : ds.getActiveLoanAccounts())
                                 .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
                         "loan", showClosedLoan, ds.getAllLoanAccounts()),
-                buildGroup("Investments",     "#f0a500",
+                buildGroup("Investments",     UiUtils.HEX_BRAND_ACCENT,
                         (showClosedInvestment.isSelected() ? ds.getAllInvestmentAccounts() : ds.getInvestmentAccounts())
                                 .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
                         "investment", showClosedInvestment, ds.getAllInvestmentAccounts())
@@ -195,7 +195,7 @@ public class AccountsScreen {
         chevron.getStyleClass().addAll("filter-label", "icon-sm");
 
         Circle dot = new Circle(4);
-        dot.setFill(Color.web("#f0a500"));
+        dot.setFill(Color.web(UiUtils.HEX_BRAND_ACCENT));
 
         Label h = new Label("FAVOURITES");
         h.getStyleClass().add("filter-label");

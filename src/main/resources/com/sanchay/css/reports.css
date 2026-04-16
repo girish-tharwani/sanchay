@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Sanchay — screens/reports.css   (Cash Flow Forecast tab + Reports screen)
+   Sanchay — reports.css   (Cash Flow Forecast tab + Reports screen)
+   Loaded globally by MainWindow and UiUtils — not scoped to a single screen.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Chart series colours ────────────────────────────────────────────────── */
@@ -13,14 +14,14 @@
 
 /* Chart plot area */
 .cash-flow-chart .chart-plot-background { -fx-background-color: -surface-card; }
-.cash-flow-chart .chart-vertical-grid-lines { -fx-stroke: rgba(42,138,122,0.08); }
-.cash-flow-chart .chart-horizontal-grid-lines { -fx-stroke: rgba(42,138,122,0.10); }
+.cash-flow-chart .chart-vertical-grid-lines { -fx-stroke: -brand-mid-08; }
+.cash-flow-chart .chart-horizontal-grid-lines { -fx-stroke: -brand-mid-10; }
 .cash-flow-chart .axis { -fx-tick-label-fill: -text-muted; -fx-font-size: 11px; }
 
 /* ── Summary strip ───────────────────────────────────────────────────────── */
 .cash-flow-summary-strip {
-    -fx-background-color: rgba(42,138,122,0.07);
-    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-background-color: -brand-mid-07;
+    -fx-border-color: -brand-mid-18;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 8 14 8 14;
@@ -32,7 +33,7 @@
 /* ── Stat cards ──────────────────────────────────────────────────────────── */
 .cash-flow-stat-card {
     -fx-background-color: -surface-card;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-radius: 12px;
     -fx-background-radius: 12px;
     -fx-padding: 16 18 16 22;
@@ -40,7 +41,7 @@
 }
 .cash-flow-compact-stat-card {
     -fx-background-color: -surface-card;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 6 12 6 12;
@@ -91,7 +92,7 @@
 /* ── Forecast table ──────────────────────────────────────────────────────── */
 .forecast-table {
     -fx-background-color: -surface-card;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-radius: 12px;
     -fx-background-radius: 12px;
     -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.07), 8, 0, 0, 2);
@@ -174,7 +175,7 @@
 }
 .forecast-tab-pane > .tab-header-area > .headers-region > .tab:selected {
     -fx-border-color: -brand-mid;
-    -fx-background-color: rgba(42,138,122,0.06);
+    -fx-background-color: -brand-mid-06;
 }
 .forecast-tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
     -fx-font-size: 13px;
@@ -186,7 +187,7 @@
 }
 .forecast-tab-pane > .tab-header-area {
     -fx-border-width: 0 0 1 0;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-background-color: transparent;
     -fx-padding: 0 0 0 0;
 }
@@ -216,7 +217,7 @@
     -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-text-fill: -brand-mid;
-    -fx-background-color: rgba(42,138,122,0.10);
+    -fx-background-color: -brand-mid-10;
     -fx-background-radius: 12px;
     -fx-padding: 3 12 3 12;
 }

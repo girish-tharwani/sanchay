@@ -3,7 +3,7 @@ package com.sanchay.ui.categories;
 import com.sanchay.model.Category;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.common.SingleInputDialog;
-//import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -64,7 +64,7 @@ public class CategoriesScreen {
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
-                javafx.scene.paint.Color.web("#3db89a"));
+                javafx.scene.paint.Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
         h.getStyleClass().add("section-group-label");
         Region sp = new Region();

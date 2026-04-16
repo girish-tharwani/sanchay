@@ -13,11 +13,21 @@
 .card {
     -fx-background-color: -surface-card;
     -fx-background-radius: 12px;
-    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-color: -brand-mid-18;
     -fx-border-radius: 12px;
     -fx-border-width: 1px;
     -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
     -fx-padding: 16px;
+}
+
+/* No-padding card variant — for chart/table containers that fill the card edge-to-edge */
+.card-wrapper {
+    -fx-background-color: -surface-card;
+    -fx-background-radius: 12px;
+    -fx-border-color: -brand-mid-18;
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
 }
 
 .card-title {
@@ -49,7 +59,7 @@
 .table-view .column-header,
 .table-view .filler {
     -fx-background-color: white;
-    -fx-border-color: transparent transparent rgba(42,138,122,0.22) transparent;
+    -fx-border-color: transparent transparent -brand-mid-22 transparent;
     -fx-border-width: 0 0 1px 0;
     -fx-size: 36px;
 }
@@ -71,7 +81,7 @@
 .table-row-cell,
 .table-row-cell:odd,
 .table-row-cell:even {
-    -fx-background-color: rgba(42,138,122,0.08), white;
+    -fx-background-color: -brand-mid-08, white;
     -fx-background-insets: 0, 0 0 1 0;
     -fx-cell-size: 42px;
 }
@@ -80,7 +90,7 @@
 .table-row-cell:selected,
 .table-row-cell:odd:selected,
 .table-row-cell:even:selected {
-    -fx-background-color: rgba(42,138,122,0.08), -brand-mid;
+    -fx-background-color: -brand-mid-08, -brand-mid;
     -fx-background-insets: 0, 0 0 1 0;
 }
 
@@ -127,7 +137,7 @@
 .table-card {
     -fx-background-color: white;
     -fx-background-radius: 14px;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-radius: 14px;
     -fx-border-width: 1px;
     -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
@@ -136,7 +146,7 @@
 /* ── Table footer bar ────────────────────────────────────────────────────── */
 .table-footer {
     -fx-background-color: -surface-subtle;
-    -fx-border-color: rgba(42,138,122,0.15) transparent transparent transparent;
+    -fx-border-color: -brand-mid-15 transparent transparent transparent;
     -fx-border-width: 1px 0 0 0;
     -fx-padding: 10px 16px;
 }
@@ -165,7 +175,7 @@
     -fx-background-color: -surface-field;
     -fx-text-fill: -brand-dark;
     -fx-background-radius: 8px;
-    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-color: -brand-mid-30;
     -fx-border-radius: 8px;
     -fx-border-width: 1px;
     -fx-cursor: hand;
@@ -195,7 +205,7 @@
 /* ── Small icon button (ℹ ☰ etc.) ───────────────────────────────────────── */
 .btn-icon {
     -fx-background-color: -surface-field;
-    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-color: -brand-mid-22;
     -fx-border-radius: 7px;
     -fx-background-radius: 7px;
     -fx-border-width: 1px;
@@ -238,7 +248,7 @@
     -fx-min-width: 28; -fx-max-width: 28;
     -fx-min-height: 28; -fx-max-height: 28;
     -fx-background-radius: 7;
-    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-color: -brand-mid-30;
     -fx-border-radius: 7;
     -fx-border-width: 1;
     -fx-cursor: hand;
@@ -302,7 +312,7 @@
 }
 .tab-pane .tab-header-area .tab-header-background {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent rgba(42,138,122,0.25) transparent;
+    -fx-border-color: transparent transparent -brand-mid-25 transparent;
     -fx-border-width: 0 0 1px 0;
 }
 .tab-pane .tab {
@@ -427,7 +437,7 @@
     -fx-background-color: -surface-field;
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
-    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-color: -brand-mid-22;
     -fx-border-width: 1px;
     -fx-padding: 6px 10px;
 }
@@ -442,7 +452,7 @@
     -fx-background-color: -surface-field;
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
-    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-color: -brand-mid-22;
     -fx-border-width: 1px;
     -fx-padding: 4px 4px 4px 10px;
     -fx-text-fill: -text-primary;
@@ -516,7 +526,7 @@
     -fx-background-color: -surface-field;
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
-    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-color: -brand-mid-22;
     -fx-border-width: 1px;
     -fx-padding: 0;                    /* remove Modena outer padding that inflates height */
 }
@@ -539,7 +549,7 @@
 }
 .spinner .increment-arrow-button:hover,
 .spinner .decrement-arrow-button:hover {
-    -fx-background-color: rgba(42,138,122,0.10);
+    -fx-background-color: -brand-mid-10;
 }
 .spinner .increment-arrow,
 .spinner .decrement-arrow {
@@ -549,7 +559,7 @@
 /* ── DatePicker popup calendar ───────────────────────────────────────────── */
 .date-picker-popup {
     -fx-background-color: white;
-    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-color: -brand-mid-25;
     -fx-border-radius: 10px;
     -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.14), 12, 0, 0, 3);
 }
@@ -618,7 +628,7 @@
 /* No background; items are separated by a subtle bottom border */
 .pending-item {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-color: transparent transparent -brand-mid-18 transparent;
     -fx-border-width: 0 0 1px 0;
     -fx-padding: 11px 16px;
 }
@@ -626,7 +636,7 @@
 /* ── Dialog pane ─────────────────────────────────────────────────────────── */
 .dialog-pane {
     -fx-background-color: white;
-    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-color: -brand-mid-25;
     -fx-border-width: 1px;
     -fx-border-radius: 14px;
     -fx-background-radius: 14px;
@@ -634,7 +644,7 @@
 
 .dialog-pane .header-panel {
     -fx-background-color: -surface-hover;
-    -fx-border-color: transparent transparent rgba(42,138,122,0.18) transparent;
+    -fx-border-color: transparent transparent -brand-mid-18 transparent;
     -fx-border-width: 0 0 1px 0;
 }
 
@@ -655,7 +665,7 @@
 
 .dialog-pane .button-bar {
     -fx-background-color: -surface-hover;
-    -fx-border-color: rgba(42,138,122,0.18) transparent transparent transparent;
+    -fx-border-color: -brand-mid-18 transparent transparent transparent;
     -fx-border-width: 1px 0 0 0;
     -fx-padding: 10px 14px;
 }
@@ -663,7 +673,7 @@
 .dialog-pane .button-bar .button {
     -fx-background-color: -surface-field;
     -fx-text-fill: -brand-mid;
-    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-color: -brand-mid-30;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-border-width: 1px;
@@ -687,7 +697,7 @@
 /* Header bar above dialog content (light surface + bottom border) */
 .dialog-header-bar {
     -fx-background-color: -surface-subtle;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 14 20 14 20;
 }
@@ -700,8 +710,8 @@
 
 /* Teal icon box inside dialog headers (28×28 rounded square) */
 .dialog-icon-box {
-    -fx-background-color: rgba(42,138,122,0.12);
-    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-background-color: -brand-mid-12;
+    -fx-border-color: -brand-mid-30;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
     -fx-min-width: 28; -fx-min-height: 28;
@@ -757,14 +767,14 @@
 /* ── Inline card separators ──────────────────────────────────────────────── */
 /* Teal-dark 1px line — separates header from content inside a card */
 .sep-teal {
-    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-background-color: -brand-mid-12;
     -fx-pref-height: 1;
     -fx-max-height: 1;
 }
 
 /* Teal-faint 1px line — used between items in a dialog or content block */
 .content-divider {
-    -fx-background-color: rgba(42,138,122,0.15);
+    -fx-background-color: -brand-mid-15;
     -fx-pref-height: 1;
     -fx-max-height: 1;
 }
@@ -773,7 +783,7 @@
 /* Static parts of summary cards; dynamic stripe is set inline in Java */
 .card-summary {
     -fx-background-radius: 12, 12;
-    -fx-border-color: rgba(42,138,122,0.18);
+    -fx-border-color: -brand-mid-18;
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-effect: dropshadow(gaussian, rgba(15,61,74,0.08), 12, 0, 0, 2);
@@ -785,7 +795,7 @@
     -fx-background-color: -brand-light, white;
     -fx-background-insets: 0, 0 0 0 4;
     -fx-background-radius: 12, 12;
-    -fx-border-color: rgba(42,138,122,0.25);
+    -fx-border-color: -brand-mid-25;
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-padding: 20 24 20 24;
@@ -796,7 +806,7 @@
 .info-box {
     -fx-background-color: -surface-subtle;
     -fx-background-radius: 8;
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
     -fx-border-radius: 8;
     -fx-border-width: 1;
 }
@@ -804,7 +814,7 @@
 /* ── Match-dialog components ─────────────────────────────────────────────── */
 /* Imported transaction block (left teal accent stripe) */
 .block-imported {
-    -fx-background-color: rgba(42,138,122,0.12), -surface-teal-faint;
+    -fx-background-color: -brand-mid-12, -surface-teal-faint;
     -fx-background-insets: 0, 0 0 0 4;
     -fx-background-radius: 8, 6;
     -fx-padding: 10 12 10 14;
@@ -815,14 +825,14 @@
     -fx-background-color: -surface-teal-faint;
     -fx-background-radius: 8;
     -fx-padding: 10 12;
-    -fx-border-color: rgba(42,138,122,0.22);
+    -fx-border-color: -brand-mid-22;
     -fx-border-radius: 8;
     -fx-border-width: 1;
 }
 
 /* Match candidate row — selected */
 .match-row-selected {
-    -fx-background-color: rgba(42,138,122,0.10), -surface-teal-faint;
+    -fx-background-color: -brand-mid-10, -surface-teal-faint;
     -fx-background-radius: 8;
     -fx-padding: 10 12;
     -fx-border-color: -brand-mid;
@@ -924,7 +934,7 @@
 }
 .combo-locked .combo-box-base {
     -fx-background-color: derive(-surface-field, -8%);
-    -fx-border-color: rgba(42,138,122,0.15);
+    -fx-border-color: -brand-mid-15;
 }
 .combo-locked .combo-box-base > .list-cell {
     -fx-text-fill: -text-secondary;
@@ -944,13 +954,13 @@
     -fx-min-width: 30; -fx-min-height: 30;
     -fx-max-width: 30; -fx-max-height: 30;
     -fx-alignment: center;
-    -fx-effect: dropshadow(gaussian, rgba(42,138,122,0.35), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, -brand-mid-35, 8, 0, 0, 2);
 }
 
 /* ── Nav-hint chip (keyboard shortcut / screen-name pill) ────────────────── */
 .nav-hint {
     -fx-background-color: -surface-field;
-    -fx-border-color: rgba(42,138,122,0.30);
+    -fx-border-color: -brand-mid-30;
     -fx-border-radius: 5;
     -fx-background-radius: 5;
     -fx-padding: 1 7 1 7;
@@ -963,7 +973,7 @@
 .chip-teal {
     -fx-font-size: 10px;
     -fx-font-weight: 700;
-    -fx-background-color: rgba(42,138,122,0.12);
+    -fx-background-color: -brand-mid-12;
     -fx-text-fill: -brand-mid;
     -fx-background-radius: 12;
     -fx-padding: 2 8;
@@ -1008,7 +1018,7 @@
 }
 /* Bottom-border divider row — used between import result lines */
 .divider-row-bottom {
-    -fx-border-color: transparent transparent rgba(42,138,122,0.12) transparent;
+    -fx-border-color: transparent transparent -brand-mid-12 transparent;
     -fx-border-width: 1;
 }
 
@@ -1068,7 +1078,7 @@
 
 /* ── Vertical filter-bar separator (1px hairline) ────────────────────────── */
 .filter-separator {
-    -fx-background-color: rgba(42,138,122,0.18);
+    -fx-background-color: -brand-mid-18;
     -fx-pref-width: 1;
     -fx-min-width: 1;
     -fx-max-width: 1;
