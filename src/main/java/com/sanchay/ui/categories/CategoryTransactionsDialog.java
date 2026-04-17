@@ -4,6 +4,7 @@ import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.TransactionTableBuilder;
 import com.sanchay.ui.transactions.TransactionDialog;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -11,7 +12,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,8 +20,6 @@ import java.util.List;
  * Double-clicking a row (or pressing Enter) opens {@link TransactionDialog} for inline editing.
  */
 class CategoryTransactionsDialog {
-
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
     private final Category cat;
 
@@ -77,66 +75,7 @@ class CategoryTransactionsDialog {
             table.setMinHeight(200);
             table.setMaxHeight(Double.MAX_VALUE);
             VBox.setVgrow(table, Priority.ALWAYS);
-
-            TableColumn<Transaction, String> dateCol = new TableColumn<>("DATE");
-            dateCol.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(c.getValue().getDate().format(DATE_FMT)));
-            dateCol.setPrefWidth(100);
-
-            TableColumn<Transaction, String> descCol = new TableColumn<>("DESCRIPTION");
-            descCol.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(c.getValue().getDescription()));
-            descCol.setPrefWidth(200);
-            descCol.setCellFactory(tc -> {
-                TableCell<Transaction, String> cell = new TableCell<>() {
-                    @Override protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty); setText(empty || item == null ? null : item);
-                    }
-                };
-                cell.getStyleClass().add("cell-desc");
-                return cell;
-            });
-
-            TableColumn<Transaction, Void> typeCol = new TableColumn<>("TYPE");
-            typeCol.setPrefWidth(95);
-            typeCol.setCellFactory(tc -> new TableCell<>() {
-                @Override protected void updateItem(Void item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
-                    setGraphic(UiUtils.typeBadge(getTableRow().getItem().getType()));
-                }
-            });
-
-            TableColumn<Transaction, String> accountCol = new TableColumn<>("ACCOUNT");
-            accountCol.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(
-                            ds.getAccountName(
-                                    c.getValue().getFromAccountId() != null
-                                            ? c.getValue().getFromAccountId()
-                                            : c.getValue().getToAccountId())));
-            accountCol.setPrefWidth(130);
-
-            TableColumn<Transaction, String> subCatCol = new TableColumn<>("SUB-CATEGORY");
-            subCatCol.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(
-                            ds.getCategoryName(c.getValue().getClassification() != null
-                                    ? c.getValue().getClassification().getSubCategoryId() : null)));
-            subCatCol.setPrefWidth(120);
-
-            TableColumn<Transaction, String> amtCol = new TableColumn<>("AMOUNT");
-            amtCol.setCellValueFactory(c ->
-                    new javafx.beans.property.SimpleStringProperty(
-                            c.getValue().getTypedSignedAmountInr()));
-            amtCol.setPrefWidth(100);
-            amtCol.setCellFactory(tc -> {
-                TableCell<Transaction, String> cell = new TableCell<>() {
-                    @Override protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty); setText(empty || item == null ? null : item);
-                    }
-                };
-                cell.getStyleClass().add("cell-amt");
-                return cell;
-            });
+            table.getColumns().addAll(TransactionTableBuilder.buildStandardColumns(ds, true, true));
 
             final List<String> finalCatIds = catIds;
             Runnable refreshTable = () -> {
@@ -174,7 +113,6 @@ class CategoryTransactionsDialog {
                 }
             });
 
-            table.getColumns().addAll(dateCol, descCol, typeCol, accountCol, subCatCol, amtCol);
             table.getItems().addAll(txns);
 
             content.getChildren().addAll(countLbl, table, UiUtils.hintLabel("Double-click a row to edit"));

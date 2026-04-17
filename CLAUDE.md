@@ -102,6 +102,9 @@ Each dialog has its own class. Extracted dialog classes by package:
 
 **`ui/common/`**
 - `SingleInputDialog` — generic single text-field dialog
+- `AccountCombos` — static `style(cb)` utility; applies name cell factory + button cell to any `ComboBox<? extends Account>`; use on every account ComboBox instead of inline cell factory
+- `CategoryComboWiring` — static `wire(catCb, subCatCb, subMaster, ds)` and `styleSubCatCombo(cb)`; handles "└ name" display and the category→sub-category cascade listener; use instead of inline duplication
+- `TransactionTableBuilder` — static `buildStandardColumns(ds, showAccount, showSubCategory)`; returns the standard DATE/DESCRIPTION/TYPE/ACCOUNT/SUB-CATEGORY/AMOUNT column list for `TableView<Transaction>`
 
 **`ui/reports/`**
 - `ReportsScreen` — thin coordinator; owns the `TabPane` and calls `refresh()` on each tab class on every navigation

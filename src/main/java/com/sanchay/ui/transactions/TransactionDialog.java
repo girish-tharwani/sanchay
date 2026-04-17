@@ -4,6 +4,8 @@ import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -573,18 +575,8 @@ public class TransactionDialog extends Dialog<Transaction> {
         cb.setPromptText("Select account");
         ds.getBankAccounts().forEach(cb.getItems()::add);
         if (includeCreditCards) ds.getCreditCardAccounts().forEach(cb.getItems()::add);
-        styleAccountCombo(cb);
+        AccountCombos.style(cb);
         return cb;
-    }
-
-    private void styleAccountCombo(ComboBox<Account> cb) {
-        cb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(Account a, boolean empty) {
-                super.updateItem(a, empty);
-                setText(empty || a == null ? null : a.getName());
-            }
-        });
-        cb.setButtonCell(cb.getCellFactory().call(null));
     }
 
     ComboBox<String> payModeCombo() {
@@ -617,45 +609,14 @@ public class TransactionDialog extends Dialog<Transaction> {
         cb.setPromptText("Select sub-category (optional)");
         cb.setVisible(false);
         cb.setManaged(false);
-        cb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(Category c, boolean empty) {
-                super.updateItem(c, empty);
-                setText(empty || c == null ? null : "  └ " + c.getName());
-                setStyle(empty || c == null ? "" : "-fx-text-fill: -text-label;");
-            }
-        });
         return cb;
     }
 
     void wireCategory(ComboBox<Category> catCb, List<Category> catMaster,
                       ComboBox<Category> subCatCb, List<Category> subMaster) {
-        wireCatSubCat(catCb, subCatCb, subMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subMaster, ds);
         UiUtils.wireAutoComplete(catCb,    catMaster);
         UiUtils.wireAutoComplete(subCatCb, subMaster);
-    }
-
-    private void wireCatSubCat(ComboBox<Category> catCb, ComboBox<Category> subCatCb,
-                                List<Category> subMaster) {
-        catCb.valueProperty().addListener((obs, old, sel) -> {
-            subCatCb.getItems().clear();
-            subCatCb.setValue(null);
-            if (sel != null) {
-                List<Category> subs = ds.getSubCategories(sel.getId());
-                if (!subs.isEmpty()) {
-                    subCatCb.getItems().addAll(subs);
-                    subCatCb.setVisible(true);
-                    subCatCb.setManaged(true);
-                } else {
-                    subCatCb.setVisible(false);
-                    subCatCb.setManaged(false);
-                }
-            } else {
-                subCatCb.setVisible(false);
-                subCatCb.setManaged(false);
-            }
-            subMaster.clear();
-            subMaster.addAll(subCatCb.getItems());
-        });
     }
 
     void resizeDialog(double prefWidth) {

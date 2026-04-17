@@ -2,6 +2,7 @@ package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
 import com.sanchay.service.MoneyFormatter;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -44,13 +45,7 @@ class RedeemPanel {
         fromCb.setMaxWidth(Double.MAX_VALUE);
         fromCb.setPromptText("Select investment account");
         parent.ds.getInvestmentAccounts().forEach(fromCb.getItems()::add);
-        fromCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(InvestmentAccount ia, boolean empty) {
-                super.updateItem(ia, empty);
-                setText(empty || ia == null ? null : ia.getName());
-            }
-        });
-        fromCb.setButtonCell(fromCb.getCellFactory().call(null));
+        AccountCombos.style(fromCb);
 
         toCb = parent.accountCombo(false); // bank accounts only
         parent.setNodeId(toCb, "txn-redeem-to-account-combo");

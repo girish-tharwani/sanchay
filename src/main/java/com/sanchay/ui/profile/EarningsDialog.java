@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -128,20 +129,9 @@ public class EarningsDialog extends Dialog<Boolean> {
         refs.sourceNameFld.textProperty().addListener((o, ov, nv) ->
                 tab.setText(nv.isBlank() ? "Income" : nv));
 
-        GridPane nameGrid = new GridPane();
-        nameGrid.setHgap(12);
-        nameGrid.setVgap(10);
+        GridPane nameGrid = UiUtils.buildFormGrid(160);
         nameGrid.setPadding(new Insets(12, 16, 8, 16));
-        ColumnConstraints nc1 = new ColumnConstraints(160);
-        ColumnConstraints nc2 = new ColumnConstraints();
-        nc2.setHgrow(Priority.ALWAYS);
-        nameGrid.getColumnConstraints().addAll(nc1, nc2);
-        Label nameLbl = new Label("Source Name*");
-        nameLbl.getStyleClass().add("text-form-value");
-        nameLbl.setMinWidth(155);
-        nameGrid.add(nameLbl, 0, 0);
-        nameGrid.add(refs.sourceNameFld, 1, 0);
-        GridPane.setFillWidth(refs.sourceNameFld, true);
+        row(nameGrid, 0, "Source Name*", refs.sourceNameFld);
 
         Node formContent = src.getType() == FamilyMember.EarningType.SALARY
                 ? buildSalaryForm(src, refs)
@@ -166,12 +156,9 @@ public class EarningsDialog extends Dialog<Boolean> {
         Dialog<EarningSource> dlg = new Dialog<>();
         UiUtils.initDialog(dlg, "Add Income Source", "+", 380);
 
-        GridPane g = new GridPane();
-        g.setHgap(12); g.setVgap(12);
+        GridPane g = UiUtils.buildFormGrid(130);
+        g.setVgap(12);
         g.setPadding(new Insets(16));
-        ColumnConstraints c1 = new ColumnConstraints(130);
-        ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
-        g.getColumnConstraints().addAll(c1, c2);
 
         TextField nameFld = tf("");
         nameFld.setPromptText("e.g. Main Job, Freelance...");
@@ -181,10 +168,8 @@ public class EarningsDialog extends Dialog<Boolean> {
         typeCb.setValue("Simple Income");
         typeCb.setMaxWidth(Double.MAX_VALUE);
 
-        Label l1 = new Label("Source Name*"); l1.getStyleClass().add("text-form-value"); l1.setMinWidth(125);
-        Label l2 = new Label("Type*");        l2.getStyleClass().add("text-form-value"); l2.setMinWidth(125);
-        g.add(l1, 0, 0); g.add(nameFld, 1, 0); GridPane.setFillWidth(nameFld, true);
-        g.add(l2, 0, 1); g.add(typeCb,  1, 1);
+        row(g, 0, "Source Name*", nameFld);
+        row(g, 1, "Type*", typeCb);
 
         dlg.getDialogPane().setContent(g);
         ButtonType addBtn = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
@@ -716,6 +701,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         cb.setMaxWidth(Double.MAX_VALUE);
         cb.setPromptText("Select bank account");
         ds.getBankAccounts().forEach(cb.getItems()::add);
+        AccountCombos.style(cb);
         return cb;
     }
 
@@ -746,6 +732,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         ds.getInvestmentAccounts().stream()
                 .filter(a -> a.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND)
                 .forEach(cb.getItems()::add);
+        AccountCombos.style(cb);
         return cb;
     }
 
@@ -765,6 +752,7 @@ public class EarningsDialog extends Dialog<Boolean> {
         ds.getInvestmentAccounts().stream()
                 .filter(a -> a.getInvestmentType() == InvestmentAccount.InvestmentType.EQUITY)
                 .forEach(cb.getItems()::add);
+        AccountCombos.style(cb);
         return cb;
     }
 

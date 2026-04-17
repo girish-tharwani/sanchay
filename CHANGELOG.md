@@ -1,3 +1,15 @@
+## v0.0.6-Myna — 2026-04-17
+
+### Added
+- `ui/common/AccountCombos`: utility for consistent account combo display (name cell factory + button cell); applied across all account ComboBoxes in transaction panels, recurring dialogs, and earnings forms
+- `ui/common/CategoryComboWiring`: utility encapsulating the category → sub-category cascade listener and "└ name" sub-category cell styling; replaces inline duplication in `TransactionDialog` and `AddEditRecurringDialog`
+- `ui/common/TransactionTableBuilder`: utility producing standard transaction table columns (DATE, DESCRIPTION, TYPE, ACCOUNT, SUB-CATEGORY, AMOUNT); used in `CategoryTransactionsDialog`
+
+### Changed
+- `EarningsDialog`: raw `GridPane` + `ColumnConstraints` construction in `buildSourceTab` and `showAddSourceDialog` replaced with `UiUtils.buildFormGrid()`
+- `CategoryTransactionsDialog`: column setup replaced with `TransactionTableBuilder.buildStandardColumns()`; date column now respects user's date format preference instead of hardcoded "dd MMM yyyy"
+- `TransactionDialog`: removed private `styleAccountCombo()` and `wireCatSubCat()` methods; delegates to `AccountCombos` and `CategoryComboWiring` utilities
+
 ## v0.0.5-Myna — 2026-04-16
 
 ### Changed

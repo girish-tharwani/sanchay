@@ -3,6 +3,7 @@ package com.sanchay.ui.transactions;
 import com.sanchay.model.*;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.MoneyFormatter;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -50,13 +51,7 @@ class LoanPaymentPanel {
         toCb.setMaxWidth(Double.MAX_VALUE);
         toCb.setPromptText("Select loan account");
         parent.ds.getActiveLoanAccounts().forEach(toCb.getItems()::add);
-        toCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(LoanAccount la, boolean empty) {
-                super.updateItem(la, empty);
-                setText(empty || la == null ? null : la.getName());
-            }
-        });
-        toCb.setButtonCell(toCb.getCellFactory().call(null));
+        AccountCombos.style(toCb);
 
         modeCb        = parent.payModeCombo();
         parent.setNodeId(modeCb, "txn-loan-payment-mode-combo");

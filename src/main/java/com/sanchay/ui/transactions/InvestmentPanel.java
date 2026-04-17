@@ -2,6 +2,7 @@ package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -63,13 +64,7 @@ class InvestmentPanel {
         destCb.setMaxWidth(Double.MAX_VALUE);
         destCb.setPromptText("Select investment account");
         parent.ds.getInvestmentAccounts().forEach(destCb.getItems()::add);
-        destCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(InvestmentAccount ia, boolean empty) {
-                super.updateItem(ia, empty);
-                setText(empty || ia == null ? null : ia.getName());
-            }
-        });
-        destCb.setButtonCell(destCb.getCellFactory().call(null));
+        AccountCombos.style(destCb);
         destCb.valueProperty().addListener((obs, old, ia) ->
                 refreshDynamicFields(ia == null ? null : ia.getInvestmentType()));
 

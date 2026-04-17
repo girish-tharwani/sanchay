@@ -4,6 +4,8 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -112,12 +114,14 @@ public class AddEditRecurringDialog {
         DataStore ds = DataStore.getInstance();
         ComboBox<Account> accountCb = new ComboBox<>();
         accountCb.setMaxWidth(Double.MAX_VALUE);
+        AccountCombos.style(accountCb);
 
         // ── To Account controls ───────────────────────────────────────────────
         ComboBox<Account> transferToCb = new ComboBox<>();
         transferToCb.setPromptText("Select destination account");
         transferToCb.setMaxWidth(Double.MAX_VALUE);
         ds.getBankAccounts().forEach(transferToCb.getItems()::add);
+        AccountCombos.style(transferToCb);
 
         ComboBox<InvestmentAccount> invDestCb = new ComboBox<>();
         invDestCb.setPromptText("Select investment account");
@@ -143,11 +147,13 @@ public class AddEditRecurringDialog {
         ccpCardCb.setPromptText("Select credit card");
         ccpCardCb.setMaxWidth(Double.MAX_VALUE);
         ds.getCreditCardAccounts().forEach(ccpCardCb.getItems()::add);
+        AccountCombos.style(ccpCardCb);
 
         ComboBox<Account> loanToCb = new ComboBox<>();
         loanToCb.setPromptText("Select loan account");
         loanToCb.setMaxWidth(Double.MAX_VALUE);
         ds.getActiveLoanAccounts().forEach(loanToCb.getItems()::add);
+        AccountCombos.style(loanToCb);
 
         // ── Investment type-specific fields ───────────────────────────────────
         TextField invSchemeFld        = new TextField();
@@ -243,42 +249,8 @@ public class AddEditRecurringDialog {
         subCatCb.setPromptText("Select sub-category (optional)");
         subCatCb.setVisible(false);
         subCatCb.setManaged(false);
-        subCatCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(Category item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : "  └ " + item.getName());
-                setStyle(empty || item == null ? "" : "-fx-text-fill: -text-label;");
-            }
-        });
-        subCatCb.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(Category item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : "  └ " + item.getName());
-            }
-        });
+        CategoryComboWiring.wire(catCb, subCatCb, subMaster, ds);
         UiUtils.wireAutoComplete(subCatCb, subMaster);
-
-        catCb.valueProperty().addListener((obs, old, sel) -> {
-            subCatCb.getItems().clear();
-            subCatCb.setValue(null);
-            subCatCb.getEditor().clear();
-            subMaster.clear();
-            if (sel != null) {
-                List<Category> subs = ds.getSubCategories(sel.getId());
-                if (!subs.isEmpty()) {
-                    subMaster.addAll(subs);
-                    subCatCb.getItems().setAll(subs);
-                    subCatCb.setVisible(true);
-                    subCatCb.setManaged(true);
-                } else {
-                    subCatCb.setVisible(false);
-                    subCatCb.setManaged(false);
-                }
-            } else {
-                subCatCb.setVisible(false);
-                subCatCb.setManaged(false);
-            }
-        });
 
         // ── Source Investment fields (INCOME + Interest category only) ───────
         Set<String> redeemedRefs = ds.getTransactions().stream()
@@ -294,6 +266,7 @@ public class AddEditRecurringDialog {
                         && (ia.getInvestmentType() == InvestmentAccount.InvestmentType.DEBT_BONDS
                          || ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT))
                 .forEach(srcInvestCb.getItems()::add);
+        AccountCombos.style(srcInvestCb);
 
         ComboBox<String> srcRefCb = new ComboBox<>();
         srcRefCb.setMaxWidth(Double.MAX_VALUE);

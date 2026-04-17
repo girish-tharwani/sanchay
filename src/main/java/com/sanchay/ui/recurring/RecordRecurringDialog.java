@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -77,6 +78,7 @@ public class RecordRecurringDialog {
                     fromAccountCb.setValue(fromAccountCb.getItems().get(0));
             }
             fromAccountCb.setMaxWidth(Double.MAX_VALUE);
+            AccountCombos.style(fromAccountCb);
             addDialogField(g, "From Account:", fromAccountCb, row++);
         }
 
@@ -104,6 +106,7 @@ public class RecordRecurringDialog {
             if (toAccountCb.getValue() == null && !toAccountCb.getItems().isEmpty())
                 toAccountCb.setValue(toAccountCb.getItems().get(0));
             toAccountCb.setMaxWidth(Double.MAX_VALUE);
+            AccountCombos.style(toAccountCb);
             addDialogField(g, "To Account:", toAccountCb, row++);
         }
 
