@@ -114,7 +114,7 @@ public class DataStore {
     public long getInvestedPaiseAsOf(InvestmentAccount ia, LocalDate asOf) {
         long invested = getBaseInvestedPaise(ia);
         for (Transaction t : transactions) {
-            if (t.getDate().isAfter(asOf)) continue;
+            if (t.getDate() == null || t.getDate().isAfter(asOf)) continue;
             if (t.getType() == Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
                 invested += t.getAmountPaise();
             if (t.getType() == Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {

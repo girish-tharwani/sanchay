@@ -1,3 +1,10 @@
+## v0.0.16-Myna — 2026-04-18
+
+### Fixed
+- `ExpensePatternAnalyzer` downgraded to package-private; not part of the public service API
+- `DataStore.getInvestedPaiseAsOf()`: null guard added for `t.getDate()`
+- `AppConfig.loadVersion()`: swallowed exception now logs to `System.err`
+
 ## v0.0.15-Myna — 2026-04-18
 
 ### Changed

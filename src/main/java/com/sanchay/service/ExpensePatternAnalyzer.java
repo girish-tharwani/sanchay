@@ -10,7 +10,7 @@ import java.util.*;
  * per-sub-category monthly averages, seasonal factors, and trend slope.
  * Pure computation; no UI dependencies.
  */
-public class ExpensePatternAnalyzer {
+class ExpensePatternAnalyzer {
 
     private final DataStore ds = DataStore.getInstance();
 
@@ -19,7 +19,7 @@ public class ExpensePatternAnalyzer {
      * {@link CashFlowProjectionService.ExpensePattern} per sub-category that
      * has at least 3 months of data.
      */
-    public List<CashFlowProjectionService.ExpensePattern> analyze() {
+    List<CashFlowProjectionService.ExpensePattern> analyze() {
         int analysisMonths = ds.getExpenseForecastAnalysisMonths();
         LocalDate analysisEnd   = LocalDate.now();
         LocalDate analysisStart = analysisEnd.minusMonths(analysisMonths);

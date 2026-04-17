@@ -50,7 +50,7 @@ public class AppConfig {
                 String v = props.getProperty("app.version");
                 if (v != null && !v.isBlank()) return v;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) { System.err.println("AppConfig: failed to load version.properties: " + e.getMessage()); }
         return "unknown";
     }
 
