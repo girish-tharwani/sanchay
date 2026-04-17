@@ -1,3 +1,9 @@
+## v0.0.12-Myna — 2026-04-17
+
+### Changed
+- `EarningsDialog` split: SIMPLE income form extracted to `SimpleEarningsPanel`; SALARY income form + deduction calculator extracted to `SalaryEarningsPanel`; recurring schedule create/update logic extracted to `EarningScheduleBuilder`; common form interface introduced as `EarningFormPanel` (step 2.5.2 of refactor plan)
+- `EarningsDialog` reduced from 902 to 273 lines; `SourceFormRefs` inner class removed
+
 ## v0.0.11-Myna — 2026-04-17
 
 ### Changed
