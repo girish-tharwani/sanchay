@@ -16,7 +16,6 @@ import java.io.*;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
@@ -71,146 +70,29 @@ public class TransactionsScreen {
         title.getStyleClass().add("screen-title");
         header.getChildren().addAll(back, title);
 
-        // Mutable stat labels — updated by refreshHeader after data changes
-        final Runnable[] refreshHeader = { null };
-
-        if (account instanceof CreditCardAccount cc) {
-            Label outstandingVal = new Label();
-            Label availableVal   = new Label();
-            outstandingVal.setId("txn-cc-outstanding-value");
-            availableVal.setId("txn-cc-available-value");
-            outstandingVal.getStyleClass().add("stat-value");
-            availableVal.getStyleClass().add("stat-value");
-
-            HBox ccSummary = new HBox(24);
-            ccSummary.getStyleClass().add("card");
-            ccSummary.setPadding(new Insets(12, 16, 12, 16));
-            ccSummary.setAlignment(Pos.CENTER_LEFT);
-            ccSummary.getChildren().addAll(
-                    ccStat("Credit Limit",  MoneyFormatter.format(cc.getCreditLimitPaise()), "-text-neutral"),
-                    ccStatWithLabel("Outstanding",   outstandingVal, "-color-expense"),
-                    ccStatWithLabel("Available",     availableVal,   "-color-income"),
-                    ccStat("Billing Date",  cc.getBillingCycleDate() + " of month", "-text-neutral"),
-                    ccStat("Payment Due",   cc.getPaymentDueDays() + " days after billing", "-text-neutral")
-            );
-            panel.getChildren().addAll(header, ccSummary);
-
-            refreshHeader[0] = () -> {
-                long out = DataStore.getInstance().getCreditCardOutstandingPaise(cc.getId());
-                long avail = Math.min(cc.getCreditLimitPaise(), cc.getCreditLimitPaise() - out);
-                outstandingVal.setText(MoneyFormatter.format(out));
-                availableVal.setText(MoneyFormatter.format(avail));
-            };
-        } else {
-            DataStore ds2 = DataStore.getInstance();
-            if (account instanceof BankAccount ba) {
-                Label balVal = new Label();
-                balVal.setId("txn-balance-value");
-                balVal.getStyleClass().add("stat-value");
-                Region spacer = new Region();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                header.getChildren().addAll(spacer, ccStatWithLabel("Balance", balVal, "-brand-dark"));
-                refreshHeader[0] = () -> {
-                    long bal = ba.getOpeningBalancePaise();
-                    for (Transaction t : DataStore.getInstance().getTransactions()) {
-                        if (ba.getId().equals(t.getFromAccountId())) bal -= t.getAmountPaise();
-                        if (ba.getId().equals(t.getToAccountId()))   bal += t.getAmountPaise();
-                    }
-                    balVal.setText(MoneyFormatter.format(bal));
-                };
-            } else if (account instanceof LoanAccount la) {
-                Label outVal = new Label();
-                outVal.setId("txn-loan-outstanding-value");
-                outVal.getStyleClass().add("stat-value");
-                Region spacer = new Region();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                header.getChildren().addAll(spacer, ccStatWithLabel("Outstanding", outVal, "-color-error"));
-                refreshHeader[0] = () -> {
-                    long outstanding = ds2.getLoanOutstandingPaise(la);
-                    outVal.setText(MoneyFormatter.formatNoDecimal(outstanding));
-                    outVal.setStyle("-fx-text-fill: " + (outstanding > 0 ? "-color-error" : "-brand-dark") + ";");
-                };
-            } else if (account instanceof InvestmentAccount ia) {
-                Label investedVal = new Label();
-                investedVal.setId("txn-invested-value");
-                investedVal.getStyleClass().add("stat-value");
-                if (isMarketValueAccount(ia)) {
-                    MarketValueEntry mv = ds2.getLatestMarketValue(ia.getId());
-                    if (mv != null) {
-                        Label mvVal = new Label();
-                        Label glVal = new Label();
-                        mvVal.setId("txn-market-value");
-                        glVal.setId("txn-gain-loss-value");
-                        mvVal.getStyleClass().add("stat-value");
-                        glVal.getStyleClass().add("stat-value");
-                        Region spacer2 = new Region();
-                        HBox.setHgrow(spacer2, Priority.ALWAYS);
-                        header.getChildren().addAll(
-                                spacer2,
-                                ccStatWithLabel("Market Value", mvVal, "-brand-dark"),
-                                ccStatWithLabel("Gain / Loss",  glVal, "-brand-dark")
-                        );
-                        refreshHeader[0] = () -> {
-                            MarketValueEntry latest = DataStore.getInstance().getLatestMarketValue(ia.getId());
-                            if (latest != null) {
-                                long gl = latest.getGainLossPaise();
-                                mvVal.setText(MoneyFormatter.formatNoDecimal(latest.getMarketValuePaise()));
-                                glVal.setText((gl >= 0 ? "+" : "") + MoneyFormatter.formatNoDecimal(Math.abs(gl)));
-                                glVal.setStyle("-fx-text-fill: " + (gl >= 0 ? "-color-income" : "-color-error") + ";");
-                            }
-                        };
-                    }
-                } else {
-                    Region spacer = new Region();
-                    HBox.setHgrow(spacer, Priority.ALWAYS);
-                    header.getChildren().addAll(spacer, ccStatWithLabel("Invested", investedVal, "-brand-dark"));
-                    refreshHeader[0] = () -> {
-                        long invested = ds2.getBaseInvestedPaise(ia);
-                        for (Transaction t : DataStore.getInstance().getTransactions()) {
-                            if (t.getType() == Transaction.Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
-                                invested += t.getAmountPaise();
-                            if (t.getType() == Transaction.Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
-                                long rdPrin = t.getRedeemDetails() != null ? t.getRedeemDetails().getPrincipalPaise() : 0;
-                                invested -= rdPrin > 0 ? rdPrin : t.getAmountPaise();
-                            }
-                        }
-                        investedVal.setText(MoneyFormatter.formatNoDecimal(Math.max(0, invested)));
-                    };
-                }
-            }
-            panel.getChildren().add(header);
-        }
-
-        // Run once to populate initial values
-        if (refreshHeader[0] != null) refreshHeader[0].run();
+        TransactionStatsPanel statsPanel = new TransactionStatsPanel(account);
+        statsPanel.addToLayout(header, panel);
 
         // ── Filters ────────────────────────────────────────────────────────────
         TextField search = new TextField();
         search.setId("txn-search-field");
-
         search.setPromptText("Search description or notes…");
         search.getStyleClass().add("filter-field");
         HBox.setHgrow(search, Priority.ALWAYS);
         search.setMaxWidth(Double.MAX_VALUE);
 
         DataStore ds = DataStore.getInstance();
-        // Get today's date
         LocalDate today = LocalDate.now();
 
-        // From date: 6 months before current month, first day
         YearMonth fromMonth = YearMonth.from(today).minusMonths(6);
         LocalDate fromDate = fromMonth.atDay(1);
-
-        // To date: 3 months after current month, last day
         YearMonth toMonth = YearMonth.from(today).plusMonths(3);
         LocalDate toDate = toMonth.atEndOfMonth();
 
-        // Create DatePickers
         DatePicker fromPicker = new DatePicker(fromDate);
         DatePicker toPicker   = new DatePicker(toDate);
         fromPicker.setId("txn-from-date-picker");
         toPicker.setId("txn-to-date-picker");
-
         fromPicker.setPrefWidth(130);
         toPicker.setPrefWidth(130);
         fromPicker.getStyleClass().add("filter-field");
@@ -271,7 +153,6 @@ public class TransactionsScreen {
         table.setId("txn-table");
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
-
         TableColumn<Transaction, LocalDate> dateCol = new TableColumn<>("DATE");
         dateCol.setPrefWidth(90);
         dateCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleObjectProperty<>(cd.getValue().getDate()));
@@ -309,7 +190,6 @@ public class TransactionsScreen {
             String secondId = account.getId().equals(t.getFromAccountId())
                     ? t.getToAccountId() : t.getFromAccountId();
             if (secondId == null && t.getGroupTransactionId() != null) {
-                // Resolve counterpart for REDEEM split transactions
                 String gid = t.getGroupTransactionId();
                 secondId = account.getId().equals(t.getFromAccountId())
                         ? groupToId.get(gid) : groupFromId.get(gid);
@@ -317,7 +197,6 @@ public class TransactionsScreen {
             String name = ds.getAccountName(secondId);
             return "—".equals(name) ? "" : name;
         });
-        // ── Account-type-specific columns (replace Category/Sub-category) ────────
         List<TableColumn<Transaction, ?>> specialtyCols = buildSpecialtyCols(account, ds);
 
         TableColumn<Transaction, Long> amtCol = new TableColumn<>("AMOUNT");
@@ -374,7 +253,7 @@ public class TransactionsScreen {
                 table.getItems().setAll(filtered);
                 table.sort();
             }
-            if (refreshHeader[0] != null) refreshHeader[0].run();
+            statsPanel.refresh();
         };
 
         search.textProperty().addListener((obs, o, n) -> applyFilter.run());
@@ -386,6 +265,8 @@ public class TransactionsScreen {
         applyFilter.run();
         navCtx.setOnTransactionSaved(applyFilter);
         navCtx.setContextAccount(account);
+
+        ImportOrchestrator importer = new ImportOrchestrator(account);
 
         // Double-click or Enter to edit / re-classify
         table.setRowFactory(tv -> {
@@ -429,119 +310,14 @@ public class TransactionsScreen {
                 if (clip == null || clip.isBlank()) return;
                 List<String[]> rows = ImportService.parseText(clip);
                 if (rows.isEmpty() || rows.get(0).length < 2) return;
-                doImportRows(rows, null, applyFilter);
+                importer.doImportRows(rows, null, applyFilter);
                 e.consume();
             }
         });
 
-        TableColumn<Transaction, Void> actionsCol = new TableColumn<>("");
-        actionsCol.setMinWidth(36);
-        actionsCol.setMaxWidth(36);
-        actionsCol.setCellFactory(tc -> new TableCell<>() {
-            private final Label deleteBtn = new Label("×");
-            {
-                deleteBtn.setId("txn-delete-action");
-                deleteBtn.getStyleClass().add("btn-row-remove");
-                deleteBtn.setTooltip(new Tooltip("Delete transaction"));
-                deleteBtn.setOnMouseClicked(e -> {
-                    Transaction t = getTableRow().getItem();
-                    if (t == null) return;
-                    if (showDeleteTxnConfirm(t)) {
-                        DataStore.getInstance().deleteTransaction(t.getId());
-                        applyFilter.run();
-                    }
-                });
-            }
-
-            @Override protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
-                deleteBtn.setId("txn-delete-action-" + sanitizeId(getTableRow().getItem().getId()));
-                setGraphic(deleteBtn);
-            }
-        });
-
-        TableColumn<Transaction, Void> srcCol = new TableColumn<>("");
-        srcCol.setMinWidth(32); srcCol.setMaxWidth(32);
-        srcCol.setCellFactory(tc -> new TableCell<>() {
-            @Override protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow().getItem() == null) { setGraphic(null); return; }
-                Transaction t = getTableRow().getItem();
-                Label badge = new Label();
-                switch (t.getSourceIndicator()) {
-                    case IMPORTED -> {
-                        badge.setText("I");
-                        badge.getStyleClass().add("badge-imported");
-                        badge.setTooltip(new Tooltip("Imported from file — right-click to merge with existing"));
-                        ContextMenu cm = new ContextMenu();
-                        MenuItem mergeItem = new MenuItem("Merge with existing…");
-                        mergeItem.setOnAction(ev -> openMergeDialog(t, applyFilter));
-                        cm.getItems().add(mergeItem);
-                        badge.setContextMenu(cm);
-                    }
-                    case AUTO_CATEGORIZED -> {
-                        badge.setText("?");
-                        badge.getStyleClass().add("badge-auto-cat");
-                        // Build tooltip showing what was auto-suggested
-                        StringBuilder tip = new StringBuilder();
-                        boolean isTypeSuggested = t.getType() != Transaction.Type.EXPENSE
-                                                && t.getType() != Transaction.Type.INCOME;
-                        if (isTypeSuggested) {
-                            tip.append("Type auto-filled: ").append(t.getType().toString());
-                            String secondId = account.getId().equals(t.getFromAccountId())
-                                    ? t.getToAccountId() : t.getFromAccountId();
-                            String acctName = ds.getAccountName(secondId);
-                            if (!"—".equals(acctName)) tip.append(" → ").append(acctName);
-                        } else {
-                            tip.append("Category auto-filled");
-                            String tipCatId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
-                            String tipSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
-                            if (tipCatId != null)
-                                tip.append(": ").append(ds.getCategoryName(tipCatId));
-                            if (tipSubCatId != null)
-                                tip.append(" / ").append(ds.getCategoryName(tipSubCatId));
-                        }
-                        tip.append("\nLeft-click to accept · Right-click to merge with existing");
-                        badge.setTooltip(new Tooltip(tip.toString()));
-                        badge.setOnMouseClicked(e -> {
-                            if (e.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
-                                t.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
-                                DataStore.getInstance().saveTransactionsNow();
-                                applyFilter.run();
-                                e.consume();
-                            }
-                        });
-                        ContextMenu cmAc = new ContextMenu();
-                        MenuItem mergeItemAc = new MenuItem("Merge with existing…");
-                        mergeItemAc.setOnAction(ev -> openMergeDialog(t, applyFilter));
-                        cmAc.getItems().add(mergeItemAc);
-                        badge.setContextMenu(cmAc);
-                    }
-                    case RECONCILED -> {
-                        badge.setText("R");
-                        badge.getStyleClass().add("badge-reconciled");
-                        badge.setTooltip(new Tooltip("Reconciled with import"));
-                    }
-                    default -> {
-                        badge.setText("M");
-                        badge.getStyleClass().add("badge-manual");
-                        badge.setTooltip(new Tooltip("Manually entered — right-click to mark as reconciled"));
-                        ContextMenu cmM = new ContextMenu();
-                        MenuItem markItem = new MenuItem("Mark as Reconciled");
-                        markItem.setOnAction(ev -> {
-                            t.setSourceIndicator(Transaction.SourceIndicator.RECONCILED);
-                            DataStore.getInstance().saveTransactionsNow();
-                            applyFilter.run();
-                        });
-                        cmM.getItems().add(markItem);
-                        badge.setContextMenu(cmM);
-                    }
-                }
-                badge.setId("txn-source-badge-" + sanitizeId(t.getId()));
-                setGraphic(badge);
-            }
-        });
+        TransactionContextMenu ctxMenu = new TransactionContextMenu(account, ds);
+        TableColumn<Transaction, Void> actionsCol = ctxMenu.buildActionsCol(applyFilter);
+        TableColumn<Transaction, Void> srcCol = ctxMenu.buildSrcCol(applyFilter);
 
         boolean isPf = account instanceof InvestmentAccount pfIa
                 && pfIa.getInvestmentType() == InvestmentAccount.InvestmentType.PROVIDENT_FUND;
@@ -572,7 +348,7 @@ public class TransactionsScreen {
             Button importBtn = new Button("Import CSV");
             importBtn.setId("txn-import-button");
             importBtn.getStyleClass().add("btn-gold");
-            importBtn.setOnAction(e -> doImportCsv(applyFilter));
+            importBtn.setOnAction(e -> importer.doImportCsv(applyFilter));
             footerRow.getChildren().add(importBtn);
         }
         footerRow.getChildren().add(exportBtn);
@@ -670,7 +446,6 @@ public class TransactionsScreen {
         // Bank, Credit Card, and any unhandled investment sub-type → Category + Sub-category
         TableColumn<Transaction, String> catCol = col("Category", 100,
                 t -> ds.getCategoryName(t.getClassification() != null
-
                         ? t.getClassification().getCategoryId() : null));
         TableColumn<Transaction, String> subCatCol = col("Sub-category", 100,
                 t -> ds.getCategoryName(t.getClassification() != null
@@ -689,189 +464,12 @@ public class TransactionsScreen {
         }
     }
 
-    private boolean isMarketValueAccount(InvestmentAccount ia) {
-        return ia.getInvestmentType() == InvestmentAccount.InvestmentType.MUTUAL_FUNDS
-                || ia.getInvestmentType() == InvestmentAccount.InvestmentType.EQUITY;
-    }
-
     private boolean isForAccount(Transaction t, Account acc) {
         String id = acc.getId();
         return id.equals(t.getFromAccountId()) || id.equals(t.getToAccountId());
     }
 
-    private VBox ccStat(String label, String value, String colour) {
-        VBox b = new VBox(2);
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("stat-label");
-        Label val = new Label(value);
-        val.getStyleClass().add("stat-value");
-        // Inline required: colour is runtime data (balance direction / CC outstanding)
-        val.setStyle("-fx-text-fill: " + colour + ";");
-        b.getChildren().addAll(lbl, val);
-        return b;
-    }
-
-    /** Like ccStat but accepts a pre-created value Label so the caller can update it later. */
-    private VBox ccStatWithLabel(String label, Label val, String colour) {
-        VBox b = new VBox(2);
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("stat-label");
-        val.setStyle("-fx-text-fill: " + colour + ";");
-        b.getChildren().addAll(lbl, val);
-        return b;
-    }
-
-    // ── Import CSV ────────────────────────────────────────────────────────────
-
-    private void doImportCsv(Runnable refreshTable) {
-        DataStore ds = DataStore.getInstance();
-
-        FileChooser fc = new FileChooser();
-        fc.setTitle("Import Bank / CC Statement");
-        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
-        ImportMapping prior = ImportService.findMapping(account.getId(), ds.getImportMappings());
-        if (prior != null && prior.getLastImportPath() != null) {
-            File lastDir = new File(prior.getLastImportPath());
-            if (lastDir.isDirectory()) fc.setInitialDirectory(lastDir);
-        }
-        File file = fc.showOpenDialog(null);
-        if (file == null) return;
-
-        List<String[]> rows;
-        try { rows = ImportService.parseCsv(file); }
-        catch (IOException ex) { info("Import Failed", "Could not read file:\n" + ex.getMessage()); return; }
-
-        if (rows.isEmpty()) { info("Import Failed", "The file is empty."); return; }
-
-        String importDir = file.getParentFile() != null ? file.getParentFile().getAbsolutePath() : null;
-        doImportRows(rows, importDir, refreshTable);
-    }
-
-    /**
-     * Core import flow shared by file import and clipboard paste.
-     * {@code importDir} is the directory of the source file (used to remember the last import
-     * path); pass {@code null} when importing from the clipboard.
-     */
-    private void doImportRows(List<String[]> rows, String importDir, Runnable refreshTable) {
-        DataStore ds = DataStore.getInstance();
-
-        // Validate header
-        if (!ImportService.isLikelyHeader(rows.get(0))) {
-            info("Import Rejected",
-                    "The first row does not look like a header row.\n"
-                    + "Please ensure the data has column headers in the first row.");
-            return;
-        }
-
-        ImportMapping saved = ImportService.findMapping(account.getId(), ds.getImportMappings());
-        String snapshot    = String.join(",", rows.get(0));
-        boolean snapshotOk = saved != null && snapshot.equals(saved.getHeaderSnapshot());
-
-        // Always show mapping dialog — pre-filled when snapshot matches
-        String[] sampleRow = rows.size() > 1 ? rows.get(1) : null;
-        ImportMappingDialog dlg = new ImportMappingDialog(account, rows.get(0),
-                snapshotOk ? saved : null, sampleRow);
-        Optional<ImportMapping> mappingOpt = dlg.showAndWait();
-        if (mappingOpt.isEmpty() || mappingOpt.get() == null) return;
-
-        ImportMapping mapping = mappingOpt.get();
-        mapping.setHeaderSnapshot(snapshot);
-        if (importDir != null) mapping.setLastImportPath(importDir);
-        ds.saveOrUpdateImportMapping(mapping);
-
-        // Execute import
-        ImportService.ImportResult result = ImportService.executeImport(rows, mapping, account, ds);
-
-        // Resolve ambiguous matches.
-        // After reconciling one CSV row, its chosen manual becomes RECONCILED.
-        // For subsequent ambiguous rows, filter out already-reconciled candidates:
-        //   – 0 still-MANUAL candidates → all taken by earlier rows → add as new automatically
-        //   – 1+ still-MANUAL candidates → show dialog with only the available ones
-        for (ImportService.AmbiguousMatch am : result.ambiguous) {
-            List<Transaction> available = am.candidates.stream()
-                    .filter(c -> c.getSourceIndicator() == Transaction.SourceIndicator.MANUAL)
-                    .collect(java.util.stream.Collectors.toList());
-
-            if (available.isEmpty()) {
-                // All candidates were claimed by earlier CSV rows — add as new automatically
-                boolean categorized = ds.suggestCategoryForDescription(
-                        am.imported.getDescription(), am.imported.getType())
-                        .map(rule -> {
-                            Transaction.Classification cl = new Transaction.Classification();
-                            cl.setCategoryId(rule.getCategoryId());
-                            cl.setSubCategoryId(rule.getSubCategoryId());
-                            am.imported.setClassification(cl);
-                            return true;
-                        }).orElse(false);
-                am.imported.setSourceIndicator(categorized
-                        ? Transaction.SourceIndicator.AUTO_CATEGORIZED
-                        : Transaction.SourceIndicator.IMPORTED);
-                ds.addTransactionInternal(am.imported);
-                result.newCount++;
-                continue;
-            }
-
-            AmbiguousMatchDialog amd = new AmbiguousMatchDialog(am.imported, available);
-            Optional<Transaction> choice = amd.showAndWait();
-            if (choice.isPresent()) {
-                Transaction chosen = choice.get();
-                if (chosen != null) {
-                    ImportService.reconcile(am.imported, chosen, ds);
-                    result.reconciledCount++;
-                } else {
-                    // "Add as New" was clicked
-                    boolean categorized = ds.suggestCategoryForDescription(
-                            am.imported.getDescription(), am.imported.getType())
-                            .map(rule -> {
-                                Transaction.Classification cl = new Transaction.Classification();
-                                cl.setCategoryId(rule.getCategoryId());
-                                cl.setSubCategoryId(rule.getSubCategoryId());
-                                am.imported.setClassification(cl);
-                                return true;
-                            }).orElse(false);
-                    am.imported.setSourceIndicator(categorized
-                            ? Transaction.SourceIndicator.AUTO_CATEGORIZED
-                            : Transaction.SourceIndicator.IMPORTED);
-                    ds.addTransactionInternal(am.imported);
-                    result.newCount++;
-                }
-            }
-            // CANCEL on ambiguous dialog → skip this entry silently
-        }
-        if (!result.ambiguous.isEmpty()) ds.saveTransactionsNow();
-
-        // Resolve recurring matches — show RecurringMatchDialog for each.
-        for (ImportService.RecurringMatch rm : result.recurringMatches) {
-            RecurringMatchDialog rmd = new RecurringMatchDialog(rm.imported, rm.candidates);
-            java.util.Optional<com.sanchay.model.RecurringTransaction> choice = rmd.showAndWait();
-            if (choice.isEmpty()) continue;  // cancelled — skip silently
-
-            com.sanchay.model.RecurringTransaction chosen = choice.get();
-            if (chosen == RecurringMatchDialog.ADD_AS_NEW) {
-                boolean categorized = ds.suggestCategoryForDescription(
-                        rm.imported.getDescription(), rm.imported.getType())
-                        .map(rule -> {
-                            Transaction.Classification cl = new Transaction.Classification();
-                            cl.setCategoryId(rule.getCategoryId());
-                            cl.setSubCategoryId(rule.getSubCategoryId());
-                            rm.imported.setClassification(cl);
-                            return true;
-                        }).orElse(false);
-                rm.imported.setSourceIndicator(categorized
-                        ? Transaction.SourceIndicator.AUTO_CATEGORIZED
-                        : Transaction.SourceIndicator.IMPORTED);
-                ds.addTransactionInternal(rm.imported);
-                ds.saveTransactionsNow();
-                result.newCount++;
-            } else {
-                ImportService.reconcileWithRecurring(rm.imported, chosen, ds);
-                result.recurringReconciledCount++;
-            }
-        }
-
-        refreshTable.run();
-        new ImportCompleteDialog(result).show();
-    }
+    // ── Export CSV ────────────────────────────────────────────────────────────
 
     private void exportCsv(List<Transaction> txs) {
         FileChooser fc = new FileChooser();
@@ -1034,114 +632,6 @@ public class TransactionsScreen {
         lbl.setId("txn-type-badge-" + type.name().toLowerCase(Locale.ENGLISH));
         lbl.getStyleClass().addAll(UiUtils.badgeStyle(type), "badge-sm");
         return lbl;
-    }
-
-    // ── Merge imported with manual ────────────────────────────────────────────
-
-    private void openMergeDialog(Transaction imported, Runnable refresh) {
-        DataStore ds = DataStore.getInstance();
-        LocalDate date = imported.getDate();
-        List<Transaction> candidates = ds.getTransactions().stream()
-                .filter(t -> t.getSourceIndicator() == Transaction.SourceIndicator.MANUAL)
-                .filter(t -> account.getId().equals(t.getFromAccountId())
-                          || account.getId().equals(t.getToAccountId()))
-                .filter(t -> !t.getDate().isBefore(date.minusDays(10))
-                          && !t.getDate().isAfter(date.plusDays(10)))
-                .sorted(Comparator.comparingLong(t -> Math.abs(
-                        ChronoUnit.DAYS.between(t.getDate(), date))))
-                .collect(Collectors.toList());
-
-        if (candidates.isEmpty()) {
-            info("No Candidates Found",
-                    "No manually-entered transactions exist within ±10 days of "
-                    + date.format(dateFmt()) + " for this account.");
-            return;
-        }
-
-        new MergeWithManualDialog(imported, candidates, dateFmt())
-                .showAndWait()
-                .ifPresent(chosen -> {
-                    ImportService.reconcile(imported, chosen, ds);
-                    ds.deleteTransactionByIdInternal(imported.getId());
-                    ds.saveTransactionsNow();
-                    refresh.run();
-                });
-    }
-
-    // ── Styled Delete Transaction dialog ──────────────────────────────────────
-
-    private boolean showDeleteTxnConfirm(Transaction t) {
-        Dialog<ButtonType> dlg = new Dialog<>();
-        dlg.getDialogPane().setId("txn-delete-dialog-pane");
-        dlg.setTitle("Delete Transaction");
-        dlg.setHeaderText(null);
-        dlg.getDialogPane().setPrefWidth(400);
-        UiUtils.applyStylesheet(dlg);
-        UiUtils.setDialogHeader(dlg, "⚠", "Delete Transaction");
-
-        boolean isGrouped = t.getGroupTransactionId() != null;
-
-        VBox body = new VBox(14);
-        body.setId("txn-delete-dialog-body");
-        body.setPadding(new Insets(16));
-
-        HBox warnRow = new HBox(12);
-        warnRow.setId("txn-delete-dialog-warning-row");
-        warnRow.setAlignment(Pos.CENTER_LEFT);
-        Label warnIcon = new Label("⚠");
-        warnIcon.setId("txn-delete-dialog-warning-icon");
-        warnIcon.getStyleClass().add("icon-danger");
-        VBox warnText = new VBox(4);
-        Label headline = new Label(isGrouped ? "Delete linked redemption group?" : "Delete this transaction?");
-        headline.setId("txn-delete-dialog-headline");
-        headline.getStyleClass().add("text-section-title");
-        String subMsg = "This action cannot be undone."
-                + (isGrouped ? " This will also delete the related principal and gain/loss entries." : "");
-        Label subLbl = new Label(subMsg);
-        subLbl.setId("txn-delete-dialog-subtext");
-        subLbl.getStyleClass().add("text-hint");
-        subLbl.setWrapText(true);
-        subLbl.setMaxWidth(310);
-        warnText.getChildren().addAll(headline, subLbl);
-        warnRow.getChildren().addAll(warnIcon, warnText);
-
-        VBox txnBlock = new VBox(5);
-        txnBlock.setId("txn-delete-dialog-transaction-block");
-        txnBlock.getStyleClass().add("dialog-danger-block");
-        Label desc = new Label(t.getDescription());
-        desc.setId("txn-delete-dialog-description");
-        desc.getStyleClass().add("text-body-strong");
-        desc.setWrapText(true);
-        HBox meta = new HBox(8);
-        meta.setId("txn-delete-dialog-meta");
-        meta.setAlignment(Pos.CENTER_LEFT);
-        Label amt = new Label(t.getAmountInr());
-        amt.setId("txn-delete-dialog-amount");
-        amt.getStyleClass().add("text-amount-error");
-        Label sep = new Label("·");
-        sep.setId("txn-delete-dialog-separator");
-        sep.getStyleClass().add("text-hint");
-        Label date = new Label(t.getDate().format(dateFmt()));
-        date.setId("txn-delete-dialog-date");
-        date.getStyleClass().add("text-hint");
-        meta.getChildren().addAll(amt, sep, date);
-        txnBlock.getChildren().addAll(desc, meta);
-
-        body.getChildren().addAll(warnRow, txnBlock);
-        dlg.getDialogPane().setContent(body);
-
-        ButtonType deleteBtn = new ButtonType("Delete", ButtonBar.ButtonData.OK_DONE);
-        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, deleteBtn);
-        Button deleteButton = (Button) dlg.getDialogPane().lookupButton(deleteBtn);
-        if (deleteButton != null) {
-            ButtonBar.setButtonUniformSize(deleteButton, false);
-            deleteButton.getStyleClass().add("btn-danger");
-            deleteButton.setId("txn-delete-dialog-confirm-button");
-        }
-        Button cancelButton = (Button) dlg.getDialogPane().lookupButton(ButtonType.CANCEL);
-        if (cancelButton != null) cancelButton.setId("txn-delete-dialog-cancel-button");
-
-        return dlg.showAndWait().filter(b -> b == deleteBtn).isPresent();
     }
 
     /**

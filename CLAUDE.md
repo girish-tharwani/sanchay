@@ -78,6 +78,9 @@ Each dialog has its own class. Extracted dialog classes by package:
 
 **`ui/transactions/`**
 - `TransactionDialog` — coordinator for all transaction types; delegates per-type UI/save/prefill to `*Panel` classes (see below)
+- `TransactionStatsPanel` — account-type-specific stats header (balance, outstanding, market value); exposes `addToLayout(header, panel)` and `refresh()`
+- `ImportOrchestrator` — full CSV-file and clipboard import flow; receives account and a `Runnable` refresh callback; exposes `doImportCsv()` and `doImportRows()`
+- `TransactionContextMenu` — builds the source-indicator badge column (with merge/reconcile context menus) and the delete action column via `buildSrcCol()` and `buildActionsCol()`
 - `ImportCompleteDialog` — read-only import result summary
 - `ImportMappingDialog`, `AmbiguousMatchDialog`, `RecurringMatchDialog` — import workflow dialogs
 

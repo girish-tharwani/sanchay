@@ -1,3 +1,9 @@
+## v0.0.15-Myna — 2026-04-18
+
+### Changed
+- `TransactionsScreen` split: account stats header extracted to `TransactionStatsPanel`; full import flow (CSV and clipboard) extracted to `ImportOrchestrator`; source-indicator badge and delete action columns extracted to `TransactionContextMenu` (step 2.5.5 of refactor plan)
+- `TransactionsScreen` reduced from 1190 to 680 lines
+
 ## v0.0.14-Myna — 2026-04-17
 
 ### Changed
