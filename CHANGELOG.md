@@ -1,3 +1,9 @@
+## v0.0.9-Myna — 2026-04-17
+
+### Changed
+- Categories screen: expand/collapse chevron changed from button to label (no square border), using `▸`/`▾` glyphs matching other screens
+- Categories screen: category and sub-category name labels now use `-brand-dark` (green) to match chevron colour used elsewhere
+
 ## v0.0.8-Myna — 2026-04-17
 
 ### Changed

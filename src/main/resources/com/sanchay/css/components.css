@@ -1114,11 +1114,11 @@
 
 /* ── Category / sub-category name state classes ──────────────────────────── */
 
-.category-name-active   { -fx-text-fill: -text-label; }
+.category-name-active   { -fx-text-fill: -brand-dark; }
 .category-name-inactive { -fx-text-fill: -text-hint; -fx-font-style: italic; }
 
 /* Sub-category rows use 12px size in addition to the state-driven colour */
-.subcategory-name-active   { -fx-font-size: 12px; -fx-text-fill: -text-label; }
+.subcategory-name-active   { -fx-font-size: 12px; -fx-text-fill: -brand-dark; }
 .subcategory-name-inactive { -fx-font-size: 12px; -fx-text-fill: -text-hint; -fx-font-style: italic; }
 
 /* ── Import Complete Dialog ──────────────────────────────────────────────── */

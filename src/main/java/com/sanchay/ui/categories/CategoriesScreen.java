@@ -138,20 +138,19 @@ public class CategoriesScreen {
         subCatContainer.setVisible(false);
         subCatContainer.setManaged(false);
 
-        Button expandBtn = new Button(subCats.isEmpty() ? "  " : "▶");
-        expandBtn.getStyleClass().add("btn-icon");
-        expandBtn.setMinWidth(24);
-        if (subCats.isEmpty()) expandBtn.setDisable(true);
-        expandBtn.setOnAction(e -> {
+        Label expandBtn = new Label(subCats.isEmpty() ? "" : "▸");
+        expandBtn.getStyleClass().addAll("filter-label", "icon-sm");
+        expandBtn.setMinWidth(16);
+        if (!subCats.isEmpty()) expandBtn.setOnMouseClicked(e -> {
             expanded[0] = !expanded[0];
             subCatContainer.setVisible(expanded[0]);
             subCatContainer.setManaged(expanded[0]);
-            expandBtn.setText(expanded[0] ? "▼" : "▶");
+            expandBtn.setText(expanded[0] ? "▾" : "▸");
         });
 
         Label nameLbl = new Label(cat.getName());
         nameLbl.setMinWidth(180);
-        nameLbl.getStyleClass().addAll("stat-value", cat.isActive() ? "category-name-active" : "category-name-inactive");
+        nameLbl.getStyleClass().addAll("filter-label", cat.isActive() ? "category-name-active" : "category-name-inactive");
 
         Label statusLbl = new Label(cat.isActive() ? "Active" : "Inactive");
         statusLbl.getStyleClass().add(cat.isActive() ? "status-active" : "status-closed");
@@ -257,7 +256,7 @@ public class CategoriesScreen {
 
             Label nameLbl = new Label(sub.getName());
             nameLbl.setMinWidth(160);
-            nameLbl.getStyleClass().add(sub.isActive() ? "subcategory-name-active" : "subcategory-name-inactive");
+            nameLbl.getStyleClass().addAll("filter-label", sub.isActive() ? "subcategory-name-active" : "subcategory-name-inactive");
 
             Label statusLbl = new Label(sub.isActive() ? "Active" : "Inactive");
             statusLbl.getStyleClass().add(sub.isActive() ? "status-active" : "status-closed");
