@@ -42,6 +42,31 @@ public final class CategoryComboWiring {
         });
     }
 
+    /** Creates a category ComboBox with a plain name cell factory, pre-populated from {@code master}. */
+    public static ComboBox<Category> catCombo(List<Category> master, String prompt) {
+        ComboBox<Category> cb = new ComboBox<>();
+        cb.setMaxWidth(Double.MAX_VALUE);
+        cb.setPromptText(prompt);
+        cb.getItems().setAll(master);
+        cb.setCellFactory(lv -> new ListCell<>() {
+            @Override protected void updateItem(Category c, boolean empty) {
+                super.updateItem(c, empty);
+                setText(empty || c == null ? null : c.getName());
+            }
+        });
+        return cb;
+    }
+
+    /** Creates a sub-category ComboBox that is initially hidden and unmanaged. */
+    public static ComboBox<Category> subCatCombo() {
+        ComboBox<Category> cb = new ComboBox<>();
+        cb.setMaxWidth(Double.MAX_VALUE);
+        cb.setPromptText("Select sub-category (optional)");
+        cb.setVisible(false);
+        cb.setManaged(false);
+        return cb;
+    }
+
     /** Applies the "└ name" cell factory and button cell to a sub-category ComboBox. */
     public static void styleSubCatCombo(ComboBox<Category> cb) {
         cb.setCellFactory(lv -> new ListCell<>() {

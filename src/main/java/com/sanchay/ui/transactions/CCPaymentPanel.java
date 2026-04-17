@@ -1,6 +1,7 @@
 package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -8,7 +9,7 @@ import javafx.scene.layout.GridPane;
 import java.time.LocalDate;
 
 /** Type-specific panel for CC_PAYMENT transactions. */
-class CCPaymentPanel {
+class CCPaymentPanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -20,18 +21,16 @@ class CCPaymentPanel {
     CCPaymentPanel(TransactionDialog parent) {
         this.parent = parent;
 
-        bankCb = parent.accountCombo(false);
+        bankCb = AccountCombos.bankCombo(parent.ds);
         parent.setNodeId(bankCb, "txn-cc-payment-from-account-combo");
-        bankCb.getItems().removeIf(a -> !(a instanceof BankAccount));
 
-        cardCb = parent.accountCombo(true);
+        cardCb = AccountCombos.ccCombo(parent.ds);
         parent.setNodeId(cardCb, "txn-cc-payment-to-account-combo");
-        cardCb.getItems().removeIf(a -> !(a instanceof CreditCardAccount));
 
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -41,7 +40,7 @@ class CCPaymentPanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate date = parent.requireDate();
         long      amt  = parent.parsePaise(parent.sharedAmt);
         Account   bank = parent.requireAccount(bankCb, "From Bank Account");
@@ -58,8 +57,21 @@ class CCPaymentPanel {
         return parent.persistTransaction(t);
     }
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         parent.setAccount(bankCb, t.getFromAccountId());
         parent.setAccount(cardCb, t.getToAccountId());
+    }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof BankAccount)
+            parent.setAccount(bankCb, acc.getId());
+        else if (acc instanceof CreditCardAccount)
+            parent.setAccount(cardCb, acc.getId());
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (bankCb.getValue() == null) { bankCb.requestFocus(); return true; }
+        if (cardCb.getValue() == null) { cardCb.requestFocus(); return true; }
+        return false;
     }
 }

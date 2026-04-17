@@ -1,6 +1,9 @@
 package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
+import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -10,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Type-specific panel for REFUND transactions. */
-class RefundPanel {
+class RefundPanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -29,13 +32,15 @@ class RefundPanel {
         this.parent = parent;
 
         catMaster.addAll(parent.ds.getExpenseCategories());
-        catCb    = parent.makeCatCb(catMaster, "Select original expense category");
+        catCb    = CategoryComboWiring.catCombo(catMaster, "Select original expense category");
         parent.setNodeId(catCb, "txn-refund-category-combo");
-        subCatCb = parent.makeSubCatCb(subCatMaster);
+        subCatCb = CategoryComboWiring.subCatCombo();
         parent.setNodeId(subCatCb, "txn-refund-subcategory-combo");
-        parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subCatMaster, parent.ds);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
-        acctCb    = parent.accountCombo(true); // bank + CC (where refund lands)
+        acctCb    = AccountCombos.bankAndCcCombo(parent.ds);
         parent.setNodeId(acctCb, "txn-refund-account-combo");
         modeCb    = parent.payModeCombo();
         parent.setNodeId(modeCb, "txn-refund-payment-mode-combo");
@@ -47,7 +52,7 @@ class RefundPanel {
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -62,7 +67,7 @@ class RefundPanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate date = parent.requireDate();
         String    desc = parent.requireText(parent.sharedDesc, "Description");
         long      amt  = parent.parsePaise(parent.sharedAmt);
@@ -85,11 +90,26 @@ class RefundPanel {
         return parent.persistTransaction(t);
     }
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         parent.setAccount(acctCb, t.getToAccountId());
         parent.prefillCat(catCb, subCatCb, t);
         parent.setPayMode(modeCb, t.getPayment() != null ? t.getPayment().getMode() : null);
         parent.setText(familyFld, t.getClassification() != null ? t.getClassification().getFamilyMember() : null);
         parent.setText(refFld,    t.getPayment() != null ? t.getPayment().getReferenceNumber() : null);
+    }
+
+    @Override public ComboBox<Category> getCatCombo()    { return catCb; }
+    @Override public List<Category>     getCatMaster()   { return catMaster; }
+    @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof BankAccount || acc instanceof CreditCardAccount)
+            parent.setAccount(acctCb, acc.getId());
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (acctCb.getValue() == null) { acctCb.requestFocus(); return true; }
+        if (catCb.getValue()  == null) { catCb.requestFocus();  return true; }
+        return false;
     }
 }

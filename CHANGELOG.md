@@ -1,3 +1,8 @@
+## v0.0.8-Myna — 2026-04-17
+
+### Changed
+- Settings › Backup Now: file chooser now reopens in the last-used backup folder (persisted in `settings.json`)
+
 ## v0.0.7-Myna — 2026-04-17
 
 ### Fixed

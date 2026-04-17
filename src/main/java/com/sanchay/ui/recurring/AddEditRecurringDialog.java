@@ -570,7 +570,7 @@ public class AddEditRecurringDialog {
 
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(580);
+        sp.setPrefHeight(645);
         sp.getStyleClass().add("scroll-transparent");
         dlg.getDialogPane().setContent(sp);
 

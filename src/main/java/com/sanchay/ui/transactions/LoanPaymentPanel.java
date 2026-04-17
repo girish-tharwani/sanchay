@@ -5,6 +5,7 @@ import com.sanchay.service.AmortizationService;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 /** Type-specific panel for LOAN_PAYMENT transactions. */
-class LoanPaymentPanel {
+class LoanPaymentPanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -38,13 +39,15 @@ class LoanPaymentPanel {
         this.parent = parent;
 
         catMaster.addAll(parent.ds.getExpenseCategories());
-        catCb    = parent.makeCatCb(catMaster, "Select category (optional)");
+        catCb    = CategoryComboWiring.catCombo(catMaster, "Select category (optional)");
         parent.setNodeId(catCb, "txn-loan-payment-category-combo");
-        subCatCb = parent.makeSubCatCb(subCatMaster);
+        subCatCb = CategoryComboWiring.subCatCombo();
         parent.setNodeId(subCatCb, "txn-loan-payment-subcategory-combo");
-        parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subCatMaster, parent.ds);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
-        fromCb = parent.accountCombo(true); // bank + CC
+        fromCb = AccountCombos.bankAndCcCombo(parent.ds);
         parent.setNodeId(fromCb, "txn-loan-payment-from-account-combo");
 
         toCb = new ComboBox<>();
@@ -64,7 +67,6 @@ class LoanPaymentPanel {
         interestLbl.setId("txn-loan-payment-interest-label");
         interestLbl.getStyleClass().add("text-hint");
 
-        // Pre-fill principal from schedule when loan account or date changes
         Runnable prefillPrincipal = () -> {
             LoanAccount la = toCb.getValue();
             LocalDate   d  = parent.sharedDate.getValue();
@@ -80,7 +82,6 @@ class LoanPaymentPanel {
             if (parent.typeCb.getValue() == Transaction.Type.LOAN_PAYMENT) prefillPrincipal.run();
         });
 
-        // Live interest = amount - principal
         Runnable updateInterest = () -> {
             try {
                 long amt  = Math.round(Double.parseDouble(parent.sharedAmt.getText().replace(",", "")) * 100);
@@ -101,7 +102,7 @@ class LoanPaymentPanel {
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -118,7 +119,7 @@ class LoanPaymentPanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate   date = parent.requireDate();
         String      desc = parent.requireText(parent.sharedDesc, "Description");
         long        amt  = parent.parsePaise(parent.sharedAmt);
@@ -141,7 +142,6 @@ class LoanPaymentPanel {
         }
         t.setNotes(parent.nullIfBlank(parent.sharedNotes.getText()));
 
-        // Store actual principal for accurate outstanding calculation.
         List<AmortizationEntry> lnSchedule = parent.ds.getSchedule(to.getId());
         long scheduledInterest = 0;
         for (AmortizationEntry ae : lnSchedule) {
@@ -163,7 +163,7 @@ class LoanPaymentPanel {
         return saved;
     }
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         parent.setAccount(fromCb, t.getFromAccountId());
         if (t.getToAccountId() != null)
             parent.ds.getActiveLoanAccounts().stream()
@@ -177,13 +177,27 @@ class LoanPaymentPanel {
         parent.setText(refFld, t.getPayment() != null ? t.getPayment().getReferenceNumber() : null);
     }
 
+    @Override public ComboBox<Category> getCatCombo()    { return catCb; }
+    @Override public List<Category>     getCatMaster()   { return catMaster; }
+    @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof LoanAccount)
+            toCb.getItems().stream()
+                    .filter(a -> a.getId().equals(acc.getId()))
+                    .findFirst().ifPresent(toCb::setValue);
+        else if (acc instanceof BankAccount || acc instanceof CreditCardAccount)
+            parent.setAccount(fromCb, acc.getId());
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (fromCb.getValue() == null) { fromCb.requestFocus(); return true; }
+        if (toCb.getValue()   == null) { toCb.requestFocus();   return true; }
+        return false;
+    }
+
     // ── Prepayment handling ───────────────────────────────────────────────────
 
-    /**
-     * After saving a LOAN_PAYMENT, check if the principal paid exceeds the
-     * scheduled principal for that month. If so, prompt for prepayment mode
-     * (or use the loan's saved default) and regenerate the amortization schedule.
-     */
     private void checkAndHandlePrepayment(Transaction t, LoanAccount loan, LocalDate date) {
         List<AmortizationEntry> schedule = parent.ds.getSchedule(loan.getId());
         if (schedule == null || schedule.isEmpty()) return;
@@ -228,10 +242,6 @@ class LoanPaymentPanel {
         }
     }
 
-    /**
-     * If a LOAN_PAYMENT recurring schedule exists and the new EMI after prepayment
-     * differs from the scheduled amount, offers to update it.
-     */
     private void offerEmiSyncAfterPrepayment(LoanAccount loan, long newEmiPaise) {
         RecurringTransaction rt = parent.ds.findLoanPaymentSchedule(loan.getId());
         if (rt == null || rt.getAmountPaise() == newEmiPaise) return;
@@ -258,10 +268,6 @@ class LoanPaymentPanel {
         });
     }
 
-    /**
-     * Shows a dialog asking whether the prepayment should reduce tenure or EMI.
-     * Offers a "Remember my choice" checkbox. Returns the chosen mode, or null if cancelled.
-     */
     private LoanAccount.PrepaymentMode promptPrepaymentMode(LoanAccount loan) {
         ButtonType reduceTenure = new ButtonType("Reduce Tenure", ButtonBar.ButtonData.OTHER);
         ButtonType reduceEmi    = new ButtonType("Reduce EMI",    ButtonBar.ButtonData.OTHER);

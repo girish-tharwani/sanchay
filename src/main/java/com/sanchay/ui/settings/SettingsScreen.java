@@ -213,10 +213,16 @@ public class SettingsScreen {
         fc.setTitle("Save Backup As");
         fc.setInitialFileName("Sanchay_data_backup_" + timestamp + ".zip");
         fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("ZIP Archives", "*.zip"));
+        String lastFolder = ds.getLastBackupFolder();
+        if (lastFolder != null) {
+            File lastDir = new File(lastFolder);
+            if (lastDir.isDirectory()) fc.setInitialDirectory(lastDir);
+        }
         File zipFile = fc.showSaveDialog(null);
         if (zipFile == null) return;
         try {
             zipFolder(Paths.get(dataPath), zipFile.toPath());
+            ds.setLastBackupFolder(zipFile.getParent());
             showInfo("Backup Complete", "Saved to:\n" + zipFile.getAbsolutePath());
         } catch (IOException ex) {
             showInfo("Backup Failed", "Error: " + ex.getMessage());

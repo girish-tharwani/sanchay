@@ -2,7 +2,9 @@ package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
 import com.sanchay.service.MoneyFormatter;
+import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -12,7 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /** Type-specific panel for REDEEM transactions (and editing GAIN/LOSE). */
-class RedeemPanel {
+class RedeemPanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -34,11 +36,13 @@ class RedeemPanel {
         this.parent = parent;
 
         catMaster.addAll(parent.ds.getIncomeCategories());
-        catCb    = parent.makeCatCb(catMaster, "Select gain category (optional)");
+        catCb    = CategoryComboWiring.catCombo(catMaster, "Select gain category (optional)");
         parent.setNodeId(catCb, "txn-redeem-category-combo");
-        subCatCb = parent.makeSubCatCb(subCatMaster);
+        subCatCb = CategoryComboWiring.subCatCombo();
         parent.setNodeId(subCatCb, "txn-redeem-subcategory-combo");
-        parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subCatMaster, parent.ds);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
         fromCb = new ComboBox<>();
         fromCb.setId("txn-redeem-from-account-combo");
@@ -47,7 +51,7 @@ class RedeemPanel {
         parent.ds.getInvestmentAccounts().forEach(fromCb.getItems()::add);
         AccountCombos.style(fromCb);
 
-        toCb = parent.accountCombo(false); // bank accounts only
+        toCb = AccountCombos.bankCombo(parent.ds);
         parent.setNodeId(toCb, "txn-redeem-to-account-combo");
 
         fdRefRowLbl = new Label("Reference No.");
@@ -77,7 +81,7 @@ class RedeemPanel {
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -94,7 +98,7 @@ class RedeemPanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate         date      = parent.requireDate();
         String            desc      = parent.requireText(parent.sharedDesc, "Description");
         long              total     = parent.parsePaise(parent.sharedAmt);
@@ -192,7 +196,7 @@ class RedeemPanel {
      * the new grouped format (three linked transactions sharing a groupTransactionId).
      * Also called when editing a GAIN or LOSE transaction (which belong to a REDEEM group).
      */
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         if (t.getGroupTransactionId() != null) {
             List<Transaction> group = parent.ds.getTransactions().stream()
                     .filter(tx -> t.getGroupTransactionId().equals(tx.getGroupTransactionId()))
@@ -253,6 +257,26 @@ class RedeemPanel {
                 fdRefCb.setValue(t.getRedeemDetails().getOrgnlFDRef());
             parent.prefillCat(catCb, subCatCb, t);
         }
+    }
+
+    @Override public ComboBox<Category> getCatCombo()    { return catCb; }
+    @Override public List<Category>     getCatMaster()   { return catMaster; }
+    @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof InvestmentAccount)
+            fromCb.getItems().stream()
+                    .filter(a -> a.getId().equals(acc.getId()))
+                    .findFirst().ifPresent(fromCb::setValue);
+        else if (acc instanceof BankAccount)
+            parent.setAccount(toCb, acc.getId());
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (fromCb.getValue() == null)          { fromCb.requestFocus();       return true; }
+        if (toCb.getValue() == null)            { toCb.requestFocus();         return true; }
+        if (principalFld.getText().isBlank())   { principalFld.requestFocus(); return true; }
+        return false;
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

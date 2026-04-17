@@ -4,8 +4,6 @@ import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.UiUtils;
-import com.sanchay.ui.common.AccountCombos;
-import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -23,9 +21,10 @@ import java.util.*;
  * swap in below the shared Date / Description / Amount rows.
  *
  * Each transaction type is handled by a dedicated package-private panel class
- * ({@link ExpensePanel}, {@link IncomePanel}, etc.).  This class is the
- * coordinator: it owns the shared fields, wires the type switcher, and
- * delegates save / prefill / focus logic to the active panel.
+ * ({@link ExpensePanel}, {@link IncomePanel}, etc.) that implements
+ * {@link TransactionPanel}.  This class is the coordinator: it owns the shared
+ * fields, wires the type switcher, and delegates save / prefill / focus logic
+ * to the active panel via the interface.
  */
 public class TransactionDialog extends Dialog<Transaction> {
 
@@ -51,15 +50,9 @@ public class TransactionDialog extends Dialog<Transaction> {
     String  contextAccountId;
     boolean contextIsSource;
 
-    // ── Panels ────────────────────────────────────────────────────────────────
-    private final ExpensePanel     expensePanel;
-    private final IncomePanel      incomePanel;
-    private final TransferPanel    transferPanel;
-    private final RefundPanel      refundPanel;
-    private final InvestmentPanel  investmentPanel;
-    private final CCPaymentPanel   ccPaymentPanel;
-    private final LoanPaymentPanel loanPaymentPanel;
-    private final RedeemPanel      redeemPanel;
+    // ── Panel routing ─────────────────────────────────────────────────────────
+    private final InvestmentPanel            investmentPanel; // typed — special side-by-side layout
+    private final Map<Type, TransactionPanel> panels;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -93,15 +86,27 @@ public class TransactionDialog extends Dialog<Transaction> {
         typeCb.setMaxWidth(Double.MAX_VALUE);
         typeCb.setConverter(typeNameConverter());
 
-        // Build all panels (shared fields must be created first)
-        expensePanel     = new ExpensePanel(this);
-        incomePanel      = new IncomePanel(this);
-        transferPanel    = new TransferPanel(this);
-        refundPanel      = new RefundPanel(this);
-        investmentPanel  = new InvestmentPanel(this);
-        ccPaymentPanel   = new CCPaymentPanel(this);
-        loanPaymentPanel = new LoanPaymentPanel(this);
-        redeemPanel      = new RedeemPanel(this);
+        // Build panels (shared fields must be created first)
+        ExpensePanel     expensePanel     = new ExpensePanel(this);
+        IncomePanel      incomePanel      = new IncomePanel(this);
+        TransferPanel    transferPanel    = new TransferPanel(this);
+        RefundPanel      refundPanel      = new RefundPanel(this);
+        investmentPanel                  = new InvestmentPanel(this);
+        CCPaymentPanel   ccPaymentPanel   = new CCPaymentPanel(this);
+        LoanPaymentPanel loanPaymentPanel = new LoanPaymentPanel(this);
+        RedeemPanel      redeemPanel      = new RedeemPanel(this);
+
+        panels = new EnumMap<>(Type.class);
+        panels.put(Type.EXPENSE,      expensePanel);
+        panels.put(Type.INCOME,       incomePanel);
+        panels.put(Type.TRANSFER,     transferPanel);
+        panels.put(Type.REFUND,       refundPanel);
+        panels.put(Type.INVESTMENT,   investmentPanel);
+        panels.put(Type.CC_PAYMENT,   ccPaymentPanel);
+        panels.put(Type.LOAN_PAYMENT, loanPaymentPanel);
+        panels.put(Type.REDEEM,       redeemPanel);
+        panels.put(Type.GAIN,         redeemPanel);
+        panels.put(Type.LOSE,         redeemPanel);
 
         // Shared top grid: Type, Date, Description, Amount
         topGrid = form();
@@ -135,12 +140,16 @@ public class TransactionDialog extends Dialog<Transaction> {
             } else {
                 investmentPanel.leftContent.getChildren().clear();
                 investmentPanel.refreshDynamicFields(null);
-                typeSection.getChildren().setAll(panelNodeFor(type));
+                typeSection.getChildren().setAll(panelFor(type).getNode());
                 standardContent.getChildren().setAll(topGrid, typeSection, botGrid);
                 scroll.setContent(standardContent);
             }
-            if (contextAccountId != null)
-                applyContextAccount(type);
+            if (contextAccountId != null) {
+                Account acct = ds.getAccounts().stream()
+                        .filter(a -> a.getId().equals(contextAccountId))
+                        .findFirst().orElse(null);
+                if (acct != null) panelFor(type).applyContextAccount(acct, contextIsSource);
+            }
         });
 
         wireAutoSuggest();
@@ -186,6 +195,13 @@ public class TransactionDialog extends Dialog<Transaction> {
         Platform.runLater(this::focusFirstEmpty);
     }
 
+    // ── Panel routing ─────────────────────────────────────────────────────────
+
+    private TransactionPanel panelFor(Type type) {
+        TransactionPanel p = panels.get(type);
+        return p != null ? p : panels.get(Type.EXPENSE);
+    }
+
     // ── Type name converter ───────────────────────────────────────────────────
 
     private StringConverter<Type> typeNameConverter() {
@@ -209,22 +225,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         };
     }
 
-    // ── Panel node routing ────────────────────────────────────────────────────
-
-    private Node panelNodeFor(Type type) {
-        return switch (type) {
-            case EXPENSE      -> expensePanel.getNode();
-            case INCOME       -> incomePanel.getNode();
-            case TRANSFER     -> transferPanel.getNode();
-            case REFUND       -> refundPanel.getNode();
-            case CC_PAYMENT   -> ccPaymentPanel.getNode();
-            case LOAN_PAYMENT -> loanPaymentPanel.getNode();
-            case REDEEM       -> redeemPanel.getNode();
-            default           -> new VBox(); // INVESTMENT handled separately; GAIN/LOSE not user-selectable
-        };
-    }
-
-    // ── Auto-suggest (unified, routes by current type) ────────────────────────
+    // ── Auto-suggest (routes by current type via panel interface) ─────────────
 
     private void wireAutoSuggest() {
         sharedDesc.focusedProperty().addListener((obs, was, isNow) -> {
@@ -233,9 +234,10 @@ public class TransactionDialog extends Dialog<Transaction> {
             if (desc == null || desc.isBlank()) return;
 
             Type               type      = typeCb.getValue();
-            ComboBox<Category> catCb     = catCbFor(type);
-            List<Category>     catMaster = catMasterFor(type);
-            ComboBox<Category> subCatCb  = subCatCbFor(type);
+            TransactionPanel   panel     = panelFor(type);
+            ComboBox<Category> catCb     = panel.getCatCombo();
+            List<Category>     catMaster = panel.getCatMaster();
+            ComboBox<Category> subCatCb  = panel.getSubCatCombo();
             if (catCb == null || catMaster == null) return;
 
             List<Category> sorted = ds.sortCategoriesByUsage(new ArrayList<>(catMaster), desc, type);
@@ -259,56 +261,13 @@ public class TransactionDialog extends Dialog<Transaction> {
         });
     }
 
-    private ComboBox<Category> catCbFor(Type type) {
-        return switch (type) {
-            case EXPENSE      -> expensePanel.catCb;
-            case INCOME       -> incomePanel.catCb;
-            case TRANSFER     -> transferPanel.catCb;
-            case REFUND       -> refundPanel.catCb;
-            case REDEEM       -> redeemPanel.catCb;
-            case LOAN_PAYMENT -> loanPaymentPanel.catCb;
-            default           -> null;
-        };
-    }
-
-    private List<Category> catMasterFor(Type type) {
-        return switch (type) {
-            case EXPENSE      -> expensePanel.catMaster;
-            case INCOME       -> incomePanel.catMaster;
-            case TRANSFER     -> transferPanel.catMaster;
-            case REFUND       -> refundPanel.catMaster;
-            case REDEEM       -> redeemPanel.catMaster;
-            case LOAN_PAYMENT -> loanPaymentPanel.catMaster;
-            default           -> null;
-        };
-    }
-
-    private ComboBox<Category> subCatCbFor(Type type) {
-        return switch (type) {
-            case EXPENSE      -> expensePanel.subCatCb;
-            case INCOME       -> incomePanel.subCatCb;
-            case TRANSFER     -> transferPanel.subCatCb;
-            case REFUND       -> refundPanel.subCatCb;
-            case REDEEM       -> redeemPanel.subCatCb;
-            case LOAN_PAYMENT -> loanPaymentPanel.subCatCb;
-            default           -> null;
-        };
-    }
-
     // ── Save routing ──────────────────────────────────────────────────────────
 
     private Transaction save() {
-        return switch (typeCb.getValue()) {
-            case EXPENSE      -> expensePanel.save();
-            case INCOME       -> incomePanel.save();
-            case TRANSFER     -> transferPanel.save();
-            case INVESTMENT   -> investmentPanel.save();
-            case CC_PAYMENT   -> ccPaymentPanel.save();
-            case REFUND       -> refundPanel.save();
-            case REDEEM       -> redeemPanel.save();
-            case LOAN_PAYMENT -> loanPaymentPanel.save();
-            case GAIN, LOSE   -> throw new IllegalStateException("GAIN/LOSE cannot be saved directly");
-        };
+        Type type = typeCb.getValue();
+        if (type == Type.GAIN || type == Type.LOSE)
+            throw new IllegalStateException("GAIN/LOSE cannot be saved directly");
+        return panelFor(type).save();
     }
 
     // ── Persist ───────────────────────────────────────────────────────────────
@@ -340,7 +299,6 @@ public class TransactionDialog extends Dialog<Transaction> {
     // ── Prefill (edit mode) ───────────────────────────────────────────────────
 
     private void prefillFromTransaction(Transaction t) {
-        // Shared fields
         if (t.getDate()        != null) sharedDate.setValue(t.getDate());
         if (t.getDescription() != null) sharedDesc.setText(t.getDescription());
         sharedAmt.setText(String.format("%.2f", Math.abs(t.getAmountPaise()) / 100.0));
@@ -351,17 +309,7 @@ public class TransactionDialog extends Dialog<Transaction> {
                 ? Type.REDEEM : t.getType();
         typeCb.setValue(displayType);
 
-        // Type-specific fields
-        switch (t.getType()) {
-            case EXPENSE      -> expensePanel.prefill(t);
-            case INCOME       -> incomePanel.prefill(t);
-            case TRANSFER     -> transferPanel.prefill(t);
-            case INVESTMENT   -> investmentPanel.prefill(t);
-            case CC_PAYMENT   -> ccPaymentPanel.prefill(t);
-            case REFUND       -> refundPanel.prefill(t);
-            case REDEEM, GAIN, LOSE -> redeemPanel.prefill(t);
-            case LOAN_PAYMENT -> loanPaymentPanel.prefill(t);
-        }
+        panelFor(t.getType()).prefill(t);
     }
 
     void prefillCat(ComboBox<Category> catCb, ComboBox<Category> subCatCb, Transaction t) {
@@ -391,65 +339,7 @@ public class TransactionDialog extends Dialog<Transaction> {
         }
     }
 
-    // ── Context account pre-population on type change ─────────────────────────
-
-    private void applyContextAccount(Type newType) {
-        Account acct = ds.getAccounts().stream()
-                .filter(a -> a.getId().equals(contextAccountId))
-                .findFirst().orElse(null);
-        if (acct == null) return;
-        switch (newType) {
-            case EXPENSE -> {
-                if (acct instanceof BankAccount || acct instanceof CreditCardAccount)
-                    setAccount(expensePanel.acctCb, contextAccountId);
-            }
-            case INCOME -> {
-                if (acct instanceof BankAccount)
-                    setAccount(incomePanel.acctCb, contextAccountId);
-            }
-            case TRANSFER -> {
-                if (acct instanceof BankAccount) {
-                    if (contextIsSource) setAccount(transferPanel.fromCb, contextAccountId);
-                    else                 setAccount(transferPanel.toCb,   contextAccountId);
-                }
-            }
-            case INVESTMENT -> {
-                if (acct instanceof BankAccount)
-                    setAccount(investmentPanel.fromCb, contextAccountId);
-                else if (acct instanceof InvestmentAccount)
-                    investmentPanel.destCb.getItems().stream()
-                            .filter(a -> a.getId().equals(contextAccountId))
-                            .findFirst().ifPresent(investmentPanel.destCb::setValue);
-            }
-            case CC_PAYMENT -> {
-                if (acct instanceof BankAccount)
-                    setAccount(ccPaymentPanel.bankCb, contextAccountId);
-                else if (acct instanceof CreditCardAccount)
-                    setAccount(ccPaymentPanel.cardCb, contextAccountId);
-            }
-            case REFUND -> {
-                if (acct instanceof BankAccount || acct instanceof CreditCardAccount)
-                    setAccount(refundPanel.acctCb, contextAccountId);
-            }
-            case REDEEM -> {
-                if (acct instanceof InvestmentAccount)
-                    redeemPanel.fromCb.getItems().stream()
-                            .filter(a -> a.getId().equals(contextAccountId))
-                            .findFirst().ifPresent(redeemPanel.fromCb::setValue);
-                else if (acct instanceof BankAccount)
-                    setAccount(redeemPanel.toCb, contextAccountId);
-            }
-            case LOAN_PAYMENT -> {
-                if (acct instanceof LoanAccount)
-                    loanPaymentPanel.toCb.getItems().stream()
-                            .filter(a -> a.getId().equals(contextAccountId))
-                            .findFirst().ifPresent(loanPaymentPanel.toCb::setValue);
-                else if (acct instanceof BankAccount || acct instanceof CreditCardAccount)
-                    setAccount(loanPaymentPanel.fromCb, contextAccountId);
-            }
-            default -> {}
-        }
-    }
+    // ── Context account pre-population ────────────────────────────────────────
 
     /**
      * Pre-populate account fields when a new transaction is opened from within
@@ -463,68 +353,31 @@ public class TransactionDialog extends Dialog<Transaction> {
             typeCb.getItems().setAll(Type.LOAN_PAYMENT);
             contextIsSource = false;
             typeCb.setValue(Type.LOAN_PAYMENT);
-            loanPaymentPanel.toCb.getItems().stream()
-                    .filter(a -> a.getId().equals(acc.getId()))
-                    .findFirst().ifPresent(loanPaymentPanel.toCb::setValue);
+            // type-change listener fires → panelFor(LOAN_PAYMENT).applyContextAccount(acc, false)
         } else if (acc instanceof InvestmentAccount) {
             typeCb.getItems().setAll(Type.INVESTMENT, Type.REDEEM);
             contextIsSource = false;
             typeCb.setValue(Type.INVESTMENT);
-            investmentPanel.destCb.getItems().stream()
-                    .filter(a -> a.getId().equals(acc.getId()))
-                    .findFirst().ifPresent(investmentPanel.destCb::setValue);
+            // type-change listener fires → panelFor(INVESTMENT).applyContextAccount(acc, false)
         } else if (acc instanceof CreditCardAccount) {
             typeCb.getItems().setAll(Type.EXPENSE, Type.REFUND, Type.CC_PAYMENT);
             contextIsSource = false;
             typeCb.setValue(Type.EXPENSE);
-            setAccount(expensePanel.acctCb, acc.getId());
+            // type-change listener fires → panelFor(EXPENSE).applyContextAccount(acc, false)
         } else {
-            // BankAccount — all types available
+            // BankAccount — all types available, no type change → call explicitly
             contextIsSource = true;
-            setAccount(expensePanel.acctCb, acc.getId());
+            panelFor(typeCb.getValue()).applyContextAccount(acc, contextIsSource);
         }
     }
 
     // ── Focus helper ──────────────────────────────────────────────────────────
 
-    /** Moves focus to the first field in document order that has no value. */
     private void focusFirstEmpty() {
         if (sharedDesc.getText().isBlank()) { sharedDesc.requestFocus(); return; }
         if (sharedAmt.getText().isBlank())  { sharedAmt.requestFocus();  return; }
-        switch (typeCb.getValue()) {
-            case EXPENSE -> {
-                if (expensePanel.acctCb.getValue()  == null) { expensePanel.acctCb.requestFocus();  return; }
-                if (expensePanel.catCb.getValue()   == null) { expensePanel.catCb.requestFocus();   return; }
-                if (expensePanel.subCatCb.getValue()== null) { expensePanel.subCatCb.requestFocus();return; }
-            }
-            case INCOME -> {
-                if (incomePanel.acctCb.getValue()   == null) { incomePanel.acctCb.requestFocus();   return; }
-                if (incomePanel.catCb.getValue()    == null) { incomePanel.catCb.requestFocus();    return; }
-            }
-            case TRANSFER -> {
-                if (transferPanel.fromCb.getValue() == null) { transferPanel.fromCb.requestFocus(); return; }
-                if (transferPanel.toCb.getValue()   == null) { transferPanel.toCb.requestFocus();   return; }
-            }
-            case REFUND -> {
-                if (refundPanel.acctCb.getValue()   == null) { refundPanel.acctCb.requestFocus();   return; }
-                if (refundPanel.catCb.getValue()    == null) { refundPanel.catCb.requestFocus();    return; }
-            }
-            case CC_PAYMENT -> {
-                if (ccPaymentPanel.bankCb.getValue()== null) { ccPaymentPanel.bankCb.requestFocus();return; }
-                if (ccPaymentPanel.cardCb.getValue()== null) { ccPaymentPanel.cardCb.requestFocus();return; }
-            }
-            case INVESTMENT -> {
-                if (investmentPanel.fromCb.getValue() == null) { investmentPanel.fromCb.requestFocus(); return; }
-                if (investmentPanel.destCb.getValue() == null) { investmentPanel.destCb.requestFocus(); return; }
-            }
-            case REDEEM -> {
-                if (redeemPanel.fromCb.getValue()              == null) { redeemPanel.fromCb.requestFocus();      return; }
-                if (redeemPanel.toCb.getValue()                == null) { redeemPanel.toCb.requestFocus();        return; }
-                if (redeemPanel.principalFld.getText().isBlank())       { redeemPanel.principalFld.requestFocus(); return; }
-            }
-            default -> {}
-        }
-        if (sharedNotes.getText().isBlank()) sharedNotes.requestFocus();
+        if (!panelFor(typeCb.getValue()).focusFirstEmpty() && sharedNotes.getText().isBlank())
+            sharedNotes.requestFocus();
     }
 
     // ── Layout helpers (package-private — used by panel classes) ─────────────
@@ -569,16 +422,6 @@ public class TransactionDialog extends Dialog<Transaction> {
         if (node != null) node.setId(id);
     }
 
-    ComboBox<Account> accountCombo(boolean includeCreditCards) {
-        ComboBox<Account> cb = new ComboBox<>();
-        cb.setMaxWidth(Double.MAX_VALUE);
-        cb.setPromptText("Select account");
-        ds.getBankAccounts().forEach(cb.getItems()::add);
-        if (includeCreditCards) ds.getCreditCardAccounts().forEach(cb.getItems()::add);
-        AccountCombos.style(cb);
-        return cb;
-    }
-
     ComboBox<String> payModeCombo() {
         ComboBox<String> cb = new ComboBox<>();
         cb.setMaxWidth(Double.MAX_VALUE);
@@ -587,36 +430,6 @@ public class TransactionDialog extends Dialog<Transaction> {
                 "Cash", "Cheque", "Auto-debit", "Internal Transfer");
         cb.setValue("Net Banking");
         return cb;
-    }
-
-    ComboBox<Category> makeCatCb(List<Category> master, String prompt) {
-        ComboBox<Category> cb = new ComboBox<>();
-        cb.setMaxWidth(Double.MAX_VALUE);
-        cb.setPromptText(prompt);
-        cb.getItems().setAll(master);
-        cb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(Category c, boolean empty) {
-                super.updateItem(c, empty);
-                setText(empty || c == null ? null : c.getName());
-            }
-        });
-        return cb;
-    }
-
-    ComboBox<Category> makeSubCatCb(List<Category> master) {
-        ComboBox<Category> cb = new ComboBox<>();
-        cb.setMaxWidth(Double.MAX_VALUE);
-        cb.setPromptText("Select sub-category (optional)");
-        cb.setVisible(false);
-        cb.setManaged(false);
-        return cb;
-    }
-
-    void wireCategory(ComboBox<Category> catCb, List<Category> catMaster,
-                      ComboBox<Category> subCatCb, List<Category> subMaster) {
-        CategoryComboWiring.wire(catCb, subCatCb, subMaster, ds);
-        UiUtils.wireAutoComplete(catCb,    catMaster);
-        UiUtils.wireAutoComplete(subCatCb, subMaster);
     }
 
     void resizeDialog(double prefWidth) {

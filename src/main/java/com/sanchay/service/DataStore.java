@@ -28,6 +28,7 @@ public class DataStore {
     private String currency   = "INR";
     private String yearFormat = "Indian Financial Year";
     private int    expenseForecastAnalysisMonths = 12; // Number of months to analyze for expense forecasting
+    private String lastBackupFolder;
     private final Map<String, Boolean> groupCollapsed = new HashMap<>(
             Map.of("bank", true, "cc", true, "loan", true, "investment", true));
 
@@ -1086,4 +1087,13 @@ public class DataStore {
     public void setExpenseForecastAnalysisMonthsInternal(int months) {
         this.expenseForecastAnalysisMonths = months;
     }
+
+    public String getLastBackupFolder() { return lastBackupFolder; }
+
+    public void setLastBackupFolder(String folder) {
+        this.lastBackupFolder = folder;
+        if (persistence != null) persistence.saveSettings(this);
+    }
+
+    public void setLastBackupFolderInternal(String folder) { this.lastBackupFolder = folder; }
 }

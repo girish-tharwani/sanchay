@@ -31,7 +31,7 @@ Key files by concern:
 
 ---
 
-## Phase 1 — Dead Code Removal (Lowest Risk, Start Here)
+## Phase 1 — Dead Code Removal (Complete)
 
 **Goal:** Remove code that is definitely unused. Zero behavior change.
 
@@ -53,7 +53,7 @@ Key files by concern:
 
 ---
 
-## Phase 2 — Extract Duplicated Code Into Utilities
+## Phase 2 — Extract Duplicated Code Into Utilities (Complete)
 
 **Goal:** Consolidate repeated boilerplate into existing or new utility classes. Reduces noise so subsequent class splits operate on clean, minimal code.
 
@@ -92,7 +92,7 @@ Key files by concern:
 
 ---
 
-## Phase 2.5 — Split Oversized Classes
+## Phase 2.5 — Split Oversized Classes (skipped - to be done later)
 
 Work lowest-risk first. All splits follow this pattern: extract → wire via constructor parameter → verify no behavior change.
 
@@ -171,7 +171,7 @@ Work lowest-risk first. All splits follow this pattern: extract → wire via con
 
 ---
 
-## Phase 3 — Standardize Dialog Implementation
+## Phase 3 — Standardize Dialog Implementation (Complete)
 
 **Status:** All 37 dialogs are already in separate classes with consistent `Dialog<T>` + `setResultConverter()` + `showAndWait()` patterns. No dialog extraction needed.
 
@@ -188,7 +188,7 @@ Work lowest-risk first. All splits follow this pattern: extract → wire via con
 
 ---
 
-## Phase 4 — Fix Cross-Class Wiring
+## Phase 4 — Fix Cross-Class Wiring (in-progress)
 
 **Goal:** Break tight coupling patterns without redesigning the architecture.
 
@@ -209,7 +209,7 @@ Work lowest-risk first. All splits follow this pattern: extract → wire via con
   Screens receive `NavigationContext` via constructor and call only the callback — no MainWindow reference.
 - **Risk:** Low — local refactoring within the UI shell layer.
 
-### Step 4.3 — Remove Dialog→DataStore direct write pattern (optional — discuss first)
+### Step 4.3 — Remove Dialog→DataStore direct write pattern (optional — decided not to do it)
 - **Issue:** Several dialogs (`AccountDialog`, `LoanScheduleDialog`) write directly to `DataStore` instead of returning data to the parent screen to persist.
 - **Note:** This is a deeper architectural change. Dialogs currently return `void` and save internally; changing return types would require touching all callers.
 - **Action:** Discuss with user whether to pursue. If yes, convert affected dialogs from `Dialog<Void>` to `Dialog<T>` where `T` is the saved entity. Let the calling screen handle persistence.
@@ -217,7 +217,7 @@ Work lowest-risk first. All splits follow this pattern: extract → wire via con
 
 ---
 
-## Phase 5 — Final Cleanup and Consistency Pass
+## Phase 5 — Final Cleanup and Consistency Pass (pending)
 
 ### Step 5.1 — Access modifier audit
 - Review all `public` methods across split and extracted classes. Methods only used within a package should be package-private. Methods only used within their class should be `private`.
@@ -238,7 +238,7 @@ Work lowest-risk first. All splits follow this pattern: extract → wire via con
 
 ---
 
-## Phase 6 — Update CLAUDE.md and README.md
+## Phase 6 — Update CLAUDE.md and README.md (pending)
 
 ### Step 6.1 — Update CLAUDE.md
 - Add the new utility classes (`AccountComboFactory`, `CategoryComboWiring`, `TransactionTableBuilder`) to the Dialog Utilities table.
