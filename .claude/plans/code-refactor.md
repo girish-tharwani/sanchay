@@ -92,7 +92,7 @@ Key files by concern:
 
 ---
 
-## Phase 2.5 — Split Oversized Classes (skipped - to be done later)
+## Phase 2.5 — Split Oversized Classes (in-progress)
 
 Work lowest-risk first. All splits follow this pattern: extract → wire via constructor parameter → verify no behavior change.
 

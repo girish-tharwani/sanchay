@@ -1,3 +1,8 @@
+## v0.0.11-Myna — 2026-04-17
+
+### Changed
+- `FinancialPlanningScreen` split: form fields and param logic extracted to `PlanParametersPanel`; corpus table extracted to `CorpusSectionCard` (step 2.5.1 of refactor plan)
+
 ## v0.0.10-Myna — 2026-04-17
 
 ### Changed
