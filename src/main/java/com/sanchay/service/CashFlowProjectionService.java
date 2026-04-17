@@ -4,8 +4,8 @@ import com.sanchay.model.*;
 import com.sanchay.model.Transaction.Type;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.Month;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
  */
 public class CashFlowProjectionService {
 
-    private final DataStore ds = DataStore.getInstance();
+    private final DataStore              ds       = DataStore.getInstance();
+    private final ExpensePatternAnalyzer analyzer = new ExpensePatternAnalyzer();
 
     // ── Public types ──────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ public class CashFlowProjectionService {
         }
 
         // ── Step C.5: Analyze expense patterns and generate forecasts ────────
-        List<ExpensePattern> expensePatterns = analyzeExpensePatterns();
+        List<ExpensePattern> expensePatterns = analyzer.analyze();
         List<ForecastedExpense> forecastedExpenses = generateExpenseForecasts(expensePatterns, startDate, endDate, overrides);
 
         // Group forecasts by month for efficient lookup
@@ -395,84 +396,6 @@ public class CashFlowProjectionService {
     // ── Expense Forecasting ──────────────────────────────────────────────────
 
     /**
-     * Analyzes historical expense data to identify spending patterns by sub-category.
-     * Uses the last N months of data (configurable via settings).
-     * Skips transactions without a sub-category (Option B).
-     */
-    private List<ExpensePattern> analyzeExpensePatterns() {
-        int analysisMonths = ds.getExpenseForecastAnalysisMonths();
-        LocalDate analysisEnd = LocalDate.now(); // March 30, 2026
-        LocalDate analysisStart = analysisEnd.minusMonths(analysisMonths);
-
-        // Group expenses by (categoryId, subCategoryId) and month
-        // Key: "categoryId|subCategoryId" to uniquely identify sub-category
-        Map<String, Map<YearMonth, Long>> subCategoryMonthlyExpenses = new HashMap<>();
-        Map<String, String> subCatIdMap = new HashMap<>(); // Store (category, subCategory) mapping
-
-        for (Transaction t : ds.getTransactions()) {
-            if (t.getType() != Type.EXPENSE) continue;
-            if (t.getDate().isBefore(analysisStart) || t.getDate().isAfter(analysisEnd)) continue;
-            if (t.getClassification() == null || t.getClassification().getCategoryId() == null) continue;
-            // Option B: Skip if sub-category is null/unmapped
-            if (t.getClassification().getSubCategoryId() == null) continue;
-
-            String catId = t.getClassification().getCategoryId();
-            String subCatId = t.getClassification().getSubCategoryId();
-            String key = catId + "|" + subCatId;
-
-            YearMonth ym = YearMonth.from(t.getDate());
-            subCategoryMonthlyExpenses
-                .computeIfAbsent(key, k -> new HashMap<>())
-                .merge(ym, t.getAmountPaise(), Long::sum);
-            
-            subCatIdMap.put(key, subCatId); // Store for later reference
-        }
-
-        List<ExpensePattern> patterns = new ArrayList<>();
-
-        for (Map.Entry<String, Map<YearMonth, Long>> entry : subCategoryMonthlyExpenses.entrySet()) {
-            String key = entry.getKey();
-            String[] parts = key.split("\\|");
-            String categoryId = parts[0];
-            String subCategoryId = parts[1];
-            Map<YearMonth, Long> monthlyData = entry.getValue();
-
-            if (monthlyData.size() < 3) continue; // Need at least 3 months of data
-
-            // Calculate average monthly spending over the full analysis window.
-            // Dividing by monthlyData.size() (months-with-data) would inflate the average
-            // for irregular expenses; use analysisMonths (the full window) instead.
-            long totalSpent = monthlyData.values().stream().mapToLong(Long::longValue).sum();
-            long avgMonthly = totalSpent / analysisMonths;
-
-            // Calculate seasonal factors (how much each month deviates from average)
-            Map<Month, List<Long>> monthlyAmounts = new HashMap<>();
-            for (Map.Entry<YearMonth, Long> monthEntry : monthlyData.entrySet()) {
-                Month month = monthEntry.getKey().getMonth();
-                monthlyAmounts.computeIfAbsent(month, k -> new ArrayList<>()).add(monthEntry.getValue());
-            }
-
-            Map<Month, Double> seasonalFactors = new HashMap<>();
-            for (Month month : Month.values()) {
-                List<Long> amounts = monthlyAmounts.get(month);
-                if (amounts != null && !amounts.isEmpty()) {
-                    double monthAvg = amounts.stream().mapToLong(Long::longValue).average().orElse(0.0);
-                    seasonalFactors.put(month, monthAvg / avgMonthly);
-                } else {
-                    seasonalFactors.put(month, 1.0); // Default to average
-                }
-            }
-
-            // Simple trend calculation (slope of linear regression)
-            double trendSlope = calculateTrendSlope(monthlyData);
-
-            patterns.add(new ExpensePattern(categoryId, subCategoryId, avgMonthly, seasonalFactors, trendSlope, monthlyData.size()));
-        }
-
-        return patterns;
-    }
-
-    /**
      * Generates forecasted expenses for future months based on historical patterns.
      * Uses pessimistic approach: max(forecast, sum_of_all_recurring_for_subcategory)
      * to avoid under-projecting and handle growth in spending.
@@ -610,37 +533,6 @@ public class CashFlowProjectionService {
             if (o.isAllMonths())               allMonths = o;
         }
         return monthSpecific != null ? monthSpecific : allMonths;
-    }
-
-    /**
-     * Calculates the trend slope using simple linear regression.
-     */
-    private double calculateTrendSlope(Map<YearMonth, Long> monthlyData) {
-        List<YearMonth> sortedMonths = monthlyData.keySet().stream()
-            .sorted()
-            .toList();
-
-        if (sortedMonths.size() < 2) return 0.0;
-
-        int n = sortedMonths.size();
-        double sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-
-        for (int i = 0; i < n; i++) {
-            YearMonth ym = sortedMonths.get(i);
-            double x = ym.getYear() * 12 + ym.getMonthValue(); // Convert to months since epoch
-            double y = monthlyData.get(ym);
-
-            sumX += x;
-            sumY += y;
-            sumXY += x * y;
-            sumXX += x * x;
-        }
-
-        double slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        double avgY = sumY / n;
-
-        // Return slope as a fraction of average (to make it unitless)
-        return avgY != 0 ? slope / avgY : 0.0;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

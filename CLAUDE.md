@@ -110,7 +110,10 @@ Each dialog has its own class. Extracted dialog classes by package:
 - `ReportsScreen` — thin coordinator; owns the `TabPane` and calls `refresh()` on each tab class on every navigation
 - `ExpenseReportTab` — Expense Report tab: category-by-month chart and table, FY/CY year picker, category multi-select filter (persisted via `ReportPrefsService`), sub-category toggle, CSV export
 - `ExpenseTrendTab` — Expense Trend tab: year-over-year net expense grid (EXPENSE minus REFUND) by category/sub-category; past years picker; category multi-select filter (persisted via `ReportPrefsService`); Total row; CSV export
-- `CashFlowForecastTab` — Cash Flow Forecast tab: line chart with data-point tooltips, horizon picker, override editing, account selection state
+- `CashFlowForecastTab` — Cash Flow Forecast tab: orchestrates chart, override table, and cash-flow table; delegates to `ForecastChartBuilder` and `ForecastOverridesPanel`
+- `ForecastChartBuilder` — builds and updates the `LineChart` and custom legend for the cash-flow forecast; owns the chart node
+- `ForecastOverridesPanel` — provides `AmountCell`, `ActionCell`, and `buildExcludedAwareCell()` for the forecast table; owns all override prompt dialogs
+- `ForecastTableRow` — package-private record for forecast expense table rows
 - `AccountSelectionDialog` — modal dialog for picking which accounts appear in the cash flow chart; up to 10 accounts in four labelled groups with tri-state group checkboxes; MF/Equity accounts shown as permanently disabled; includes "Show sum of all accounts" toggle
 
 **`ui/help/`**
@@ -138,6 +141,7 @@ Each panel receives a `TransactionDialog parent` reference in its constructor an
 
 ### Business Logic Services
 - **`CashFlowProjectionService`** — Projects account balances month-by-month using recurring transactions, maturity events, overrides, and seasonality factors. Used by `CashFlowForecastTab`.
+- **`ExpensePatternAnalyzer`** — Analyzes historical expense transactions to compute per-sub-category monthly averages, seasonal factors, and trend slope. Called by `CashFlowProjectionService`.
 - **`ForecastStateService`** — Loads and saves forecast overrides (`forecast_overrides.json`) and account selection state (`forecast_account_selection.json`). Override uniqueness key is `(categoryId, subCategoryId, month)`.
 - **`ImportService`** — Parses clipboard CSV/TSV, auto-detects delimiters, matches imports to existing transactions, and auto-categorizes via rules.
 - **`AmortizationService`** — Generates reducing-balance loan schedules; handles mid-loan interest rate changes.

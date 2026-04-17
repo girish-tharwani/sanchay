@@ -1,3 +1,10 @@
+## v0.0.13-Myna — 2026-04-17
+
+### Changed
+- `CashFlowForecastTab` split: chart-building extracted to `ForecastChartBuilder`; override cell interaction extracted to `ForecastOverridesPanel`; expense pattern analysis extracted to `ExpensePatternAnalyzer` (step 2.5.4 of refactor plan)
+- `CashFlowForecastTab` reduced from 1047 to 648 lines; `CashFlowProjectionService` reduced by ~100 lines
+- `onRegenerateClicked` and scope dialogs now use `UiUtils.applyStylesheet()` consistently
+
 ## v0.0.12-Myna — 2026-04-17
 
 ### Changed

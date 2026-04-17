@@ -7,7 +7,7 @@
 
     <groupId>com.sanchay</groupId>
     <artifactId>sanchay</artifactId>
-    <version>v0.0.12-Myna</version>
+    <version>v0.0.13-Myna</version>
     <packaging>jar</packaging>
 
     <properties>
