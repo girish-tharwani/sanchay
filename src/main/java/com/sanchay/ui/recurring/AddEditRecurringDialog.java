@@ -9,7 +9,6 @@ import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
-//import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.StringConverter;
@@ -116,32 +115,15 @@ public class AddEditRecurringDialog {
         accountCb.setMaxWidth(Double.MAX_VALUE);
         AccountCombos.style(accountCb);
 
+        // ── Investment type-specific fields and destination combo ─────────────
+        InvestmentRecurringPanel invPanel = new InvestmentRecurringPanel(ds);
+
         // ── To Account controls ───────────────────────────────────────────────
         ComboBox<Account> transferToCb = new ComboBox<>();
         transferToCb.setPromptText("Select destination account");
         transferToCb.setMaxWidth(Double.MAX_VALUE);
         ds.getBankAccounts().forEach(transferToCb.getItems()::add);
         AccountCombos.style(transferToCb);
-
-        ComboBox<InvestmentAccount> invDestCb = new ComboBox<>();
-        invDestCb.setPromptText("Select investment account");
-        invDestCb.setMaxWidth(Double.MAX_VALUE);
-        ds.getInvestmentAccounts().forEach(invDestCb.getItems()::add);
-        invDestCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(InvestmentAccount item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName() + "  (" + item.getAccountType() + ")");
-            }
-        });
-        invDestCb.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(InvestmentAccount item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName() + "  (" + item.getAccountType() + ")");
-            }
-        });
-
-        Label invTypeLbl = new Label("—");
-        invTypeLbl.getStyleClass().add("inv-type-hint");
 
         ComboBox<Account> ccpCardCb = new ComboBox<>();
         ccpCardCb.setPromptText("Select credit card");
@@ -155,79 +137,12 @@ public class AddEditRecurringDialog {
         ds.getActiveLoanAccounts().forEach(loanToCb.getItems()::add);
         AccountCombos.style(loanToCb);
 
-        // ── Investment type-specific fields ───────────────────────────────────
-        TextField invSchemeFld        = new TextField();
-        invSchemeFld.setPromptText("e.g. HDFC Flexi Cap Fund, RELIANCE (optional)");
-        invSchemeFld.setMaxWidth(Double.MAX_VALUE);
-
-        TextField invUnitsFld         = new TextField();
-        invUnitsFld.setPromptText("Units / NAV at investment time (optional)");
-        invUnitsFld.setMaxWidth(Double.MAX_VALUE);
-
-        TextField invFdRefFld         = new TextField();
-        invFdRefFld.setPromptText("Reference number (optional)");
-        invFdRefFld.setMaxWidth(Double.MAX_VALUE);
-
-        TextField invFdRateFld        = new TextField();
-        invFdRateFld.setPromptText("Annual interest rate, e.g. 6.5");
-        invFdRateFld.setMaxWidth(Double.MAX_VALUE);
-
-        DatePicker invFdMaturityPicker = UiUtils.createDatePicker(null);
-        invFdMaturityPicker.setPromptText("Maturity date");
-
-        TextField invFdMaturityAmtFld = new TextField();
-        invFdMaturityAmtFld.setPromptText("Expected maturity amount (optional)");
-        invFdMaturityAmtFld.setMaxWidth(Double.MAX_VALUE);
-
-        TextField invRdRefFld         = new TextField();
-        invRdRefFld.setPromptText("e.g. HDFC-RD-2024 (required)");
-        invRdRefFld.setMaxWidth(Double.MAX_VALUE);
-
-        TextField invRdRateFld        = new TextField();
-        invRdRateFld.setPromptText("Annual interest rate, e.g. 7.0");
-        invRdRateFld.setMaxWidth(Double.MAX_VALUE);
-
-        DatePicker invRdMaturityPicker = UiUtils.createDatePicker(null);
-        invRdMaturityPicker.setPromptText("Maturity date");
-
-        TextField invRdOpeningBalFld = new TextField();
-        invRdOpeningBalFld.setPromptText("Total instalments paid before setup (optional)");
-        invRdOpeningBalFld.setMaxWidth(Double.MAX_VALUE);
-
-        TextField invRdMaturityAmtFld = new TextField();
-        invRdMaturityAmtFld.setPromptText("Expected maturity amount (optional)");
-        invRdMaturityAmtFld.setMaxWidth(Double.MAX_VALUE);
-
-        if (hasDefaults && existing.getRdOpeningBalancePaise() > 0)
-            invRdOpeningBalFld.setText(String.format("%.2f", existing.getRdOpeningBalancePaise() / 100.0));
-        if (hasDefaults && existing.getRdMaturityAmountPaise() > 0)
-            invRdMaturityAmtFld.setText(String.format("%.2f", existing.getRdMaturityAmountPaise() / 100.0));
-        if (hasDefaults) {
-            if (existing.getSchemeScript() != null) invSchemeFld.setText(existing.getSchemeScript());
-            if (existing.getUnitsNav()     != null) invUnitsFld.setText(existing.getUnitsNav());
-            if (existing.getFdRef()        != null) invFdRefFld.setText(existing.getFdRef());
-            if (existing.getRdRef()        != null) invRdRefFld.setText(existing.getRdRef());
-            if (existing.getInterestRate() != null) {
-                String rateStr = existing.getInterestRate().toString();
-                invFdRateFld.setText(rateStr);
-                invRdRateFld.setText(rateStr);
-            }
-            if (existing.getMaturityDate() != null) {
-                invFdMaturityPicker.setValue(existing.getMaturityDate());
-                invRdMaturityPicker.setValue(existing.getMaturityDate());
-            }
-            if (existing.getFdMaturityAmountPaise() > 0)
-                invFdMaturityAmtFld.setText(String.format("%.2f", existing.getFdMaturityAmountPaise() / 100.0));
-        }
+        if (hasDefaults) invPanel.prefill(existing);
 
         // ── Dynamic containers ────────────────────────────────────────────────
         VBox toAccountSection = new VBox(0);
         toAccountSection.setVisible(false);
         toAccountSection.setManaged(false);
-
-        VBox invDynamicBox = new VBox(0);
-        invDynamicBox.setVisible(false);
-        invDynamicBox.setManaged(false);
 
         // ── Account label (needs a reference so refreshToAccount can relabel it) ─
         Label accountLbl = new Label("From Account");
@@ -313,43 +228,6 @@ public class AddEditRecurringDialog {
 
         catCb.valueProperty().addListener((obs, old, sel) -> refreshSrcInvest.run());
 
-        // ── Refresh logic ─────────────────────────────────────────────────────
-        Runnable refreshInvFields = () -> {
-            invDynamicBox.getChildren().clear();
-            InvestmentAccount sel = invDestCb.getValue();
-            if (sel == null) {
-                invTypeLbl.setText("—");
-                invDynamicBox.setVisible(false);
-                invDynamicBox.setManaged(false);
-                return;
-            }
-            invTypeLbl.setText(sel.getAccountType());
-            GridPane dg = miniGrid();
-            switch (sel.getInvestmentType()) {
-                case MUTUAL_FUNDS, EQUITY -> {
-                    UiUtils.addFormRow(dg, 0, "Scheme / Script", invSchemeFld);
-                    UiUtils.addFormRow(dg, 1, "Units / NAV",     invUnitsFld);
-                }
-                case FIXED_DEPOSIT, DEBT_BONDS -> {
-                    UiUtils.addFormRow(dg, 0, "Reference No",      invFdRefFld);
-                    UiUtils.addFormRow(dg, 1, "Interest Rate (%)", invFdRateFld);
-                    UiUtils.addFormRow(dg, 2, "Maturity Date",     invFdMaturityPicker);
-                    UiUtils.addFormRow(dg, 3, "Maturity Amount",   invFdMaturityAmtFld);
-                }
-                case RECURRING_DEPOSIT -> {
-                    UiUtils.addFormRow(dg, 0, "RD Reference No*",   invRdRefFld);
-                    UiUtils.addFormRow(dg, 1, "Interest Rate (%)",  invRdRateFld);
-                    UiUtils.addFormRow(dg, 2, "Maturity Date",      invRdMaturityPicker);
-                    UiUtils.addFormRow(dg, 3, "Opening Balance (₹)", invRdOpeningBalFld);
-                    UiUtils.addFormRow(dg, 4, "Maturity Amount (₹)", invRdMaturityAmtFld);
-                }
-                case PROVIDENT_FUND -> { /* no additional fields */ }
-            }
-            invDynamicBox.getChildren().add(dg);
-            invDynamicBox.setVisible(true);
-            invDynamicBox.setManaged(true);
-        };
-
         Runnable refreshToAccount = () -> {
             Transaction.Type t = typeCb.getValue();
 
@@ -395,10 +273,7 @@ public class AddEditRecurringDialog {
                           || t == Transaction.Type.CC_PAYMENT
                           || t == Transaction.Type.LOAN_PAYMENT;
             toAccountSection.getChildren().clear();
-            invDynamicBox.getChildren().clear();
-            invDynamicBox.setVisible(false);
-            invDynamicBox.setManaged(false);
-            invTypeLbl.setText("—");
+            invPanel.clearForTypeSwitch();
             toAccountSection.setVisible(showTo);
             toAccountSection.setManaged(showTo);
             if (!showTo) return;
@@ -407,15 +282,15 @@ public class AddEditRecurringDialog {
             if (t == Transaction.Type.TRANSFER) {
                 UiUtils.addFormRow(tg, 0, "To Account", transferToCb);
             } else if (t == Transaction.Type.INVESTMENT) {
-                UiUtils.addFormRow(tg, 0, "To Account",      invDestCb);
-                UiUtils.addFormRow(tg, 1, "Investment Type", invTypeLbl);
+                UiUtils.addFormRow(tg, 0, "To Account",      invPanel.getDestCombo());
+                UiUtils.addFormRow(tg, 1, "Investment Type", invPanel.getTypeLbl());
             } else if (t == Transaction.Type.CC_PAYMENT) {
                 UiUtils.addFormRow(tg, 0, "To Account", ccpCardCb);
             } else {
                 UiUtils.addFormRow(tg, 0, "To Account", loanToCb);
             }
             toAccountSection.getChildren().add(tg);
-            if (t == Transaction.Type.INVESTMENT) refreshInvFields.run();
+            if (t == Transaction.Type.INVESTMENT) invPanel.triggerRefresh();
         };
 
         // Auto-default payment mode: Expense + CC account → "Credit Card", else "Net Banking"
@@ -430,23 +305,10 @@ public class AddEditRecurringDialog {
         accountCb.valueProperty().addListener((obs, old, acct) -> refreshPayMode.run());
 
         typeCb.setOnAction(e -> { refreshToAccount.run(); refreshSrcInvest.run(); refreshPayMode.run(); });
-        invDestCb.setOnAction(e -> refreshInvFields.run());
 
         // ── Auto-record ───────────────────────────────────────────────────────
-        CheckBox autoRecordCb = new CheckBox("Auto-record after");
-        Spinner<Integer> autoRecordDaysSp = new Spinner<>(1, 30, 3);
-        autoRecordDaysSp.setPrefWidth(70);
-        autoRecordDaysSp.setDisable(true);
-        Label autoRecordSuffix = new Label("days overdue");
-        autoRecordSuffix.getStyleClass().add("text-hint");
-        HBox autoRecordBox = new HBox(8, autoRecordCb, autoRecordDaysSp, autoRecordSuffix);
-        autoRecordBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        autoRecordCb.selectedProperty().addListener((obs, o, n) -> autoRecordDaysSp.setDisable(!n));
-
-        if (hasDefaults && existing.getAutoRecordAfterDays() > 0) {
-            autoRecordCb.setSelected(true);
-            autoRecordDaysSp.getValueFactory().setValue(existing.getAutoRecordAfterDays());
-        }
+        AutoRecordSettingsPanel autoRecordPanel = new AutoRecordSettingsPanel();
+        if (hasDefaults) autoRecordPanel.prefill(existing.getAutoRecordAfterDays());
 
         // ── Number of payments ─────────────────────────────────────────────────
         TextField numPaymentsFld = new TextField();
@@ -503,7 +365,7 @@ public class AddEditRecurringDialog {
             } else if (t == Transaction.Type.INVESTMENT) {
                 ds.getInvestmentAccounts().stream()
                         .filter(a -> a.getId().equals(existing.getToAccountId()))
-                        .findFirst().ifPresent(invDestCb::setValue);
+                        .findFirst().ifPresent(invPanel.getDestCombo()::setValue);
             } else if (t == Transaction.Type.CC_PAYMENT) {
                 ds.getCreditCardAccounts().stream()
                         .filter(a -> a.getId().equals(existing.getToAccountId()))
@@ -561,12 +423,12 @@ public class AddEditRecurringDialog {
         UiUtils.addFormRow(g, row++, "No. of Payments", numPaymentsBox);
         g.add(accountLbl, 0, row); g.add(accountCb, 1, row); GridPane.setFillWidth(accountCb, true); row++;
         UiUtils.addFormRow(g, row++, "Payment Mode",     payModeCb);
-        g.add(toAccountSection, 0, row++, 2, 1);
-        g.add(invDynamicBox,    0, row++, 2, 1);
+        g.add(toAccountSection,              0, row++, 2, 1);
+        g.add(invPanel.getDynamicBox(),      0, row++, 2, 1);
         UiUtils.addFormRow(g, row++, "Category",         catCb);
         UiUtils.addFormRow(g, row++, "Sub-category",     subCatCb);
-        g.add(srcInvestBox,     0, row++, 2, 1);
-        g.add(autoRecordBox,    0, row,   2, 1);
+        g.add(srcInvestBox,              0, row++, 2, 1);
+        g.add(autoRecordPanel.getView(), 0, row,   2, 1);
 
         ScrollPane sp = new ScrollPane(g);
         sp.setFitToWidth(true);
@@ -594,12 +456,10 @@ public class AddEditRecurringDialog {
                         && accountCb.getValue().getId().equals(transferToCb.getValue().getId())) {
                     alert("Validation Error", "From and To accounts must differ."); ev.consume(); return;
                 }
-                if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() == null) {
+                if (type == Transaction.Type.INVESTMENT && invPanel.getDestCombo().getValue() == null) {
                     alert("Validation Error", "Select a destination investment account."); ev.consume(); return;
                 }
-                if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null
-                        && invDestCb.getValue().getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT
-                        && invRdRefFld.getText().trim().isEmpty()) {
+                if (type == Transaction.Type.INVESTMENT && invPanel.isRd() && invPanel.isRdRefBlank()) {
                     alert("Validation Error", "RD Reference No is required for Recurring Deposit schedules."); ev.consume(); return;
                 }
                 if (type == Transaction.Type.CC_PAYMENT && ccpCardCb.getValue() == null) {
@@ -615,7 +475,7 @@ public class AddEditRecurringDialog {
                         alert("Validation Error", "Invalid amount."); ev.consume(); return;
                     }
                 }
-                if (autoRecordCb.isSelected() && amtRaw.isEmpty()) {
+                if (autoRecordPanel.isEnabled() && amtRaw.isEmpty()) {
                     alert("Validation Error",
                             "Auto-record requires a fixed amount. Enter an amount or uncheck auto-record.");
                     ev.consume(); return;
@@ -652,57 +512,19 @@ public class AddEditRecurringDialog {
             String toAccountId = null;
             if (type == Transaction.Type.TRANSFER && transferToCb.getValue() != null)
                 toAccountId = transferToCb.getValue().getId();
-            else if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null)
-                toAccountId = invDestCb.getValue().getId();
+            else if (type == Transaction.Type.INVESTMENT && invPanel.getDestCombo().getValue() != null)
+                toAccountId = invPanel.getDestCombo().getValue().getId();
             else if (type == Transaction.Type.CC_PAYMENT && ccpCardCb.getValue() != null)
                 toAccountId = ccpCardCb.getValue().getId();
             else if (type == Transaction.Type.LOAN_PAYMENT && loanToCb.getValue() != null)
                 toAccountId = loanToCb.getValue().getId();
-
-            // Investment sub-type field values — collected here, applied to record below
-            String  invSchemeScript = null, invUnitsNav = null;
-            String  invFdRef = null, invRdRefVal = null;
-            Double  invInterestRate = null;
-            LocalDate invMaturityDate = null;
-            long    invFdMatAmt = 0;
-            if (type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null) {
-                switch (invDestCb.getValue().getInvestmentType()) {
-                    case MUTUAL_FUNDS, EQUITY -> {
-                        invSchemeScript = nullIfBlank(invSchemeFld.getText());
-                        invUnitsNav     = nullIfBlank(invUnitsFld.getText());
-                    }
-                    case FIXED_DEPOSIT, DEBT_BONDS -> {
-                        invFdRef        = nullIfBlank(invFdRefFld.getText());
-                        invInterestRate = parseRate(invFdRateFld.getText());
-                        invMaturityDate = invFdMaturityPicker.getValue();
-                        String raw = invFdMaturityAmtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
-                        if (!raw.isEmpty()) try { invFdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
-                    }
-                    case RECURRING_DEPOSIT -> {
-                        invRdRefVal     = nullIfBlank(invRdRefFld.getText());
-                        invInterestRate = parseRate(invRdRateFld.getText());
-                        invMaturityDate = invRdMaturityPicker.getValue();
-                    }
-                    default -> {}
-                }
-            }
-
-            long rdOpenBal = 0, rdMatAmt = 0;
-            boolean isRd = type == Transaction.Type.INVESTMENT && invDestCb.getValue() != null
-                    && invDestCb.getValue().getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT;
-            if (isRd) {
-                String raw = invRdOpeningBalFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
-                if (!raw.isEmpty()) try { rdOpenBal = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
-                raw = invRdMaturityAmtFld.getText().trim().replace(",", "").replace(MoneyFormatter.symbol(), "");
-                if (!raw.isEmpty()) try { rdMatAmt = Math.round(Double.parseDouble(raw) * 100); } catch (NumberFormatException ignored) {}
-            }
 
             // For INCOME, accountCb is the destination bank account → toAccountId.
             // For all other types, accountCb is the source account → fromAccountId.
             String mainAccountId = accountCb.getValue() != null ? accountCb.getValue().getId() : null;
             String fromAccountId = type == Transaction.Type.INCOME ? null : mainAccountId;
             if (type == Transaction.Type.INCOME) toAccountId = mainAccountId;
-            int autoRecordDays   = autoRecordCb.isSelected() ? autoRecordDaysSp.getValue() : 0;
+            int autoRecordDays = autoRecordPanel.getAutoRecordDays();
 
             Integer numPayments = null;
             String numPayRaw = numPaymentsFld.getText().trim();
@@ -717,15 +539,7 @@ public class AddEditRecurringDialog {
                 r.setToAccountId(toAccountId);
                 if (catCb.getValue() != null)    r.setCategoryId(catCb.getValue().getId());
                 if (subCatCb.getValue() != null) r.setSubCategoryId(subCatCb.getValue().getId());
-                r.setSchemeScript(invSchemeScript);
-                r.setUnitsNav(invUnitsNav);
-                r.setFdRef(invFdRef);
-                r.setRdRef(invRdRefVal);
-                r.setInterestRate(invInterestRate);
-                r.setMaturityDate(invMaturityDate);
-                r.setFdMaturityAmountPaise(invFdMatAmt);
-                r.setRdOpeningBalancePaise(rdOpenBal);
-                r.setRdMaturityAmountPaise(rdMatAmt);
+                invPanel.applyTo(r, type);
                 r.setAutoRecordAfterDays(autoRecordDays);
                 r.setNumberOfPayments(numPayments);
                 r.setSourceInvestment(buildSourceInvestment(srcInvestBox, srcInvestCb, srcRefCb));
@@ -743,15 +557,7 @@ public class AddEditRecurringDialog {
                 existing.setToAccountId(toAccountId);
                 existing.setCategoryId(catCb.getValue() != null ? catCb.getValue().getId() : null);
                 existing.setSubCategoryId(subCatCb.getValue() != null ? subCatCb.getValue().getId() : null);
-                existing.setSchemeScript(invSchemeScript);
-                existing.setUnitsNav(invUnitsNav);
-                existing.setFdRef(invFdRef);
-                existing.setRdRef(invRdRefVal);
-                existing.setInterestRate(invInterestRate);
-                existing.setMaturityDate(invMaturityDate);
-                existing.setFdMaturityAmountPaise(invFdMatAmt);
-                existing.setRdOpeningBalancePaise(rdOpenBal);
-                existing.setRdMaturityAmountPaise(rdMatAmt);
+                invPanel.applyTo(existing, type);
                 existing.setAutoRecordAfterDays(autoRecordDays);
                 existing.setNumberOfPayments(numPayments);
                 existing.setSourceInvestment(buildSourceInvestment(srcInvestBox, srcInvestCb, srcRefCb));
@@ -782,15 +588,6 @@ public class AddEditRecurringDialog {
         if (s == null || s.isBlank()) return null;
         try { return Transaction.PaymentMode.valueOf(s.replace(' ', '_').toUpperCase()); }
         catch (IllegalArgumentException ignored) { return null; }
-    }
-
-    private static String nullIfBlank(String s) {
-        return (s == null || s.isBlank()) ? null : s.trim();
-    }
-
-    private static Double parseRate(String s) {
-        if (s == null || s.isBlank()) return null;
-        try { return Double.parseDouble(s.trim()); } catch (NumberFormatException e) { return null; }
     }
 
     private static RecurringTransaction.SourceInvestment buildSourceInvestment(

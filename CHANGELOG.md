@@ -1,3 +1,9 @@
+## v0.0.14-Myna — 2026-04-17
+
+### Changed
+- `AddEditRecurringDialog` split: investment destination combo and type-specific sub-fields (FD/Bond/RD/MF) extracted to `InvestmentRecurringPanel`; auto-record toggle + spinner extracted to `AutoRecordSettingsPanel` (step 2.5.3 of refactor plan)
+- `AddEditRecurringDialog` reduced from 825 to ~490 lines
+
 ## v0.0.13-Myna — 2026-04-17
 
 ### Changed

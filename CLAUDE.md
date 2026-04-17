@@ -93,7 +93,9 @@ Each dialog has its own class. Extracted dialog classes by package:
 - `MarketValueHistoryDialog` / `RecordMarketValueDialog` — investment market value management
 
 **`ui/recurring/`**
-- `AddEditRecurringDialog` — create/edit recurring schedules
+- `AddEditRecurringDialog` — create/edit recurring schedules; delegates investment fields to `InvestmentRecurringPanel` and auto-record settings to `AutoRecordSettingsPanel`
+- `InvestmentRecurringPanel` — investment destination combo, type-hint label, and type-specific sub-fields (MF/Equity, FD/Bond, RD); exposes `applyTo()` for save
+- `AutoRecordSettingsPanel` — auto-record checkbox + overdue-days spinner row; exposes `getAutoRecordDays()` for save
 - `RecordRecurringDialog` — record an occurrence of a recurring transaction
 - `SkipRecurringDialog` — skip a recurring occurrence
 
