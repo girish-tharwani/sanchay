@@ -50,9 +50,9 @@ model/      → Domain data classes (serialized to JSON)
 ```
 
 ### UI Shell
-`MainWindow` uses a three-zone layout (top bar / sidebar / main panel) with a Floating Action Button (FAB) for adding transactions. It manages `postTransactionCallback` and `transactionContextAccount` so the FAB knows which account context to use. Screens are rebuilt on each navigation (not cached), except AccountsScreen context which is preserved.
+`MainWindow` uses a three-zone layout (top bar / sidebar / main panel) with a Floating Action Button (FAB) for adding transactions. FAB state (callback + context account) is carried by a `NavigationContext` value object created fresh on each navigation. `AccountsScreen` and `TransactionsScreen` receive `NavigationContext` instead of a `MainWindow` reference and write their FAB state into it; `MainWindow` reads it when the FAB is tapped. Screens are rebuilt on each navigation (not cached), except AccountsScreen context which is preserved.
 
-`navigateTo()` clears both FAB fields unconditionally at the top on every navigation — AccountsScreen re-sets them when needed. This prevents stale account context if the user opens the FAB after navigating away.
+`navigateTo()` creates a fresh `NavigationContext` at the top on every navigation — AccountsScreen re-populates it when needed. This prevents stale account context if the user opens the FAB after navigating away.
 
 `SettingsScreen` is decoupled from `MainWindow` via a `BiConsumer<String, PreferencesSetupDialog.Result>` callback injected via constructor. `MainWindow` passes `this::reloadDataFolder`; `SettingsScreen` never holds a `MainWindow` reference.
 

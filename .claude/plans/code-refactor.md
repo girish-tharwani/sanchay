@@ -188,7 +188,7 @@ Work lowest-risk first. All splits follow this pattern: extract → wire via con
 
 ---
 
-## Phase 4 — Fix Cross-Class Wiring (in-progress)
+## Phase 4 — Fix Cross-Class Wiring (Complete)
 
 **Goal:** Break tight coupling patterns without redesigning the architecture.
 

@@ -3,7 +3,7 @@ package com.sanchay.ui.accounts;
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
-import com.sanchay.ui.MainWindow;
+import com.sanchay.ui.NavigationContext;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -19,7 +19,7 @@ import javafx.scene.shape.Circle;
 /** Accounts module. */
 public class AccountsScreen {
 
-    private final MainWindow mainWindow;
+    private final NavigationContext navCtx;
 
     // view is initialised ONCE; never reassigned so that the reference held by MainWindow stays valid
     private final StackPane view;
@@ -30,8 +30,8 @@ public class AccountsScreen {
     private final CheckBox showClosedLoan       = new CheckBox("Show Closed");
     private final CheckBox showClosedInvestment = new CheckBox("Show Closed");
 
-    public AccountsScreen(MainWindow mainWindow) {
-        this.mainWindow = mainWindow;
+    public AccountsScreen(NavigationContext navCtx) {
+        this.navCtx = navCtx;
         this.view = new StackPane();
         buildList();
     }
@@ -45,8 +45,8 @@ public class AccountsScreen {
     // ── Account list ──────────────────────────────────────────────────────────
 
     private void buildList() {
-        mainWindow.setPostTransactionCallback(null);
-        mainWindow.setTransactionContextAccount(null);
+        navCtx.setOnTransactionSaved(null);
+        navCtx.setContextAccount(null);
         VBox content = new VBox(24);
         content.getStyleClass().add("main-panel");
         content.setPadding(new Insets(24));
@@ -276,7 +276,7 @@ public class AccountsScreen {
         Button txnBtn = new Button("≡");
         txnBtn.getStyleClass().add("btn-icon");
         txnBtn.setTooltip(new Tooltip("Transactions"));
-        txnBtn.setOnAction(e -> mainWindow.navigateToTransactions(acc));
+        txnBtn.setOnAction(e -> navCtx.navigateToTransactions(acc));
 
         card.getChildren().addAll(info, descLbl, balanceBox, detailsBtn, txnBtn);
 

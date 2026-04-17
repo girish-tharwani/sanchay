@@ -1,3 +1,8 @@
+## v0.0.10-Myna — 2026-04-17
+
+### Changed
+- `AccountsScreen` and `TransactionsScreen` no longer hold a `MainWindow` reference; shell callbacks are passed via the new `NavigationContext` value object (step 4.2 of refactor plan)
+
 ## v0.0.9-Myna — 2026-04-17
 
 ### Changed

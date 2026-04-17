@@ -5,7 +5,7 @@ import com.sanchay.service.AmortizationService;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.ImportService;
 import com.sanchay.service.MoneyFormatter;
-import com.sanchay.ui.MainWindow;
+import com.sanchay.ui.NavigationContext;
 import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -31,14 +31,14 @@ public class TransactionsScreen {
     private static final PseudoClass PC_IMPORTED   = PseudoClass.getPseudoClass("row-imported");
     private static final PseudoClass PC_RECONCILED = PseudoClass.getPseudoClass("row-reconciled");
 
-    private final MainWindow mainWindow;
+    private final NavigationContext navCtx;
     private final Account account;
 
     // view is initialised ONCE; never reassigned so that the reference held by MainWindow stays valid
     private final StackPane view;
 
-    public TransactionsScreen(MainWindow mainWindow, Account account) {
-        this.mainWindow = mainWindow;
+    public TransactionsScreen(Account account, NavigationContext navCtx) {
+        this.navCtx = navCtx;
         this.account = account;
         this.view = new StackPane();
         buildTransactionsView();
@@ -65,7 +65,7 @@ public class TransactionsScreen {
         back.setId("txn-back-button");
         back.getStyleClass().add("btn-secondary");
         back.setTooltip(new Tooltip("Back"));
-        back.setOnAction(e -> mainWindow.navigateTo("Accounts"));
+        back.setOnAction(e -> navCtx.navigateBack());
         Label title = new Label(account.getName() + " — Transactions");
         title.setId("txn-screen-title");
         title.getStyleClass().add("screen-title");
@@ -384,8 +384,8 @@ public class TransactionsScreen {
         table.comparatorProperty().addListener((obs, o, n) -> applyFilter.run());
         pendingOnly.selectedProperty().addListener((obs, o, n) -> applyFilter.run());
         applyFilter.run();
-        mainWindow.setPostTransactionCallback(applyFilter);
-        mainWindow.setTransactionContextAccount(account);
+        navCtx.setOnTransactionSaved(applyFilter);
+        navCtx.setContextAccount(account);
 
         // Double-click or Enter to edit / re-classify
         table.setRowFactory(tv -> {
@@ -878,14 +878,14 @@ public class TransactionsScreen {
         fc.setTitle("Save Transactions as CSV");
         fc.setInitialFileName(account.getName().replaceAll("\\s+", "_") + "_transactions.csv");
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
-        String savedDir = mainWindow.getLastAccountExportDir();
+        String savedDir = navCtx.getLastExportDir();
         if (savedDir != null) {
             File dir = new File(savedDir);
             if (dir.isDirectory()) fc.setInitialDirectory(dir);
         }
         File file = fc.showSaveDialog(null);
         if (file == null) return;
-        mainWindow.setLastAccountExportDir(file.getParent());
+        navCtx.setLastExportDir(file.getParent());
 
         DataStore ds = DataStore.getInstance();
         boolean isPf = account instanceof InvestmentAccount pfIa
