@@ -1,3 +1,8 @@
+## v0.0.7-Myna — 2026-04-17
+
+### Fixed
+- `AccountDialog`, `RecordMarketValueDialog`, `MajorEventDialog`, `AddEditRecurringDialog`, `LoanPaymentPanel`: `Alert` instances now call `UiUtils.applyStylesheet()` so design tokens and component styles resolve correctly in alert dialogs
+
 ## v0.0.6-Myna — 2026-04-17
 
 ### Added

@@ -3,6 +3,7 @@ package com.sanchay.ui.transactions;
 import com.sanchay.model.*;
 import com.sanchay.service.AmortizationService;
 import com.sanchay.service.MoneyFormatter;
+import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.common.AccountCombos;
 import javafx.application.Platform;
 import javafx.scene.Node;
@@ -242,6 +243,7 @@ class LoanPaymentPanel {
         confirm.setContentText(String.format(
                 "EMI has changed to \u20b9%.0f after prepayment.\nUpdate the linked payment schedule?",
                 newEmiPaise / 100.0));
+        UiUtils.applyStylesheet(confirm);
         Platform.runLater(() -> {
             Button okBtn = (Button) confirm.getDialogPane().lookupButton(ButtonType.OK);
             if (okBtn != null) okBtn.setId("txn-loan-payment-sync-ok-button");

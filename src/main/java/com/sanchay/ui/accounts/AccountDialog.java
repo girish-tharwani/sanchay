@@ -526,6 +526,7 @@ public class AccountDialog {
         a.setTitle(title);
         a.setHeaderText(null);
         a.setContentText(msg);
+        UiUtils.applyStylesheet(a);
         a.showAndWait();
     }
 
@@ -542,6 +543,7 @@ public class AccountDialog {
         confirm.setContentText(String.format(
                 "EMI has changed from \u20b9%.0f to \u20b9%.0f.\nUpdate the linked payment schedule?",
                 oldEmiPaise / 100.0, newEmiPaise / 100.0));
+        UiUtils.applyStylesheet(confirm);
         confirm.showAndWait().ifPresent(bt -> {
             if (bt == ButtonType.OK) {
                 rt.setAmountPaise(newEmiPaise);
