@@ -1,3 +1,9 @@
+## v0.0.17-Myna — 2026-04-18
+
+### Changed
+- Categories screen: category and sub-category name labels increased from 11–12px to 13px
+- Categories screen: sub-category name labels changed from bold to normal weight
+
 ## v0.0.16-Myna — 2026-04-18
 
 ### Fixed
