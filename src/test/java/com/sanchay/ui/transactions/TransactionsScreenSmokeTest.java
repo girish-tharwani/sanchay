@@ -5,7 +5,7 @@ import com.sanchay.model.BankAccount;
 import com.sanchay.model.Category;
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
-import com.sanchay.ui.MainWindow;
+import com.sanchay.ui.NavigationContext;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.TableView;
@@ -68,7 +68,8 @@ class TransactionsScreenSmokeTest extends ApplicationTest {
     @Override
     public void start(Stage stage) {
         setUpFixture();
-        TransactionsScreen screen = new TransactionsScreen(new MainWindow(false), account);
+        NavigationContext navCtx = new NavigationContext(a -> {}, () -> {}, () -> null, d -> {});
+        TransactionsScreen screen = new TransactionsScreen(account, navCtx);
         stage.setScene(new Scene((Parent) screen.getView(), 1280, 800));
         stage.show();
     }

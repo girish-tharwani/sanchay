@@ -15,7 +15,7 @@ public final class NavigationContext {
     private final Supplier<String>  getLastExportDir;
     private final Consumer<String>  setLastExportDir;
 
-    NavigationContext(Consumer<Account> navigateToTransactions,
+    public NavigationContext(Consumer<Account> navigateToTransactions,
                       Runnable          navigateBack,
                       Supplier<String>  getLastExportDir,
                       Consumer<String>  setLastExportDir) {

@@ -1,3 +1,7 @@
+## v1.0.0-Myna — 2026-04-18
+
+baseline for release
+
 ## v0.0.17-Myna — 2026-04-18
 
 ### Changed

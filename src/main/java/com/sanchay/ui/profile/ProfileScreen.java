@@ -433,9 +433,9 @@ public class ProfileScreen {
 
     private static Color avatarColor(String name) {
         // Shape.fill cannot be set via style class; deterministic colour from name hash stays inline
-        String[] colors = { "#4169a1", "#3db89a", "#a0522d", "#4a7a88", "#1a6b5a",
-                             "#5b7fa6", "#7b5ea7", "#0f3d4a", "#2e8b57", "#2a8a7a" };
-        int idx = Math.abs(name.hashCode()) % colors.length;
-        return Color.web(colors[idx]);
+        String[] colors = { "#4169a1", "#3db89a", "#10745b", "#4a7a88", "#dda132",
+                             "#5b7fa6", "#7b5ea7", "#0f3d4a", "#b2db1c", "#ee4083" };
+        int hash = name.toLowerCase().chars().reduce(0, (acc, c) -> acc * 31 + c);
+        return Color.web(colors[Math.abs(hash) % colors.length]);
     }
 }
