@@ -55,7 +55,8 @@ public class MainWindow {
     // AccountsScreen is NOT cached — always rebuilt on navigation so that
     // navigating back via the sidebar always shows the account list, not a
     // stale transactions sub-view.
-    private String currentScreen = "";
+    private String  currentScreen            = "";
+    private Account currentTransactionAccount = null;
 
     // Per-navigation context: FAB state written by screens; navigation callbacks read by screens.
     private NavigationContext navCtx = new NavigationContext(null, null, null, null);
@@ -86,9 +87,10 @@ public class MainWindow {
         minBtn.setOnAction(e -> stage.setIconified(true));
         maxBtn.setOnAction(e -> toggleMaximize(stage));
         closeBtn.setOnAction(e -> stage.close());
-        stage.maximizedProperty().addListener((obs, wasMax, isMax) -> customMaximized = isMax);
-        stage.maximizedProperty().addListener((obs, wasMax, isMax) ->
-                maxBtn.setText(isMax ? "❐" : "□"));
+        stage.maximizedProperty().addListener((obs, wasMax, isMax) -> {
+            customMaximized = isMax;
+            maxBtn.setText(isMax ? "❐" : "□");
+        });
 
         HBox wcBar = new HBox(1, minBtn, maxBtn, closeBtn);
         wcBar.setPadding(new Insets(4, 4, 0, 0));
@@ -227,6 +229,7 @@ public class MainWindow {
         // Fresh context on every navigation; AccountsScreen re-populates it when needed.
         navCtx = new NavigationContext(null, null, null, null);
         currentScreen = screen;
+        currentTransactionAccount = null;
         updateSidebarHighlight(screen);
 
         javafx.scene.Node content = switch (screen) {
@@ -290,6 +293,7 @@ public class MainWindow {
 
     public void navigateToTransactions(Account account) {
         currentScreen = "Transactions";
+        currentTransactionAccount = account;
         updateSidebarHighlight("Accounts"); // Highlight Accounts since Transactions is a sub-view
 
         navCtx = new NavigationContext(
@@ -320,7 +324,12 @@ public class MainWindow {
         });
     }
 
-    private void refreshCurrentScreen() { navigateTo(currentScreen); }
+    private void refreshCurrentScreen() {
+        if ("Transactions".equals(currentScreen) && currentTransactionAccount != null)
+            navigateToTransactions(currentTransactionAccount);
+        else
+            navigateTo(currentScreen);
+    }
 
     // ── FAB — New Transaction ─────────────────────────────────────────────────
 

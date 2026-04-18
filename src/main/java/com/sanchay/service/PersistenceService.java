@@ -313,6 +313,7 @@ public class PersistenceService {
     }
 
     public void saveSettings(DataStore store) {
+        //Account groups collapse settings are not saved intentionally
         AppSettings s = new AppSettings();
         s.dateFormat             = store.getDateFormat();
         s.currency               = store.getCurrency();
@@ -353,6 +354,7 @@ public class PersistenceService {
         saveTypeRules(store);
         saveLoanSchedules(store);
         saveMarketValues(store);
+        saveCategoryRules(store);
     }
 
     // ── Atomic write ──────────────────────────────────────────────────────────

@@ -358,7 +358,6 @@ public class DataStore {
             String tCatId    = t.getClassification() != null ? t.getClassification().getCategoryId() : null;
             String tSubCatId = t.getClassification() != null ? t.getClassification().getSubCategoryId() : null;
             if (fromCategoryId.equals(tCatId) || fromCategoryId.equals(tSubCatId)) {
-                if (t.getClassification() == null) t.setClassification(new Transaction.Classification());
                 t.getClassification().setCategoryId(toCategoryId);
                 t.getClassification().setSubCategoryId(toSubCategoryId);
                 changed = true;
@@ -558,9 +557,11 @@ public class DataStore {
                 .map(Account::getId).collect(Collectors.toSet());
         boolean changed = false;
 
-        for (Transaction t : transactions) {
-            if (t.getSourceIndicator() != Transaction.SourceIndicator.IMPORTED) continue;
+        List<Transaction> candidates = transactions.stream()
+                .filter(t -> t.getSourceIndicator() == Transaction.SourceIndicator.IMPORTED)
+                .collect(Collectors.toList());
 
+        for (Transaction t : candidates) {
             boolean isBankDebitOrCredit =
                     (t.getType() == Transaction.Type.EXPENSE || t.getType() == Transaction.Type.INCOME)
                     && (bankIds.contains(t.getFromAccountId()) || bankIds.contains(t.getToAccountId()));
@@ -611,8 +612,8 @@ public class DataStore {
      * For INCOME→TRANSFER the secondAccount is the fromAccountId (the sending bank).
      * For all EXPENSE-source types it is the toAccountId.
      */
-    private static void applySecondAccount(Transaction t, String sourceType,
-                                            Transaction.Type targetType, String secondAccountId) {
+    static void applySecondAccount(Transaction t, String sourceType,
+                                   Transaction.Type targetType, String secondAccountId) {
         if ("INCOME".equals(sourceType) && targetType == Transaction.Type.TRANSFER) {
             t.setFromAccountId(secondAccountId);
         } else {
@@ -1019,11 +1020,13 @@ public class DataStore {
         LocalDate now = LocalDate.now();
         long expenses = transactions.stream()
                 .filter(t -> t.getType() == Type.EXPENSE
+                        && t.getDate() != null
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
         long refunds = transactions.stream()
                 .filter(t -> t.getType() == Type.REFUND
+                        && t.getDate() != null
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
@@ -1034,16 +1037,19 @@ public class DataStore {
         LocalDate now = LocalDate.now();
         long income = transactions.stream()
                 .filter(t -> t.getType() == Type.INCOME
+                        && t.getDate() != null
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
         long gain = transactions.stream()
                 .filter(t -> t.getType() == Type.GAIN
+                        && t.getDate() != null
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
         long lose = transactions.stream()
                 .filter(t -> t.getType() == Type.LOSE
+                        && t.getDate() != null
                         && t.getDate().getMonth() == now.getMonth()
                         && t.getDate().getYear()  == now.getYear())
                 .mapToLong(Transaction::getAmountPaise).sum();
@@ -1059,21 +1065,7 @@ public class DataStore {
     // ── Clear (used when switching data folders) ──────────────────────────────
 
     public void clear() {
-        accounts.clear();
-        transactions.clear();
-        recurring.clear();
-        categories.clear();
-        familyMembers.clear();
-        importMappings.clear();
-        categoryRules.clear();
-        typeRules.clear();
-        //activeFinancialYear = "FY 2025-26";
-        dateFormat = "DD/MM/YYYY";
-        groupCollapsed.put("bank", true);
-        groupCollapsed.put("cc", true);
-        groupCollapsed.put("loan", true);
-        groupCollapsed.put("investment", true);
-        dataFolderPath = "Not configured";
+        reset();
     }
 
     public int getExpenseForecastAnalysisMonths() { return expenseForecastAnalysisMonths; }

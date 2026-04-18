@@ -330,7 +330,7 @@ public class ImportService {
                                     imported.setType(target);
                                     String secondId = rule.getSecondAccountId();
                                     if (secondId != null && accountExists(secondId, store)) {
-                                        applySecondAccount(imported, rule.getSourceType(),
+                                        DataStore.applySecondAccount(imported, rule.getSourceType(),
                                                 target, secondId);
                                     }
                                     return true;
@@ -724,20 +724,6 @@ public class ImportService {
     /** Returns true if an account with the given id currently exists in the store. */
     private static boolean accountExists(String id, DataStore store) {
         return store.getAccounts().stream().anyMatch(a -> a.getId().equals(id));
-    }
-
-    /**
-     * Sets the second (non-bank) account on a transaction being reclassified by a type rule.
-     * For INCOME→TRANSFER the secondAccount is fromAccountId (the sending bank).
-     * For all EXPENSE-source types it is toAccountId.
-     */
-    private static void applySecondAccount(Transaction t, String sourceType,
-                                            Transaction.Type targetType, String secondAccountId) {
-        if ("INCOME".equals(sourceType) && targetType == Transaction.Type.TRANSFER) {
-            t.setFromAccountId(secondAccountId);
-        } else {
-            t.setToAccountId(secondAccountId);
-        }
     }
 
     /**

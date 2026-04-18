@@ -54,7 +54,9 @@ class ExpensePatternAnalyzer {
             if (monthlyData.size() < 3) continue;
 
             long totalSpent = monthlyData.values().stream().mapToLong(Long::longValue).sum();
-            long avgMonthly = totalSpent / analysisMonths;
+            //long avgMonthly = totalSpent / analysisMonths;
+            long avgMonthly = totalSpent / Math.max(1, monthlyData.size());
+
 
             Map<Month, List<Long>> monthlyAmounts = new HashMap<>();
             for (Map.Entry<YearMonth, Long> e : monthlyData.entrySet()) {
