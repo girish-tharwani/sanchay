@@ -4,6 +4,7 @@ import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.service.PersistenceService;
+import com.sanchay.ui.NavigationContext;
 import com.sanchay.ui.accounts.AccountsScreen;
 import com.sanchay.ui.categories.CategoriesScreen;
 import com.sanchay.ui.help.HelpScreen;
@@ -56,20 +57,11 @@ public class MainWindow {
     // stale transactions sub-view.
     private String currentScreen = "";
 
-    // Set by AccountsScreen when a transaction list is visible, so the FAB
-    // refreshes the table in place rather than rebuilding the whole screen.
-    private Runnable postTransactionCallback = null;
-    public void setPostTransactionCallback(Runnable cb) { this.postTransactionCallback = cb; }
-
-    // Set by AccountsScreen when viewing a specific account's transactions,
-    // so the FAB pre-populates that account in the new-transaction dialog.
-    private Account transactionContextAccount = null;
-    public void setTransactionContextAccount(Account acc) { this.transactionContextAccount = acc; }
+    // Per-navigation context: FAB state written by screens; navigation callbacks read by screens.
+    private NavigationContext navCtx = new NavigationContext(null, null, null, null);
 
     // Remembered across the session so repeated CSV exports start in the same folder.
     private String lastAccountExportDir = null;
-    public String getLastAccountExportDir() { return lastAccountExportDir; }
-    public void setLastAccountExportDir(String dir) { lastAccountExportDir = dir; }
 
     private boolean isFirstRun;
 
@@ -112,8 +104,8 @@ public class MainWindow {
                 "/com/sanchay/css/theme.css",
                 "/com/sanchay/css/components.css",
                 "/com/sanchay/css/layout.css",
-                "/com/sanchay/css/screens/reports.css",
-                "/com/sanchay/css/screens/planning.css",
+                "/com/sanchay/css/reports.css",
+                "/com/sanchay/css/planning.css",
                 "/com/sanchay/css/screens/help.css"}) {
             scene.getStylesheets().add(getClass().getResource(f).toExternalForm());
         }
@@ -232,9 +224,8 @@ public class MainWindow {
     // ── Navigation ────────────────────────────────────────────────────────────
 
     public void navigateTo(String screen) {
-        // Clear account-specific FAB context on every navigation; AccountsScreen re-sets it when needed.
-        postTransactionCallback   = null;
-        transactionContextAccount = null;
+        // Fresh context on every navigation; AccountsScreen re-populates it when needed.
+        navCtx = new NavigationContext(null, null, null, null);
         currentScreen = screen;
         updateSidebarHighlight(screen);
 
@@ -246,7 +237,8 @@ public class MainWindow {
                 yield dashboardScreen.getView();
             }
             case "Accounts" -> {
-                AccountsScreen accountsScreen = new AccountsScreen(this);
+                navCtx = new NavigationContext(this::navigateToTransactions, null, null, null);
+                AccountsScreen accountsScreen = new AccountsScreen(navCtx);
                 yield accountsScreen.getView();
             }
             case "Recurring" -> {
@@ -300,7 +292,12 @@ public class MainWindow {
         currentScreen = "Transactions";
         updateSidebarHighlight("Accounts"); // Highlight Accounts since Transactions is a sub-view
 
-        transactionsScreen = new TransactionsScreen(this, account);
+        navCtx = new NavigationContext(
+                null,
+                () -> navigateTo("Accounts"),
+                () -> lastAccountExportDir,
+                dir -> lastAccountExportDir = dir);
+        transactionsScreen = new TransactionsScreen(account, navCtx);
         javafx.scene.Node content = transactionsScreen.getView();
 
         javafx.scene.Node fab = mainPanelWrapper.getChildren()
@@ -329,9 +326,10 @@ public class MainWindow {
 
     private void openNewTransactionDialog() {
         TransactionDialog dlg = new TransactionDialog();
-        if (transactionContextAccount != null) dlg.setContextAccount(transactionContextAccount);
+        if (navCtx.getContextAccount() != null) dlg.setContextAccount(navCtx.getContextAccount());
         dlg.showAndWait().ifPresent(t -> {
-            if (postTransactionCallback != null) postTransactionCallback.run();
+            Runnable cb = navCtx.getOnTransactionSaved();
+            if (cb != null) cb.run();
             else refreshCurrentScreen();
         });
     }
@@ -385,8 +383,6 @@ public class MainWindow {
         transactionsScreen = null;
         helpScreen       = null;
         isFirstRun       = false;
-        postTransactionCallback   = null;
-        transactionContextAccount = null;
 
         navigateTo("Dashboard");
     }

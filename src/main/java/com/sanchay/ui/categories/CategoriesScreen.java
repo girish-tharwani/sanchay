@@ -3,7 +3,7 @@ package com.sanchay.ui.categories;
 import com.sanchay.model.Category;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.common.SingleInputDialog;
-//import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -64,7 +64,7 @@ public class CategoriesScreen {
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
-                javafx.scene.paint.Color.web("#3db89a"));
+                javafx.scene.paint.Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
         h.getStyleClass().add("section-group-label");
         Region sp = new Region();
@@ -138,22 +138,19 @@ public class CategoriesScreen {
         subCatContainer.setVisible(false);
         subCatContainer.setManaged(false);
 
-        Button expandBtn = new Button(subCats.isEmpty() ? "  " : "▶");
-        expandBtn.getStyleClass().add("btn-icon");
-        expandBtn.setMinWidth(24);
-        if (subCats.isEmpty()) expandBtn.setDisable(true);
-        expandBtn.setOnAction(e -> {
+        Label expandBtn = new Label(subCats.isEmpty() ? "" : "▸");
+        expandBtn.getStyleClass().addAll("filter-label", "icon-sm");
+        expandBtn.setMinWidth(16);
+        if (!subCats.isEmpty()) expandBtn.setOnMouseClicked(e -> {
             expanded[0] = !expanded[0];
             subCatContainer.setVisible(expanded[0]);
             subCatContainer.setManaged(expanded[0]);
-            expandBtn.setText(expanded[0] ? "▼" : "▶");
+            expandBtn.setText(expanded[0] ? "▾" : "▸");
         });
 
         Label nameLbl = new Label(cat.getName());
         nameLbl.setMinWidth(180);
-        nameLbl.getStyleClass().add("stat-value");
-        // Inline required: active/inactive text colour and style are runtime data
-        nameLbl.setStyle(cat.isActive() ? "-fx-text-fill: -text-label;" : "-fx-text-fill: -text-hint; -fx-font-style: italic;");
+        nameLbl.getStyleClass().addAll("filter-label", cat.isActive() ? "category-name-active" : "category-name-inactive");
 
         Label statusLbl = new Label(cat.isActive() ? "Active" : "Inactive");
         statusLbl.getStyleClass().add(cat.isActive() ? "status-active" : "status-closed");
@@ -259,9 +256,7 @@ public class CategoriesScreen {
 
             Label nameLbl = new Label(sub.getName());
             nameLbl.setMinWidth(160);
-            // Inline required: active/inactive text colour and style are runtime data
-            nameLbl.setStyle("-fx-font-size: 12px;"
-                    + (sub.isActive() ? " -fx-text-fill: -text-label;" : " -fx-text-fill: -text-hint; -fx-font-style: italic;"));
+            nameLbl.getStyleClass().addAll("filter-label", sub.isActive() ? "subcategory-name-active" : "subcategory-name-inactive");
 
             Label statusLbl = new Label(sub.isActive() ? "Active" : "Inactive");
             statusLbl.getStyleClass().add(sub.isActive() ? "status-active" : "status-closed");

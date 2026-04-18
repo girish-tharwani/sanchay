@@ -40,7 +40,7 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
         subtitle.getStyleClass().add("text-hint");
 
         // ── Imported block ─────────────────────────────────────────────────────
-        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
+        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", UiUtils.HEX_BRAND_LIGHT);
 
         VBox importedBlock = new VBox(4);
         importedBlock.setId("txn-merge-imported-block");
@@ -61,7 +61,7 @@ public class MergeWithManualDialog extends Dialog<Transaction> {
 
         // ── Candidates ─────────────────────────────────────────────────────────
         HBox matchesSecLabel = UiUtils.buildSectionLabel(
-                "Manual transactions within ±10 days — select one", "#f0a500");
+                "Manual transactions within ±10 days — select one", UiUtils.HEX_BRAND_ACCENT);
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);

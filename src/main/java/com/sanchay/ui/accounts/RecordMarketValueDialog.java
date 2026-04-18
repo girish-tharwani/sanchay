@@ -89,6 +89,8 @@ public class RecordMarketValueDialog extends Dialog<MarketValueEntry> {
     }
 
     private void showError(String msg) {
-        new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK).showAndWait();
+        Alert a = new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK);
+        UiUtils.applyStylesheet(a);
+        a.showAndWait();
     }
 }

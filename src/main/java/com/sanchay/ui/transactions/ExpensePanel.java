@@ -1,6 +1,9 @@
 package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
+import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -10,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Type-specific panel for EXPENSE transactions. */
-class ExpensePanel {
+class ExpensePanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -29,16 +32,22 @@ class ExpensePanel {
         this.parent = parent;
 
         catMaster.addAll(parent.ds.getExpenseCategories());
-        catCb    = parent.makeCatCb(catMaster, "Select category");
+        catCb    = CategoryComboWiring.catCombo(catMaster, "Select category");
         parent.setNodeId(catCb, "txn-expense-category-combo");
-        subCatCb = parent.makeSubCatCb(subCatMaster);
+        subCatCb = CategoryComboWiring.subCatCombo();
         parent.setNodeId(subCatCb, "txn-expense-subcategory-combo");
-        parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subCatMaster, parent.ds);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
-        acctCb    = parent.accountCombo(true); // bank + CC
+        acctCb    = AccountCombos.bankAndCcCombo(parent.ds);
         parent.setNodeId(acctCb, "txn-expense-account-combo");
         modeCb    = parent.payModeCombo();
         parent.setNodeId(modeCb, "txn-expense-payment-mode-combo");
+        acctCb.valueProperty().addListener((obs, old, acct) -> {
+            if (acct instanceof CreditCardAccount) modeCb.setValue("Credit Card");
+            else if (acct != null)                 modeCb.setValue("Net Banking");
+        });
         familyFld = parent.tf("optional");
         parent.setNodeId(familyFld, "txn-expense-family-member-field");
         refFld    = parent.tf("optional");
@@ -47,7 +56,7 @@ class ExpensePanel {
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -62,7 +71,7 @@ class ExpensePanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate date = parent.requireDate();
         String    desc = parent.requireText(parent.sharedDesc, "Description");
         long      amt  = parent.parsePaise(parent.sharedAmt);
@@ -85,7 +94,7 @@ class ExpensePanel {
         return parent.persistTransaction(t);
     }
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         parent.contextAccountId = t.getFromAccountId();
         parent.contextIsSource  = true;
         parent.setAccount(acctCb, t.getFromAccountId());
@@ -93,5 +102,21 @@ class ExpensePanel {
         parent.setPayMode(modeCb, t.getPayment() != null ? t.getPayment().getMode() : null);
         parent.setText(familyFld, t.getClassification() != null ? t.getClassification().getFamilyMember() : null);
         parent.setText(refFld,    t.getPayment() != null ? t.getPayment().getReferenceNumber() : null);
+    }
+
+    @Override public ComboBox<Category> getCatCombo()    { return catCb; }
+    @Override public List<Category>     getCatMaster()   { return catMaster; }
+    @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof BankAccount || acc instanceof CreditCardAccount)
+            parent.setAccount(acctCb, acc.getId());
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (acctCb.getValue()   == null) { acctCb.requestFocus();   return true; }
+        if (catCb.getValue()    == null) { catCb.requestFocus();     return true; }
+        if (subCatCb.getValue() == null) { subCatCb.requestFocus();  return true; }
+        return false;
     }
 }

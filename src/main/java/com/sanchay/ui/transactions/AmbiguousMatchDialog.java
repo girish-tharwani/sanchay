@@ -39,7 +39,7 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         subtitle.getStyleClass().add("text-hint");
 
         // ── Imported block ────────────────────────────────────────────────────
-        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", "#3db89a");
+        HBox importedSecLabel = UiUtils.buildSectionLabel("Imported transaction", UiUtils.HEX_BRAND_LIGHT);
 
         VBox importedBlock = new VBox(4);
         importedBlock.setId("txn-ambiguous-match-imported-block");
@@ -55,7 +55,7 @@ public class AmbiguousMatchDialog extends Dialog<Transaction> {
         importedBlock.getChildren().addAll(importedChip, importedInfo);
 
         // ── Candidates ────────────────────────────────────────────────────────
-        HBox matchesSecLabel = UiUtils.buildSectionLabel("Possible matches — select one", "#f0a500");
+        HBox matchesSecLabel = UiUtils.buildSectionLabel("Possible matches — select one", UiUtils.HEX_BRAND_ACCENT);
 
         ToggleGroup tg = new ToggleGroup();
         VBox candidateBox = new VBox(8);

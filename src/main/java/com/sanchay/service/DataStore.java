@@ -28,6 +28,7 @@ public class DataStore {
     private String currency   = "INR";
     private String yearFormat = "Indian Financial Year";
     private int    expenseForecastAnalysisMonths = 12; // Number of months to analyze for expense forecasting
+    private String lastBackupFolder;
     private final Map<String, Boolean> groupCollapsed = new HashMap<>(
             Map.of("bank", true, "cc", true, "loan", true, "investment", true));
 
@@ -113,7 +114,7 @@ public class DataStore {
     public long getInvestedPaiseAsOf(InvestmentAccount ia, LocalDate asOf) {
         long invested = getBaseInvestedPaise(ia);
         for (Transaction t : transactions) {
-            if (t.getDate().isAfter(asOf)) continue;
+            if (t.getDate() == null || t.getDate().isAfter(asOf)) continue;
             if (t.getType() == Type.INVESTMENT && ia.getId().equals(t.getToAccountId()))
                 invested += t.getAmountPaise();
             if (t.getType() == Type.REDEEM && ia.getId().equals(t.getFromAccountId())) {
@@ -192,8 +193,6 @@ public class DataStore {
         loanSchedules.remove(loanAccountId);
         if (persistence != null) persistence.saveLoanSchedules(this);
     }
-    //public String                     getActiveFinancialYear() { return activeFinancialYear; }
-
     /** Returns the user-selected date format string: "DD/MM/YYYY" or "YYYY-MM-DD". */
     public String getDateFormat() { return dateFormat; }
 
@@ -237,46 +236,6 @@ public class DataStore {
     public void setGroupCollapsed(String type, boolean val) {
         groupCollapsed.put(type, val);
     }
-
-    // ── Financial Year helpers ────────────────────────────────────────────────
-
-    /**
-     * Returns the start date (1 April) of the active financial year.
-     * e.g. "FY 2025-26" → 2025-04-01
-     
-    public LocalDate getActiveFYStart() {
-        int startYear = parseFYStartYear(activeFinancialYear);
-        return LocalDate.of(startYear, 4, 1);
-    }*/
-
-    /**
-     * Returns the end date (31 March) of the active financial year.
-     * e.g. "FY 2025-26" → 2026-03-31
-    
-    public LocalDate getActiveFYEnd() {
-        int startYear = parseFYStartYear(activeFinancialYear);
-        return LocalDate.of(startYear + 1, 3, 31);
-    } 
-
-    private int parseFYStartYear(String fy) {
-        // Format: "FY YYYY-YY" e.g. "FY 2025-26"
-        try {
-            String[] parts = fy.replace("FY ", "").split("-");
-            return Integer.parseInt(parts[0]);
-        } catch (Exception e) {
-            return LocalDate.now().getYear();
-        }
-    }*/
-
-    // ── FY persistence ────────────────────────────────────────────────────────
-/* 
-    public void setActiveFinancialYear(String y) {
-        this.activeFinancialYear = y;
-        if (persistence != null) persistence.saveSettings(this);
-    }
-*/
-    /** For internal load use only — does not trigger save. */
-    // public void setActiveFinancialYearInternal(String y) { this.activeFinancialYear = y; }
 
     // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -1128,4 +1087,13 @@ public class DataStore {
     public void setExpenseForecastAnalysisMonthsInternal(int months) {
         this.expenseForecastAnalysisMonths = months;
     }
+
+    public String getLastBackupFolder() { return lastBackupFolder; }
+
+    public void setLastBackupFolder(String folder) {
+        this.lastBackupFolder = folder;
+        if (persistence != null) persistence.saveSettings(this);
+    }
+
+    public void setLastBackupFolderInternal(String folder) { this.lastBackupFolder = folder; }
 }

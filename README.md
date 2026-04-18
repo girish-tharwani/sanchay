@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v1.0.0-Lark
+- **Version:** v1.0.0-Myna
 
 ---
 
@@ -227,7 +227,7 @@ Opened by clicking into an account. Shows all transactions for that account with
 | GAIN | System-generated when a REDEEM produces a profit |
 | LOSE | System-generated when a REDEEM produces a loss |
 
-**Payment modes:** UPI, Net Banking, Debit Card, Credit Card, Cash, Cheque, Auto-Debit, NEFT, IMPS, Internal Transfer
+**Payment modes:** UPI, Net Banking, Debit Card, Credit Card, Cash, Cheque, Auto-Debit, Internal Transfer
 
 **Transaction sources** track how a record entered the system:
 

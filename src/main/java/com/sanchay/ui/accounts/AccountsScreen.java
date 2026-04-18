@@ -3,8 +3,8 @@ package com.sanchay.ui.accounts;
 import com.sanchay.model.*;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
-import com.sanchay.ui.MainWindow;
-//import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.NavigationContext;
+import com.sanchay.ui.UiUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -19,7 +19,7 @@ import javafx.scene.shape.Circle;
 /** Accounts module. */
 public class AccountsScreen {
 
-    private final MainWindow mainWindow;
+    private final NavigationContext navCtx;
 
     // view is initialised ONCE; never reassigned so that the reference held by MainWindow stays valid
     private final StackPane view;
@@ -30,8 +30,8 @@ public class AccountsScreen {
     private final CheckBox showClosedLoan       = new CheckBox("Show Closed");
     private final CheckBox showClosedInvestment = new CheckBox("Show Closed");
 
-    public AccountsScreen(MainWindow mainWindow) {
-        this.mainWindow = mainWindow;
+    public AccountsScreen(NavigationContext navCtx) {
+        this.navCtx = navCtx;
         this.view = new StackPane();
         buildList();
     }
@@ -45,8 +45,8 @@ public class AccountsScreen {
     // ── Account list ──────────────────────────────────────────────────────────
 
     private void buildList() {
-        mainWindow.setPostTransactionCallback(null);
-        mainWindow.setTransactionContextAccount(null);
+        navCtx.setOnTransactionSaved(null);
+        navCtx.setContextAccount(null);
         VBox content = new VBox(24);
         content.getStyleClass().add("main-panel");
         content.setPadding(new Insets(24));
@@ -87,7 +87,7 @@ public class AccountsScreen {
         content.getChildren().addAll(
                 titleRow,
                 buildFavouritesGroup(favourites),
-                buildGroup("Bank Accounts",   "#3db89a",
+                buildGroup("Bank Accounts",   UiUtils.HEX_BRAND_LIGHT,
                         (showClosedBank.isSelected() ? ds.getAllBankAccounts()       : ds.getBankAccounts())
                                 .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
                         "bank", showClosedBank, ds.getAllBankAccounts()),
@@ -99,7 +99,7 @@ public class AccountsScreen {
                         (showClosedLoan.isSelected()  ? ds.getAllLoanAccounts()       : ds.getActiveLoanAccounts())
                                 .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
                         "loan", showClosedLoan, ds.getAllLoanAccounts()),
-                buildGroup("Investments",     "#f0a500",
+                buildGroup("Investments",     UiUtils.HEX_BRAND_ACCENT,
                         (showClosedInvestment.isSelected() ? ds.getAllInvestmentAccounts() : ds.getInvestmentAccounts())
                                 .stream().sorted(byOrder).collect(java.util.stream.Collectors.toList()),
                         "investment", showClosedInvestment, ds.getAllInvestmentAccounts())
@@ -150,8 +150,7 @@ public class AccountsScreen {
             header.getChildren().addAll(chevron, dot, h, spacer, addBtn);
         } else {
             Button reorderBtn = new Button("⇅ Reorder");
-            reorderBtn.getStyleClass().add("btn-secondary");
-            reorderBtn.setStyle("-fx-padding: 5px 10px;");
+            reorderBtn.getStyleClass().addAll("btn-secondary", "btn-compact");
             reorderBtn.setOnAction(e -> {
                 new ReorderAccountsDialog(heading, new java.util.ArrayList<>(allInGroup));
                 buildList();
@@ -195,7 +194,7 @@ public class AccountsScreen {
         chevron.getStyleClass().addAll("filter-label", "icon-sm");
 
         Circle dot = new Circle(4);
-        dot.setFill(Color.web("#f0a500"));
+        dot.setFill(Color.web(UiUtils.HEX_BRAND_ACCENT));
 
         Label h = new Label("FAVOURITES");
         h.getStyleClass().add("filter-label");
@@ -229,9 +228,7 @@ public class AccountsScreen {
         boolean active = acc.isActive();
 
         Label starLbl = new Label(acc.isFavourite() ? "★" : "☆");
-        starLbl.getStyleClass().add("cursor-hand");
-        // Inline required: colour is runtime data (favourited vs not)
-        starLbl.setStyle(acc.isFavourite() ? "-fx-text-fill: -brand-accent; -fx-font-size: 13px;" : "-fx-text-fill: -text-hint; -fx-font-size: 13px;");
+        starLbl.getStyleClass().addAll("cursor-hand", acc.isFavourite() ? "account-star-active" : "account-star-inactive");
         starLbl.setTooltip(new Tooltip(acc.isFavourite() ? "Remove from Favourites" : "Add to Favourites"));
         starLbl.setOnMouseClicked(e -> {
             acc.setFavourite(!acc.isFavourite());
@@ -241,9 +238,7 @@ public class AccountsScreen {
         });
 
         Label name = new Label(acc.getName());
-        name.getStyleClass().add("stat-value");
-        // Inline required: text colour is runtime data (active vs closed account)
-        name.setStyle(active ? "-fx-text-fill: -brand-dark;" : "-fx-text-fill: -text-hint;");
+        name.getStyleClass().addAll("stat-value", active ? "account-name-active" : "account-name-inactive");
         name.setMaxWidth(170);
 
         Label sub = new Label(acc.getAccountType());
@@ -281,7 +276,7 @@ public class AccountsScreen {
         Button txnBtn = new Button("≡");
         txnBtn.getStyleClass().add("btn-icon");
         txnBtn.setTooltip(new Tooltip("Transactions"));
-        txnBtn.setOnAction(e -> mainWindow.navigateToTransactions(acc));
+        txnBtn.setOnAction(e -> navCtx.navigateToTransactions(acc));
 
         card.getChildren().addAll(info, descLbl, balanceBox, detailsBtn, txnBtn);
 

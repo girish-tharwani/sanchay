@@ -324,6 +324,7 @@ class MajorEventDialog {
         a.setTitle(title);
         a.setHeaderText(null);
         a.setContentText(msg);
+        UiUtils.applyStylesheet(a);
         a.showAndWait();
     }
 }

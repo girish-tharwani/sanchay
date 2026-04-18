@@ -2,6 +2,7 @@ package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
 import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -21,7 +22,7 @@ import java.util.Locale;
  * Manages a side-by-side layout: left form (account selectors + dynamic fields)
  * and right preview panel (FD/Bond schedule preview).
  */
-class InvestmentPanel {
+class InvestmentPanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -54,22 +55,15 @@ class InvestmentPanel {
     InvestmentPanel(TransactionDialog parent) {
         this.parent = parent;
 
-        fromCb = parent.accountCombo(false);
+        fromCb = AccountCombos.bankCombo(parent.ds);
         parent.setNodeId(fromCb, "txn-investment-from-account-combo");
-        fromCb.getItems().removeIf(a -> !(a instanceof BankAccount));
 
         destCb = new ComboBox<>();
         destCb.setId("txn-investment-destination-account-combo");
         destCb.setMaxWidth(Double.MAX_VALUE);
         destCb.setPromptText("Select investment account");
         parent.ds.getInvestmentAccounts().forEach(destCb.getItems()::add);
-        destCb.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(InvestmentAccount ia, boolean empty) {
-                super.updateItem(ia, empty);
-                setText(empty || ia == null ? null : ia.getName());
-            }
-        });
-        destCb.setButtonCell(destCb.getCellFactory().call(null));
+        AccountCombos.style(destCb);
         destCb.valueProperty().addListener((obs, old, ia) ->
                 refreshDynamicFields(ia == null ? null : ia.getInvestmentType()));
 
@@ -132,7 +126,7 @@ class InvestmentPanel {
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -297,7 +291,7 @@ class InvestmentPanel {
 
     // ── Save ──────────────────────────────────────────────────────────────────
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate         date = parent.requireDate();
         String            desc = parent.requireText(parent.sharedDesc, "Description");
         long              amt  = parent.parsePaise(parent.sharedAmt);
@@ -374,7 +368,7 @@ class InvestmentPanel {
 
     // ── Prefill ───────────────────────────────────────────────────────────────
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         parent.setAccount(fromCb, t.getFromAccountId());
         if (t.getToAccountId() == null) return;
         parent.ds.getInvestmentAccounts().stream()
@@ -429,6 +423,21 @@ class InvestmentPanel {
                         default -> {}
                     }
                 });
+    }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof BankAccount)
+            parent.setAccount(fromCb, acc.getId());
+        else if (acc instanceof InvestmentAccount)
+            destCb.getItems().stream()
+                    .filter(a -> a.getId().equals(acc.getId()))
+                    .findFirst().ifPresent(destCb::setValue);
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (fromCb.getValue() == null) { fromCb.requestFocus();  return true; }
+        if (destCb.getValue() == null) { destCb.requestFocus();  return true; }
+        return false;
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

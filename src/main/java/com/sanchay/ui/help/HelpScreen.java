@@ -75,7 +75,7 @@ public class HelpScreen {
         VBox section = new VBox(8);
         HBox labelRow = new HBox(8);
         labelRow.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(4, Color.web("#3db89a"));
+        Circle dot = new Circle(4, Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label heading = new Label("ABOUT");
         heading.getStyleClass().add("section-group-label");
         labelRow.getChildren().addAll(dot, heading);
@@ -114,7 +114,7 @@ public class HelpScreen {
 
         HBox labelRow = new HBox(8);
         labelRow.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(4, Color.web("#3db89a"));
+        Circle dot = new Circle(4, Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label heading = new Label("USER GUIDE");
         heading.getStyleClass().add("section-group-label");
         Region headerSpacer = new Region();

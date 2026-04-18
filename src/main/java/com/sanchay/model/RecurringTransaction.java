@@ -69,6 +69,8 @@ public class RecurringTransaction {
     /** For INCOME interest schedules: links the schedule to its source FD or Bond investment. */
     private SourceInvestment sourceInvestment;
 
+    private Transaction.PaymentMode paymentMode;
+
     public static class SourceInvestment {
         private String srcAccount; // investment account ID
         private String refId;      // fd/bond reference number
@@ -216,4 +218,6 @@ public class RecurringTransaction {
     public void setFdMaturityAmountPaise(long p)     { this.fdMaturityAmountPaise = p; }
     public void setSchemeScript(String s)            { this.schemeScript = s; }
     public void setUnitsNav(String s)                { this.unitsNav = s; }
+    public Transaction.PaymentMode getPaymentMode()            { return paymentMode; }
+    public void setPaymentMode(Transaction.PaymentMode m)      { this.paymentMode = m; }
 }

@@ -68,7 +68,7 @@ public class RecurringScreen {
         content.getChildren().add(pendingSection);
 
         // ── All schedules table ────────────────────────────────────────────────
-        HBox allHeader = UiUtils.buildSectionLabel("All Schedules", "#3db89a");
+        HBox allHeader = UiUtils.buildSectionLabel("All Schedules", UiUtils.HEX_BRAND_LIGHT);
         Region allHeaderSpacer = new Region();
         HBox.setHgrow(allHeaderSpacer, Priority.ALWAYS);
         Button addBtn = new Button("+ Add");
@@ -250,7 +250,7 @@ public class RecurringScreen {
     private void buildPendingSection(VBox container) {
         container.getChildren().clear();
 
-        container.getChildren().add(UiUtils.buildSectionLabel("Pending", "#f0a500"));
+        container.getChildren().add(UiUtils.buildSectionLabel("Pending", UiUtils.HEX_BRAND_ACCENT));
 
         List<RecurringTransaction> pending = DataStore.getInstance().getPendingRecurring();
         if (pending.isEmpty()) {

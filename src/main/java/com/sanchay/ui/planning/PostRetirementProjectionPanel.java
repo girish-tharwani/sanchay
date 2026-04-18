@@ -147,7 +147,7 @@ class PostRetirementProjectionPanel {
                 if (!empty && row != null) {
                     boolean outerPhase = row.age() < FinancialPlanningCalculator.SPENDING_SLOW_GO_AGE
                             || row.age() >= FinancialPlanningCalculator.SPENDING_NO_GO_AGE;
-                    setStyle(outerPhase ? "-fx-background-color: #f0f8f6;" : "");
+                    setStyle(outerPhase ? "-fx-background-color: -surface-teal-faint;" : "");
                 } else {
                     setStyle("");
                 }

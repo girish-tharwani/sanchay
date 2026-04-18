@@ -59,6 +59,7 @@ public class PersistenceService {
         public boolean loanGroupCollapsed       = true;
         public boolean investmentGroupCollapsed = true;
         public int     expenseForecastAnalysisMonths = 12; // Number of months to analyze for expense forecasting
+        public String  lastBackupFolder;
     }
 
     // ── Load ──────────────────────────────────────────────────────────────────
@@ -90,6 +91,8 @@ public class PersistenceService {
                 if (s.yearFormat != null)
                     store.setYearFormatInternal(s.yearFormat);
                 store.setExpenseForecastAnalysisMonthsInternal(s.expenseForecastAnalysisMonths);
+                if (s.lastBackupFolder != null)
+                    store.setLastBackupFolderInternal(s.lastBackupFolder);
             }
         } catch (Exception e) {
             System.err.println("Sanchay: failed to load " + SETTINGS + ": " + e.getMessage());
@@ -315,6 +318,7 @@ public class PersistenceService {
         s.currency               = store.getCurrency();
         s.yearFormat             = store.getYearFormat();
         s.expenseForecastAnalysisMonths = store.getExpenseForecastAnalysisMonths();
+        s.lastBackupFolder              = store.getLastBackupFolder();
         atomicWrite(SETTINGS, GSON.toJson(s));
     }
 

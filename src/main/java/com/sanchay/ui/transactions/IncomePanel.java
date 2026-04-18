@@ -1,6 +1,9 @@
 package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
+import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -10,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Type-specific panel for INCOME transactions. */
-class IncomePanel {
+class IncomePanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -27,13 +30,15 @@ class IncomePanel {
         this.parent = parent;
 
         catMaster.addAll(parent.ds.getIncomeCategories());
-        catCb    = parent.makeCatCb(catMaster, "Select category");
+        catCb    = CategoryComboWiring.catCombo(catMaster, "Select category");
         parent.setNodeId(catCb, "txn-income-category-combo");
-        subCatCb = parent.makeSubCatCb(subCatMaster);
+        subCatCb = CategoryComboWiring.subCatCombo();
         parent.setNodeId(subCatCb, "txn-income-subcategory-combo");
-        parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subCatMaster, parent.ds);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
-        acctCb    = parent.accountCombo(false); // bank only
+        acctCb    = AccountCombos.bankCombo(parent.ds);
         parent.setNodeId(acctCb, "txn-income-account-combo");
         familyFld = parent.tf("optional");
         parent.setNodeId(familyFld, "txn-income-family-member-field");
@@ -41,7 +46,7 @@ class IncomePanel {
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -54,7 +59,7 @@ class IncomePanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate date = parent.requireDate();
         String    desc = parent.requireText(parent.sharedDesc, "Description");
         long      amt  = parent.parsePaise(parent.sharedAmt);
@@ -71,12 +76,27 @@ class IncomePanel {
         return parent.persistTransaction(t);
     }
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         String id = t.getToAccountId() != null ? t.getToAccountId() : t.getFromAccountId();
         parent.contextAccountId = id;
         parent.contextIsSource  = false;
         parent.setAccount(acctCb, id);
         parent.prefillCat(catCb, subCatCb, t);
         parent.setText(familyFld, t.getClassification() != null ? t.getClassification().getFamilyMember() : null);
+    }
+
+    @Override public ComboBox<Category> getCatCombo()    { return catCb; }
+    @Override public List<Category>     getCatMaster()   { return catMaster; }
+    @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof BankAccount)
+            parent.setAccount(acctCb, acc.getId());
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (acctCb.getValue() == null) { acctCb.requestFocus(); return true; }
+        if (catCb.getValue()  == null) { catCb.requestFocus();  return true; }
+        return false;
     }
 }

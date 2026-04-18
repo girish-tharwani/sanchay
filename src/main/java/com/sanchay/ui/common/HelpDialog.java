@@ -57,10 +57,7 @@ public class HelpDialog {
             javafx.scene.Node barNode = dlg.getDialogPane().lookup(".button-bar");
             if (barNode instanceof ButtonBar bb) {
                 Button aboutBtn = new Button("About Sanchay…");
-                aboutBtn.getStyleClass().add("link-teal");
-                // Inline required: this button needs underline + 13px to distinguish it
-                // from action buttons; the base link-teal class only sets colour/cursor
-                aboutBtn.setStyle("-fx-font-size: 13px; -fx-underline: true; -fx-padding: 4 0;");
+                aboutBtn.getStyleClass().addAll("link-teal", "text-link-button");
                 aboutBtn.setOnAction(e -> {
                     SplashScreen about = new SplashScreen();
                     about.show();

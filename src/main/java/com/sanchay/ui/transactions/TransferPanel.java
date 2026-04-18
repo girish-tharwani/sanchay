@@ -1,6 +1,9 @@
 package com.sanchay.ui.transactions;
 
 import com.sanchay.model.*;
+import com.sanchay.ui.UiUtils;
+import com.sanchay.ui.common.AccountCombos;
+import com.sanchay.ui.common.CategoryComboWiring;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -10,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Type-specific panel for TRANSFER transactions. */
-class TransferPanel {
+class TransferPanel implements TransactionPanel {
 
     private final TransactionDialog parent;
 
@@ -27,21 +30,23 @@ class TransferPanel {
         this.parent = parent;
 
         catMaster.addAll(parent.ds.getExpenseCategories());
-        catCb    = parent.makeCatCb(catMaster, "Select category (optional)");
+        catCb    = CategoryComboWiring.catCombo(catMaster, "Select category (optional)");
         parent.setNodeId(catCb, "txn-transfer-category-combo");
-        subCatCb = parent.makeSubCatCb(subCatMaster);
+        subCatCb = CategoryComboWiring.subCatCombo();
         parent.setNodeId(subCatCb, "txn-transfer-subcategory-combo");
-        parent.wireCategory(catCb, catMaster, subCatCb, subCatMaster);
+        CategoryComboWiring.wire(catCb, subCatCb, subCatMaster, parent.ds);
+        UiUtils.wireAutoComplete(catCb,    catMaster);
+        UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
-        fromCb = parent.accountCombo(false); // bank only
+        fromCb = AccountCombos.bankCombo(parent.ds);
         parent.setNodeId(fromCb, "txn-transfer-from-account-combo");
-        toCb   = parent.accountCombo(false); // bank only
+        toCb   = AccountCombos.bankCombo(parent.ds);
         parent.setNodeId(toCb, "txn-transfer-to-account-combo");
 
         node = buildNode();
     }
 
-    Node getNode() { return node; }
+    @Override public Node getNode() { return node; }
 
     private Node buildNode() {
         GridPane g = parent.panelGrid();
@@ -54,7 +59,7 @@ class TransferPanel {
         return g;
     }
 
-    Transaction save() {
+    @Override public Transaction save() {
         LocalDate date = parent.requireDate();
         String    desc = parent.requireText(parent.sharedDesc, "Description");
         long      amt  = parent.parsePaise(parent.sharedAmt);
@@ -76,9 +81,26 @@ class TransferPanel {
         return parent.persistTransaction(t);
     }
 
-    void prefill(Transaction t) {
+    @Override public void prefill(Transaction t) {
         parent.setAccount(fromCb, t.getFromAccountId());
         parent.setAccount(toCb,   t.getToAccountId());
         parent.prefillCat(catCb, subCatCb, t);
+    }
+
+    @Override public ComboBox<Category> getCatCombo()    { return catCb; }
+    @Override public List<Category>     getCatMaster()   { return catMaster; }
+    @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
+
+    @Override public void applyContextAccount(Account acc, boolean isSource) {
+        if (acc instanceof BankAccount) {
+            if (isSource) parent.setAccount(fromCb, acc.getId());
+            else          parent.setAccount(toCb,   acc.getId());
+        }
+    }
+
+    @Override public boolean focusFirstEmpty() {
+        if (fromCb.getValue() == null) { fromCb.requestFocus(); return true; }
+        if (toCb.getValue()   == null) { toCb.requestFocus();   return true; }
+        return false;
     }
 }

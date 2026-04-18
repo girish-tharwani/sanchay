@@ -1,244 +1,303 @@
 # Style Refactor Plan — Sanchay JavaFX
 
-> Status: DRAFT — awaiting review before any code changes begin.
-> Methodology: follows `.claude/skills/javafx-style-refactor.md`
+> Produced as part of Phase 1 Audit per `.claude/skills/javafx-style-refactor.md`.
+> **No code changes have been made yet.** This document is for review before any work begins.
 
 ---
 
 ## Audit Summary
 
-### Scale of the problem
+### CSS Architecture (what exists today)
 
-| Metric | Count |
+| File | Scope | Purpose |
+|---|---|---|
+| `css/theme.css` | App-wide | Colour tokens on `.root` — well structured |
+| `css/components.css` | App-wide | Reusable component classes |
+| `css/layout.css` | App-wide | Structural layout (sidebar, header, etc.) |
+| `css/screens/reports.css` | Loaded globally by `MainWindow` + `UiUtils` | Report tab styles, chart tweaks |
+| `css/screens/planning.css` | Loaded globally by `MainWindow` + `UiUtils` | Financial planning screen styles |
+| `css/screens/help.css` | Loaded by `MainWindow` only | Help screen styles |
+
+No FXML files exist — all UI is constructed in Java. That eliminates one vector but makes the Java inline-style problem the dominant issue.
+
+### Inline Style Inventory
+
+| Category | Count | Files Affected |
+|---|---|---|
+| `.setStyle()` calls | ~52 | 18 files |
+| `Color.web(hex)` hardcoded calls | ~20 | 8 files |
+| `dot.setFill(Color.web(hex))` | 6 | `UiUtils`, `AccountsScreen`, `HelpScreen`, `CategoriesScreen`, `ProfileScreen`, `SettingsScreen` |
+| `.setPadding(new Insets(...))` | ~45 | 20+ files |
+
+### Top Offending Files (by inline style count)
+
+1. **`DashboardScreen.java`** — 6 `setStyle()` + 4 `setPadding()` + hardcoded hex
+2. **`ExpenseTrendTab.java`** — 6 `setStyle()` (row backgrounds + typography)
+3. **`ImportCompleteDialog.java`** — 4 `setStyle()` with complex multi-property inline blocks
+4. **`AccountsScreen.java`** — 4 `setStyle()` + `Color.web()` + `dot.setFill()`
+5. **`TransactionsScreen.java`** — 4 `setStyle()` (all data-driven colour switches)
+6. **`UiUtils.java`** — 4 `setStyle()` (Text node fills, datepicker styling)
+7. **`MarketValueHistoryDialog.java`** — 4 `setStyle()` (ternary colour logic in table cells)
+8. **`CategoriesScreen.java`** — 4 `setStyle()` + `Color.web()` (active/inactive state logic)
+
+---
+
+## Problems Found
+
+### P1 — `card-wrapper` class is undefined
+
+`CashFlowForecastTab` applies `getStyleClass().add("card-wrapper")` to the chart container. **This class does not exist in any CSS file.** The chart card is currently unstyled. Should be either defined or replaced with the existing `.card` class.
+
+### P2 — Card class fragmentation (4 variants + 1 undefined)
+
+The app uses `card`, `table-card`, `card-summary`, `card-welcome`, and `card-wrapper` (undefined). Only `card`, `table-card`, `card-summary`, and `card-welcome` have CSS definitions. `FinancialPlanningScreen` even has a comment saying its stat card "matches the DashboardScreen.summaryCard pattern" — copying a pattern instead of referencing a shared class.
+
+### P3 — Brand hex literals bypass the token system
+
+`#3db89a` (= `-brand-light`), `#2a8a7a` (= `-brand-mid`), `#f0a500` (= `-brand-accent`), `#0f3d4a` (= `-text-primary`) appear as raw hex in 15 Java files via `Color.web()`, `buildSectionLabel()` calls, and `setStyle()`. The token system exists and is correct — it's just not being used consistently.
+
+### P4 — `rgba(42,138,122,x)` pattern is repeated 30+ times in CSS and leaks into Java
+
+`rgba(42,138,122,x)` is the rgba expansion of `-brand-mid` at various opacities. It appears 30+ times in `components.css`, in `layout.css`, in `reports.css`, and also in Java `setStyle()` calls in `DashboardScreen` and `ExpenseTrendTab`. The CSS files should define named tokens for the alpha variants; the Java calls should use CSS classes.
+
+### P5 — `buildSectionLabel()` in `UiUtils` takes a hardcoded hex string
+
+`UiUtils.buildSectionLabel(text, hexColor)` passes the dot colour as a runtime hex string. Callers pass `"#3db89a"`, `"#f0a500"` etc. — all of which map to named brand tokens. The dot fill cannot use CSS (Shape fill), but the caller should pass a constant, not a raw string.
+
+### P6 — `screens/help.css` is not included in `UiUtils.applyStylesheet()`
+
+`MainWindow` loads all 6 stylesheets. `UiUtils.applyStylesheet()` (used by all dialogs) loads only 5 — it omits `screens/help.css`. This means any dialog that opens while on the Help screen and uses `.help-guide-card` or other help-specific classes will be unstyled. Low impact today but a latent bug.
+
+### P7 — State-conditional styling via `setStyle()` instead of PseudoClass
+
+`AccountsScreen` does:
+```java
+name.setStyle(active ? "-fx-text-fill: -brand-dark;" : "-fx-text-fill: -text-hint;");
+starLbl.setStyle(acc.isFavourite() ? "-fx-text-fill: -brand-accent; ..." : "-fx-text-fill: -text-hint; ...");
+```
+`CategoriesScreen` does the same for active/inactive categories. These are boolean states that belong in a PseudoClass + CSS rule, not in conditional `setStyle()` calls that run on every rebuild.
+
+### P8 — Typography applied inline instead of via CSS classes
+
+Multiple files apply font size, weight, and colour via `setStyle()` with no corresponding CSS class:
+- `EarningsDialog`: `"-fx-font-weight: bold; -fx-font-size: 13px;"`
+- `HelpDialog`: `"-fx-font-size: 13px; -fx-underline: true; -fx-padding: 4 0;"` (link-style button)
+- `DashboardScreen`: `"-fx-font-size: 20px;"` (welcome icon)
+- `AddEditRecurringDialog`: `"-fx-text-fill: -text-hint; -fx-font-style: italic;"`
+- `AccountsScreen`: `"-fx-padding: 5px 10px;"` on reorder button
+
+### P9 — `ExpenseTrendTab` row backgrounds are entirely inline
+
+The category row background (`rgba(42,138,122,0.07)`), sub-category border, and total row background (`rgba(42,138,122,0.13)`) are all `setStyle()` calls. These are structural row patterns that appear every time the table is rebuilt — they should be CSS classes applied to the region elements.
+
+### P10 — `ImportCompleteDialog` builds UI entirely inline
+
+The import result card uses 4 complex `setStyle()` blocks with linear-gradient, hardcoded hex colours (`#f0fdf4`, `#16a34a`, `#bbf7d0`, `#f8fbfc`, `#7aa4b0`), font sizes, and borders. Some are data-driven (success vs. neutral state) but the two states could be two CSS classes instead.
+
+### P11 — `PostRetirementProjectionPanel` uses hardcoded `#f0f8f6`
+
+The outer-phase row background is `"-fx-background-color: #f0f8f6;"` — this is exactly the `-surface-teal-faint` token already defined in `theme.css`.
+
+### P12 — `screens/reports.css` and `screens/planning.css` loaded globally despite being "screen" files
+
+Both are in a `screens/` folder implying they are screen-scoped, but they are loaded globally. This naming is misleading. Their content is legitimately shared (reports CSS is used by dialogs opened from the forecast tab; planning CSS is used by planning sub-panels). They should either be renamed or moved to `components.css`.
+
+---
+
+## Legitimate Inline Style Exceptions (do not touch)
+
+The following are intentional and documented — they must be left as-is:
+
+| Location | Reason |
 |---|---|
-| `.setStyle()` calls in Java | **57** across 14 files |
-| Hardcoded hex / rgba colour strings in Java | **~70+** (distinct values; many duplicated across files) |
-| `setPadding(new Insets(...))` calls | **~60+** (scattered magic numbers) |
-| Programmatic `setBackground()` | 1 (`SplashScreen` — justified) |
-| `setEffect(DropShadow)` | 1 (`SplashScreen` — justified) |
-| FXML inline `style=` | 0 (no FXML in project) |
-| CSS files | **1** (`app.css`, ~1 500 lines) |
-| CSS stylesheet load sites | 3 distinct entry-points (see below) |
-
-### Top offenders by inline `.setStyle()` count
-
-1. `TransactionsScreen.java` — **14** calls
-2. `DashboardScreen.java` — **6** calls
-3. `AccountsScreen.java` — **6** calls
-4. `UiUtils.java` — **6** calls
-5. `RecurringScreen.java` — **5** calls
-6. `SplashScreen.java` — **5** calls (partially justified — standalone scene, no CSS loaded)
-7. `FinancialPlanningScreen.java` — **3** calls
-
-### CSS architecture — current state
-
-- A single `app.css` carries **everything**: root tokens, layout, sidebar, tables, badges, buttons, forms, DatePicker, charts, planning-specific classes, import-dialog classes — no separation of concerns.
-- The `.root {}` block is well-formed with a proper looked-up colour token system (`-brand-dark`, `-color-error`, `-text-hint`, etc.). This is a solid foundation.
-- Despite the token system existing in CSS, **Java code frequently bypasses it** with raw hex strings instead of referencing tokens.
-
-### Key issues found
-
-#### Issue 1 — Inline styles that should be CSS classes
-
-Many `.setStyle()` calls construct multi-property style strings for static, non-data-driven elements. Examples:
-
-- `RecurringScreen` warning icon: `"-fx-font-size: 22px; -fx-text-fill: -color-error;"` — identical pattern repeated in `TransactionsScreen` and likely others.
-- `TransactionsScreen.ccStat()` label: `"-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: -text-hint;"` — a clear `stat-label` candidate.
-- `CategoriesScreen` name label: `"-fx-font-size: 13px; -fx-font-weight: bold;"` mixed with colour tokens.
-
-#### Issue 2 — Hardcoded hex colours in Java instead of CSS tokens
-
-Tokens exist in `.root` but Java code routinely bypasses them:
-
-- `#27AE60` / `#C62828` / `#E74C3C` passed as raw strings to `setStyle()` and as constructor arguments — same colours are defined in CSS as `-color-income`, `-color-error`, `-color-expense`.
-- `#3db89a` (`-brand-light`) hard-coded in 6+ Java files as a colour argument to `sectionLabel()`, `buildGroup()`, `Color.web()` calls.
-- `#0f3d4a` (`-brand-dark`) duplicated as a Java string in `TransactionsScreen`, `CashFlowForecastTab`, and `AccountsScreen`.
-- `rgba(42,138,122,0.18)` (teal-border opacity variant) appears in **both** `app.css` and 3 Java `setStyle()` calls — no token exists for this specific alpha value.
-- `#856404` (amber warning text) is a one-off hardcoded hex with no CSS token or equivalent (`-color-warning` in CSS is `#B7450D`, a different hue — this discrepancy is flagged in a comment but unresolved).
-- `#666` in `AccountDialog` hint label has no token mapping at all.
-
-#### Issue 3 — Duplicated private `sectionLabel()` helper (3 copies)
-
-The `sectionLabel(text, dotColor)` pattern — coloured Circle dot + uppercase Label — appears as three separate private methods:
-
-- `RecurringScreen.sectionLabel()` (line 310)
-- `AmbiguousMatchDialog.sectionLabel()` (line 136)
-- `RecurringMatchDialog.sectionLabel()` (line 164)
-
-And a functionally identical fourth variant:
-
-- `FinancialPlanningScreen.startSectionCard()` (line 1056) — same dot + label header pattern but wrapped in a card.
-
-These should be consolidated into `UiUtils`.
-
-#### Issue 4 — `setPadding()` magic numbers everywhere
-
-`new Insets(16)`, `new Insets(24)`, `new Insets(12, 16, 12, 16)` etc. are scattered across 60+ call sites with no consistent spacing scale. No spacing tokens exist in CSS. This is the most pervasive low-severity issue.
-
-#### Issue 5 — Stylesheet loaded at 3 different entry-points
-
-- `MainWindow` loads `app.css` on the main scene — correct.
-- `UiUtils.applyStylesheet()` re-loads it on every Dialog's DialogPane — acceptable JavaFX pattern.
-- `FirstRunWizard` loads it directly on its own scene — acceptable (separate window).
-- `CashFlowForecastTab` propagates the parent scene's stylesheets to child dialogs — correct pattern.
-
-No cross-screen CSS file imports exist. This is clean. The only structural issue is that `app.css` is monolithic.
-
-#### Issue 6 — `app.css` is monolithic (1 500 lines, no separation)
-
-Planning-screen-specific classes (`fp-corpus-pill-*`, `fp-events-table`), import-dialog classes (`import-match-row`, `match-confirm-badge`), and chart-series overrides live alongside global reset rules in a single file. This makes maintenance hard — a developer cannot tell which classes are global vs. screen-specific.
-
-#### Issue 7 — Missing or incomplete interactive states
-
-Several inline-styled buttons (`deleteButton` in RecurringScreen/TransactionsScreen, the `aboutBtn` in HelpDialog) have their normal state set inline but no `:hover`, `:pressed`, or `:disabled` states defined. Because the inline style overrides any CSS class, these buttons cannot pick up state styles from CSS without removing the inline style first.
-
-#### Issue 8 — `SplashScreen` — justified exceptions cluster
-
-`SplashScreen` runs in a standalone scene before `app.css` is loaded. Its inline styles are mostly legitimate. However, the typography styles (`appName`, `subtitle`, `tagline`) could be served by loading `app.css` on the splash scene itself, reducing the exception count from 5 to ~2 (gradient background + progress bar accent which need runtime alpha values).
+| `CashFlowForecastTab` — chart series `setStyle()` | Chart series node stroke/colour is runtime-computed per account |
+| `DashboardScreen.summaryCard()` — stripe `setStyle()` | Stripe colour is data-driven per card type |
+| `FinancialPlanningScreen.summaryCard()` — same pattern | Same reason |
+| `PlanningSectionCard` — `dot.setStyle()` | Dot colour is data-driven |
+| `TransactionsScreen` — `val.setStyle()` for positive/negative | Colour switches on runtime data |
+| `RedeemPanel` — `gainLossLbl.setStyle()` | Gain/loss colour is computed at runtime |
+| `SplashScreen` — `Color.web()` for animation circles | Programmatic animation graphics — no CSS equivalent |
+| `UiUtils.navArrow()` — `Text.setStyle()` | `Text` nodes don't support `-fx-fill` via style classes |
+| `UiUtils.stepDescFlow()` — `Text.setStyle()` | Same `Text` node limitation |
+| `AccountDialog` — `hint.setStyle("-fx-font-size: 11px;")` | Has explanatory comment; 11px is below any defined utility size |
+| `ProfileScreen.memberColor()` — avatar colour array | Programmatically generated avatar colours; data-driven |
 
 ---
 
 ## Remediation Plan
 
-### Phase 1 — Lay the foundation (no visible change to any screen)
+### Step 1 — Fix the `card-wrapper` bug (P1)
 
-**Step 1 — Split `app.css` into structured files** ✅ DONE
+**File:** `css/components.css`
 
-Reorganise the single CSS file into:
+Define `.card-wrapper` as an alias or variant of `.card` (likely same as `.card` but without internal padding since the chart fills the container). This is a one-line bug fix that should be done first because it is currently causing invisible missing styling.
 
+---
+
+### Step 2 — Consolidate the `rgba(42,138,122,x)` alpha tokens in `theme.css` (P4)
+
+**File:** `css/theme.css`
+
+Add named looked-up colour tokens for the brand-mid alpha variants that are used throughout the CSS files:
 ```
-src/main/resources/com/sanchay/css/
-├── theme.css          ← .root tokens only (colours, typography, spacing scale)
-├── components.css     ← reusable classes: buttons, badges, cards, form fields, tables, sidebar
-├── layout.css         ← structural: .main-panel, .filter-bar, .dialog-header-bar, .pending-item
-└── screens/
-    ├── planning.css   ← fp-corpus-pill-*, fp-events-table, planning-specific rules
-    ├── import.css     ← import-match-row, match-confirm-badge, import-preview classes
-    └── reports.css    ← cash-flow-chart overrides, chart series colours
+-brand-mid-08:  rgba(42,138,122,0.08)   — hover tint
+-brand-mid-10:  rgba(42,138,122,0.10)   — ...
+-brand-mid-12:  rgba(42,138,122,0.12)   — subtle dividers
+-brand-mid-15:  rgba(42,138,122,0.15)   — border muted
+-brand-mid-18:  rgba(42,138,122,0.18)   — card border, table divider
+-brand-mid-22:  rgba(42,138,122,0.22)   — field border
+-brand-mid-25:  rgba(42,138,122,0.25)   — stronger border
+-brand-mid-30:  rgba(42,138,122,0.30)   — selected/focus border
 ```
+Then do a find-replace across all CSS files to use the tokens. This eliminates the magic-number rgba pattern in CSS and makes the Java `setStyle()` uses easier to replace with CSS classes.
 
-Load `theme.css + components.css + layout.css` at app level in `MainWindow` and `UiUtils.applyStylesheet()`. Each screen loads its own screen CSS in addition.
+---
 
-**Step 2 — Add missing spacing tokens to `theme.css`**
+### Step 3 — Add CSS classes for the `ExpenseTrendTab` row patterns (P9)
 
-Define a spacing scale in `.root`:
+**File:** `css/screens/reports.css`
 
-```css
--spacing-xs:  4px;
--spacing-sm:  8px;
--spacing-md: 16px;
--spacing-lg: 24px;
--spacing-xl: 32px;
+Add three classes:
+- `.trend-row-category` — teal-faint background for category header rows
+- `.trend-row-subcategory` — teal-faint border bottom for sub-category rows
+- `.trend-row-total` — slightly stronger teal background for the total row
+
+Then replace the 6 `setStyle()` calls in `ExpenseTrendTab` with `getStyleClass().add(...)`.
+
+---
+
+### Step 4 — Add CSS classes for state-driven label styling; replace with PseudoClass (P7, P8)
+
+**Files:** `css/components.css`, `AccountsScreen.java`, `CategoriesScreen.java`
+
+Add:
+- `.account-name-inactive` — `text-hint` colour + no weight change
+- `.account-star-active` / `.account-star-inactive` — brand-accent vs text-hint
+- `.category-name-inactive` — text-hint + italic
+
+Replace the conditional `setStyle()` calls with `PseudoClass` toggling or direct style class switching (`getStyleClass().add/remove`).
+
+---
+
+### Step 5 — Add CSS classes for recurring inline typography patterns (P8)
+
+**File:** `css/components.css`
+
+Add:
+- `.text-link-button` — for the "About Sanchay" link-style button in `HelpDialog`
+- `.text-result-value` — for the bold + 13px inline calc label in `EarningsDialog`
+- `.inv-type-hint` — for the italic hint label in `AddEditRecurringDialog`
+- `.btn-compact` — for the reorder button's `"-fx-padding: 5px 10px;"` override in `AccountsScreen`
+
+Replace the `setStyle()` calls with the new classes.
+
+---
+
+### Step 6 — Fix the `PostRetirementProjectionPanel` token bypass (P11)
+
+**File:** `PostRetirementProjectionPanel.java`
+
+Replace:
+```java
+setStyle(outerPhase ? "-fx-background-color: #f0f8f6;" : "");
 ```
-
-This allows future `setPadding()` migration to reference a scale. (Migrating `setPadding()` calls is lower priority — addressed in Phase 3.)
-
-**Step 3 — Add missing colour tokens to `theme.css`**
-
-Several colours are used in Java but have no CSS token:
-
-| Hex value | Where used | Proposed token |
-|---|---|---|
-| `rgba(42,138,122,0.18)` | 3 Java + many CSS | `-border-teal-faint` |
-| `#666` | `AccountDialog` hint | map to existing `-text-hint` (`#9E9E9E`) or create `-text-dim` |
-| `#856404` | amber warning text | `-color-warning-text` |
-| `#C62828` / `#c0392b` | near-duplicate reds | unify to existing `-color-error` |
-| `#595959` | CC stat neutral label | map to `-text-secondary` or new `-text-neutral` |
-| `#1A1A2E` / `#1a1a2e` | combo cell text | map to existing `-text-label` |
-
----
-
-### Phase 2 — Extract reusable components (no visible change)
-
-**Step 4 — Consolidate `sectionLabel()` into `UiUtils`** ✅ DONE
-
-Move the coloured-dot + section-label pattern to `UiUtils.buildSectionLabel(String text, String dotColor)`. Remove the three private copies in `RecurringScreen`, `AmbiguousMatchDialog`, `RecurringMatchDialog`.
-
-Note: the `dotColor` argument stays as a String because it is data-driven (different callers pass different brand colours). The Circle `setFill()` call is a legitimate exception per the skill guide.
-
-**Step 5 — Add new CSS utility classes for repeated inline patterns** ✅ DONE
-
-Add these classes to `components.css`:
-
-| Proposed class | Replaces | Used in |
-|---|---|---|
-| `.icon-danger` | `"-fx-font-size: 22px; -fx-text-fill: -color-error;"` | RecurringScreen, TransactionsScreen |
-| `.icon-large` | `"-fx-font-size: 22px;"` or `"-fx-font-size: 24px;"` | AccountsScreen chevron, HelpDialog hero |
-| `.stat-label` | `"-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: -text-hint;"` | TransactionsScreen.ccStat() |
-| `.stat-value` | `"-fx-font-weight: bold; -fx-font-size: 13px;"` (color stays inline — data) | TransactionsScreen.ccStat() |
-| `.text-hint-italic` | `"-fx-text-fill: -text-hint; -fx-font-style: italic;"` | AddEditRecurringDialog |
-| `.text-link` | `"-fx-font-size: 13px; -fx-underline: true; -fx-padding: 4 0;"` | HelpDialog aboutBtn |
-| `.text-warning-sm` | `"-fx-font-size: 12px;"` + warning colour | TransactionsScreen warn label |
-| `.content-separator` | `"-fx-background-color: rgba(42,...); -fx-pref-width:1; ..."` | TransactionsScreen filterSep |
-
----
-
-### Phase 3 — Screen-by-screen inline style removal
-
-Work through screens in order of inline style count (highest first). For each screen:
-1. Replace all `.setStyle()` calls with the new CSS classes from Phase 2.
-2. Replace raw hex strings with looked-up colour token references.
-3. Verify all interactive elements have `:hover`, `:pressed`, `:focused`, `:disabled` states in CSS.
-
-**Priority order:**
-
-| Screen | `.setStyle()` count | Effort estimate |
-|---|---|---|
-| 1. `TransactionsScreen` | 14 | High — several `ccStat` + delete-button + import-dialog patterns |
-| 2. `DashboardScreen` | 6 | Medium — card stripe colour is data-driven (stays inline with comment) |
-| 3. `AccountsScreen` | 6 | Medium — group dot colours are data-driven; name label + value label refactorable |
-| 4. `UiUtils` | 6 | Medium — `navArrow()` Text node (documented exception); datepicker month header (legitimate) |
-| 5. `RecurringScreen` | 5 | Low-Medium — warning icon → `.icon-danger`; delete button → `.btn-danger` |
-| 6. `SplashScreen` | 5 | Special — load `app.css` on splash scene to reduce exceptions to ~2 |
-| 7. `FinancialPlanningScreen` | 3 | Low — card stripe colour data-driven; dot inline |
-| 8. `TransactionDialog` | 3 | Low — gain/loss colour is runtime (stays); one static label |
-| 9. `CategoriesScreen` | 2 | Low |
-| 10. `ReportsScreen` | 2 | Low |
-| 11. `HelpDialog` | 2 | Low |
-| 12. `EarningsDialog` | 1 | Trivial |
-| 13. `AddEditRecurringDialog` | 1 | Trivial |
-| 14. `AccountDialog` | 1 | Trivial (`#666` → token) |
-
-**MarketValueHistoryDialog** — 2 `setStyle()` calls inside `TableColumn` cell factories with data-driven colour (gain/loss direction). These are legitimate exceptions — add comments documenting why.
-
----
-
-### Phase 4 — Cleanup and validation
-
-**Step 6 — Remove unused CSS classes**
-
-After all screen refactoring, search for CSS classes defined in `app.css` that are no longer referenced in any Java file. Remove dead rules.
-
-**Step 7 — Final grep verification**
-
-Run these checks to confirm zero unresolved inline styles remain:
-
-```bash
-grep -rn "\.setStyle("  --include="*.java"   # should return only documented exceptions
-grep -rn "setBackground(" --include="*.java"  # should return only SplashScreen
-grep -rn "#[0-9a-fA-F]" --include="*.java"   # should return only chart palettes + data-driven values with comments
+with:
+```java
+setStyle(outerPhase ? "-fx-background-color: -surface-teal-faint;" : "");
 ```
-
-**Step 8 — Verify no cross-screen CSS imports**
-
-Already clean — confirm stays clean post-split.
+This is a one-line change. The inline style stays (data-driven toggle) but uses the token instead of a hardcoded hex.
 
 ---
 
-## Decisions — locked in
+### Step 7 — Replace hardcoded `Color.web(hex)` calls with named constants (P3, P5)
 
-1. **Splitting `app.css`** — ✅ **Yes, split.** `theme.css + components.css + layout.css` loaded app-wide; screen-specific files loaded per-screen. Pure reorganisation, zero rule changes.
+**Files:** `UiUtils.java`, `AccountsScreen.java`, `CategoriesScreen.java`, `ProfileScreen.java`, `SettingsScreen.java`, `HelpScreen.java`, `RecurringScreen.java`
 
-2. **`setPadding()` migration** — ✅ **Deferred.** Padding is structural layout, not visual appearance. Migrating ~60 `Insets` calls to CSS would require single-use classes with no design benefit. Out of scope.
+All calls to `Color.web("#3db89a")` are for `-brand-light`. All calls to `Color.web("#f0a500")` are for `-brand-accent`. Define constants in `UiUtils`:
+```java
+public static final String HEX_BRAND_LIGHT  = "#3db89a";
+public static final String HEX_BRAND_MID    = "#2a8a7a";
+public static final String HEX_BRAND_ACCENT = "#f0a500";
+```
+Replace all raw hex strings with these constants. This does not eliminate the `Color.web()` pattern (which is necessary for `Shape.fill`) but consolidates the literal values so future palette changes are a single edit.
 
-3. **`SplashScreen`** — ✅ **Load `app.css` on the splash scene.** Eliminates 3 of 5 inline styles (typography). Remaining 2 (gradient `Background` + progress bar accent) are runtime-constructed — stay with comments.
-
-4. **Chart colour palettes** — ✅ **Accept as legitimate exceptions.** JavaFX chart APIs require literal CSS colour strings; CSS looked-up colour names cannot be used as Java `String` arguments. Consolidate `CashFlowForecastTab.ACCOUNT_COLOURS` and `UiUtils.CHART_PALETTE` into a single `ChartPalette` constants section in `UiUtils`, with each constant annotated to its CSS token counterpart (e.g. `// mirrors -brand-mid in theme.css`).
+The `buildSectionLabel(text, hexColor)` API is already in `UiUtils` and the hex is passed as a parameter. Update the callers to pass the constants instead of literal strings.
 
 ---
 
-## What will NOT change
+### Step 8 — Add CSS classes for `ImportCompleteDialog` states (P10)
 
-- Visual appearance of any screen — this refactor is purely structural.
-- Legitimate inline exceptions: runtime colour values (gain/loss direction, balance sign, CC outstanding), `SplashScreen` gradient, Shape `.setFill()` calls for data-driven dots, chart palette arrays.
-- The colour palette and design language — tokens are being consolidated, not redesigned.
+**File:** `css/components.css`, `ImportCompleteDialog.java`
+
+The dialog has two visual states per stat box: success (green palette) and neutral (teal-muted). Define:
+- `.import-stat-box` — base stat box (white background, border, radius, padding)
+- `.import-stat-box-success` — modifier: green background + border
+- `.import-stat-box-neutral` — modifier: muted teal background + border
+- `.import-stat-count` — the large count number (18px bold)
+- `.import-stat-label` — small uppercase label (10px bold)
+
+The icon header gradient is a branding element that could also be a CSS class (`.import-success-header`). Replace the `setStyle()` calls with class assignments.
+
+---
+
+### Step 9 — Fix `screens/help.css` omission from `UiUtils.applyStylesheet()` (P6)
+
+**File:** `UiUtils.java`
+
+Add `"/com/sanchay/css/screens/help.css"` to the `STYLESHEETS` array so dialogs opened in the help screen context receive the same stylesheet set as the main window.
+
+---
+
+### Step 10 — Rename `screens/reports.css` → `css/reports.css` and `screens/planning.css` → `css/planning.css` (P12)
+
+**Files:** `css/screens/reports.css`, `css/screens/planning.css`, `MainWindow.java`, `UiUtils.java`
+
+Both files are globally loaded, making the `screens/` subdirectory misleading. Move them up one level to reflect that they are app-wide component stylesheets, not scoped to individual screens. Update the three load paths (`MainWindow`, `UiUtils`).
+
+This is purely structural cleanup and carries zero visual risk.
+
+---
+
+### Step 11 — Unify card classes: define `.card-wrapper` as a no-padding card variant (P2)
+
+**File:** `css/components.css`, then verify consumers
+
+Audit all four card class usages:
+- `.card` — general purpose card with 16px padding
+- `.table-card` — card that contains a full-bleed table (no internal padding)
+- `.card-summary` — compact stat card used in dashboard and planning header
+- `.card-welcome` — dashboard welcome banner card
+- `.card-wrapper` — currently undefined (fix in Step 1); chart container card with no padding
+
+After Step 1 defines `.card-wrapper`, document the intended use of each variant in a CSS comment block so future developers don't add yet another variant.
+
+---
+
+## Execution Order and Risk Assessment
+
+| Step | Risk | Effort | Visual Impact |
+|---|---|---|---|
+| 1 — Fix `card-wrapper` bug | None | Tiny | Adds missing chart card styling |
+| 2 — Alpha tokens in `theme.css` | Low | Small | None — purely internal token names |
+| 3 — `ExpenseTrendTab` row classes | Low | Small | None if classes are defined correctly |
+| 4 — PseudoClass state labels | Medium | Medium | None if CSS classes match existing inline styles exactly |
+| 5 — Recurring typography classes | Low | Small | None |
+| 6 — Token in `PostRetirementProjectionPanel` | None | Tiny | None |
+| 7 — `Color.web()` constants | None | Small | None — same hex, just via constant |
+| 8 — `ImportCompleteDialog` states | Medium | Medium | None if states replicate current inline values |
+| 9 — Help CSS in `applyStylesheet()` | None | Tiny | Fixes latent missing styling in dialogs |
+| 10 — Rename screen CSS files | None | Tiny | None |
+| 11 — Card class documentation | None | Tiny | None |
+
+Steps 1, 2, 6, 7, 9, 10 are low-risk mechanical changes.
+Steps 3, 5 require care to match existing visual output exactly.
+Steps 4, 8 require thorough visual testing of the affected screens.
+
+---
+
+## Out of Scope
+
+- `setPadding(new Insets(...))` calls — these are layout positioning, not visual styling. Migrating them to CSS padding is possible but offers little UX value and high merge risk. Leave as-is.
+- `SplashScreen` programmatic circle animation — entirely runtime graphics, no CSS equivalent.
+- Chart series stroke/fill in `CashFlowForecastTab` — runtime computed, documented exception.
+- `DashboardScreen`/`FinancialPlanningScreen` stripe colour `setStyle()` — data-driven, documented exception.

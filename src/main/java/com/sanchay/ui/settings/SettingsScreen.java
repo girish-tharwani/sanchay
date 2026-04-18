@@ -2,6 +2,7 @@ package com.sanchay.ui.settings;
 
 import com.sanchay.service.AppConfig;
 import com.sanchay.service.DataStore;
+import com.sanchay.ui.UiUtils;
 import com.sanchay.ui.wizard.PreferencesSetupDialog;
 
 import java.util.function.BiConsumer;
@@ -61,7 +62,7 @@ public class SettingsScreen {
         labelRow.setAlignment(Pos.CENTER_LEFT);
         // Shape.fill cannot be set via style class; brand accent stays inline
         javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4,
-                javafx.scene.paint.Color.web("#3db89a"));
+                javafx.scene.paint.Color.web(UiUtils.HEX_BRAND_LIGHT));
         Label h = new Label(heading.replaceAll("^[^\\w]*", "").toUpperCase());
         h.getStyleClass().add("section-group-label");
         labelRow.getChildren().addAll(dot, h);
@@ -212,10 +213,16 @@ public class SettingsScreen {
         fc.setTitle("Save Backup As");
         fc.setInitialFileName("Sanchay_data_backup_" + timestamp + ".zip");
         fc.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("ZIP Archives", "*.zip"));
+        String lastFolder = ds.getLastBackupFolder();
+        if (lastFolder != null) {
+            File lastDir = new File(lastFolder);
+            if (lastDir.isDirectory()) fc.setInitialDirectory(lastDir);
+        }
         File zipFile = fc.showSaveDialog(null);
         if (zipFile == null) return;
         try {
             zipFolder(Paths.get(dataPath), zipFile.toPath());
+            ds.setLastBackupFolder(zipFile.getParent());
             showInfo("Backup Complete", "Saved to:\n" + zipFile.getAbsolutePath());
         } catch (IOException ex) {
             showInfo("Backup Failed", "Error: " + ex.getMessage());

@@ -42,6 +42,21 @@
     -surface-teal-faint:        #f0f8f6;
     -surface-datepicker-header: #d8f0ec;
 
+    /* Brand-mid alpha variants — used for borders, backgrounds, and dividers throughout the app */
+    -brand-mid-06:  rgba(42,138,122,0.06);
+    -brand-mid-07:  rgba(42,138,122,0.07);
+    -brand-mid-08:  rgba(42,138,122,0.08);
+    -brand-mid-10:  rgba(42,138,122,0.10);
+    -brand-mid-12:  rgba(42,138,122,0.12);
+    -brand-mid-13:  rgba(42,138,122,0.13);
+    -brand-mid-15:  rgba(42,138,122,0.15);
+    -brand-mid-18:  rgba(42,138,122,0.18);
+    -brand-mid-20:  rgba(42,138,122,0.20);
+    -brand-mid-22:  rgba(42,138,122,0.22);
+    -brand-mid-25:  rgba(42,138,122,0.25);
+    -brand-mid-30:  rgba(42,138,122,0.30);
+    -brand-mid-35:  rgba(42,138,122,0.35);
+
     /* Semantic status */
     -color-success:      #27AE60;
     -color-success-dark: #1B5E20;

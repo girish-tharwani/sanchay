@@ -3,12 +3,12 @@
 # Usage: ./build.sh [maven goals]   e.g.  ./build.sh compile
 #                                         ./build.sh clean package -DskipTests
 #                                         ./build.sh package-dist   ← builds Windows installer
-MVN="/d/Program Files/apache-maven-3.9.14/bin/mvn.cmd"
-REPO="C:/Users/Tharwani/.m2/repository"
+MVN="/c/Program Files/apache-maven-3.9.15/bin/mvn.cmd"
+REPO="C:/Users/giris/.m2/repository"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Distribution packaging config ────────────────────────────────────────────
-JAVAFX_JMODS="D:/Projects/javafx-jmods-21.0.10"
+JAVAFX_JMODS="C:/Projects/javafx-jmods-21.0.10"
 WIX_BIN="C:/Program Files (x86)/WiX Toolset v3.14/bin"
 APP_NAME="Sanchay"
 APP_VENDOR="Girish Tharwani"

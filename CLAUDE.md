@@ -50,9 +50,9 @@ model/      → Domain data classes (serialized to JSON)
 ```
 
 ### UI Shell
-`MainWindow` uses a three-zone layout (top bar / sidebar / main panel) with a Floating Action Button (FAB) for adding transactions. It manages `postTransactionCallback` and `transactionContextAccount` so the FAB knows which account context to use. Screens are rebuilt on each navigation (not cached), except AccountsScreen context which is preserved.
+`MainWindow` uses a three-zone layout (top bar / sidebar / main panel) with a Floating Action Button (FAB) for adding transactions. FAB state (callback + context account) is carried by a `NavigationContext` value object created fresh on each navigation. `AccountsScreen` and `TransactionsScreen` receive `NavigationContext` instead of a `MainWindow` reference and write their FAB state into it; `MainWindow` reads it when the FAB is tapped. Screens are rebuilt on each navigation (not cached), except AccountsScreen context which is preserved.
 
-`navigateTo()` clears both FAB fields unconditionally at the top on every navigation — AccountsScreen re-sets them when needed. This prevents stale account context if the user opens the FAB after navigating away.
+`navigateTo()` creates a fresh `NavigationContext` at the top on every navigation — AccountsScreen re-populates it when needed. This prevents stale account context if the user opens the FAB after navigating away.
 
 `SettingsScreen` is decoupled from `MainWindow` via a `BiConsumer<String, PreferencesSetupDialog.Result>` callback injected via constructor. `MainWindow` passes `this::reloadDataFolder`; `SettingsScreen` never holds a `MainWindow` reference.
 
@@ -78,6 +78,9 @@ Each dialog has its own class. Extracted dialog classes by package:
 
 **`ui/transactions/`**
 - `TransactionDialog` — coordinator for all transaction types; delegates per-type UI/save/prefill to `*Panel` classes (see below)
+- `TransactionStatsPanel` — account-type-specific stats header (balance, outstanding, market value); exposes `addToLayout(header, panel)` and `refresh()`
+- `ImportOrchestrator` — full CSV-file and clipboard import flow; receives account and a `Runnable` refresh callback; exposes `doImportCsv()` and `doImportRows()`
+- `TransactionContextMenu` — builds the source-indicator badge column (with merge/reconcile context menus) and the delete action column via `buildSrcCol()` and `buildActionsCol()`
 - `ImportCompleteDialog` — read-only import result summary
 - `ImportMappingDialog`, `AmbiguousMatchDialog`, `RecurringMatchDialog` — import workflow dialogs
 
@@ -93,7 +96,9 @@ Each dialog has its own class. Extracted dialog classes by package:
 - `MarketValueHistoryDialog` / `RecordMarketValueDialog` — investment market value management
 
 **`ui/recurring/`**
-- `AddEditRecurringDialog` — create/edit recurring schedules
+- `AddEditRecurringDialog` — create/edit recurring schedules; delegates investment fields to `InvestmentRecurringPanel` and auto-record settings to `AutoRecordSettingsPanel`
+- `InvestmentRecurringPanel` — investment destination combo, type-hint label, and type-specific sub-fields (MF/Equity, FD/Bond, RD); exposes `applyTo()` for save
+- `AutoRecordSettingsPanel` — auto-record checkbox + overdue-days spinner row; exposes `getAutoRecordDays()` for save
 - `RecordRecurringDialog` — record an occurrence of a recurring transaction
 - `SkipRecurringDialog` — skip a recurring occurrence
 
@@ -102,12 +107,18 @@ Each dialog has its own class. Extracted dialog classes by package:
 
 **`ui/common/`**
 - `SingleInputDialog` — generic single text-field dialog
+- `AccountCombos` — static `style(cb)` utility; applies name cell factory + button cell to any `ComboBox<? extends Account>`; use on every account ComboBox instead of inline cell factory
+- `CategoryComboWiring` — static `wire(catCb, subCatCb, subMaster, ds)` and `styleSubCatCombo(cb)`; handles "└ name" display and the category→sub-category cascade listener; use instead of inline duplication
+- `TransactionTableBuilder` — static `buildStandardColumns(ds, showAccount, showSubCategory)`; returns the standard DATE/DESCRIPTION/TYPE/ACCOUNT/SUB-CATEGORY/AMOUNT column list for `TableView<Transaction>`
 
 **`ui/reports/`**
 - `ReportsScreen` — thin coordinator; owns the `TabPane` and calls `refresh()` on each tab class on every navigation
 - `ExpenseReportTab` — Expense Report tab: category-by-month chart and table, FY/CY year picker, category multi-select filter (persisted via `ReportPrefsService`), sub-category toggle, CSV export
 - `ExpenseTrendTab` — Expense Trend tab: year-over-year net expense grid (EXPENSE minus REFUND) by category/sub-category; past years picker; category multi-select filter (persisted via `ReportPrefsService`); Total row; CSV export
-- `CashFlowForecastTab` — Cash Flow Forecast tab: line chart with data-point tooltips, horizon picker, override editing, account selection state
+- `CashFlowForecastTab` — Cash Flow Forecast tab: orchestrates chart, override table, and cash-flow table; delegates to `ForecastChartBuilder` and `ForecastOverridesPanel`
+- `ForecastChartBuilder` — builds and updates the `LineChart` and custom legend for the cash-flow forecast; owns the chart node
+- `ForecastOverridesPanel` — provides `AmountCell`, `ActionCell`, and `buildExcludedAwareCell()` for the forecast table; owns all override prompt dialogs
+- `ForecastTableRow` — package-private record for forecast expense table rows
 - `AccountSelectionDialog` — modal dialog for picking which accounts appear in the cash flow chart; up to 10 accounts in four labelled groups with tri-state group checkboxes; MF/Equity accounts shown as permanently disabled; includes "Show sum of all accounts" toggle
 
 **`ui/help/`**
@@ -135,6 +146,7 @@ Each panel receives a `TransactionDialog parent` reference in its constructor an
 
 ### Business Logic Services
 - **`CashFlowProjectionService`** — Projects account balances month-by-month using recurring transactions, maturity events, overrides, and seasonality factors. Used by `CashFlowForecastTab`.
+- **`ExpensePatternAnalyzer`** — Analyzes historical expense transactions to compute per-sub-category monthly averages, seasonal factors, and trend slope. Called by `CashFlowProjectionService`.
 - **`ForecastStateService`** — Loads and saves forecast overrides (`forecast_overrides.json`) and account selection state (`forecast_account_selection.json`). Override uniqueness key is `(categoryId, subCategoryId, month)`.
 - **`ImportService`** — Parses clipboard CSV/TSV, auto-detects delimiters, matches imports to existing transactions, and auto-categorizes via rules.
 - **`AmortizationService`** — Generates reducing-balance loan schedules; handles mid-loan interest rate changes.

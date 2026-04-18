@@ -34,12 +34,7 @@ public class ImportCompleteDialog {
         titleRow.setPadding(new Insets(0, 0, 14, 0));
         Label iconLbl = new Label("✓");
         iconLbl.setId("txn-import-complete-icon");
-        // Inline required: gradient circle icon has no CSS class equivalent
-        iconLbl.setStyle(
-                "-fx-background-color: linear-gradient(135deg, #2a8a7a, #3db89a); "
-                + "-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; "
-                + "-fx-min-width: 40; -fx-max-width: 40; -fx-min-height: 40; -fx-max-height: 40; "
-                + "-fx-background-radius: 20; -fx-alignment: CENTER; -fx-padding: 0;");
+        iconLbl.getStyleClass().add("import-success-header");
         Label titleLbl = new Label("Import Complete");
         titleLbl.setId("txn-import-complete-title");
         titleLbl.getStyleClass().add("text-title-md");
@@ -77,25 +72,15 @@ public class ImportCompleteDialog {
         line.setAlignment(Pos.CENTER_LEFT);
         line.setPadding(new Insets(8, 14, 8, 14));
         line.getStyleClass().add("divider-row-bottom");
-        String checkBg  = (successStyle && count > 0) ? "#f0fdf4" : "#f8fbfc";
-        String checkFg  = (successStyle && count > 0) ? "#16a34a" : "#7aa4b0";
-        String checkBdr = (successStyle && count > 0) ? "#bbf7d0" : "rgba(42,138,122,0.15)";
-        String symbol   = successStyle ? "✓" : "⊘";
+        String symbol = successStyle ? "✓" : "⊘";
         Label check = new Label(symbol);
         check.setId(line.getId() + "-icon");
-        // Inline required: success/failure badge colours are runtime data
-        check.setStyle("-fx-background-color: " + checkBg + "; -fx-text-fill: " + checkFg + "; "
-                + "-fx-border-color: " + checkBdr + "; "
-                + "-fx-border-radius: 10; -fx-background-radius: 10; "
-                + "-fx-font-size: 10px; -fx-font-weight: bold; "
-                + "-fx-min-width: 20; -fx-max-width: 20; -fx-min-height: 20; -fx-max-height: 20; "
-                + "-fx-padding: 0; -fx-alignment: CENTER;");
+        check.getStyleClass().addAll("import-check-badge",
+                (successStyle && count > 0) ? "import-check-badge-success" : "import-check-badge-neutral");
         Label cnt = new Label(String.valueOf(count));
         cnt.setId(line.getId() + "-count");
-        // Inline required: count text colour depends on whether count > 0
-        cnt.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; "
-                + "-fx-text-fill: " + (count > 0 ? "-brand-dark" : "-text-hint") + "; "
-                + "-fx-min-width: 28; -fx-alignment: CENTER_RIGHT;");
+        cnt.getStyleClass().addAll("import-stat-count",
+                count > 0 ? "import-stat-count-active" : "import-stat-count-zero");
         Label txt = new Label(desc);
         txt.setId(line.getId() + "-text");
         txt.getStyleClass().add("text-body-muted");
