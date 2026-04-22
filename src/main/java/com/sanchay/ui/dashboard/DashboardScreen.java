@@ -90,6 +90,8 @@ public class DashboardScreen {
             uncatBodyLabel    = null;
         }
 
+        pageContent.getChildren().add(new DashboardTransactionSearchPanel().build());
+
         pageContent.getChildren().add(buildRecentTransactions());
 
         view = new ScrollPane(pageContent);
