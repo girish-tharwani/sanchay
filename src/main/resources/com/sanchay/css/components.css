@@ -1195,3 +1195,10 @@
 .btn-compact {
     -fx-padding: 5px 10px;
 }
+
+/* Dashboard search dialog content wrapper */
+.dashboard-search-dialog-body {
+    -fx-padding: 16px;
+    -fx-spacing: 14px;
+    -fx-min-width: 860px;
+}

@@ -4,6 +4,7 @@ import com.sanchay.model.PlanParameters;
 import com.sanchay.service.FinancialPlanningCalculator;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -78,14 +79,20 @@ class PostRetirementProjectionPanel {
         table.setManaged(false);
         chevron.setText("▸");
 
-        chevron.setOnMouseClicked(e -> {
+        Runnable toggleExpanded = () -> {
             boolean expanding = !table.isManaged();
             tableComments.setVisible(expanding);
             tableComments.setManaged(expanding);
             table.setVisible(expanding);
             table.setManaged(expanding);
             chevron.setText(expanding ? "▾" : "▸");
-        });
+        };
+        chevron.setCursor(Cursor.HAND);
+        minimumProjectionLbl.setCursor(Cursor.HAND);
+        actualProjectionLbl.setCursor(Cursor.HAND);
+        chevron.setOnMouseClicked(e -> toggleExpanded.run());
+        minimumProjectionLbl.setOnMouseClicked(e -> toggleExpanded.run());
+        actualProjectionLbl.setOnMouseClicked(e -> toggleExpanded.run());
 
         root = new VBox(12, header, tableComments, table);
         root.getStyleClass().add("card");

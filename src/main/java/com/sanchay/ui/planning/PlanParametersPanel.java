@@ -4,6 +4,7 @@ import com.sanchay.model.PlanParameters;
 import com.sanchay.service.DataStore;
 import com.sanchay.service.MoneyFormatter;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -97,7 +98,7 @@ class PlanParametersPanel {
         VBox card = new VBox(12, header, divider, paramGrid);
         card.getStyleClass().add("card");
 
-        chevron.setOnMouseClicked(e -> {
+        Runnable toggleExpanded = () -> {
             boolean expanding = !paramGrid.isManaged();
             paramGrid.setVisible(expanding);
             paramGrid.setManaged(expanding);
@@ -106,7 +107,11 @@ class PlanParametersPanel {
             recalcBtn.setVisible(expanding);
             recalcBtn.setManaged(expanding);
             chevron.setText(expanding ? "▾" : "▸");
-        });
+        };
+        chevron.setCursor(Cursor.HAND);
+        title.setCursor(Cursor.HAND);
+        chevron.setOnMouseClicked(e -> toggleExpanded.run());
+        title.setOnMouseClicked(e -> toggleExpanded.run());
 
         return card;
     }

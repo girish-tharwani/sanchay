@@ -4,6 +4,7 @@ import com.sanchay.model.Category;
 import com.sanchay.service.DataStore;
 import com.sanchay.ui.common.SingleInputDialog;
 import com.sanchay.ui.UiUtils;
+import javafx.scene.Cursor;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -141,16 +142,24 @@ public class CategoriesScreen {
         Label expandBtn = new Label(subCats.isEmpty() ? "" : "▸");
         expandBtn.getStyleClass().addAll("filter-label", "icon-sm");
         expandBtn.setMinWidth(16);
-        if (!subCats.isEmpty()) expandBtn.setOnMouseClicked(e -> {
+        Runnable toggleExpanded = () -> {
             expanded[0] = !expanded[0];
             subCatContainer.setVisible(expanded[0]);
             subCatContainer.setManaged(expanded[0]);
             expandBtn.setText(expanded[0] ? "▾" : "▸");
-        });
+        };
+        if (!subCats.isEmpty()) {
+            expandBtn.setCursor(Cursor.HAND);
+            expandBtn.setOnMouseClicked(e -> toggleExpanded.run());
+        }
 
         Label nameLbl = new Label(cat.getName());
         nameLbl.setMinWidth(180);
         nameLbl.getStyleClass().addAll("filter-label", cat.isActive() ? "category-name-active" : "category-name-inactive");
+        if (!subCats.isEmpty()) {
+            nameLbl.setCursor(Cursor.HAND);
+            nameLbl.setOnMouseClicked(e -> toggleExpanded.run());
+        }
 
         Label statusLbl = new Label(cat.isActive() ? "Active" : "Inactive");
         statusLbl.getStyleClass().add(cat.isActive() ? "status-active" : "status-closed");
