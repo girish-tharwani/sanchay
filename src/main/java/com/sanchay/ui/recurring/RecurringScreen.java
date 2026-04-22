@@ -205,6 +205,8 @@ public class RecurringScreen {
 
         allSchedulesTable.getColumns().addAll(
                 descCol, typeCol, freqCol, amtCol, nextCol, statusCol, paymentsCol, actionsCol);
+        nextCol.setSortType(TableColumn.SortType.ASCENDING);
+        allSchedulesTable.getSortOrder().setAll(nextCol);
 
         // Restore filter state from previous buildView() call within this screen instance
         typeFilter.setValue(savedTypeFilter);
@@ -218,8 +220,16 @@ public class RecurringScreen {
             List<RecurringTransaction> filtered = ds.getRecurring().stream()
                     .filter(r -> selType == null || r.getTransactionType() == selType)
                     .filter(r -> q.isEmpty() || r.getDescription().toLowerCase().contains(q))
+                    .sorted(java.util.Comparator
+                            .comparing(
+                                    RecurringTransaction::getNextDueDate,
+                                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()))
+                            .thenComparing(
+                                    RecurringTransaction::getDescription,
+                                    java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                     .collect(Collectors.toList());
             allSchedulesTable.getItems().setAll(filtered);
+            allSchedulesTable.sort();
         };
         typeFilter.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         searchField.textProperty().addListener((obs, o, n) -> applyFilter.run());
