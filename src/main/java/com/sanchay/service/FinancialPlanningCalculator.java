@@ -51,7 +51,8 @@ public class FinancialPlanningCalculator {
     public record PostRetirementRow(
             int year, int age,
             long startingBalancePaise, long roiPaise, long taxPaise, long withdrawalPaise,
-            long endingBalancePaise, boolean startingDepleted, boolean endingNegative) {}
+            long scheduledInflowsPaise, long endingBalancePaise,
+            boolean startingDepleted, boolean endingNegative) {}
 
     private static final long ROUND_10K_PAISE = 1_000_000L;
     private static final long ROUND_1_LAKH_PAISE = 10_000_000L;
@@ -186,11 +187,7 @@ public class FinancialPlanningCalculator {
         }
         long pfInterest = Math.max(0, pfBalance - pfStartBalance - (monthlyPfDeposit * totalMonths));
 
-        Set<String> redeemedFdRefs = ds.getTransactions().stream()
-                .filter(tx -> tx.getRedeemDetails() != null
-                        && tx.getRedeemDetails().getOrgnlFDRef() != null)
-                .map(tx -> tx.getRedeemDetails().getOrgnlFDRef())
-                .collect(Collectors.toSet());
+        Set<String> redeemedFdRefs = collectRedeemedFdRefs();
 
         long bondsInterest = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
@@ -224,6 +221,7 @@ public class FinancialPlanningCalculator {
                 Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
                 if (fd == null || fd.getMaturityAmountPaise() == null) continue;
                 if (fd.getRef() != null && redeemedFdRefs.contains(fd.getRef())) continue;
+                if (fd.getMaturityDate() != null && fd.getMaturityDate().isAfter(retireDate)) continue;
                 fdInterest += fd.getMaturityAmountPaise() - t.getAmountPaise();
             }
             for (RecurringTransaction rt : ds.getRecurring()) {
@@ -246,16 +244,9 @@ public class FinancialPlanningCalculator {
             if (rt.getTransactionType() != Transaction.Type.INVESTMENT) continue;
             if (!rdAccountIds.contains(rt.getToAccountId())) continue;
             if (rt.getRdMaturityAmountPaise() <= 0) continue;
-            long numPayments;
-            if (rt.getNumberOfPayments() != null && rt.getNumberOfPayments() > 0) {
-                numPayments = rt.getNumberOfPayments();
-            } else if (rt.getStartDate() != null && rt.getMaturityDate() != null) {
-                numPayments = ChronoUnit.MONTHS.between(rt.getStartDate(), rt.getMaturityDate());
-            } else {
-                continue;
-            }
-            long totalPrincipal = numPayments * rt.getAmountPaise();
-            rdInterest += Math.max(0, rt.getRdMaturityAmountPaise() - totalPrincipal);
+            LocalDate maturityDate = resolveRdMaturityDate(rt);
+            if (maturityDate != null && maturityDate.isAfter(retireDate)) continue;
+            rdInterest += computeRdMaturityGain(rt);
         }
         rdInterest = Math.round(rdInterest * (1.0 - params.preRetireTaxPct / 100.0));
 
@@ -264,7 +255,9 @@ public class FinancialPlanningCalculator {
             if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.EQUITY) continue;
             if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
             MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
-            equityPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
+            long value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
+                    : ds.getInvestedPaiseAsOf(ia, today);
+            equityPv += value;
         }
         double equityRate = params.rorEquitiesPct / 100.0;
         long equityApprec = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
@@ -277,7 +270,9 @@ public class FinancialPlanningCalculator {
             if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.MUTUAL_FUNDS) continue;
             if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
             MarketValueEntry mv = ds.getLatestMarketValue(ia.getId());
-            mfPv += mv != null ? mv.getMarketValuePaise() : ds.getInvestedPaiseAsOf(ia, today);
+            long value = mv != null ? (long) (mv.getMarketValuePaise() * 0.9)
+                    : ds.getInvestedPaiseAsOf(ia, today);
+            mfPv += value;
         }
         double mfRate = params.rorMfPct / 100.0;
         long mfApprec = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
@@ -365,7 +360,9 @@ public class FinancialPlanningCalculator {
                 + futureEarnings.rdInterestPaise()
                 + futureEarnings.postTaxIncomePaise()
                 + futureEarnings.gratuityPaise()
-                - expenses.totalPaise();
+                - expenses.totalPaise()
+                - (params.monthlySipEquityPaise * totalMonths)
+                - (params.monthlySipMfPaise * totalMonths);
 
         return new ForecastedCorpusBreakdown(pfBalance, stocksMf, cashBondsFds,
                 pfBalance + stocksMf + cashBondsFds);
@@ -397,7 +394,8 @@ public class FinancialPlanningCalculator {
 
     public List<PostRetirementRow> computePostRetirementRows(PlanParameters params,
                                                              LocalDate selfDob,
-                                                             long startingBalancePaise) {
+                                                             long startingBalancePaise,
+                                                             boolean includeScheduledInflows) {
         LocalDate retireDate = getRetirementDate(params, selfDob);
         int retirementYear = retireDate.getYear();
         int retirementAge = getRetirementAgeYears(params, selfDob);
@@ -408,6 +406,9 @@ public class FinancialPlanningCalculator {
         double yearsToRetire = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
         double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
         long[] annualLoanPayments = computeAnnualPostRetirementLoanPayments(retireDate, totalYears);
+        long[] annualScheduledInflows = includeScheduledInflows
+                ? computeAnnualPostRetirementInvestmentInflows(retireDate, totalYears, params)
+                : new long[totalYears];
 
         List<PostRetirementRow> rows = new ArrayList<>();
         long balance = startingBalancePaise;
@@ -416,21 +417,22 @@ public class FinancialPlanningCalculator {
             int age = retirementAge + i;
             long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
+            long scheduledInflows = roundDownTo10k(annualScheduledInflows[i]);
 
             if (balance > 0) {
                 long postWithdrawalBalance = balance - withdrawal;
                 long roi = roundDownTo10k(Math.round(Math.max(0, postWithdrawalBalance) * ror));
                 long tax = roundUpTo10k(Math.round(roi * taxRate));
-                long endingBalance = postWithdrawalBalance + roi - tax;
+                long endingBalance = postWithdrawalBalance + scheduledInflows + roi - tax;
                 rows.add(new PostRetirementRow(
                         year, age, balance, roi, tax, withdrawal,
-                        endingBalance, false, endingBalance < 0));
+                        scheduledInflows, endingBalance, false, endingBalance < 0));
                 balance = endingBalance;
             } else {
-                long endingBalance = balance - withdrawal;
+                long endingBalance = balance - withdrawal + scheduledInflows;
                 rows.add(new PostRetirementRow(
                         year, age, balance, 0, 0, withdrawal,
-                        endingBalance, true, endingBalance < 0));
+                        scheduledInflows, endingBalance, true, endingBalance < 0));
                 balance = endingBalance;
             }
         }
@@ -449,6 +451,129 @@ public class FinancialPlanningCalculator {
             }
         }
         return annual;
+    }
+
+    private long[] computeAnnualPostRetirementInvestmentInflows(LocalDate retireDate,
+                                                                int totalYears,
+                                                                PlanParameters params) {
+        long[] annual = new long[totalYears];
+        Set<String> redeemedFdRefs = collectRedeemedFdRefs();
+
+        addAnnualPostRetirementBondAndFdInflows(annual, retireDate, totalYears, redeemedFdRefs, params);
+        addAnnualPostRetirementRdInflows(annual, retireDate, totalYears, params);
+        return annual;
+    }
+
+    private void addAnnualPostRetirementBondAndFdInflows(long[] annual,
+                                                         LocalDate retireDate,
+                                                         int totalYears,
+                                                         Set<String> redeemedFdRefs,
+                                                         PlanParameters params) {
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.DEBT_BONDS
+                    && ia.getInvestmentType() != InvestmentAccount.InvestmentType.FIXED_DEPOSIT) {
+                continue;
+            }
+
+            for (Transaction t : ds.getTransactions()) {
+                if (t.getType() != Transaction.Type.INVESTMENT) continue;
+                if (!ia.getId().equals(t.getToAccountId())) continue;
+                if (t.getInvestmentDetails() == null) continue;
+                Transaction.FdDetails fd = t.getInvestmentDetails().getFd();
+                if (fd == null || fd.getMaturityAmountPaise() == null) continue;
+                if (fd.getRef() != null && redeemedFdRefs.contains(fd.getRef())) continue;
+                if (fd.getMaturityDate() == null || !fd.getMaturityDate().isAfter(retireDate)) continue;
+
+                long gain = fd.getMaturityAmountPaise() - t.getAmountPaise();
+                if (ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT) {
+                    gain = Math.round(gain * (1.0 - params.preRetireTaxPct / 100.0));
+                }
+                addAmountToRetirementYear(annual, retireDate, totalYears, fd.getMaturityDate(), Math.max(0, gain));
+            }
+        }
+
+        for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) continue;
+            if (ia.getInvestmentType() != InvestmentAccount.InvestmentType.DEBT_BONDS
+                    && ia.getInvestmentType() != InvestmentAccount.InvestmentType.FIXED_DEPOSIT) {
+                continue;
+            }
+
+            double taxMultiplier = ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT
+                    ? (1.0 - params.preRetireTaxPct / 100.0)
+                    : 1.0;
+            for (RecurringTransaction rt : ds.getRecurring()) {
+                if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
+                if (rt.getSourceInvestment() == null) continue;
+                if (!ia.getId().equals(rt.getSourceInvestment().getSrcAccount())) continue;
+
+                for (int i = 0; i < totalYears; i++) {
+                    LocalDate yearStart = retireDate.plusYears(i);
+                    LocalDate yearEnd = retireDate.plusYears(i + 1).minusDays(1);
+                    long occurrences = getOccurrencesInRange(rt, yearStart, yearEnd).size();
+                    if (occurrences <= 0) continue;
+                    annual[i] += Math.max(0, Math.round(rt.getAmountPaise() * taxMultiplier) * occurrences);
+                }
+            }
+        }
+    }
+
+    private void addAnnualPostRetirementRdInflows(long[] annual,
+                                                  LocalDate retireDate,
+                                                  int totalYears,
+                                                  PlanParameters params) {
+        Set<String> rdAccountIds = ds.getInvestmentAccounts().stream()
+                .filter(ia -> ia.getInvestmentType() == InvestmentAccount.InvestmentType.RECURRING_DEPOSIT
+                        && ia.getInvestmentStatus() != InvestmentAccount.InvestmentStatus.REDEEMED)
+                .map(InvestmentAccount::getId)
+                .collect(Collectors.toSet());
+
+        for (RecurringTransaction rt : ds.getRecurring()) {
+            if (rt.getTransactionType() != Transaction.Type.INVESTMENT) continue;
+            if (!rdAccountIds.contains(rt.getToAccountId())) continue;
+            if (rt.getRdMaturityAmountPaise() <= 0) continue;
+
+            LocalDate maturityDate = resolveRdMaturityDate(rt);
+            if (maturityDate == null || !maturityDate.isAfter(retireDate)) continue;
+
+            long gain = Math.round(computeRdMaturityGain(rt) * (1.0 - params.preRetireTaxPct / 100.0));
+            addAmountToRetirementYear(annual, retireDate, totalYears, maturityDate, Math.max(0, gain));
+        }
+    }
+
+    private LocalDate resolveRdMaturityDate(RecurringTransaction rt) {
+        if (rt.getMaturityDate() != null) {
+            return rt.getMaturityDate();
+        }
+        return rt.getLastPaymentDate();
+    }
+
+    private long computeRdMaturityGain(RecurringTransaction rt) {
+        long numPayments;
+        if (rt.getNumberOfPayments() != null && rt.getNumberOfPayments() > 0) {
+            numPayments = rt.getNumberOfPayments();
+        } else if (rt.getStartDate() != null && rt.getMaturityDate() != null) {
+            numPayments = ChronoUnit.MONTHS.between(rt.getStartDate(), rt.getMaturityDate());
+        } else {
+            return 0;
+        }
+        long totalPrincipal = numPayments * rt.getAmountPaise();
+        return Math.max(0, rt.getRdMaturityAmountPaise() - totalPrincipal);
+    }
+
+    private void addAmountToRetirementYear(long[] annual,
+                                           LocalDate retireDate,
+                                           int totalYears,
+                                           LocalDate eventDate,
+                                           long amountPaise) {
+        if (eventDate == null || amountPaise <= 0) return;
+        if (!eventDate.isAfter(retireDate)) return;
+
+        int yearIndex = (int) ChronoUnit.YEARS.between(retireDate, eventDate);
+        if (yearIndex < 0 || yearIndex >= totalYears) return;
+
+        annual[yearIndex] += amountPaise;
     }
 
     public LocalDate getRetirementDate(PlanParameters params, LocalDate selfDob) {
@@ -527,6 +652,14 @@ public class FinancialPlanningCalculator {
             }
         }
         return ids;
+    }
+
+    private Set<String> collectRedeemedFdRefs() {
+        return ds.getTransactions().stream()
+                .filter(tx -> tx.getRedeemDetails() != null
+                        && tx.getRedeemDetails().getOrgnlFDRef() != null)
+                .map(tx -> tx.getRedeemDetails().getOrgnlFDRef())
+                .collect(Collectors.toSet());
     }
 
     private long countOccurrences(RecurringTransaction rt, LocalDate until) {

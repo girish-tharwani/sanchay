@@ -116,7 +116,9 @@ class PostRetirementProjectionPanel {
         long balance = projectionMode == ProjectionMode.ACTUAL
                 ? forecastedCorpusPaise
                 : planningCalculator.computeRequiredCorpusPaise(params, selfDob);
-        return new ArrayList<>(planningCalculator.computePostRetirementRows(params, selfDob, balance));
+        boolean includeScheduledInflows = projectionMode == ProjectionMode.ACTUAL;
+        return new ArrayList<>(planningCalculator.computePostRetirementRows(
+                params, selfDob, balance, includeScheduledInflows));
     }
 
     private VBox buildTableComments() {
@@ -125,6 +127,7 @@ class PostRetirementProjectionPanel {
         addTableCommentRow(comments, "Phase 1  Active retirement, up to 72 years of age: full inflation");
         addTableCommentRow(comments, "Phase 2  Slow-go retirement, up to 82 years of age: inflation-1.5%");
         addTableCommentRow(comments, "Phase 3  Healthcare retirement: full inflation");
+        addTableCommentRow(comments, "Actual corpus projection also includes scheduled post-retirement bond, FD, and RD yields.");
         return comments;
     }
 
@@ -161,7 +164,8 @@ class PostRetirementProjectionPanel {
             }
         });
         tv.getColumns().addAll(
-                yearCol(), ageCol(), balanceCol(), roiCol(), taxCol(), withdrawalCol(), endingBalanceCol()
+                yearCol(), ageCol(), balanceCol(), roiCol(), taxCol(), withdrawalCol(),
+                scheduledInflowsCol(), endingBalanceCol()
         );
         return tv;
     }
@@ -236,6 +240,14 @@ class PostRetirementProjectionPanel {
                     getStyleClass().add("post-retirement-cf-depleted");
             }
         });
+        return col;
+    }
+
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> scheduledInflowsCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Scheduled Inflows");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(
+                cd.getValue().scheduledInflowsPaise() <= 0 ? "-" : moneyFormatter.apply(cd.getValue().scheduledInflowsPaise())));
+        col.setPrefWidth(150);
         return col;
     }
 
