@@ -2,15 +2,24 @@ package com.sanchay.ui.planning;
 
 import com.sanchay.model.PlanParameters;
 import com.sanchay.service.FinancialPlanningCalculator;
+import com.sanchay.ui.UiUtils;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
@@ -24,6 +33,7 @@ class PostRetirementProjectionPanel {
 
     private final FinancialPlanningCalculator planningCalculator;
     private final LongFunction<String> moneyFormatter;
+    private final Runnable onAssumptionsChanged;
 
     private VBox root;
     private VBox tableComments;
@@ -37,9 +47,11 @@ class PostRetirementProjectionPanel {
     private long forecastedCorpusPaise;
 
     PostRetirementProjectionPanel(FinancialPlanningCalculator planningCalculator,
-                                  LongFunction<String> moneyFormatter) {
+                                  LongFunction<String> moneyFormatter,
+                                  Runnable onAssumptionsChanged) {
         this.planningCalculator = planningCalculator;
         this.moneyFormatter = moneyFormatter;
+        this.onAssumptionsChanged = onAssumptionsChanged;
     }
 
     Region build() {
@@ -108,6 +120,7 @@ class PostRetirementProjectionPanel {
 
     private void refresh() {
         if (table == null || params == null || selfDob == null) return;
+        refreshTableComments();
         table.getItems().setAll(buildTableItems());
         table.refresh();
     }
@@ -123,12 +136,43 @@ class PostRetirementProjectionPanel {
 
     private VBox buildTableComments() {
         VBox comments = new VBox(0);
-        addTableCommentRow(comments, "Three-phase retirement spending model:");
-        addTableCommentRow(comments, "Phase 1  Active retirement, up to 72 years of age: full inflation");
-        addTableCommentRow(comments, "Phase 2  Slow-go retirement, up to 82 years of age: inflation-1.5%");
+        refreshTableComments(comments);
+        return comments;
+    }
+
+    private void refreshTableComments() {
+        refreshTableComments(tableComments);
+    }
+
+    private void refreshTableComments(VBox comments) {
+        if (comments == null) return;
+        comments.getChildren().clear();
+
+        int slowGoAge = planningCalculator.getSpendingSlowGoAge(params);
+        int noGoAge = planningCalculator.getSpendingNoGoAge(params);
+        double slowGoReductionPct = params != null
+                ? params.spendingSlowGoReductionPct
+                : FinancialPlanningCalculator.SPENDING_SLOW_GO_REDUCTION * 100.0;
+
+        HBox headingRow = new HBox();
+        headingRow.getStyleClass().add("fp-table-row-comment");
+        headingRow.setAlignment(Pos.CENTER_LEFT);
+        headingRow.setMaxWidth(Double.MAX_VALUE);
+
+        Hyperlink assumptionsLink = new Hyperlink("Three-phase retirement spending model");
+        assumptionsLink.getStyleClass().addAll("link-teal", "text-link-button");
+        assumptionsLink.setOnAction(e -> openSpendingAssumptionsDialog());
+        headingRow.getChildren().add(assumptionsLink);
+        comments.getChildren().add(headingRow);
+
+        addTableCommentRow(comments, String.format(
+                "Phase 1  Active retirement, up to %d years of age: full inflation",
+                slowGoAge - 1));
+        addTableCommentRow(comments, String.format(
+                "Phase 2  Slow-go retirement, up to %d years of age: inflation-%.1f%%",
+                noGoAge - 1, slowGoReductionPct));
         addTableCommentRow(comments, "Phase 3  Healthcare retirement: full inflation");
         addTableCommentRow(comments, "Actual corpus projection also includes scheduled post-retirement bond, FD, and RD yields.");
-        return comments;
     }
 
     private void addTableCommentRow(VBox parent, String label) {
@@ -146,6 +190,111 @@ class PostRetirementProjectionPanel {
         parent.getChildren().add(row);
     }
 
+    private void openSpendingAssumptionsDialog() {
+        if (params == null) return;
+
+        Dialog<Boolean> dlg = new Dialog<>();
+        UiUtils.initDialog(dlg, "Retirement Spending Assumptions", "✎", 460,
+                "Adjust the age bands and inflation reduction used in the three-phase retirement spending model.");
+
+        GridPane form = UiUtils.buildFormGrid(185);
+        form.setPadding(new Insets(16));
+
+        TextField slowGoAgeFld = numericField(String.valueOf(planningCalculator.getSpendingSlowGoAge(params)));
+        TextField noGoAgeFld = numericField(String.valueOf(planningCalculator.getSpendingNoGoAge(params)));
+        TextField reductionFld = numericField(formatPct(params.spendingSlowGoReductionPct));
+
+        UiUtils.addFormRow(form, 0, "Slow-go starts at age", slowGoAgeFld);
+        UiUtils.addFormRow(form, 1, "Healthcare starts at age", noGoAgeFld);
+        UiUtils.addFormRow(form, 2, "Phase 2 inflation reduction", reductionFld);
+
+        Label hint = UiUtils.hintLabel("Enter the reduction as a percent, for example 1.5 for 1.5%.");
+        hint.setWrapText(true);
+
+        VBox content = new VBox(12, form, hint);
+        dlg.getDialogPane().setContent(content);
+
+        ButtonType saveBtn = UiUtils.addSaveCancel(dlg.getDialogPane());
+        Button saveButton = (Button) dlg.getDialogPane().lookupButton(saveBtn);
+        saveButton.getStyleClass().add("btn-gold");
+
+        dlg.setResultConverter(bt -> {
+            if (bt != saveBtn) return Boolean.FALSE;
+            try {
+                int slowGoAge = parsePositiveInt(slowGoAgeFld.getText(), "Slow-go starts at age");
+                int noGoAge = parsePositiveInt(noGoAgeFld.getText(), "Healthcare starts at age");
+                double reductionPct = parseNonNegativeDouble(reductionFld.getText(), "Phase 2 inflation reduction");
+
+                if (noGoAge <= slowGoAge) {
+                    showValidationError("Healthcare age must be greater than slow-go age.");
+                    return Boolean.FALSE;
+                }
+
+                params.spendingSlowGoAge = slowGoAge;
+                params.spendingNoGoAge = noGoAge;
+                params.spendingSlowGoReductionPct = reductionPct;
+                return Boolean.TRUE;
+            } catch (IllegalArgumentException ex) {
+                showValidationError(ex.getMessage());
+                return Boolean.FALSE;
+            }
+        });
+
+        if (dlg.showAndWait().orElse(Boolean.FALSE)) {
+            if (onAssumptionsChanged != null) {
+                onAssumptionsChanged.run();
+            } else {
+                refresh();
+            }
+        }
+    }
+
+    private TextField numericField(String value) {
+        TextField field = new TextField(value);
+        field.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        return field;
+    }
+
+    private int parsePositiveInt(String text, String fieldName) {
+        try {
+            int value = Integer.parseInt(text.trim());
+            if (value <= 0) throw new NumberFormatException();
+            return value;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Enter a valid positive number for " + fieldName + ".");
+        }
+    }
+
+    private double parseNonNegativeDouble(String text, String fieldName) {
+        try {
+            double value = Double.parseDouble(text.trim().replace("%", ""));
+            if (value < 0) throw new NumberFormatException();
+            return value;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Enter a valid non-negative number for " + fieldName + ".");
+        }
+    }
+
+    private String formatPct(double value) {
+        return value == Math.floor(value)
+                ? String.format("%.0f", value)
+                : String.format("%.1f", value);
+    }
+
+    private void showValidationError(String message) {
+        Dialog<Void> dlg = new Dialog<>();
+        UiUtils.initDialog(dlg, "Validation Error", "⚠", 380);
+
+        Label messageLbl = new Label(message);
+        messageLbl.getStyleClass().add("form-label");
+        messageLbl.setWrapText(true);
+
+        dlg.getDialogPane().setContent(messageLbl);
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dlg.showAndWait();
+    }
+
     private TableView<FinancialPlanningCalculator.PostRetirementRow> buildCashFlowTable() {
         TableView<FinancialPlanningCalculator.PostRetirementRow> tv = new TableView<>();
         tv.getStyleClass().add("forecast-table");
@@ -155,8 +304,9 @@ class PostRetirementProjectionPanel {
             @Override protected void updateItem(FinancialPlanningCalculator.PostRetirementRow row, boolean empty) {
                 super.updateItem(row, empty);
                 if (!empty && row != null) {
-                    boolean outerPhase = row.age() < FinancialPlanningCalculator.SPENDING_SLOW_GO_AGE
-                            || row.age() >= FinancialPlanningCalculator.SPENDING_NO_GO_AGE;
+                    int slowGoAge = planningCalculator.getSpendingSlowGoAge(params);
+                    int noGoAge = planningCalculator.getSpendingNoGoAge(params);
+                    boolean outerPhase = row.age() < slowGoAge || row.age() >= noGoAge;
                     setStyle(outerPhase ? "-fx-background-color: -surface-teal-faint;" : "");
                 } else {
                     setStyle("");

@@ -22,6 +22,10 @@ public class PlanParameters {
     public long   monthlySipMfPaise     = 0L;             // ₹0 default
     public long   monthlySipEquityPaise = 0L;             // ₹0 default
 
+    public int    spendingSlowGoAge     = 73;
+    public int    spendingNoGoAge       = 83;
+    public double spendingSlowGoReductionPct = 1.5;
+
     public java.util.List<MajorEvent> majorEvents = new java.util.ArrayList<>();
 
     public String lastCalculatedDate = null;  // ISO "YYYY-MM-DD"; set each time the user recalculates

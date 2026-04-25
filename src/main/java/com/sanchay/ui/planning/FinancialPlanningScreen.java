@@ -48,7 +48,14 @@ public class FinancialPlanningScreen {
         this.navigateToProfile = navigateToProfile;
         this.majorEventPlanner = new MajorEventPlanner();
         this.planningCalculator = new FinancialPlanningCalculator();
-        this.postRetirementPanel = new PostRetirementProjectionPanel(planningCalculator, this::formatRupees);
+        this.postRetirementPanel = new PostRetirementProjectionPanel(
+                planningCalculator,
+                this::formatRupees,
+                () -> {
+                    paramsService.save(params);
+                    refreshComputedSections();
+                }
+        );
         this.expensesMajorEventsSection = new ExpensesMajorEventsSection(
                 planningCalculator,
                 majorEventPlanner,
@@ -242,7 +249,14 @@ public class FinancialPlanningScreen {
     }
 
     private Node buildPostRetirementCard() {
-        postRetirementPanel = new PostRetirementProjectionPanel(planningCalculator, this::formatRupees);
+        postRetirementPanel = new PostRetirementProjectionPanel(
+                planningCalculator,
+                this::formatRupees,
+                () -> {
+                    paramsService.save(params);
+                    refreshComputedSections();
+                }
+        );
         Region panel = postRetirementPanel.build();
         postRetirementPanel.updateInputs(params, selfDob, forecastedCorpusPaise);
         return panel;

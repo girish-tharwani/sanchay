@@ -65,6 +65,26 @@ public class FinancialPlanningCalculator {
     public static final int    SPENDING_NO_GO_AGE        = 83;
     public static final double SPENDING_SLOW_GO_REDUCTION = 0.015; // 1.5 % per year
 
+    public int getSpendingSlowGoAge(PlanParameters params) {
+        return params != null && params.spendingSlowGoAge > 0
+                ? params.spendingSlowGoAge
+                : SPENDING_SLOW_GO_AGE;
+    }
+
+    public int getSpendingNoGoAge(PlanParameters params) {
+        int slowGoAge = getSpendingSlowGoAge(params);
+        int configured = params != null && params.spendingNoGoAge > slowGoAge
+                ? params.spendingNoGoAge
+                : SPENDING_NO_GO_AGE;
+        return Math.max(configured, slowGoAge + 1);
+    }
+
+    public double getSpendingSlowGoReductionRate(PlanParameters params) {
+        return params != null && params.spendingSlowGoReductionPct >= 0
+                ? params.spendingSlowGoReductionPct / 100.0
+                : SPENDING_SLOW_GO_REDUCTION;
+    }
+
     private final DataStore ds;
     private final MajorEventPlanner majorEventPlanner;
 
@@ -416,7 +436,7 @@ public class FinancialPlanningCalculator {
         for (int i = 0; i < totalYears; i++) {
             int year = retirementYear + i;
             int age = retirementAge + i;
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(retirementAge, inflationRate, i)))
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(params, retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
             long scheduledInflows = roundDownTo10k(annualScheduledInflows[i]);
 
@@ -605,7 +625,7 @@ public class FinancialPlanningCalculator {
 
         long balance = startingBalancePaise;
         for (int i = 0; i < totalYears; i++) {
-            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(retirementAge, inflationRate, i)))
+            long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(params, retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
             if (balance < withdrawal) return false;
 
@@ -626,14 +646,24 @@ public class FinancialPlanningCalculator {
      * @param yearsIntoRetirement 0 = first year of retirement
      */
     private double colGrowthMultiplier(int retirementAge, double inflationRate, int yearsIntoRetirement) {
+        return colGrowthMultiplier(null, retirementAge, inflationRate, yearsIntoRetirement);
+    }
+
+    private double colGrowthMultiplier(PlanParameters params,
+                                       int retirementAge,
+                                       double inflationRate,
+                                       int yearsIntoRetirement) {
         double multiplier = 1.0;
+        int slowGoAge = getSpendingSlowGoAge(params);
+        int noGoAge = getSpendingNoGoAge(params);
+        double slowGoReduction = getSpendingSlowGoReductionRate(params);
         for (int y = 0; y < yearsIntoRetirement; y++) {
             int age = retirementAge + y;
             double rate;
-            if (age < SPENDING_SLOW_GO_AGE) {
+            if (age < slowGoAge) {
                 rate = inflationRate;                                    // Phase 1: active
-            } else if (age < SPENDING_NO_GO_AGE) {
-                rate = Math.max(0, inflationRate - SPENDING_SLOW_GO_REDUCTION); // Phase 2: slow-go
+            } else if (age < noGoAge) {
+                rate = Math.max(0, inflationRate - slowGoReduction); // Phase 2: slow-go
             } else {
                 rate = inflationRate;                                    // Phase 3: healthcare
             }
