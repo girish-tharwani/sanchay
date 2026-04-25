@@ -653,13 +653,13 @@ Projected money you will receive between today and retirement, grouped into thre
 
 **Scheduled Interests (interest already locked in)**
 
-- **Bond Interest** — for each active bond account, the difference between the maturity amount and invested amount across all INVESTMENT transactions that mature before retirement, plus income from any linked recurring schedules. Already-redeemed FD references are excluded.
-- **FD Interest** — same approach as bonds; the resulting interest amount is then reduced by the pre-retirement tax rate.
+- **Bond Interest** — for each active bond account, the difference between the maturity amount and invested amount across all INVESTMENT transactions that mature before retirement, plus income from any linked recurring schedules, taxed at pre-retirement tax rate.
+- **FD Interest** — same approach as bonds
 - **RD Interest** — for each active RD schedule, `Maturity Amount − (Number of payments × Monthly instalment)`. Taxed at the pre-retirement tax rate.
 
 **Projected Appreciation (expected market returns)**
 
-- **Equity Appreciation** — current market value grows at the equity RoR compounded annually to retirement; SIP contributions grow using the SIP future value formula (`SIP × ((1+r)^n − 1) / r`); the appreciation is the final projected value minus starting value minus total SIP principal invested.
+- **Equity Appreciation** — 90% of latest recorded market value grows at the equity RoR compounded annually to retirement; SIP contributions grow using the SIP future value formula (`SIP × ((1+r)^n − 1) / r`); the appreciation is the final projected value minus starting value minus total SIP principal invested.
 - **MF Appreciation** — identical approach using the MF RoR and monthly MF SIP.
 
 All subtotals are floored to the nearest ₹10,000.
@@ -682,7 +682,7 @@ Your expected wealth at retirement, split into three buckets.
 |---|---|
 | **Provident Fund** | Current PF balance + future PF contributions + PF interest earned before retirement |
 | **Stocks & MF** | Current equity + MF corpus (at 90% market value) + equity/MF appreciation + all SIP principal invested before retirement |
-| **Cash, Bonds & FDs** | Current bank + bonds + FD + RD balances + bond/FD/RD interest + post-tax salary income + gratuity − total pre-retirement expenses |
+| **Cash, Bonds & FDs** | Current bank + bonds + FD + RD balances + bond/FD/RD interest + post-tax salary income + gratuity − total pre-retirement expenses - total projected SIP investments|
 
 **Total = PF + Stocks & MF + Cash, Bonds & FDs**
 

@@ -210,6 +210,7 @@ public class FinancialPlanningCalculator {
                 bondsInterest += rt.getAmountPaise() * countOccurrences(rt, retireDate);
             }
         }
+        bondsInterest = Math.round(bondsInterest * (1.0 - params.preRetireTaxPct / 100.0));
 
         long fdInterest = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
