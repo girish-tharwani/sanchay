@@ -672,7 +672,7 @@ Pre-retirement outflows deducted when building the Forecasted Corpus.
 |---|---|
 | **Loan Payments** | Sum of all LOAN_PAYMENT recurring schedules counted occurrence-by-occurrence to retirement, rounded up to ₹10,000 |
 | **Cost of Living** | Current annual CoL grown by inflation for each of the years to retirement using the geometric-series formula: `CoL × ((1+i)^n − 1) / i`. If inflation is zero it simplifies to `CoL × n` |
-| **Major Events** | Net present cost of all major events falling before retirement (see §11.2) |
+| **Major Events** | Net present cost of all major events falling before retirement |
 
 #### Forecasted Retirement Corpus
 

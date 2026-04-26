@@ -64,6 +64,8 @@ public class FinancialPlanningCalculator {
     public static final int    SPENDING_SLOW_GO_AGE      = 73;
     public static final int    SPENDING_NO_GO_AGE        = 83;
     public static final double SPENDING_SLOW_GO_REDUCTION = 0.015; // 1.5 % per year
+    public static final double SPENDING_SLOW_GO_INFLATION_ADJUSTMENT = -0.015;
+    public static final double SPENDING_HEALTHCARE_INFLATION_ADJUSTMENT = 0.0;
 
     public int getSpendingSlowGoAge(PlanParameters params) {
         return params != null && params.spendingSlowGoAge > 0
@@ -83,6 +85,24 @@ public class FinancialPlanningCalculator {
         return params != null && params.spendingSlowGoReductionPct >= 0
                 ? params.spendingSlowGoReductionPct / 100.0
                 : SPENDING_SLOW_GO_REDUCTION;
+    }
+
+    public double getSpendingSlowGoInflationAdjustmentRate(PlanParameters params) {
+        if (params == null) return SPENDING_SLOW_GO_INFLATION_ADJUSTMENT;
+        if (params.spendingSlowGoInflationAdjustmentPct != null) {
+            return params.spendingSlowGoInflationAdjustmentPct / 100.0;
+        }
+        if (params.spendingSlowGoReductionPct >= 0) {
+            return -params.spendingSlowGoReductionPct / 100.0;
+        }
+        return SPENDING_SLOW_GO_INFLATION_ADJUSTMENT;
+    }
+
+    public double getSpendingHealthcareInflationAdjustmentRate(PlanParameters params) {
+        if (params == null || params.spendingHealthcareInflationAdjustmentPct == null) {
+            return SPENDING_HEALTHCARE_INFLATION_ADJUSTMENT;
+        }
+        return params.spendingHealthcareInflationAdjustmentPct / 100.0;
     }
 
     private final DataStore ds;
@@ -656,16 +676,17 @@ public class FinancialPlanningCalculator {
         double multiplier = 1.0;
         int slowGoAge = getSpendingSlowGoAge(params);
         int noGoAge = getSpendingNoGoAge(params);
-        double slowGoReduction = getSpendingSlowGoReductionRate(params);
+        double slowGoAdjustment = getSpendingSlowGoInflationAdjustmentRate(params);
+        double healthcareAdjustment = getSpendingHealthcareInflationAdjustmentRate(params);
         for (int y = 0; y < yearsIntoRetirement; y++) {
             int age = retirementAge + y;
             double rate;
             if (age < slowGoAge) {
                 rate = inflationRate;                                    // Phase 1: active
             } else if (age < noGoAge) {
-                rate = Math.max(0, inflationRate - slowGoReduction); // Phase 2: slow-go
+                rate = inflationRate + slowGoAdjustment;                  // Phase 2: slow-go
             } else {
-                rate = inflationRate;                                    // Phase 3: healthcare
+                rate = inflationRate + healthcareAdjustment;              // Phase 3: healthcare
             }
             multiplier *= (1.0 + rate);
         }

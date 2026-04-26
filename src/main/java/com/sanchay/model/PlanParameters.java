@@ -24,6 +24,8 @@ public class PlanParameters {
 
     public int    spendingSlowGoAge     = 73;
     public int    spendingNoGoAge       = 83;
+    public Double spendingSlowGoInflationAdjustmentPct = null;
+    public Double spendingHealthcareInflationAdjustmentPct = null;
     public double spendingSlowGoReductionPct = 1.5;
 
     public java.util.List<MajorEvent> majorEvents = new java.util.ArrayList<>();
