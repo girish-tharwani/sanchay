@@ -526,11 +526,10 @@ public class FinancialPlanningCalculator {
                 if (fd.getRef() != null && redeemedFdRefs.contains(fd.getRef())) continue;
                 if (fd.getMaturityDate() == null || !fd.getMaturityDate().isAfter(retireDate)) continue;
 
-                long gain = fd.getMaturityAmountPaise() - t.getAmountPaise();
-                if (ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT) {
-                    gain = Math.round(gain * (1.0 - params.preRetireTaxPct / 100.0));
-                }
-                addAmountToRetirementYear(annual, retireDate, totalYears, fd.getMaturityDate(), Math.max(0, gain));
+                long gain = Math.max(0, fd.getMaturityAmountPaise() - t.getAmountPaise());
+                long inflow = fd.getMaturityAmountPaise();
+                inflow -= Math.round(gain * params.postRetireTaxPct / 100.0);
+                addAmountToRetirementYear(annual, retireDate, totalYears, fd.getMaturityDate(), Math.max(0, inflow));
             }
         }
 
@@ -541,9 +540,7 @@ public class FinancialPlanningCalculator {
                 continue;
             }
 
-            double taxMultiplier = ia.getInvestmentType() == InvestmentAccount.InvestmentType.FIXED_DEPOSIT
-                    ? (1.0 - params.preRetireTaxPct / 100.0)
-                    : 1.0;
+            double taxMultiplier = 1.0 - params.postRetireTaxPct / 100.0;
             for (RecurringTransaction rt : ds.getRecurring()) {
                 if (rt.getTransactionType() != Transaction.Type.INCOME) continue;
                 if (rt.getSourceInvestment() == null) continue;
@@ -578,8 +575,9 @@ public class FinancialPlanningCalculator {
             LocalDate maturityDate = resolveRdMaturityDate(rt);
             if (maturityDate == null || !maturityDate.isAfter(retireDate)) continue;
 
-            long gain = Math.round(computeRdMaturityGain(rt) * (1.0 - params.preRetireTaxPct / 100.0));
-            addAmountToRetirementYear(annual, retireDate, totalYears, maturityDate, Math.max(0, gain));
+            long gain = computeRdMaturityGain(rt);
+            long inflow = rt.getRdMaturityAmountPaise() - Math.round(gain * params.postRetireTaxPct / 100.0);
+            addAmountToRetirementYear(annual, retireDate, totalYears, maturityDate, Math.max(0, inflow));
         }
     }
 
