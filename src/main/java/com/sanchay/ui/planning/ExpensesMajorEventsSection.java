@@ -26,7 +26,7 @@ import java.util.function.LongFunction;
  */
 final class ExpensesMajorEventsSection {
 
-    private static final double EVENT_AMOUNT_COL_WIDTH = 110;
+    private static final double EVENT_AMOUNT_COL_WIDTH = 130;
 
     private final FinancialPlanningCalculator planningCalculator;
     private final MajorEventPlanner majorEventPlanner;
@@ -41,7 +41,8 @@ final class ExpensesMajorEventsSection {
     private VBox root;
     private VBox expenseRowsContainer;
     private VBox majorEventsListBox;
-    private Label majorEventsForecastTotalLbl;
+    private Label majorEventsForecastUntilRetirementTotalLbl;
+    private Label majorEventsForecastAfterRetirementTotalLbl;
     private Label majorEventsActualTotalLbl;
 
     ExpensesMajorEventsSection(
@@ -125,9 +126,10 @@ final class ExpensesMajorEventsSection {
         nameHdr.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nameHdr, Priority.ALWAYS);
 
-        Label forecastHdr = buildAmountHeader("Forecast");
+        Label forecastUntilRetirementHdr = buildAmountHeader("Forecast until retirement");
+        Label forecastAfterRetirementHdr = buildAmountHeader("Forecast after retirement");
         Label actualHdr = buildAmountHeader("Actual");
-        colHeader.getChildren().addAll(nameHdr, forecastHdr, actualHdr);
+        colHeader.getChildren().addAll(nameHdr, forecastUntilRetirementHdr, forecastAfterRetirementHdr, actualHdr);
         return colHeader;
     }
 
@@ -141,9 +143,11 @@ final class ExpensesMajorEventsSection {
         totalLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(totalLbl, Priority.ALWAYS);
 
-        majorEventsForecastTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
+        majorEventsForecastUntilRetirementTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
+        majorEventsForecastAfterRetirementTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
         majorEventsActualTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
-        totalRow.getChildren().addAll(totalLbl, majorEventsForecastTotalLbl, majorEventsActualTotalLbl);
+        totalRow.getChildren().addAll(totalLbl, majorEventsForecastUntilRetirementTotalLbl,
+                majorEventsForecastAfterRetirementTotalLbl, majorEventsActualTotalLbl);
         return totalRow;
     }
 
@@ -205,22 +209,31 @@ final class ExpensesMajorEventsSection {
             }
         }
 
-        long forecastTotal = params.majorEvents.stream()
-                .mapToLong(event -> majorEventPlanner.computeEventForecast(
-                        event, planningCalculator.getRetirementDate(params, selfDob)))
+        LocalDate retirementDate = planningCalculator.getRetirementDate(params, selfDob);
+        LocalDate projectionEndDate = postRetirementProjectionEndDate(retirementDate);
+        long forecastUntilRetirementTotal = params.majorEvents.stream()
+                .mapToLong(event -> majorEventPlanner.computeEventForecast(event, retirementDate))
+                .sum();
+        long forecastAfterRetirementTotal = params.majorEvents.stream()
+                .mapToLong(event -> majorEventPlanner.computeEventPostRetirementForecast(
+                        event, retirementDate, projectionEndDate))
                 .sum();
         long actualTotal = params.majorEvents.stream()
-                .mapToLong(majorEventPlanner::computeEventActual)
+                .mapToLong(event -> majorEventPlanner.computeEventActual(event, retirementDate))
                 .sum();
 
-        majorEventsForecastTotalLbl.setText(moneyFormatter.apply(forecastTotal));
+        majorEventsForecastUntilRetirementTotalLbl.setText(moneyFormatter.apply(forecastUntilRetirementTotal));
+        majorEventsForecastAfterRetirementTotalLbl.setText(moneyFormatter.apply(forecastAfterRetirementTotal));
         majorEventsActualTotalLbl.setText(moneyFormatter.apply(actualTotal));
     }
 
     private HBox createEventRow(MajorEvent event) {
-        long forecast = majorEventPlanner.computeEventForecast(
-                event, planningCalculator.getRetirementDate(params, selfDob));
-        long actual = majorEventPlanner.computeEventActual(event);
+        LocalDate retirementDate = planningCalculator.getRetirementDate(params, selfDob);
+        LocalDate projectionEndDate = postRetirementProjectionEndDate(retirementDate);
+        long forecastUntilRetirement = majorEventPlanner.computeEventForecast(event, retirementDate);
+        long forecastAfterRetirement = majorEventPlanner.computeEventPostRetirementForecast(
+                event, retirementDate, projectionEndDate);
+        long actual = majorEventPlanner.computeEventActual(event, retirementDate);
 
         HBox row = new HBox();
         row.getStyleClass().add("fp-event-row");
@@ -233,16 +246,24 @@ final class ExpensesMajorEventsSection {
         nameLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nameLbl, Priority.ALWAYS);
 
-        Label forecastLbl = buildAmountValue(moneyFormatter.apply(forecast), false);
+        Label forecastUntilRetirementLbl = buildAmountValue(moneyFormatter.apply(forecastUntilRetirement), false);
+        Label forecastAfterRetirementLbl = buildAmountValue(moneyFormatter.apply(forecastAfterRetirement), false);
         Label actualLbl = buildAmountValue(moneyFormatter.apply(actual), false);
-        row.getChildren().addAll(nameLbl, forecastLbl, actualLbl);
+        row.getChildren().addAll(nameLbl, forecastUntilRetirementLbl, forecastAfterRetirementLbl, actualLbl);
         return row;
+    }
+
+    private LocalDate postRetirementProjectionEndDate(LocalDate retirementDate) {
+        int retirementAge = planningCalculator.getRetirementAgeYears(params, selfDob);
+        int postRetirementYears = Math.max(0, params.lifeExpectancy - retirementAge);
+        return retirementDate.plusYears(postRetirementYears);
     }
 
     private Label buildAmountHeader(String text) {
         Label lbl = new Label(text);
         lbl.getStyleClass().add("fp-table-header-label");
         lbl.setPrefWidth(EVENT_AMOUNT_COL_WIDTH);
+        lbl.setWrapText(true);
         lbl.setAlignment(Pos.CENTER_RIGHT);
         return lbl;
     }

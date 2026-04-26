@@ -3,6 +3,7 @@ package com.sanchay.service;
 import com.sanchay.model.EarningSource;
 import com.sanchay.model.FamilyMember;
 import com.sanchay.model.InvestmentAccount;
+import com.sanchay.model.MajorEvent;
 import com.sanchay.model.MarketValueEntry;
 import com.sanchay.model.PlanParameters;
 import com.sanchay.model.RecurringTransaction;
@@ -51,7 +52,7 @@ public class FinancialPlanningCalculator {
     public record PostRetirementRow(
             int year, int age,
             long startingBalancePaise, long roiPaise, long taxPaise, long withdrawalPaise,
-            long scheduledInflowsPaise, long endingBalancePaise,
+            long scheduledInflowsPaise, long scheduledMajorEventsPaise, long endingBalancePaise,
             boolean startingDepleted, boolean endingNegative) {}
 
     private static final long ROUND_10K_PAISE = 1_000_000L;
@@ -450,6 +451,9 @@ public class FinancialPlanningCalculator {
         long[] annualScheduledInflows = includeScheduledInflows
                 ? computeAnnualPostRetirementInvestmentInflows(retireDate, totalYears, params)
                 : new long[totalYears];
+        long[] annualScheduledMajorEvents = includeScheduledInflows
+                ? computeAnnualPostRetirementMajorEvents(retireDate, totalYears, params)
+                : new long[totalYears];
 
         List<PostRetirementRow> rows = new ArrayList<>();
         long balance = startingBalancePaise;
@@ -459,25 +463,93 @@ public class FinancialPlanningCalculator {
             long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(params, retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
             long scheduledInflows = roundDownTo10k(annualScheduledInflows[i]);
+            long scheduledMajorEvents = roundUpTo10k(annualScheduledMajorEvents[i]);
 
             if (balance > 0) {
-                long postWithdrawalBalance = balance - withdrawal;
+                long postWithdrawalBalance = balance - withdrawal - scheduledMajorEvents;
                 long roi = roundDownTo10k(Math.round(Math.max(0, postWithdrawalBalance) * ror));
                 long tax = roundUpTo10k(Math.round(roi * taxRate));
                 long endingBalance = postWithdrawalBalance + scheduledInflows + roi - tax;
                 rows.add(new PostRetirementRow(
                         year, age, balance, roi, tax, withdrawal,
-                        scheduledInflows, endingBalance, false, endingBalance < 0));
+                        scheduledInflows, scheduledMajorEvents, endingBalance, false, endingBalance < 0));
                 balance = endingBalance;
             } else {
-                long endingBalance = balance - withdrawal + scheduledInflows;
+                long endingBalance = balance - withdrawal - scheduledMajorEvents + scheduledInflows;
                 rows.add(new PostRetirementRow(
                         year, age, balance, 0, 0, withdrawal,
-                        scheduledInflows, endingBalance, true, endingBalance < 0));
+                        scheduledInflows, scheduledMajorEvents, endingBalance, true, endingBalance < 0));
                 balance = endingBalance;
             }
         }
         return rows;
+    }
+
+    private long[] computeAnnualPostRetirementMajorEvents(LocalDate retireDate,
+                                                          int totalYears,
+                                                          PlanParameters params) {
+        long[] annual = new long[totalYears];
+        if (params == null || params.majorEvents == null) return annual;
+
+        for (MajorEvent event : params.majorEvents) {
+            addAnnualPostRetirementMajorEventForecast(annual, retireDate, totalYears, event);
+        }
+        return annual;
+    }
+
+    private void addAnnualPostRetirementMajorEventForecast(long[] annual,
+                                                           LocalDate retireDate,
+                                                           int totalYears,
+                                                           MajorEvent event) {
+        if (event == null || event.getAmountPaise() <= 0 || retireDate == null || totalYears <= 0) return;
+
+        if (event.getType() == MajorEvent.EventType.ONE_TIME) {
+            LocalDate startDate = parseDate(event.getStartDate());
+            if (startDate != null && startDate.isAfter(retireDate)) {
+                addAmountToRetirementYear(annual, retireDate, totalYears, startDate, event.getAmountPaise());
+            }
+            return;
+        }
+
+        LocalDate projectionEnd = retireDate.plusYears(totalYears);
+        LocalDate endDate = parseDate(event.getEndDate());
+        if (endDate != null && !endDate.isAfter(retireDate)) return;
+        if (endDate != null && endDate.isBefore(projectionEnd)) {
+            projectionEnd = endDate;
+        }
+
+        for (int i = 0; i < totalYears; i++) {
+            LocalDate yearStart = retireDate.plusYears(i);
+            LocalDate yearEndExclusive = retireDate.plusYears(i + 1);
+            if (yearEndExclusive.isAfter(projectionEnd)) {
+                yearEndExclusive = projectionEnd;
+            }
+
+            long occurrences = countMajorEventOccurrences(event, yearStart, yearEndExclusive);
+            annual[i] += occurrences * event.getAmountPaise();
+        }
+    }
+
+    private long countMajorEventOccurrences(MajorEvent event,
+                                            LocalDate rangeStart,
+                                            LocalDate rangeEndExclusive) {
+        if (rangeStart == null || rangeEndExclusive == null || !rangeStart.isBefore(rangeEndExclusive)) {
+            return 0;
+        }
+
+        LocalDate from = rangeStart;
+        LocalDate startDate = parseDate(event.getStartDate());
+        if (startDate != null && startDate.isAfter(from)) {
+            from = startDate;
+        }
+        if (!from.isBefore(rangeEndExclusive)) return 0;
+
+        return Math.max(0, switch (event.getFrequency() != null
+                ? event.getFrequency() : MajorEvent.Frequency.MONTHLY) {
+            case MONTHLY -> ChronoUnit.MONTHS.between(from, rangeEndExclusive);
+            case QUARTERLY -> ChronoUnit.MONTHS.between(from, rangeEndExclusive) / 3;
+            case YEARLY -> ChronoUnit.YEARS.between(from, rangeEndExclusive);
+        });
     }
 
     private long[] computeAnnualPostRetirementLoanPayments(LocalDate retireDate, int totalYears) {
@@ -602,10 +674,10 @@ public class FinancialPlanningCalculator {
     }
 
     private void addAmountToRetirementYear(long[] annual,
-                                           LocalDate retireDate,
-                                           int totalYears,
-                                           LocalDate eventDate,
-                                           long amountPaise) {
+                                            LocalDate retireDate,
+                                            int totalYears,
+                                            LocalDate eventDate,
+                                            long amountPaise) {
         if (eventDate == null || amountPaise <= 0) return;
         if (!eventDate.isAfter(retireDate)) return;
 
@@ -613,6 +685,18 @@ public class FinancialPlanningCalculator {
         if (yearIndex < 0 || yearIndex >= totalYears) return;
 
         annual[yearIndex] += amountPaise;
+    }
+
+    private LocalDate parseDate(String date) {
+        if (date == null || date.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LocalDate.parse(date);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     public LocalDate getRetirementDate(PlanParameters params, LocalDate selfDob) {
@@ -640,17 +724,21 @@ public class FinancialPlanningCalculator {
         double yearsToRetire = ChronoUnit.DAYS.between(LocalDate.now(), retireDate) / 365.25;
         double colAtRetirement = params.costOfLivingPaise * Math.pow(1 + inflationRate, yearsToRetire);
         long[] annualLoanPayments = computeAnnualPostRetirementLoanPayments(retireDate, totalYears);
+        long[] annualScheduledInflows = computeAnnualPostRetirementInvestmentInflows(retireDate, totalYears, params);
+        long[] annualScheduledMajorEvents = computeAnnualPostRetirementMajorEvents(retireDate, totalYears, params);
 
         long balance = startingBalancePaise;
         for (int i = 0; i < totalYears; i++) {
             long withdrawal = roundUpTo10k(Math.round(colAtRetirement * colGrowthMultiplier(params, retirementAge, inflationRate, i)))
                     + roundUpTo10k(annualLoanPayments[i]);
-            if (balance < withdrawal) return false;
+            long scheduledMajorEvents = roundUpTo10k(annualScheduledMajorEvents[i]);
+            if (balance < withdrawal + scheduledMajorEvents) return false;
 
-            long postWithdrawalBalance = balance - withdrawal;
+            long scheduledInflows = roundDownTo10k(annualScheduledInflows[i]);
+            long postWithdrawalBalance = balance - withdrawal - scheduledMajorEvents;
             long roi = roundDownTo10k(Math.round(postWithdrawalBalance * ror));
             long tax = roundUpTo10k(Math.round(roi * taxRate));
-            balance = postWithdrawalBalance + roi - tax;
+            balance = postWithdrawalBalance + scheduledInflows + roi - tax;
         }
         return true;
     }

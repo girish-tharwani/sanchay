@@ -121,9 +121,8 @@ class PostRetirementProjectionPanel {
         long balance = projectionMode == ProjectionMode.ACTUAL
                 ? forecastedCorpusPaise
                 : planningCalculator.computeRequiredCorpusPaise(params, selfDob);
-        boolean includeScheduledInflows = projectionMode == ProjectionMode.ACTUAL;
         return new ArrayList<>(planningCalculator.computePostRetirementRows(
-                params, selfDob, balance, includeScheduledInflows));
+                params, selfDob, balance, true));
     }
 
     private VBox buildTableComments() {
@@ -165,7 +164,8 @@ class PostRetirementProjectionPanel {
         addTableCommentRow(comments, String.format(
                 "Phase 3  Healthcare retirement: inflation%s",
                 formatSignedPct(healthcareAdjustmentPct)));
-        addTableCommentRow(comments, "Actual corpus projection also includes scheduled post-retirement bond, FD, and RD yields.");
+        addTableCommentRow(comments,
+                "Projection rows include scheduled post-retirement major events, bond, FD, and RD yields.");
     }
 
     private void addTableCommentRow(VBox parent, String label) {
@@ -226,7 +226,7 @@ class PostRetirementProjectionPanel {
         });
         tv.getColumns().addAll(
                 yearCol(), ageCol(), balanceCol(), roiCol(), taxCol(), withdrawalCol(),
-                scheduledInflowsCol(), endingBalanceCol()
+                scheduledMajorEventsCol(), scheduledInflowsCol(), endingBalanceCol()
         );
         return tv;
     }
@@ -309,6 +309,16 @@ class PostRetirementProjectionPanel {
         col.setCellValueFactory(cd -> new SimpleStringProperty(
                 cd.getValue().scheduledInflowsPaise() <= 0 ? "-" : moneyFormatter.apply(cd.getValue().scheduledInflowsPaise())));
         col.setPrefWidth(150);
+        return col;
+    }
+
+    private TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> scheduledMajorEventsCol() {
+        TableColumn<FinancialPlanningCalculator.PostRetirementRow, String> col = new TableColumn<>("Scheduled Major Events");
+        col.setCellValueFactory(cd -> new SimpleStringProperty(
+                cd.getValue().scheduledMajorEventsPaise() <= 0
+                        ? "-"
+                        : moneyFormatter.apply(cd.getValue().scheduledMajorEventsPaise())));
+        col.setPrefWidth(170);
         return col;
     }
 
