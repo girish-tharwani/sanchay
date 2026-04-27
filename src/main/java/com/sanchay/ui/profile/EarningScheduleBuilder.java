@@ -45,8 +45,7 @@ class EarningScheduleBuilder {
             if (src.isEsppEnabled() && esppAcct != null) {
                 updateEsppSchedule(src, src.getEsppAmountPaise(), esppAcct.getId(), ds, memberName);
             } else if (!src.isEsppEnabled() && src.getEsppScheduleId() != null) {
-                ds.deleteRecurring(src.getEsppScheduleId());
-                src.setEsppScheduleId(null);
+                pauseEsppSchedule(src, ds);
             }
         }
     }
@@ -96,6 +95,16 @@ class EarningScheduleBuilder {
             rt.setAutoCreated(true);
             ds.addRecurring(rt);
             src.setEsppScheduleId(rt.getId());
+        }
+    }
+
+    private static void pauseEsppSchedule(EarningSource src, DataStore ds) {
+        RecurringTransaction existing = ds.findRecurringById(src.getEsppScheduleId());
+        if (existing != null) {
+            existing.setStatus(RecurringTransaction.Status.PAUSED);
+            ds.saveRecurringNow();
+        } else {
+            src.setEsppScheduleId(null);
         }
     }
 }

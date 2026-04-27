@@ -385,6 +385,7 @@ public class ProfileScreen {
         for (EarningSource src : m.getEarningSources()) {
             setScheduleStatus(ds, src.getRecurringScheduleId(), status);
             setScheduleStatus(ds, src.getPfScheduleId(), status);
+            setScheduleStatus(ds, src.getEsppScheduleId(), status);
         }
         ds.saveRecurringNow();
     }

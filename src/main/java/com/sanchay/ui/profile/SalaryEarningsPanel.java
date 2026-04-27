@@ -106,7 +106,7 @@ class SalaryEarningsPanel implements EarningFormPanel {
         esppChk = new CheckBox("Include in breakdown");
         esppChk.setSelected(src.isEsppEnabled());
 
-        esppAmtFld = tf(src.isEsppEnabled() && src.getEsppAmountPaise() > 0
+        esppAmtFld = tf(src.getEsppAmountPaise() > 0
                 ? fmtAmt(src.getEsppAmountPaise()) : "");
         esppAmtFld.setPromptText("monthly amount");
 
@@ -135,10 +135,19 @@ class SalaryEarningsPanel implements EarningFormPanel {
 
         Runnable toggleEspp = () -> {
             boolean on = esppChk.isSelected();
-            esppAmtLbl.setVisible(on);    esppAmtLbl.setManaged(on);
-            esppAmtFld.setVisible(on);    esppAmtFld.setManaged(on);
-            esppAcctLbl.setVisible(on);   esppAcctLbl.setManaged(on);
-            esppAcctCb.setVisible(on);    esppAcctCb.setManaged(on);
+            boolean hasEsppDetails = src.getEsppAmountPaise() > 0
+                    || src.getEsppScheduleId() != null
+                    || parseAmt(esppAmtFld.getText()) > 0
+                    || esppAcctCb.getValue() != null;
+            boolean showFields = on || hasEsppDetails;
+            esppAmtLbl.setVisible(showFields);    esppAmtLbl.setManaged(showFields);
+            esppAmtFld.setVisible(showFields);    esppAmtFld.setManaged(showFields);
+            esppAcctLbl.setVisible(showFields);   esppAcctLbl.setManaged(showFields);
+            esppAcctCb.setVisible(showFields);    esppAcctCb.setManaged(showFields);
+            esppAmtLbl.setDisable(!on);
+            esppAmtFld.setDisable(!on);
+            esppAcctLbl.setDisable(!on);
+            esppAcctCb.setDisable(!on);
         };
         toggleEspp.run();
         esppChk.selectedProperty().addListener((o, ov, nv) -> toggleEspp.run());
@@ -190,7 +199,7 @@ class SalaryEarningsPanel implements EarningFormPanel {
         if (src.isEsppEnabled()) {
             src.setEsppAmountPaise(parsePaise(esppAmtFld, "SPP Monthly Amount"));
         } else {
-            src.setEsppAmountPaise(0);
+            src.setEsppAmountPaise(parseOptionalPaise(esppAmtFld));
         }
         if (src.computeScheduleAmountPaise() <= 0)
             throw new IllegalArgumentException(
