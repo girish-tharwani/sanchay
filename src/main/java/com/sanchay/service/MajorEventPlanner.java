@@ -5,7 +5,6 @@ import com.sanchay.model.PlanParameters;
 import com.sanchay.model.Transaction;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 
 /**
  * Pure major-event forecasting and actual-spend aggregation for financial planning.
@@ -39,21 +38,10 @@ public class MajorEventPlanner {
             upperBound = endDate;
         }
 
-        LocalDate from = LocalDate.now();
         LocalDate startDate = parseDate(event.getStartDate());
-        if (startDate != null && startDate.isAfter(from)) {
-            from = startDate;
-        }
-
-        if (!from.isBefore(upperBound)) return 0;
-
-        long occurrences = switch (event.getFrequency() != null
-                ? event.getFrequency() : MajorEvent.Frequency.MONTHLY) {
-            case MONTHLY -> ChronoUnit.MONTHS.between(from, upperBound);
-            case QUARTERLY -> ChronoUnit.MONTHS.between(from, upperBound) / 3;
-            case YEARLY -> ChronoUnit.YEARS.between(from, upperBound);
-        };
-        return Math.max(0, occurrences) * event.getAmountPaise();
+        LocalDate from = startDate != null ? startDate : LocalDate.now();
+        long occurrences = countRecurringOccurrences(event, from, upperBound.plusDays(1));
+        return occurrences * event.getAmountPaise();
     }
 
     public long computeEventPostRetirementForecast(MajorEvent event,
@@ -73,28 +61,21 @@ public class MajorEventPlanner {
             return 0;
         }
 
-        LocalDate upperBound = projectionEndDate;
+        LocalDate upperBoundExclusive = projectionEndDate;
         LocalDate endDate = parseDate(event.getEndDate());
         if (endDate != null && !endDate.isAfter(retirementDate)) return 0;
-        if (endDate != null && endDate.isBefore(upperBound)) {
-            upperBound = endDate;
+        if (endDate != null && endDate.isBefore(upperBoundExclusive)) {
+            upperBoundExclusive = endDate.plusDays(1);
         }
 
-        LocalDate from = retirementDate;
         LocalDate startDate = parseDate(event.getStartDate());
+        LocalDate from = retirementDate.plusDays(1);
         if (startDate != null && startDate.isAfter(from)) {
             from = startDate;
         }
 
-        if (!from.isBefore(upperBound)) return 0;
-
-        long occurrences = switch (event.getFrequency() != null
-                ? event.getFrequency() : MajorEvent.Frequency.MONTHLY) {
-            case MONTHLY -> ChronoUnit.MONTHS.between(from, upperBound);
-            case QUARTERLY -> ChronoUnit.MONTHS.between(from, upperBound) / 3;
-            case YEARLY -> ChronoUnit.YEARS.between(from, upperBound);
-        };
-        return Math.max(0, occurrences) * event.getAmountPaise();
+        long occurrences = countRecurringOccurrences(event, from, upperBoundExclusive);
+        return occurrences * event.getAmountPaise();
     }
 
     public long computeEventActual(MajorEvent event) {
@@ -156,5 +137,36 @@ public class MajorEventPlanner {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private long countRecurringOccurrences(MajorEvent event,
+                                           LocalDate rangeStartInclusive,
+                                           LocalDate rangeEndExclusive) {
+        if (event == null || rangeStartInclusive == null || rangeEndExclusive == null
+                || !rangeStartInclusive.isBefore(rangeEndExclusive)) {
+            return 0;
+        }
+
+        LocalDate occurrence = parseDate(event.getStartDate());
+        if (occurrence == null) {
+            occurrence = rangeStartInclusive;
+        }
+
+        long count = 0;
+        while (occurrence.isBefore(rangeEndExclusive)) {
+            if (!occurrence.isBefore(rangeStartInclusive)) {
+                count++;
+            }
+            occurrence = advance(occurrence, event.getFrequency());
+        }
+        return count;
+    }
+
+    private LocalDate advance(LocalDate from, MajorEvent.Frequency frequency) {
+        return switch (frequency != null ? frequency : MajorEvent.Frequency.MONTHLY) {
+            case MONTHLY -> from.plusMonths(1);
+            case QUARTERLY -> from.plusMonths(3);
+            case YEARLY -> from.plusYears(1);
+        };
     }
 }

@@ -537,19 +537,27 @@ public class FinancialPlanningCalculator {
             return 0;
         }
 
-        LocalDate from = rangeStart;
-        LocalDate startDate = parseDate(event.getStartDate());
-        if (startDate != null && startDate.isAfter(from)) {
-            from = startDate;
+        LocalDate occurrence = parseDate(event.getStartDate());
+        if (occurrence == null) {
+            occurrence = rangeStart;
         }
-        if (!from.isBefore(rangeEndExclusive)) return 0;
 
-        return Math.max(0, switch (event.getFrequency() != null
-                ? event.getFrequency() : MajorEvent.Frequency.MONTHLY) {
-            case MONTHLY -> ChronoUnit.MONTHS.between(from, rangeEndExclusive);
-            case QUARTERLY -> ChronoUnit.MONTHS.between(from, rangeEndExclusive) / 3;
-            case YEARLY -> ChronoUnit.YEARS.between(from, rangeEndExclusive);
-        });
+        long count = 0;
+        while (occurrence.isBefore(rangeEndExclusive)) {
+            if (!occurrence.isBefore(rangeStart)) {
+                count++;
+            }
+            occurrence = advance(occurrence, event.getFrequency());
+        }
+        return count;
+    }
+
+    private LocalDate advance(LocalDate from, MajorEvent.Frequency frequency) {
+        return switch (frequency != null ? frequency : MajorEvent.Frequency.MONTHLY) {
+            case MONTHLY -> from.plusMonths(1);
+            case QUARTERLY -> from.plusMonths(3);
+            case YEARLY -> from.plusYears(1);
+        };
     }
 
     private long[] computeAnnualPostRetirementLoanPayments(LocalDate retireDate, int totalYears) {
