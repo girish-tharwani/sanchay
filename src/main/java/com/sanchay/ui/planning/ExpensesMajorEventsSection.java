@@ -27,6 +27,7 @@ import java.util.function.LongFunction;
 final class ExpensesMajorEventsSection {
 
     private static final double EVENT_AMOUNT_COL_WIDTH = 130;
+    private static final double EVENT_AMOUNT_COL_WIDTH_SHORT = 80;
 
     private final FinancialPlanningCalculator planningCalculator;
     private final MajorEventPlanner majorEventPlanner;
@@ -126,9 +127,9 @@ final class ExpensesMajorEventsSection {
         nameHdr.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nameHdr, Priority.ALWAYS);
 
-        Label forecastUntilRetirementHdr = buildAmountHeader("Forecast until retirement");
-        Label forecastAfterRetirementHdr = buildAmountHeader("Forecast after retirement");
-        Label actualHdr = buildAmountHeader("Actual");
+        Label forecastUntilRetirementHdr = buildAmountHeader("Forecast pre-retire", EVENT_AMOUNT_COL_WIDTH);
+        Label forecastAfterRetirementHdr = buildAmountHeader("Forecast post-retire", EVENT_AMOUNT_COL_WIDTH);
+        Label actualHdr = buildAmountHeader("Actual", EVENT_AMOUNT_COL_WIDTH_SHORT);
         colHeader.getChildren().addAll(nameHdr, forecastUntilRetirementHdr, forecastAfterRetirementHdr, actualHdr);
         return colHeader;
     }
@@ -143,9 +144,9 @@ final class ExpensesMajorEventsSection {
         totalLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(totalLbl, Priority.ALWAYS);
 
-        majorEventsForecastUntilRetirementTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
-        majorEventsForecastAfterRetirementTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
-        majorEventsActualTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", true);
+        majorEventsForecastUntilRetirementTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", EVENT_AMOUNT_COL_WIDTH, true);
+        majorEventsForecastAfterRetirementTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", EVENT_AMOUNT_COL_WIDTH, true);
+        majorEventsActualTotalLbl = buildAmountValue(MoneyFormatter.symbol() + "0", EVENT_AMOUNT_COL_WIDTH_SHORT, true);
         totalRow.getChildren().addAll(totalLbl, majorEventsForecastUntilRetirementTotalLbl,
                 majorEventsForecastAfterRetirementTotalLbl, majorEventsActualTotalLbl);
         return totalRow;
@@ -246,9 +247,9 @@ final class ExpensesMajorEventsSection {
         nameLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nameLbl, Priority.ALWAYS);
 
-        Label forecastUntilRetirementLbl = buildAmountValue(moneyFormatter.apply(forecastUntilRetirement), false);
-        Label forecastAfterRetirementLbl = buildAmountValue(moneyFormatter.apply(forecastAfterRetirement), false);
-        Label actualLbl = buildAmountValue(moneyFormatter.apply(actual), false);
+        Label forecastUntilRetirementLbl = buildAmountValue(moneyFormatter.apply(forecastUntilRetirement),EVENT_AMOUNT_COL_WIDTH, false);
+        Label forecastAfterRetirementLbl = buildAmountValue(moneyFormatter.apply(forecastAfterRetirement),EVENT_AMOUNT_COL_WIDTH, false);
+        Label actualLbl = buildAmountValue(moneyFormatter.apply(actual),EVENT_AMOUNT_COL_WIDTH_SHORT, false);
         row.getChildren().addAll(nameLbl, forecastUntilRetirementLbl, forecastAfterRetirementLbl, actualLbl);
         return row;
     }
@@ -259,22 +260,22 @@ final class ExpensesMajorEventsSection {
         return retirementDate.plusYears(postRetirementYears);
     }
 
-    private Label buildAmountHeader(String text) {
+    private Label buildAmountHeader(String text, double width) {
         Label lbl = new Label(text);
         lbl.getStyleClass().add("fp-table-header-label");
-        lbl.setPrefWidth(EVENT_AMOUNT_COL_WIDTH);
+        lbl.setPrefWidth(width);
         lbl.setWrapText(true);
         lbl.setAlignment(Pos.CENTER_RIGHT);
         return lbl;
     }
 
-    private Label buildAmountValue(String text, boolean total) {
+    private Label buildAmountValue(String text, double width, boolean total) {
         Label lbl = new Label(text);
         lbl.getStyleClass().add("fp-table-value");
+        lbl.setPrefWidth(width);
         if (total) {
             lbl.getStyleClass().add("fp-table-value-total");
         }
-        lbl.setPrefWidth(EVENT_AMOUNT_COL_WIDTH);
         lbl.setAlignment(Pos.CENTER_RIGHT);
         return lbl;
     }
