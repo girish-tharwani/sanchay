@@ -1,5 +1,6 @@
 package com.sanchay.model;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -18,6 +19,7 @@ public class EarningSource {
     private String sourceName;
     private FamilyMember.EarningType type;
     private String scheduleDescription;
+    private LocalDate startDate;         // when this earning source starts
     private String depositAccountId;
     private int    depositDay;            // 1–28
     private String recurringScheduleId;
@@ -104,6 +106,7 @@ public class EarningSource {
     public String getSourceName()           { return sourceName; }
     public FamilyMember.EarningType getType() { return type; }
     public String getScheduleDescription()  { return scheduleDescription; }
+    public LocalDate getStartDate()         { return startDate; }
     public String getDepositAccountId()     { return depositAccountId; }
     public int    getDepositDay()           { return depositDay; }
     public String getRecurringScheduleId()  { return recurringScheduleId; }
@@ -127,6 +130,7 @@ public class EarningSource {
     public void setSourceName(String sourceName)                  { this.sourceName = sourceName; }
     public void setType(FamilyMember.EarningType type)            { this.type = type; }
     public void setScheduleDescription(String scheduleDescription){ this.scheduleDescription = scheduleDescription; }
+    public void setStartDate(LocalDate startDate)                 { this.startDate = startDate; }
     public void setDepositAccountId(String depositAccountId)      { this.depositAccountId = depositAccountId; }
     public void setDepositDay(int depositDay)                     { this.depositDay = depositDay; }
     public void setRecurringScheduleId(String recurringScheduleId){ this.recurringScheduleId = recurringScheduleId; }

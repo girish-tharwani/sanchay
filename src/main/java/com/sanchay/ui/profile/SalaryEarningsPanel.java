@@ -10,6 +10,8 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
+import java.time.LocalDate;
+
 class SalaryEarningsPanel implements EarningFormPanel {
 
     private final EarningSource src;
@@ -22,6 +24,8 @@ class SalaryEarningsPanel implements EarningFormPanel {
     private ComboBox<Category>      catCb;
     private ComboBox<InvestmentAccount> pfAcctCb, esppAcctCb;
     private CheckBox                gratuityChk, esppChk;
+    private DatePicker              startDatePicker;
+    private Hyperlink               createPfLink;
 
     SalaryEarningsPanel(EarningSource src, FamilyMember member, DataStore ds) {
         this.src    = src;
@@ -90,15 +94,20 @@ class SalaryEarningsPanel implements EarningFormPanel {
             }
         }
 
-        Hyperlink createPfLink = new Hyperlink("+ Add PF Account");
+        createPfLink = new Hyperlink("+ Add PF Account");
         createPfLink.getStyleClass().add("link-teal");
         createPfLink.setOnAction(e -> {
             InvestmentAccount created = showCreatePfDialog();
             if (created != null) {
                 pfAcctCb.getItems().add(created);
                 pfAcctCb.setValue(created);
+                updateCreatePfLinkVisibility();
             }
         });
+        
+        // Hide the link if a PF account is already selected
+        pfAcctCb.valueProperty().addListener((o, ov, nv) -> updateCreatePfLinkVisibility());
+        updateCreatePfLinkVisibility();
 
         gratuityChk = new CheckBox("Include in breakdown");
         gratuityChk.setSelected(src.isGratuityEnabled());
@@ -125,6 +134,9 @@ class SalaryEarningsPanel implements EarningFormPanel {
                         .findFirst().ifPresent(esppAcctCb::setValue);
             }
         }
+        
+        startDatePicker = UiUtils.createDatePicker(src.getStartDate() != null ? src.getStartDate() : LocalDate.now());
+        startDatePicker.setMaxWidth(Double.MAX_VALUE);
 
         Label esppAmtLbl  = new Label("SPP Amount (monthly, ₹)*");
         esppAmtLbl.getStyleClass().add("text-form-value");
@@ -154,6 +166,7 @@ class SalaryEarningsPanel implements EarningFormPanel {
 
         int r = 0;
         row(g, r++, "Description*",             descFld);
+        row(g, r++, "Start Date*",              startDatePicker);
         row(g, r++, "Basic + DA (annual)*",      basicFld);
         row(g, r++, "HRA (annual)",              hraFld);
         row(g, r++, "Other Allowances (annual)", otherFld);
@@ -184,6 +197,7 @@ class SalaryEarningsPanel implements EarningFormPanel {
     @Override
     public void collectValues(EarningSource src) {
         src.setScheduleDescription(req(descFld, "Description"));
+        src.setStartDate(startDatePicker.getValue());
         src.setBasicDaPaise(parsePaise(basicFld, "Basic + DA"));
         src.setHraPaise(parseOptionalPaise(hraFld));
         src.setOtherAllowancesPaise(parseOptionalPaise(otherFld));
@@ -204,6 +218,11 @@ class SalaryEarningsPanel implements EarningFormPanel {
         if (src.computeScheduleAmountPaise() <= 0)
             throw new IllegalArgumentException(
                     "Computed in-hand is zero or negative for \"" + src.getSourceName() + "\" — check inputs.");
+    }
+    
+    private void updateCreatePfLinkVisibility() {
+        createPfLink.setVisible(pfAcctCb.getValue() == null);
+        createPfLink.setManaged(pfAcctCb.getValue() == null);
     }
 
     // ── Salary breakdown panel ────────────────────────────────────────────────

@@ -10,6 +10,8 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
+import java.time.LocalDate;
+
 class SimpleEarningsPanel implements EarningFormPanel {
 
     private final EarningSource src;
@@ -21,6 +23,7 @@ class SimpleEarningsPanel implements EarningFormPanel {
     private ComboBox<Account>                        acctCb;
     private Spinner<Integer>                         daySp;
     private ComboBox<Category>                       catCb;
+    private DatePicker                               startDatePicker;
     private Label                                    netHint;
 
     SimpleEarningsPanel(EarningSource src, FamilyMember member, DataStore ds) {
@@ -81,6 +84,9 @@ class SimpleEarningsPanel implements EarningFormPanel {
                     .findFirst().ifPresent(catCb::setValue);
         }
 
+        startDatePicker = UiUtils.createDatePicker(src.getStartDate() != null ? src.getStartDate() : LocalDate.now());
+        startDatePicker.setMaxWidth(Double.MAX_VALUE);
+
         Runnable updateHint = this::updateNetHint;
         amtFld.textProperty().addListener((o, ov, nv) -> updateHint.run());
         taxFld.textProperty().addListener((o, ov, nv) -> updateHint.run());
@@ -90,6 +96,7 @@ class SimpleEarningsPanel implements EarningFormPanel {
         row(g, r++, "Description*",          descFld);
         row(g, r++, "Amount (₹, gross)*",     amtFld);
         g.add(netHint, 1, r++);
+        row(g, r++, "Start Date*",            startDatePicker);
         row(g, r++, "Frequency*",             freqCb);
         row(g, r++, "Estimated Tax Rate (%)", taxFld);
         row(g, r++, "Into Account*",          acctCb);
@@ -108,6 +115,7 @@ class SimpleEarningsPanel implements EarningFormPanel {
         src.setScheduleDescription(req(descFld, "Description"));
         src.setSimpleAmountPaise(parsePaise(amtFld, "Amount"));
         src.setEstimatedTaxRatePct(parseOptional(taxFld));
+        src.setStartDate(startDatePicker.getValue());
         if (freqCb.getValue() == null)
             throw new IllegalArgumentException("Select a frequency for \"" + src.getSourceName() + "\".");
         src.setSimpleFrequency(freqCb.getValue().name());
