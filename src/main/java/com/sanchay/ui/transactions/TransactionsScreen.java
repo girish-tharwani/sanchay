@@ -630,7 +630,7 @@ public class TransactionsScreen {
     public static Label typeBadge(Transaction.Type type) {
         Label lbl = new Label(UiUtils.badgeText(type));
         lbl.setId("txn-type-badge-" + type.name().toLowerCase(Locale.ENGLISH));
-        lbl.getStyleClass().addAll(UiUtils.badgeStyle(type), "badge-sm");
+        lbl.getStyleClass().addAll("badge", UiUtils.badgeStyle(type), "badge-sm");
         return lbl;
     }
 

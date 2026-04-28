@@ -660,8 +660,8 @@
     -fx-font-weight: bold;
 }
 
-.dialog-pane .label,
-.dialog-pane GridPane .label {
+.dialog-pane .label:not(.badge),
+.dialog-pane GridPane .label:not(.badge) {
     -fx-text-fill: -text-primary;
 }
 

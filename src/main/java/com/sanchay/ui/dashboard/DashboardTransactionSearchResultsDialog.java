@@ -2,6 +2,7 @@ package com.sanchay.ui.dashboard;
 
 import com.sanchay.model.Transaction;
 import com.sanchay.service.DataStore;
+import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -43,7 +44,7 @@ class DashboardTransactionSearchResultsDialog extends Dialog<Void> {
         this.typeFilter = typeFilter;
         this.query = query == null ? "" : query.strip();
 
-        UiUtils.initDialog(this, "Matching Transactions", "#", 940,
+        UiUtils.initDialog(this, "Matching Transactions", "#", 980,
                 results.size() + " result" + (results.size() == 1 ? "" : "s") + " across all accounts");
         buildDialog();
     }
@@ -93,8 +94,10 @@ class DashboardTransactionSearchResultsDialog extends Dialog<Void> {
                 t -> accountName(t.getFromAccountId()));
         TableColumn<Transaction, String> toAcctCol = col("To Account", 180,
                 t -> accountName(t.getToAccountId()));
+        TableColumn<Transaction, String> amtCol = col("Amount", 120,
+                t -> MoneyFormatter.format(t.getAmountPaise()), "cell-amt");
 
-        table.getColumns().addAll(dateCol, descCol, typeCol, fromAcctCol, toAcctCol);
+        table.getColumns().addAll(dateCol, descCol, typeCol, fromAcctCol, toAcctCol, amtCol);
         table.getItems().setAll(results);
         table.getSortOrder().add(dateCol);
 

@@ -231,7 +231,7 @@ public final class UiUtils {
     /** Builds a styled transaction type badge label (type colour class + badge-sm size). */
     public static Label typeBadge(Transaction.Type type) {
         Label lbl = new Label(badgeText(type));
-        lbl.getStyleClass().addAll(badgeStyle(type), "badge-sm");
+        lbl.getStyleClass().addAll("badge", badgeStyle(type), "badge-sm");
         return lbl;
     }
 
