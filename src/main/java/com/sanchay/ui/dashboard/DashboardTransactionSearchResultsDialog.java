@@ -134,9 +134,9 @@ class DashboardTransactionSearchResultsDialog extends Dialog<Void> {
     }
 
     private String buildCriteriaSummary() {
-        String fromText = fromDate == null ? "Any start" : "From " + fromDate.format(DataStore.getInstance().getDateFormatter());
-        String toText = toDate == null ? "Any end" : "To " + toDate.format(DataStore.getInstance().getDateFormatter());
-        String typeText = typeFilter == null ? "All Types" : UiUtils.badgeText(typeFilter);
+        String fromText = fromDate == null ? "From beginning" : "From " + fromDate.format(DataStore.getInstance().getDateFormatter());
+        String toText = toDate == null ? "To today" : "To " + toDate.format(DataStore.getInstance().getDateFormatter());
+        String typeText = typeFilter == null ? "All types" : UiUtils.badgeText(typeFilter);
         String text = query.isBlank() ? "Any text" : "\"" + query + "\"";
         return fromText + "  ·  " + toText + "  ·  " + typeText + "  ·  " + text;
     }

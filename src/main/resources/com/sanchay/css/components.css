@@ -240,6 +240,12 @@
     -fx-background-color: rgba(240,165,0,0.22);
 }
 
+.btn-secondary-compact {
+    -fx-padding: 5px 14px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
 /* ── 28×28 action buttons (Record / Skip in pending lists) ──────────────── */
 .btn-action-sm {
     -fx-background-color: -surface-field;

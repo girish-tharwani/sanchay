@@ -441,8 +441,11 @@ public class ImportService {
                     long tolerance = Math.max(1L, Math.round(imported.getAmountPaise() * 0.05));
                     return Math.abs(r.getAmountPaise() - imported.getAmountPaise()) <= tolerance;
                 })
-                .filter(r -> descriptionSimilarity(r.getDescription(),
-                                                   imported.getDescription()) >= 0.3)
+                //.filter(r -> descriptionSimilarity(r.getDescription(),
+                //                                   imported.getDescription()) >= 0.3)
+
+                .filter(r -> descriptionSimilarity(r.getDescription(), 
+                            DataStore.normalizeDesc(imported.getDescription())) >= 0.3)
                 .collect(Collectors.toList());
     }
 

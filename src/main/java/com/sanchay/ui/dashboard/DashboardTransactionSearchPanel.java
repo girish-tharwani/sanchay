@@ -93,13 +93,23 @@ class DashboardTransactionSearchPanel {
         Button searchBtn = new Button("Search");
         searchBtn.getStyleClass().add("btn-gold");
 
+        Button clearBtn = new Button("Clear");
+        clearBtn.getStyleClass().addAll("btn-secondary", "btn-secondary-compact");
+        clearBtn.setOnAction(e -> {
+            fromPicker.setValue(null);
+            toPicker.setValue(null);
+            typeFilter.setValue(null);
+            searchField.clear();
+        });
+
         HBox filterRow = new HBox(10,
                 fromLbl, fromPicker,
                 toLbl, toPicker,
                 filterSep,
                 typeFilter,
                 searchField,
-                searchBtn);
+                searchBtn,
+                clearBtn);
         filterRow.setAlignment(Pos.CENTER_LEFT);
         filterRow.setPadding(new Insets(12, 16, 14, 16));
 
