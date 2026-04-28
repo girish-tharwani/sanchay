@@ -497,6 +497,18 @@ public class ImportService {
             fd.setRef(rdRef.trim());
         }
 
+        // Append recurring schedule description to the transaction notes.
+        if (recurring.getDescription() != null && !recurring.getDescription().isBlank()) {
+            String recurringNote = "Schedule: " + recurring.getDescription();
+            String currentNotes = imported.getNotes();
+            if (currentNotes == null || currentNotes.isBlank()) {
+                imported.setNotes(recurringNote);
+            } else if (!currentNotes.contains(recurringNote)) {
+                // Only append if not already present (avoid duplication on re-reconciliation)
+                imported.setNotes(currentNotes + " | " + recurringNote);
+            }
+        }
+
         imported.setRecurring(new Transaction.Recurring(recurring.getId()));
         imported.setSourceIndicator(SourceIndicator.RECONCILED);
 
