@@ -299,10 +299,13 @@ public class FinancialPlanningCalculator {
             equityPv += value;
         }
         double equityRate = params.rorEquitiesPct / 100.0;
+        // SIP projections start from next month to avoid double-counting current month's partial investments
+        // which are already included in equityPv (current corpus)
+        long sipMonths = Math.max(0, totalMonths - 1);
         long equityApprec = Math.round(equityPv * Math.pow(1 + equityRate, yearsToRetire))
-                + computeSipFv(params.monthlySipEquityPaise, equityRate, totalMonths)
+                + computeSipFv(params.monthlySipEquityPaise, equityRate, sipMonths)
                 - equityPv
-                - params.monthlySipEquityPaise * totalMonths;
+                - params.monthlySipEquityPaise * sipMonths;
 
         long mfPv = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
@@ -315,9 +318,9 @@ public class FinancialPlanningCalculator {
         }
         double mfRate = params.rorMfPct / 100.0;
         long mfApprec = Math.round(mfPv * Math.pow(1 + mfRate, yearsToRetire))
-                + computeSipFv(params.monthlySipMfPaise, mfRate, totalMonths)
+                + computeSipFv(params.monthlySipMfPaise, mfRate, sipMonths)
                 - mfPv
-                - params.monthlySipMfPaise * totalMonths;
+                - params.monthlySipMfPaise * sipMonths;
 
         long rIncome = floorRound(postTaxIncome, ROUND_10K_PAISE);
         long rPfContrib = floorRound(pfContrib, ROUND_10K_PAISE);
@@ -377,6 +380,8 @@ public class FinancialPlanningCalculator {
         LocalDate retireDate = getRetirementDate(params, selfDob);
         LocalDate today = LocalDate.now();
         long totalMonths = ChronoUnit.MONTHS.between(today, retireDate);
+        // SIP projections start from next month to avoid double-counting current month's partial investments
+        long sipMonths = Math.max(0, totalMonths - 1);
         ExpenseSummary expenses = computeExpenseSummary(params, selfDob);
 
         long pfBalance = corpusBreakdown.pfPaise()
@@ -386,9 +391,9 @@ public class FinancialPlanningCalculator {
         long stocksMf = corpusBreakdown.equityPaise()
                 + corpusBreakdown.mfPaise()
                 + futureEarnings.equityApprecPaise()
-                + params.monthlySipEquityPaise * totalMonths
+                + params.monthlySipEquityPaise * sipMonths
                 + futureEarnings.mfApprecPaise()
-                + params.monthlySipMfPaise * totalMonths;
+                + params.monthlySipMfPaise * sipMonths;
 
         long cashBondsFds = corpusBreakdown.bankPaise()
                 + corpusBreakdown.bondsPaise()
@@ -400,8 +405,8 @@ public class FinancialPlanningCalculator {
                 + futureEarnings.postTaxIncomePaise()
                 + futureEarnings.gratuityPaise()
                 - expenses.totalPaise()
-                - (params.monthlySipEquityPaise * totalMonths)
-                - (params.monthlySipMfPaise * totalMonths);
+                - (params.monthlySipEquityPaise * sipMonths)
+                - (params.monthlySipMfPaise * sipMonths);
 
         return new ForecastedCorpusBreakdown(pfBalance, stocksMf, cashBondsFds,
                 pfBalance + stocksMf + cashBondsFds);
