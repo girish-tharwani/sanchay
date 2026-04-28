@@ -194,25 +194,22 @@ public class FinancialPlanningCalculator {
         }
 
         long gratuity = 0;
-        if (params.employmentStartDate != null) {
-            try {
-                LocalDate empStart = LocalDate.parse(params.employmentStartDate);
-                long serviceYears = ChronoUnit.YEARS.between(empStart, retireDate);
-                if (serviceYears > 0) {
-                    for (FamilyMember m : ds.getFamilyMembers()) {
-                        if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
-                        for (EarningSource es : m.getEarningSources()) {
-                            if (es.getType() != FamilyMember.EarningType.SALARY) continue;
-                            if (!es.isGratuityEnabled()) continue;
-                            long monthlyBasic = es.getBasicDaPaise() / 12;
-                            long g = Math.round(monthlyBasic * 15.0 * serviceYears / 26.0);
-                            gratuity += Math.min(g, 200_000_000L);
-                        }
-                    }
-                }
-            } catch (Exception ignored) {
+        for (FamilyMember m : ds.getFamilyMembers()) {
+            if (m.getRelationship() != FamilyMember.Relationship.SELF) continue;
+            if (!m.isEarning() || !m.hasEarningsConfigured()) continue;
+            for (EarningSource es : m.getEarningSources()) {
+                if (es.getType() != FamilyMember.EarningType.SALARY) continue;
+                if (!es.isGratuityEnabled()) continue;
+                LocalDate startDate = es.getStartDate();
+                if (startDate == null || !startDate.isBefore(retireDate)) continue;
+                long serviceYears = ChronoUnit.YEARS.between(startDate, retireDate);
+                if (serviceYears <= 0) continue;
+                long monthlyBasic = es.getBasicDaPaise() / 12;
+                long g = Math.round(monthlyBasic * 15.0 * serviceYears / 26.0);
+                gratuity += g;
             }
         }
+        gratuity = Math.min(gratuity, 200_000_000L);
 
         long pfBalance = 0;
         for (InvestmentAccount ia : ds.getInvestmentAccounts()) {
