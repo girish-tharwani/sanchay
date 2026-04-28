@@ -40,7 +40,6 @@ class PlanParametersPanel {
     private TextField  rorPostRetireFld;
     private TextField  inflationFld;
     private TextField  costOfLivingFld;
-    private DatePicker employmentStartPicker;
     private TextField  sipMfFld;
     private TextField  sipEquityFld;
 
@@ -157,15 +156,6 @@ class PlanParametersPanel {
         }
         retirementDatePicker.valueProperty().addListener((obs, o, n) -> { updateDerivedLabels(); collectAndSave(); });
 
-        employmentStartPicker = new DatePicker();
-        employmentStartPicker.setPrefWidth(130);
-        employmentStartPicker.setConverter(dateConverter);
-        if (params.employmentStartDate != null) {
-            try { employmentStartPicker.setValue(LocalDate.parse(params.employmentStartDate)); }
-            catch (Exception ignored) {}
-        }
-        employmentStartPicker.valueProperty().addListener((obs, o, n) -> collectAndSave());
-
         lifeExpectancyFld.textProperty().addListener((obs, o, n) -> updateDerivedLabels());
 
         for (TextField fld : new TextField[] {
@@ -218,9 +208,6 @@ class PlanParametersPanel {
             params.retirementAge  = (int) Math.round(
                     ChronoUnit.DAYS.between(selfDob, retirementDatePicker.getValue()) / 365.25);
         }
-        if (employmentStartPicker.getValue() != null) {
-            params.employmentStartDate = employmentStartPicker.getValue().toString();
-        }
 
         setIfDifferent(lifeExpectancyFld, String.valueOf(params.lifeExpectancy));
         setIfDifferent(preRetireTaxFld,   formatPct(params.preRetireTaxPct));
@@ -246,7 +233,7 @@ class PlanParametersPanel {
         grid.setVgap(0);
 
         ColumnConstraints labelCol = new ColumnConstraints();
-        labelCol.setPrefWidth(200);
+        labelCol.setPrefWidth(280);
         labelCol.setMinWidth(120);
 
         ColumnConstraints fieldCol = new ColumnConstraints();
@@ -262,22 +249,23 @@ class PlanParametersPanel {
         // ── Left column ───────────────────────────────────────────────────────
         addParamRow(grid, 0, "Current Age",            currentAgeLbl,         0);
         addParamRow(grid, 1, "Retirement Date",        retirementDatePicker,  0);
-        addParamRow(grid, 2, "Life Expectancy",        lifeExpectancyFld,     0);
+        addParamRow(grid, 2, "Retirement Age",         retirementAgeLbl,      0);
         addParamRow(grid, 3, "Years to Retirement",    yearsToRetireLbl,      0);
-        addParamRow(grid, 4, "Years in Retirement",    yearsInRetireLbl,      0);
-        addParamRow(grid, 5, "Pre-Retire Tax Rate",    preRetireTaxFld,       0);
-        addParamRow(grid, 6, "Post-Retire Tax Rate",   postRetireTaxFld,      0);
+        addParamRow(grid, 4, "Life Expectancy",        lifeExpectancyFld,     0);
+        addParamRow(grid, 5, "Years in Retirement",    yearsInRetireLbl,      0);
+        addParamRow(grid, 6, "Cost of Living / Year",   costOfLivingFld,       0);
         addParamRow(grid, 7, "Inflation Rate",         inflationFld,          0);
+        
 
         // ── Right column ──────────────────────────────────────────────────────
-        addParamRow(grid, 0, "RoR – Equities (Pre-retire)",   rorEquityFld,          3);
-        addParamRow(grid, 1, "RoR – MF (Pre-retire)",         rorMfFld,              3);
-        addParamRow(grid, 2, "RoR – PF (Pre-retire)",         rorPfFld,              3);
-        addParamRow(grid, 3, "RoR – Post-Retirement",         rorPostRetireFld,      3);
-        addParamRow(grid, 4, "Cost of Living / Year",         costOfLivingFld,       3);
-        addParamRow(grid, 5, "Current Employment Start Date", employmentStartPicker, 3);
-        addParamRow(grid, 6, "Monthly MF SIP",                sipMfFld,              3);
-        addParamRow(grid, 7, "Monthly Equity SIP",            sipEquityFld,          3);
+        addParamRow(grid, 0, "Tax Rate – Blended (Pre-retirement)",    preRetireTaxFld,       3);
+        addParamRow(grid, 1, "Tax Rate – Blended (Post-retirement)",   postRetireTaxFld,      3);
+        addParamRow(grid, 2, "RoR – Equities (Pre-retirement)",     rorEquityFld,          3);
+        addParamRow(grid, 3, "RoR – Mutual Funds (Pre-retirement)",           rorMfFld,              3);
+        addParamRow(grid, 4, "RoR – Provident Fund (Pre-retirement)",           rorPfFld,              3);
+        addParamRow(grid, 5, "RoR – Blended (Post-retirement)",     rorPostRetireFld,      3);
+        addParamRow(grid, 6, "Monthly Mutual Fund SIP",                      sipMfFld,              3);
+        addParamRow(grid, 7, "Monthly Equity SIP",                  sipEquityFld,          3);
 
         return grid;
     }
