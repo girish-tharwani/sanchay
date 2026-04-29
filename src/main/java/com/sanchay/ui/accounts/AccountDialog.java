@@ -367,7 +367,7 @@ public class AccountDialog {
         currencyFld.setEditable(false);
         currencyFld.setMaxWidth(Double.MAX_VALUE);
         ComboBox<String> statusCb = new ComboBox<>();
-        statusCb.getItems().addAll("Active", "Closed", "Redeemed");
+        statusCb.getItems().addAll("Active", "Redeemed");
         statusCb.setValue(isNew ? "Active" : formatInvestmentStatus(existing.getInvestmentStatus()));
         statusCb.setMaxWidth(Double.MAX_VALUE);
 
@@ -466,14 +466,12 @@ public class AccountDialog {
     private static String formatInvestmentStatus(InvestmentAccount.InvestmentStatus s) {
         return switch (s) {
             case ACTIVE   -> "Active";
-            case CLOSED   -> "Closed";
             case REDEEMED -> "Redeemed";
         };
     }
 
     private static InvestmentAccount.InvestmentStatus parseInvestmentStatus(String display) {
         return switch (display) {
-            case "Closed"   -> InvestmentAccount.InvestmentStatus.CLOSED;
             case "Redeemed" -> InvestmentAccount.InvestmentStatus.REDEEMED;
             default         -> InvestmentAccount.InvestmentStatus.ACTIVE;
         };

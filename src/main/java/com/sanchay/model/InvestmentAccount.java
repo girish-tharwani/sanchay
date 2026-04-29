@@ -7,7 +7,7 @@ public class InvestmentAccount extends Account {
         MUTUAL_FUNDS, EQUITY, DEBT_BONDS, FIXED_DEPOSIT, RECURRING_DEPOSIT, PROVIDENT_FUND
     }
 
-    public enum InvestmentStatus { ACTIVE, CLOSED, REDEEMED }
+    public enum InvestmentStatus { ACTIVE, REDEEMED }
 
     private InvestmentType investmentType;
     private String folioAccountNumber;

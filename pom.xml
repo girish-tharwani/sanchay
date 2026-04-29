@@ -7,7 +7,7 @@
 
     <groupId>com.sanchay</groupId>
     <artifactId>sanchay</artifactId>
-    <version>v0.0.1-Opal</version>
+    <version>v0.0.2-Opal</version>
     <packaging>jar</packaging>
 
     <properties>

@@ -511,7 +511,6 @@ public class AccountsScreen {
     private String formatInvestmentStatus(InvestmentAccount.InvestmentStatus s) {
         return switch (s) {
             case ACTIVE   -> "Active";
-            case CLOSED   -> "Closed";
             case REDEEMED -> "Redeemed";
         };
     }
@@ -522,8 +521,12 @@ public class AccountsScreen {
             return formatCardStatus(cc.getCardStatus());
         if (acc instanceof LoanAccount la)
             return formatLoanStatus(la.getLoanStatus());
-        if (acc instanceof InvestmentAccount ia)
-            return formatInvestmentStatus(ia.getInvestmentStatus());
+        if (acc instanceof InvestmentAccount ia) {
+            if (ia.getInvestmentStatus() == InvestmentAccount.InvestmentStatus.REDEEMED) {
+                return "Redeemed";
+            }
+            return acc.isActive() ? "Active" : "Closed";
+        }
         return acc.isActive() ? "Active" : "Closed";
     }
 
