@@ -263,7 +263,9 @@ final class ExpensesMajorEventsSection {
     private Label buildAmountHeader(String text, double width) {
         Label lbl = new Label(text);
         lbl.getStyleClass().add("fp-table-header-label");
+        lbl.setMinWidth(width);
         lbl.setPrefWidth(width);
+        lbl.setMaxWidth(width);
         lbl.setWrapText(true);
         lbl.setAlignment(Pos.CENTER_RIGHT);
         return lbl;
@@ -272,7 +274,9 @@ final class ExpensesMajorEventsSection {
     private Label buildAmountValue(String text, double width, boolean total) {
         Label lbl = new Label(text);
         lbl.getStyleClass().add("fp-table-value");
+        lbl.setMinWidth(width);
         lbl.setPrefWidth(width);
+        lbl.setMaxWidth(width);
         if (total) {
             lbl.getStyleClass().add("fp-table-value-total");
         }
