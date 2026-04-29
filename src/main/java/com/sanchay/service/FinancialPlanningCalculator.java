@@ -757,14 +757,11 @@ public class FinancialPlanningCalculator {
      * Returns the cumulative cost-of-living multiplier for a given year into retirement,
      * applying the three-phase spending model rather than a flat inflation rate.
      *
+     * @param params              optional plan parameters for spending-age overrides
      * @param retirementAge       age at start of retirement
      * @param inflationRate       annual inflation (e.g. 0.06 for 6 %)
      * @param yearsIntoRetirement 0 = first year of retirement
      */
-    private double colGrowthMultiplier(int retirementAge, double inflationRate, int yearsIntoRetirement) {
-        return colGrowthMultiplier(null, retirementAge, inflationRate, yearsIntoRetirement);
-    }
-
     private double colGrowthMultiplier(PlanParameters params,
                                        int retirementAge,
                                        double inflationRate,

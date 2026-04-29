@@ -25,7 +25,6 @@ class RetirementSpendingAssumptionsDialog {
     private static final double FIELD_WIDTH = 70;
 
     private final PlanParameters params;
-    private final FinancialPlanningCalculator planningCalculator;
     private final Dialog<Boolean> dlg;
     private final TextField slowGoAgeFld;
     private final TextField slowGoAdjustmentFld;
@@ -35,7 +34,6 @@ class RetirementSpendingAssumptionsDialog {
     RetirementSpendingAssumptionsDialog(PlanParameters params,
                                         FinancialPlanningCalculator planningCalculator) {
         this.params = params;
-        this.planningCalculator = planningCalculator;
 
         dlg = new Dialog<>();
         UiUtils.initDialog(dlg, "Retirement Spending Assumptions", "✎", 560,

@@ -30,7 +30,6 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
             "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "yyyy-MM-dd",
             "dd/MM/yy", "dd-MMM-yyyy", "dd-MMM-yy", "MM/dd/yyyy");
 
-    private final Account       account;
     private final String[]      headers;
     private final ImportMapping prefilled;  // may be null
     private final String[]      sampleRow;  // first data row, used for date-format auto-detection; may be null
@@ -53,7 +52,6 @@ public class ImportMappingDialog extends Dialog<ImportMapping> {
      * @param sampleRow the first data row (row index 1), used for date-format auto-detection; may be null
      */
     public ImportMappingDialog(Account account, String[] headers, ImportMapping prefilled, String[] sampleRow) {
-        this.account   = account;
         this.headers   = headers;
         this.prefilled = prefilled;
         this.sampleRow = sampleRow;

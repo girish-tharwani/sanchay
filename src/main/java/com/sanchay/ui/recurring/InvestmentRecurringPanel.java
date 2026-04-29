@@ -8,8 +8,6 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import java.time.LocalDate;
-
 /**
  * Owns the investment-destination combo, type-hint label, and all type-specific
  * sub-fields (scheme/NAV, FD/Bond details, RD details). Wires the dest-combo

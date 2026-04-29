@@ -508,13 +508,6 @@ public class AccountsScreen {
         };
     }
 
-    private String formatInvestmentStatus(InvestmentAccount.InvestmentStatus s) {
-        return switch (s) {
-            case ACTIVE   -> "Active";
-            case REDEEMED -> "Redeemed";
-        };
-    }
-
     /** Returns the richest available status string for an account, in title case. */
     private String formatAccountStatus(Account acc) {
         if (acc instanceof CreditCardAccount cc)
