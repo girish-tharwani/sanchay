@@ -572,15 +572,22 @@ public class ImportService {
             fd.setRef(rdRef.trim());
         }
 
-        // Append recurring schedule description to the transaction notes.
+        // Keep the user-friendly schedule description as the transaction description
+        // and preserve the bank/import description in notes, matching manual reconcile.
+        String importedDescription = imported.getDescription();
         if (recurring.getDescription() != null && !recurring.getDescription().isBlank()) {
-            String recurringNote = "Schedule: " + recurring.getDescription();
+            imported.setDescription(recurring.getDescription());
+        }
+        if (importedDescription != null
+                && !importedDescription.isBlank()
+                && !importedDescription.equalsIgnoreCase(imported.getDescription())) {
+            String bankNote = "Bank: " + importedDescription;
             String currentNotes = imported.getNotes();
             if (currentNotes == null || currentNotes.isBlank()) {
-                imported.setNotes(recurringNote);
-            } else if (!currentNotes.contains(recurringNote)) {
+                imported.setNotes(bankNote);
+            } else if (!currentNotes.contains(bankNote)) {
                 // Only append if not already present (avoid duplication on re-reconciliation)
-                imported.setNotes(currentNotes + " | " + recurringNote);
+                imported.setNotes(currentNotes + " | " + bankNote);
             }
         }
 
