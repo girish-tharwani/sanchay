@@ -33,7 +33,7 @@ tools/
 testing/
 
 
-# IntelliJ IDEA
+# IntelliJ IDEA and Visual Studio Code project files
 .idea/
 *.iml
 *.iws

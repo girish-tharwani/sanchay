@@ -5,7 +5,7 @@
 - **Platform:** Windows 11+
 - **Language:** Java 17
 - **GUI Framework:** JavaFX 21.0.10
-- **Version:** v0.0.2-Opal
+- **Version:** v0.0.3-Opal
 
 ---
 

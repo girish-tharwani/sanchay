@@ -370,6 +370,7 @@ public final class UiUtils {
      * The field text is never modified while the user is typing.
      */
     public static void wireDescriptionAutocomplete(TextField field, List<String> suggestions) {
+        final int maxVisibleSuggestions = 8;
         ContextMenu popup = new ContextMenu();
         popup.setAutoHide(true);
         boolean[] suppress = {false};
@@ -380,6 +381,7 @@ public final class UiUtils {
             String lower = text.toLowerCase();
             List<String> matches = suggestions.stream()
                     .filter(s -> s.toLowerCase().startsWith(lower))
+                    .limit(maxVisibleSuggestions)
                     .collect(Collectors.toList());
             if (matches.isEmpty()) { popup.hide(); return; }
             popup.getItems().clear();
@@ -394,7 +396,15 @@ public final class UiUtils {
                 });
                 popup.getItems().add(item);
             }
-            if (!popup.isShowing() && field.getScene() != null) popup.show(field, Side.BOTTOM, 0, 0);
+            if (field.getScene() != null) {
+                popup.hide();
+                Platform.runLater(() -> {
+                    if (field.getScene() != null && field.isFocused()
+                            && !field.getText().isBlank() && !popup.getItems().isEmpty()) {
+                        popup.show(field, Side.BOTTOM, 0, 0);
+                    }
+                });
+            }
         });
 
         // Tab accepts the top match without moving focus

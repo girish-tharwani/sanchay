@@ -319,22 +319,30 @@ public class ImportService {
                             .map(g -> g.get(0)).collect(Collectors.toList());
                     result.ambiguous.add(new AmbiguousMatch(imported, reps));
                 } else {
-                    // For bank accounts: try type rule first, then category rule.
+                    // For bank accounts: try explicit CC bill-pay suffix first, then type rule.
                     boolean typeSuggested = false;
                     if (account instanceof BankAccount) {
-                        typeSuggested = store.suggestTypeForDescription(
-                                imported.getDescription(), imported.getType())
-                                .map(rule -> {
-                                    Transaction.Type target =
-                                            Transaction.Type.valueOf(rule.getTargetType());
-                                    imported.setType(target);
-                                    String secondId = rule.getSecondAccountId();
-                                    if (secondId != null && accountExists(secondId, store)) {
-                                        DataStore.applySecondAccount(imported, rule.getSourceType(),
-                                                target, secondId);
-                                    }
-                                    return true;
-                                }).orElse(false);
+                        Optional<String> ccBillPayAccountId = resolveCcBillPayAccountId(
+                                imported.getDescription(), store.getAccounts());
+                        if (ccBillPayAccountId.isPresent()) {
+                            imported.setType(Transaction.Type.CC_PAYMENT);
+                            imported.setToAccountId(ccBillPayAccountId.get());
+                            typeSuggested = true;
+                        } else {
+                            typeSuggested = store.suggestTypeForDescription(
+                                    imported.getDescription(), imported.getType())
+                                    .map(rule -> {
+                                        Transaction.Type target =
+                                                Transaction.Type.valueOf(rule.getTargetType());
+                                        imported.setType(target);
+                                        String secondId = rule.getSecondAccountId();
+                                        if (secondId != null && accountExists(secondId, store)) {
+                                            DataStore.applySecondAccount(imported, rule.getSourceType(),
+                                                    target, secondId);
+                                        }
+                                        return true;
+                                    }).orElse(false);
+                        }
                     }
 
                     boolean categorized = false;
@@ -352,15 +360,21 @@ public class ImportService {
 
                     // Check if this matches a pending recurring occurrence before adding as new.
                     List<RecurringTransaction> recurringCandidates = findRecurringMatches(
-                            imported, store.getRecurring(), account.getId());
+                            imported, store.getRecurring(), store.getAccounts(), account.getId());
                     if (!recurringCandidates.isEmpty()) {
                         result.recurringMatches.add(new RecurringMatch(imported, recurringCandidates));
                     } else {
-                        imported.setSourceIndicator(typeSuggested || categorized
-                                ? SourceIndicator.AUTO_CATEGORIZED
-                                : SourceIndicator.IMPORTED);
-                        toAdd.add(imported);
-                        result.newCount++;
+                        List<Transaction> ccBillPayManualCandidates = findCcBillPayManualCandidates(
+                                imported, store.getTransactions(), store.getAccounts(), account.getId());
+                        if (!ccBillPayManualCandidates.isEmpty()) {
+                            result.ambiguous.add(new AmbiguousMatch(imported, ccBillPayManualCandidates));
+                        } else {
+                            imported.setSourceIndicator(typeSuggested || categorized
+                                    ? SourceIndicator.AUTO_CATEGORIZED
+                                    : SourceIndicator.IMPORTED);
+                            toAdd.add(imported);
+                            result.newCount++;
+                        }
                     }
                 }
             } else if (matches.size() == 1
@@ -417,11 +431,20 @@ public class ImportService {
      *
      * Amount check: if the recurring amount is non-zero, it must be within ±5% of
      * the imported amount. Zero-amount recurrings (e.g. CC payment reminders) skip
-     * the amount check.
+     * the amount check. Bank-side CC bill-pay rows can also match by card suffix,
+     * because the final statement amount may differ from the reminder amount.
      */
     public static List<RecurringTransaction> findRecurringMatches(
             Transaction imported,
             List<RecurringTransaction> recurring,
+            String accountId) {
+        return findRecurringMatches(imported, recurring, Collections.emptyList(), accountId);
+    }
+
+    public static List<RecurringTransaction> findRecurringMatches(
+            Transaction imported,
+            List<RecurringTransaction> recurring,
+            List<Account> accounts,
             String accountId) {
 
         boolean importedIsDebit = accountId.equals(imported.getFromAccountId());
@@ -436,17 +459,69 @@ public class ImportService {
                     return nextDue != null
                             && Math.abs(ChronoUnit.DAYS.between(nextDue, imported.getDate())) <= 2;
                 })
-                .filter(r -> {
-                    if (r.getAmountPaise() == 0) return true;  // variable amount — skip check
-                    long tolerance = Math.max(1L, Math.round(imported.getAmountPaise() * 0.05));
-                    return Math.abs(r.getAmountPaise() - imported.getAmountPaise()) <= tolerance;
-                })
-                //.filter(r -> descriptionSimilarity(r.getDescription(),
-                //                                   imported.getDescription()) >= 0.3)
-
-                .filter(r -> descriptionSimilarity(r.getDescription(), 
-                            DataStore.normalizeDesc(imported.getDescription())) >= 0.3)
+                .filter(r -> recurringAmountMatches(imported, r, accounts))
+                .filter(r -> recurringDescriptionMatches(imported, r, accounts))
                 .collect(Collectors.toList());
+    }
+
+    private static boolean recurringAmountMatches(Transaction imported,
+                                                  RecurringTransaction recurring,
+                                                  List<Account> accounts) {
+        if (recurring.getAmountPaise() == 0) return true;
+        if (isCcBillPayForCard(imported.getDescription(), recurring, accounts)) return true;
+        long tolerance = Math.max(1L, Math.round(imported.getAmountPaise() * 0.05));
+        return Math.abs(recurring.getAmountPaise() - imported.getAmountPaise()) <= tolerance;
+    }
+
+    private static boolean recurringDescriptionMatches(Transaction imported,
+                                                       RecurringTransaction recurring,
+                                                       List<Account> accounts) {
+        if (isCcBillPayForCard(imported.getDescription(), recurring, accounts)) return true;
+        return descriptionSimilarity(recurring.getDescription(),
+                DataStore.normalizeDesc(imported.getDescription())) >= 0.3;
+    }
+
+    private static boolean isCcBillPayForCard(String description,
+                                              RecurringTransaction recurring,
+                                              List<Account> accounts) {
+        if (recurring.getTransactionType() != Transaction.Type.CC_PAYMENT) return false;
+        Optional<String> billPaySuffix = extractCcBillPaySuffix(description);
+        if (billPaySuffix.isEmpty()) return false;
+
+        String toAccountId = recurring.getToAccountId();
+        if (toAccountId == null || accounts == null) return false;
+        return accounts.stream()
+                .filter(a -> toAccountId.equals(a.getId()))
+                .filter(a -> a instanceof CreditCardAccount)
+                .map(a -> ((CreditCardAccount) a).getCardNumber())
+                .filter(Objects::nonNull)
+                .map(n -> n.replaceAll("\\D", ""))
+                .anyMatch(n -> n.endsWith(billPaySuffix.get()));
+    }
+
+    private static Optional<String> resolveCcBillPayAccountId(String description,
+                                                              List<Account> accounts) {
+        Optional<String> billPaySuffix = extractCcBillPaySuffix(description);
+        if (billPaySuffix.isEmpty() || accounts == null) return Optional.empty();
+
+        return accounts.stream()
+                .filter(a -> a instanceof CreditCardAccount)
+                .filter(a -> {
+                    String cardNumber = ((CreditCardAccount) a).getCardNumber();
+                    return cardNumber != null
+                            && cardNumber.replaceAll("\\D", "").endsWith(billPaySuffix.get());
+                })
+                .map(Account::getId)
+                .findFirst();
+    }
+
+    private static Optional<String> extractCcBillPaySuffix(String description) {
+        if (description == null) return Optional.empty();
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("(?i)\\bcc\\s*bill\\s*pay[-/\\s]*(\\d{3,4})")
+                .matcher(description);
+        if (!m.find()) return Optional.empty();
+        return Optional.of(m.group(1));
     }
 
     /**
@@ -605,6 +680,42 @@ public class ImportService {
                 .filter(t -> Math.abs(ChronoUnit.DAYS.between(
                                     t.getDate(), imported.getDate())) <= 1)
                 .collect(Collectors.toList());
+    }
+
+    private static List<Transaction> findCcBillPayManualCandidates(Transaction imported,
+                                                                   List<Transaction> existing,
+                                                                   List<Account> accounts,
+                                                                   String accountId) {
+        Optional<String> billPaySuffix = extractCcBillPaySuffix(imported.getDescription());
+        if (billPaySuffix.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return existing.stream()
+                .filter(t -> t.getSourceIndicator() == SourceIndicator.MANUAL
+                          || t.getSourceIndicator() == SourceIndicator.IMPORTED
+                          || t.getSourceIndicator() == SourceIndicator.AUTO_CATEGORIZED)
+                .filter(t -> t.getType() == Transaction.Type.CC_PAYMENT)
+                .filter(t -> accountId.equals(t.getFromAccountId()))
+                .filter(t -> ccPaymentTargetsCardSuffix(t, billPaySuffix.get(), accounts)
+                          || Objects.equals(t.getToAccountId(), imported.getToAccountId()))
+                .filter(t -> Math.abs(ChronoUnit.DAYS.between(
+                                    t.getDate(), imported.getDate())) <= 1)
+                .collect(Collectors.toList());
+    }
+
+    private static boolean ccPaymentTargetsCardSuffix(Transaction transaction,
+                                                      String billPaySuffix,
+                                                      List<Account> accounts) {
+        String toAccountId = transaction.getToAccountId();
+        if (toAccountId == null || accounts == null) return false;
+        return accounts.stream()
+                .filter(a -> toAccountId.equals(a.getId()))
+                .filter(a -> a instanceof CreditCardAccount)
+                .map(a -> ((CreditCardAccount) a).getCardNumber())
+                .filter(Objects::nonNull)
+                .map(n -> n.replaceAll("\\D", ""))
+                .anyMatch(n -> n.endsWith(billPaySuffix));
     }
 
     /**

@@ -5,3 +5,7 @@
 ## v0.0.2-Opal — 2026-04-29
 
 - Fix regarding investment account status
+
+## v0.0.3-Opal — 2026-04-29
+
+- Fix for CC card import matching
