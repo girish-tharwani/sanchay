@@ -9,3 +9,7 @@
 ## v0.0.3-Opal — 2026-04-29
 
 - Fix for CC card import matching
+
+## v0.0.4-Opal — 2026-05-01
+
+- Fix tight and loose matching of imported transactions

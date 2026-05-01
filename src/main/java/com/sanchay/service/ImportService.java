@@ -188,13 +188,16 @@ public class ImportService {
      * Processes all data rows (row 0 is the header, skipped automatically),
      * applies reconciliation rules and updates the DataStore.
      *
-     * Uses a two-pass approach to prevent silent incorrect reconciliation:
-     *   Pass 1 — parse every CSV row and compute manual matches without committing anything.
-     *   Pass 2 — detect "contested" manuals (matched by 2+ CSV rows), then:
-     *     - 0 matches              → add as new IMPORTED transaction
-     *     - 1 match, not contested → reconcile silently
-     *     - 1 match, contested     → add to ambiguous list (user must choose)
-     *     - 2+ matches             → add to ambiguous list
+     * Uses a multi-pass approach to prevent silent incorrect reconciliation:
+     *   Pass 1 — parse every CSV row and compute individual matches without committing anything.
+     *            Individual matching first looks for "tight" matches (same loose
+     *            criteria plus description similarity >= 0.3). If none exist, it
+     *            falls back to loose matches.
+     *   Pass 2 — detect "contested" matches (matched by 2+ CSV rows), then:
+     *     - 0 matches                         → add as new IMPORTED transaction
+     *     - 1 tight match, not contested      → reconcile silently
+     *     - loose match(es), contested match,
+     *       or 2+ tight matches               → add to ambiguous list
      *
      * Merge strategy when an imported row matches exactly one manual entry:
      *   - Imported wins : date, amount, importHash
@@ -230,6 +233,7 @@ public class ImportService {
         List<String>            candidateHashes   = new ArrayList<>();
         List<Transaction>       candidateImported = new ArrayList<>();
         List<List<Transaction>> candidateMatches  = new ArrayList<>();
+        List<Boolean>           candidateTight    = new ArrayList<>();
 
         for (int r = 1; r < rows.size(); r++) {
             String[] row = rows.get(r);
@@ -281,11 +285,17 @@ public class ImportService {
             imported.setImportHash(hash);
             imported.setSourceIndicator(SourceIndicator.IMPORTED);
 
-            List<Transaction> matches = findManualMatches(imported, store.getTransactions(), account.getId());
+            List<Transaction> tightMatches = findTightManualMatches(
+                    imported, store.getTransactions(), account.getId());
+            boolean hasTightMatches = !tightMatches.isEmpty();
+            List<Transaction> matches = tightMatches.isEmpty()
+                    ? findManualMatches(imported, store.getTransactions(), account.getId())
+                    : tightMatches;
 
             candidateHashes  .add(hash);
             candidateImported.add(imported);
             candidateMatches .add(matches);
+            candidateTight   .add(hasTightMatches);
         }
 
         // ── Pass 2: detect contested manuals (matched by 2+ CSV rows) ────────
@@ -305,6 +315,7 @@ public class ImportService {
         for (int i = 0; i < candidateImported.size(); i++) {
             Transaction       imported = candidateImported.get(i);
             List<Transaction> matches  = candidateMatches.get(i);
+            boolean           tight    = candidateTight.get(i);
 
             if (matches.isEmpty()) {
                 // No individual match — try group match (e.g. REDEEM group summing to CSV amount)
@@ -361,6 +372,10 @@ public class ImportService {
                     // Check if this matches a pending recurring occurrence before adding as new.
                     List<RecurringTransaction> recurringCandidates = findRecurringMatches(
                             imported, store.getRecurring(), store.getAccounts(), account.getId());
+                    if (recurringCandidates.isEmpty()) {
+                        recurringCandidates = findLooseRecurringMatches(
+                                imported, store.getRecurring(), account.getId());
+                    }
                     if (!recurringCandidates.isEmpty()) {
                         result.recurringMatches.add(new RecurringMatch(imported, recurringCandidates));
                     } else {
@@ -377,7 +392,8 @@ public class ImportService {
                         }
                     }
                 }
-            } else if (matches.size() == 1
+            } else if (tight
+                    && matches.size() == 1
                     && !contestedManualIds.contains(matches.get(0).getId())
                     && matches.get(0).getAmountPaise() == imported.getAmountPaise()) {
                 // Clean 1:1 match with exact amount — reconcile silently
@@ -425,7 +441,7 @@ public class ImportService {
     // ── Recurring-match finder ────────────────────────────────────────────────
 
     /**
-     * Finds ACTIVE recurring schedules for the same account and direction whose
+     * Finds tight ACTIVE recurring schedules for the same account and direction whose
      * next due date is within ±2 days of the imported date and whose description
      * has a token-overlap similarity ≥ 0.3 with the imported description.
      *
@@ -433,6 +449,11 @@ public class ImportService {
      * the imported amount. Zero-amount recurrings (e.g. CC payment reminders) skip
      * the amount check. Bank-side CC bill-pay rows can also match by card suffix,
      * because the final statement amount may differ from the reminder amount.
+     *
+     * If no tight recurring schedules match during import execution, a loose fallback
+     * can surface non-zero recurring schedules that match by account direction, due
+     * date and amount but not description. Recurring matches are always user-confirmed
+     * in the import UI.
      */
     public static List<RecurringTransaction> findRecurringMatches(
             Transaction imported,
@@ -461,6 +482,28 @@ public class ImportService {
                 })
                 .filter(r -> recurringAmountMatches(imported, r, accounts))
                 .filter(r -> recurringDescriptionMatches(imported, r, accounts))
+                .collect(Collectors.toList());
+    }
+
+    private static List<RecurringTransaction> findLooseRecurringMatches(
+            Transaction imported,
+            List<RecurringTransaction> recurring,
+            String accountId) {
+
+        boolean importedIsDebit = accountId.equals(imported.getFromAccountId());
+
+        return recurring.stream()
+                .filter(r -> r.getStatus() == RecurringTransaction.Status.ACTIVE)
+                .filter(r -> importedIsDebit
+                        ? accountId.equals(r.getFromAccountId())
+                        : accountId.equals(r.getToAccountId()))
+                .filter(r -> {
+                    LocalDate nextDue = r.getNextDueDate();
+                    return nextDue != null
+                            && Math.abs(ChronoUnit.DAYS.between(nextDue, imported.getDate())) <= 2;
+                })
+                .filter(r -> r.getAmountPaise() != 0)
+                .filter(r -> recurringAmountMatches(imported, r, Collections.emptyList()))
                 .collect(Collectors.toList());
     }
 
@@ -686,6 +729,15 @@ public class ImportService {
                 .filter(t -> Math.abs(t.getAmountPaise() - imported.getAmountPaise()) < 100)
                 .filter(t -> Math.abs(ChronoUnit.DAYS.between(
                                     t.getDate(), imported.getDate())) <= 1)
+                .collect(Collectors.toList());
+    }
+
+    private static List<Transaction> findTightManualMatches(Transaction imported,
+                                                            List<Transaction> existing,
+                                                            String accountId) {
+        return findManualMatches(imported, existing, accountId).stream()
+                .filter(t -> descriptionSimilarity(t.getDescription(),
+                        DataStore.normalizeDesc(imported.getDescription())) >= 0.3)
                 .collect(Collectors.toList());
     }
 
