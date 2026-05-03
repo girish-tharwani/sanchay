@@ -18,7 +18,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 import java.time.LocalDate;
-import java.time.Period;
+import java.time.temporal.ChronoUnit;
 
 public class FinancialPlanningScreen {
 
@@ -96,8 +96,7 @@ public class FinancialPlanningScreen {
         }
 
         selfDob = self.getDateOfBirth();
-        Period agePeriod  = Period.between(selfDob, LocalDate.now());
-        currentAgeDecimal = agePeriod.getYears() + agePeriod.getMonths() / 12.0;
+        currentAgeDecimal = ChronoUnit.DAYS.between(selfDob, LocalDate.now()) / 365.25;
 
         AppConfig.Config cfg = AppConfig.read();
         paramsService = new PlanParamsService(cfg.dataFolderPath);

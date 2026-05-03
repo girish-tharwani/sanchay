@@ -32,7 +32,7 @@ class PostRetirementProjectionPanel {
     private TableView<FinancialPlanningCalculator.PostRetirementRow> table;
     private Label minimumProjectionLbl;
     private Label actualProjectionLbl;
-    private ProjectionMode projectionMode = ProjectionMode.MINIMUM;
+    private ProjectionMode projectionMode = ProjectionMode.ACTUAL;
 
     private PlanParameters params;
     private LocalDate selfDob;
@@ -54,24 +54,24 @@ class PostRetirementProjectionPanel {
         minimumProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
         minimumProjectionLbl.setPrefWidth(210);
         minimumProjectionLbl.setMinWidth(210);
-        minimumProjectionLbl.setAlignment(Pos.CENTER_RIGHT);
+        minimumProjectionLbl.setAlignment(Pos.CENTER_LEFT);
 
         CheckBox projectionModeSwitch = new CheckBox();
         projectionModeSwitch.getStyleClass().add("fp-projection-switch");
         projectionModeSwitch.setSelected(false);
         projectionModeSwitch.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            projectionMode = isSelected ? ProjectionMode.ACTUAL : ProjectionMode.MINIMUM;
+            projectionMode = isSelected ? ProjectionMode.MINIMUM : ProjectionMode.ACTUAL;
             updateProjectionModeHeader();
             refresh();
         });
 
         actualProjectionLbl = new Label("Actual Corpus Projection");
         actualProjectionLbl.getStyleClass().addAll("text-section-title", "fp-projection-mode-label");
-        actualProjectionLbl.setPrefWidth(190);
-        actualProjectionLbl.setMinWidth(190);
-        actualProjectionLbl.setAlignment(Pos.CENTER_LEFT);
+        actualProjectionLbl.setPrefWidth(170);
+        actualProjectionLbl.setMinWidth(170);
+        actualProjectionLbl.setAlignment(Pos.CENTER_RIGHT);
 
-        HBox header = new HBox(10, chevron, minimumProjectionLbl, projectionModeSwitch, actualProjectionLbl);
+        HBox header = new HBox(10, chevron, actualProjectionLbl, projectionModeSwitch, minimumProjectionLbl);
         header.setAlignment(Pos.CENTER_LEFT);
         updateProjectionModeHeader();
 
