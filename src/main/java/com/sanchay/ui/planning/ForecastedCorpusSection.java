@@ -3,7 +3,6 @@ package com.sanchay.ui.planning;
 import com.sanchay.model.PlanParameters;
 import com.sanchay.service.FinancialPlanningCalculator;
 import com.sanchay.ui.UiUtils;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -61,31 +60,10 @@ final class ForecastedCorpusSection {
         }
         onTotalChanged.accept(totalForecasted);
 
-        addTableRow(body, "PF Balance", moneyFormatter.apply(forecastedCorpus.pfBalancePaise()), false, false);
-        addTableRow(body, "Stocks & MF", moneyFormatter.apply(forecastedCorpus.stocksMfPaise()), false, false);
         addTableRow(body, "Cash, Bonds, FDs etc.", moneyFormatter.apply(forecastedCorpus.cashBondsFdsPaise()), false, false);
+        addTableRow(body, "Stocks & MF", moneyFormatter.apply(forecastedCorpus.stocksMfPaise()), false, false);
+        addTableRow(body, "PF Balance", moneyFormatter.apply(forecastedCorpus.pfBalancePaise()), false, false);
         addTableRow(body, "Total Forecasted Corpus", moneyFormatter.apply(totalForecasted), true, totalForecasted < 0);
-
-        long requiredCorpus = planningCalculator.computeRequiredCorpusPaise(inputs.params(), inputs.selfDob());
-        long delta = totalForecasted - requiredCorpus;
-        boolean isShortfall = delta < 0;
-
-        Label kindLbl = new Label(isShortfall
-                ? "Projected Shortfall vs Required Corpus"
-                : "Projected Surplus vs Required Corpus");
-        kindLbl.getStyleClass().add("fp-corpus-pill-kind");
-
-        Label amountLbl = new Label(UiUtils.formatCorpusDisplay(Math.abs(delta)));
-        amountLbl.getStyleClass().add("fp-corpus-pill-amount");
-
-        VBox pillBox = new VBox(4, kindLbl, amountLbl);
-        pillBox.getStyleClass().addAll(
-                "fp-corpus-pill",
-                isShortfall ? "fp-corpus-pill-shortfall" : "fp-corpus-pill-excess");
-        pillBox.setAlignment(Pos.CENTER);
-        pillBox.setMaxWidth(Double.MAX_VALUE);
-        VBox.setMargin(pillBox, new Insets(16, 0, 4, 0));
-        body.getChildren().add(pillBox);
     }
 
     private void addTableRow(VBox parent, String label, String value, boolean total, boolean negative) {

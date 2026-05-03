@@ -40,6 +40,7 @@ public class FinancialPlanningScreen {
     private final ForecastedExpensesSection forecastedExpensesSection;
     private final MajorEventsSection majorEventsSection;
     private final ForecastedCorpusSection forecastedCorpusSection;
+    private final CorpusDeltaSection corpusDeltaSection;
     private long  forecastedCorpusPaise;
     private PostRetirementProjectionPanel postRetirementPanel;
 
@@ -69,6 +70,7 @@ public class FinancialPlanningScreen {
                 this::openEditDialog,
                 this::refreshForecastCard
         );
+        this.corpusDeltaSection = new CorpusDeltaSection(planningCalculator, this::formatRupees);
         this.futureEarningsSection = new FutureEarningsSection(this::formatRupees);
         this.forecastedCorpusSection = new ForecastedCorpusSection(
                 planningCalculator,
@@ -129,6 +131,7 @@ public class FinancialPlanningScreen {
                 buildTwoCol(buildCorpusCard(), buildEarningsCard()),
                 buildMajorEventsCard(),
                 buildTwoCol(buildExpensesCard(), buildForecastedCorpusCard()),
+                buildCorpusDeltaCard(),
                 buildPostRetirementCard()
         );
 
@@ -257,6 +260,12 @@ public class FinancialPlanningScreen {
         return card;
     }
 
+    private Region buildCorpusDeltaCard() {
+        Region card = corpusDeltaSection.build();
+        corpusDeltaSection.refresh(params, selfDob);
+        return card;
+    }
+
     private Node buildPostRetirementCard() {
         postRetirementPanel = new PostRetirementProjectionPanel(
                 planningCalculator,
@@ -295,6 +304,7 @@ public class FinancialPlanningScreen {
         );
         forecastedExpensesSection.refresh(params, selfDob);
         majorEventsSection.refresh(params, selfDob);
+        corpusDeltaSection.refresh(params, selfDob);
     }
 
     private void populateCorpusCard() {
@@ -309,6 +319,7 @@ public class FinancialPlanningScreen {
     private void refreshForecastCard() {
         forecastedExpensesSection.refresh(params, selfDob);
         majorEventsSection.refresh(params, selfDob);
+        corpusDeltaSection.refresh(params, selfDob);
         populateCorpusCard();
     }
 

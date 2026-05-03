@@ -2,8 +2,6 @@ package com.sanchay.ui.planning;
 
 import com.sanchay.model.PlanParameters;
 import com.sanchay.service.FinancialPlanningCalculator;
-import com.sanchay.service.MoneyFormatter;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -42,7 +40,7 @@ final class ForecastedExpensesSection {
         this.selfDob = selfDob;
         ensureMajorEvents();
 
-        PlanningSectionCard card = new PlanningSectionCard("Expenses Until Retirement", "#f87171");
+        PlanningSectionCard card = new PlanningSectionCard("Forecasted Expenses Until Retirement", "#f87171");
         root = card.getRoot();
         VBox body = card.getBody();
 
@@ -76,23 +74,10 @@ final class ForecastedExpensesSection {
         FinancialPlanningCalculator.ExpenseSummary expenseSummary =
                 planningCalculator.computeExpenseSummary(params, selfDob);
 
-        addTableRow(expenseRowsContainer, "Loan Payments", moneyFormatter.apply(expenseSummary.loanPaymentsPaise()), false, false);
         addTableRow(expenseRowsContainer, "Cost of Living", moneyFormatter.apply(expenseSummary.costOfLivingPaise()), false, false);
         addTableRow(expenseRowsContainer, "Major Events", moneyFormatter.apply(expenseSummary.majorEventsPaise()), false, false);
+        addTableRow(expenseRowsContainer, "Loan Payments", moneyFormatter.apply(expenseSummary.loanPaymentsPaise()), false, false);
         addTableRow(expenseRowsContainer, "Total Expenses", moneyFormatter.apply(expenseSummary.totalPaise()), true, true);
-    }
-
-    private Label buildAmountValue(String text, double width, boolean total) {
-        Label lbl = new Label(text);
-        lbl.getStyleClass().add("fp-table-value");
-        lbl.setMinWidth(width);
-        lbl.setPrefWidth(width);
-        lbl.setMaxWidth(width);
-        if (total) {
-            lbl.getStyleClass().add("fp-table-value-total");
-        }
-        lbl.setAlignment(Pos.CENTER_RIGHT);
-        return lbl;
     }
 
     private void addTableRow(VBox parent, String label, String value, boolean total, boolean negative) {
