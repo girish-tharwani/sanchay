@@ -259,13 +259,15 @@ public class CashFlowProjectionService {
                 // Collect non-EXPENSE rows for the "Recurring Cash Flows" UI table
                 if (type != Type.EXPENSE && type != Type.REDEEM
                         && type != Type.GAIN && type != Type.LOSE) {
-                    projectedCashFlows.add(new ProjectedCashFlowRow(
-                            ym,
-                            rt.getDescription() != null ? rt.getDescription() : "",
-                            fromId,
-                            toId,
-                            amt,
-                            type));
+                    if (!shouldExcludeProjectedCashFlowRow(fromId, toId)) {
+                        projectedCashFlows.add(new ProjectedCashFlowRow(
+                                ym,
+                                rt.getDescription() != null ? rt.getDescription() : "",
+                                fromId,
+                                toId,
+                                amt,
+                                type));
+                    }
                 }
             }
 
@@ -391,6 +393,17 @@ public class CashFlowProjectionService {
             }
         }
         return principalPaid;
+    }
+
+    private boolean shouldExcludeProjectedCashFlowRow(String fromAccountId, String toAccountId) {
+        if (fromAccountId != null && !fromAccountId.isBlank()) return false;
+        if (toAccountId == null || toAccountId.isBlank()) return false;
+        return ds.getInvestmentAccounts().stream()
+                .filter(a -> a.getId().equals(toAccountId))
+                .map(InvestmentAccount::getInvestmentType)
+                .anyMatch(t -> t == InvestmentAccount.InvestmentType.EQUITY
+                        || t == InvestmentAccount.InvestmentType.MUTUAL_FUNDS
+                        || t == InvestmentAccount.InvestmentType.PROVIDENT_FUND);
     }
 
     // ── Expense Forecasting ──────────────────────────────────────────────────
