@@ -51,8 +51,8 @@
    No outer border — uses card's own border.
    Rows separated by 1px teal bottom rule; total row has top rule too.   */
 .fp-table-header-label {
-    -fx-font-size: 10.5px;
-    -fx-font-weight: 700;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: 800;
     -fx-text-fill: -text-muted;
 }
 .fp-table-row {
@@ -72,9 +72,9 @@
     -fx-padding: 7 10 7 10;
 }
 .fp-table-label       { -fx-font-size: 12.5px; -fx-text-fill: -text-secondary; }
-.fp-table-label-total { -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: -text-primary; }
+.fp-table-label-total { -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: -brand-mid; }
 .fp-table-label-comment  { -fx-font-size: 12.5px; -fx-text-fill: -text-secondary; -fx-font-style: italic; }
-.fp-table-value       { -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: -text-primary; -fx-alignment: CENTER_RIGHT; }
+.fp-table-value       { -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: -text-secondary; -fx-alignment: CENTER_RIGHT; }
 .fp-table-value-total { -fx-text-fill: -brand-mid; -fx-font-weight: 700; }
 .fp-table-value-negative { -fx-text-fill: -color-error; }
 
@@ -171,7 +171,7 @@
 }
 
 .fp-projection-mode-label-active {
-    -fx-text-fill: -text-primary;
+    -fx-text-fill: -brand-dark;
     -fx-font-weight: 700;
 }
 

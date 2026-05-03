@@ -21,7 +21,7 @@ class CorpusSectionCard {
         addTableRow(card, "Fixed Deposits",     fmt(corpus.fdPaise()),     false, false);
         addTableRow(card, "Recurring Deposits", fmt(corpus.rdPaise()),     false, false);
         addTableRow(card, "Provident Fund",     fmt(corpus.pfPaise()),     false, false);
-        addTableRow(card, "Total Corpus",       fmt(corpus.totalPaise()),  true,  false);
+        addTableRow(card, "Total Current Corpus",       fmt(corpus.totalPaise()),  true,  false);
 
         addTableCommentRow(card, "* Bank accounts amount excluding credit card balances");
         addTableCommentRow(card, "* Equities and Mutual Funds valued at 90% of last recorded market value");

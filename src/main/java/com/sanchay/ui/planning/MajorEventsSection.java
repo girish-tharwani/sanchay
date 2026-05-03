@@ -71,7 +71,7 @@ final class MajorEventsSection {
         VBox body = card.getBody();
 
         Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions.");
-        hint.getStyleClass().add("text-hint");
+        hint.getStyleClass().add("fp-table-label-comment");
         hint.setWrapText(true);
         body.getChildren().add(hint);
 
@@ -123,7 +123,7 @@ final class MajorEventsSection {
         totalRow.getStyleClass().add("fp-events-total-row");
         VBox.setMargin(totalRow, new Insets(8, 0, 0, 0));
 
-        Label totalLbl = new Label("Total");
+        Label totalLbl = new Label("Total Major Events");
         totalLbl.getStyleClass().add("fp-table-label-total");
         totalLbl.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(totalLbl, Priority.ALWAYS);

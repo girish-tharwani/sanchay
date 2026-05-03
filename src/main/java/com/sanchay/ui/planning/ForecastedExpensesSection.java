@@ -77,7 +77,7 @@ final class ForecastedExpensesSection {
         addTableRow(expenseRowsContainer, "Cost of Living", moneyFormatter.apply(expenseSummary.costOfLivingPaise()), false, false);
         addTableRow(expenseRowsContainer, "Major Events", moneyFormatter.apply(expenseSummary.majorEventsPaise()), false, false);
         addTableRow(expenseRowsContainer, "Loan Payments", moneyFormatter.apply(expenseSummary.loanPaymentsPaise()), false, false);
-        addTableRow(expenseRowsContainer, "Total Expenses", moneyFormatter.apply(expenseSummary.totalPaise()), true, true);
+        addTableRow(expenseRowsContainer, "Total Forecasted Expenses", moneyFormatter.apply(expenseSummary.totalPaise()), true, true);
     }
 
     private void addTableRow(VBox parent, String label, String value, boolean total, boolean negative) {
