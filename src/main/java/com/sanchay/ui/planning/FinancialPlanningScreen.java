@@ -37,7 +37,8 @@ public class FinancialPlanningScreen {
     private Label futureEarningsKpiLbl;
     private Label forecastedCorpusKpiLbl;
 
-    private final ExpensesMajorEventsSection expensesMajorEventsSection;
+    private final ForecastedExpensesSection forecastedExpensesSection;
+    private final MajorEventsSection majorEventsSection;
     private final ForecastedCorpusSection forecastedCorpusSection;
     private long  forecastedCorpusPaise;
     private PostRetirementProjectionPanel postRetirementPanel;
@@ -56,7 +57,11 @@ public class FinancialPlanningScreen {
                     refreshComputedSections();
                 }
         );
-        this.expensesMajorEventsSection = new ExpensesMajorEventsSection(
+        this.forecastedExpensesSection = new ForecastedExpensesSection(
+                planningCalculator,
+                this::formatRupees
+        );
+        this.majorEventsSection = new MajorEventsSection(
                 planningCalculator,
                 majorEventPlanner,
                 this::formatRupees,
@@ -122,6 +127,7 @@ public class FinancialPlanningScreen {
                 buildKpiGrid(),
                 paramsCard,
                 buildTwoCol(buildCorpusCard(), buildEarningsCard()),
+                buildMajorEventsCard(),
                 buildTwoCol(buildExpensesCard(), buildForecastedCorpusCard()),
                 buildPostRetirementCard()
         );
@@ -238,7 +244,11 @@ public class FinancialPlanningScreen {
     }
 
     private Region buildExpensesCard() {
-        return expensesMajorEventsSection.build(params, selfDob);
+        return forecastedExpensesSection.build(params, selfDob);
+    }
+
+    private Region buildMajorEventsCard() {
+        return majorEventsSection.build(params, selfDob);
     }
 
     private Region buildForecastedCorpusCard() {
@@ -283,7 +293,8 @@ public class FinancialPlanningScreen {
                 new ForecastedCorpusSection.PlanInputs(params, selfDob),
                 forecastedCorpusKpiLbl
         );
-        expensesMajorEventsSection.refresh(params, selfDob);
+        forecastedExpensesSection.refresh(params, selfDob);
+        majorEventsSection.refresh(params, selfDob);
     }
 
     private void populateCorpusCard() {
@@ -296,7 +307,8 @@ public class FinancialPlanningScreen {
     }
 
     private void refreshForecastCard() {
-        expensesMajorEventsSection.refresh(params, selfDob);
+        forecastedExpensesSection.refresh(params, selfDob);
+        majorEventsSection.refresh(params, selfDob);
         populateCorpusCard();
     }
 

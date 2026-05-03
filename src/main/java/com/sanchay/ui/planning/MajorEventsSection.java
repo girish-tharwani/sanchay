@@ -22,9 +22,9 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
 /**
- * Owns the expenses-until-retirement card and its major-events interactions.
+ * Owns the separate major events card with its forecast/actual details.
  */
-final class ExpensesMajorEventsSection {
+final class MajorEventsSection {
 
     private static final double EVENT_AMOUNT_COL_WIDTH = 130;
     private static final double EVENT_AMOUNT_COL_WIDTH_SHORT = 80;
@@ -40,13 +40,12 @@ final class ExpensesMajorEventsSection {
     private LocalDate selfDob;
 
     private VBox root;
-    private VBox expenseRowsContainer;
     private VBox majorEventsListBox;
     private Label majorEventsForecastUntilRetirementTotalLbl;
     private Label majorEventsForecastAfterRetirementTotalLbl;
     private Label majorEventsActualTotalLbl;
 
-    ExpensesMajorEventsSection(
+    MajorEventsSection(
             FinancialPlanningCalculator planningCalculator,
             MajorEventPlanner majorEventPlanner,
             LongFunction<String> moneyFormatter,
@@ -67,23 +66,9 @@ final class ExpensesMajorEventsSection {
         this.selfDob = selfDob;
         ensureMajorEvents();
 
-        PlanningSectionCard card = new PlanningSectionCard("Expenses Until Retirement", "#f87171");
+        PlanningSectionCard card = new PlanningSectionCard("Major Events", "#801f67");
         root = card.getRoot();
         VBox body = card.getBody();
-
-        expenseRowsContainer = new VBox(0);
-        body.getChildren().add(expenseRowsContainer);
-        populateExpenseRows();
-
-        Region divider = new Region();
-        divider.getStyleClass().add("content-divider");
-        divider.setMaxWidth(Double.MAX_VALUE);
-        VBox.setMargin(divider, new Insets(12, 0, 10, 0));
-        body.getChildren().add(divider);
-
-        Label eventsTitle = new Label("MAJOR EVENTS");
-        eventsTitle.getStyleClass().add("section-group-label");
-        body.getChildren().add(eventsTitle);
 
         Label hint = new Label("Forecasted cost vs. actuals tracked from your transactions.");
         hint.getStyleClass().add("text-hint");
@@ -107,7 +92,6 @@ final class ExpensesMajorEventsSection {
         this.params = params;
         this.selfDob = selfDob;
         ensureMajorEvents();
-        populateExpenseRows();
         refreshMajorEventsList();
     }
 
@@ -168,22 +152,6 @@ final class ExpensesMajorEventsSection {
         btnRow.setAlignment(Pos.CENTER_RIGHT);
         btnRow.setPadding(new Insets(8, 0, 0, 0));
         return btnRow;
-    }
-
-    private void populateExpenseRows() {
-        if (expenseRowsContainer == null) {
-            return;
-        }
-
-        expenseRowsContainer.getChildren().clear();
-        FinancialPlanningCalculator.ExpenseSummary expenseSummary =
-                planningCalculator.computeExpenseSummary(params, selfDob);
-
-        addTableSubHeader(expenseRowsContainer, "EXPENSES");
-        addTableRow(expenseRowsContainer, "Loan Payments", moneyFormatter.apply(expenseSummary.loanPaymentsPaise()), false, false);
-        addTableRow(expenseRowsContainer, "Cost of Living", moneyFormatter.apply(expenseSummary.costOfLivingPaise()), false, false);
-        addTableRow(expenseRowsContainer, "Major Events", moneyFormatter.apply(expenseSummary.majorEventsPaise()), false, false);
-        addTableRow(expenseRowsContainer, "Total Expenses", moneyFormatter.apply(expenseSummary.totalPaise()), true, true);
     }
 
     private void refreshMajorEventsList() {
@@ -282,37 +250,5 @@ final class ExpensesMajorEventsSection {
         }
         lbl.setAlignment(Pos.CENTER_RIGHT);
         return lbl;
-    }
-
-    private void addTableSubHeader(VBox parent, String label) {
-        Label lbl = new Label(label.toUpperCase());
-        lbl.getStyleClass().add("section-group-label");
-        VBox.setMargin(lbl, new Insets(10, 0, 2, 0));
-        parent.getChildren().add(lbl);
-    }
-
-    private void addTableRow(VBox parent, String label, String value, boolean total, boolean negative) {
-        HBox row = new HBox();
-        row.getStyleClass().add(total ? "fp-table-row-total" : "fp-table-row");
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setMaxWidth(Double.MAX_VALUE);
-
-        Label lblNode = new Label(label);
-        lblNode.getStyleClass().add(total ? "fp-table-label-total" : "fp-table-label");
-        lblNode.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(lblNode, Priority.ALWAYS);
-
-        Label valNode = new Label(value);
-        valNode.getStyleClass().add("fp-table-value");
-        if (total) {
-            valNode.getStyleClass().add("fp-table-value-total");
-        }
-        if (negative) {
-            valNode.getStyleClass().add("fp-table-value-negative");
-        }
-        valNode.setMinWidth(Label.USE_PREF_SIZE);
-
-        row.getChildren().addAll(lblNode, valNode);
-        parent.getChildren().add(row);
     }
 }
