@@ -38,9 +38,9 @@ class TransferPanel implements TransactionPanel {
         UiUtils.wireAutoComplete(catCb,    catMaster);
         UiUtils.wireAutoComplete(subCatCb, subCatMaster);
 
-        fromCb = AccountCombos.bankCombo(parent.ds);
+        fromCb = AccountCombos.bankAndCcCombo(parent.ds);
         parent.setNodeId(fromCb, "txn-transfer-from-account-combo");
-        toCb   = AccountCombos.bankCombo(parent.ds);
+        toCb   = AccountCombos.bankAndCcCombo(parent.ds);
         parent.setNodeId(toCb, "txn-transfer-to-account-combo");
 
         node = buildNode();
@@ -92,7 +92,7 @@ class TransferPanel implements TransactionPanel {
     @Override public ComboBox<Category> getSubCatCombo() { return subCatCb; }
 
     @Override public void applyContextAccount(Account acc, boolean isSource) {
-        if (acc instanceof BankAccount) {
+        if (acc instanceof BankAccount || acc instanceof CreditCardAccount) {
             if (isSource) parent.setAccount(fromCb, acc.getId());
             else          parent.setAccount(toCb,   acc.getId());
         }

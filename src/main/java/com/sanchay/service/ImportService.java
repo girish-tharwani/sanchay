@@ -265,9 +265,9 @@ public class ImportService {
                     txType   = Transaction.Type.CC_PAYMENT;
                     txAmount = pr.amountPaise;
                 } else {
-                    // Cashback / refund / reversal — negative Expense offsets spending
-                    txType   = Transaction.Type.EXPENSE;
-                    txAmount = -pr.amountPaise;
+                    // Cashback / refund / reversal — offsets spending on the card.
+                    txType   = Transaction.Type.REFUND;
+                    txAmount = pr.amountPaise;
                 }
             } else {
                 txType   = pr.amountPaise < 0 ? Transaction.Type.EXPENSE : Transaction.Type.INCOME;
@@ -277,7 +277,7 @@ public class ImportService {
             Transaction imported = new Transaction(txType, pr.date, pr.description, txAmount);
             if (txType == Transaction.Type.CC_PAYMENT) {
                 imported.setToAccountId(account.getId());
-            } else if (txType == Transaction.Type.INCOME) {
+            } else if (txType == Transaction.Type.INCOME || txType == Transaction.Type.REFUND) {
                 imported.setToAccountId(account.getId());
             } else {
                 imported.setFromAccountId(account.getId());

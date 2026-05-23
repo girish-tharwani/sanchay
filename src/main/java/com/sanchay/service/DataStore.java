@@ -945,13 +945,19 @@ public class DataStore {
         long charged = transactions.stream()
                 .filter(t -> t.getType() == Type.EXPENSE && cardId.equals(t.getFromAccountId()))
                 .mapToLong(Transaction::getAmountPaise).sum();
+        long transferredOut = transactions.stream()
+                .filter(t -> t.getType() == Type.TRANSFER && cardId.equals(t.getFromAccountId()))
+                .mapToLong(Transaction::getAmountPaise).sum();
+        long transferredIn = transactions.stream()
+                .filter(t -> t.getType() == Type.TRANSFER && cardId.equals(t.getToAccountId()))
+                .mapToLong(Transaction::getAmountPaise).sum();
         long paid = transactions.stream()
                 .filter(t -> t.getType() == Type.CC_PAYMENT && cardId.equals(t.getToAccountId()))
                 .mapToLong(Transaction::getAmountPaise).sum();
         long refunded = transactions.stream()
                 .filter(t -> t.getType() == Type.REFUND && cardId.equals(t.getToAccountId()))
                 .mapToLong(Transaction::getAmountPaise).sum();
-        return charged - paid - refunded;
+        return charged + transferredOut - transferredIn - paid - refunded;
     }
 
     public long getTotalCreditCardOutstandingPaise() {

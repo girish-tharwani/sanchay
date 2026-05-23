@@ -360,7 +360,7 @@ public class TransactionDialog extends Dialog<Transaction> {
             typeCb.setValue(Type.INVESTMENT);
             // type-change listener fires → panelFor(INVESTMENT).applyContextAccount(acc, false)
         } else if (acc instanceof CreditCardAccount) {
-            typeCb.getItems().setAll(Type.EXPENSE, Type.REFUND, Type.CC_PAYMENT);
+            typeCb.getItems().setAll(Type.EXPENSE, Type.TRANSFER, Type.REFUND, Type.CC_PAYMENT);
             contextIsSource = false;
             typeCb.setValue(Type.EXPENSE);
             // type-change listener fires → panelFor(EXPENSE).applyContextAccount(acc, false)
