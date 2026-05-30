@@ -222,11 +222,11 @@ public class ImportService {
         // excluding them ensures a MANUAL entry can still be reconciled against
         // a CSV row whose hash matches the old hash on that manual transaction.
         Set<String> existingHashes = store.getTransactions().stream()
-                .filter(t -> t.getImportHash() != null)
                 .filter(t -> t.getSourceIndicator() == SourceIndicator.IMPORTED
                           || t.getSourceIndicator() == SourceIndicator.AUTO_CATEGORIZED
                           || t.getSourceIndicator() == SourceIndicator.RECONCILED)
-                .map(Transaction::getImportHash)
+                .flatMap(t -> Stream.of(t.getImportHash(), t.getAlternateImportHash()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
         // ── Pass 1: parse all rows and compute matches without committing ─────
@@ -318,6 +318,20 @@ public class ImportService {
             boolean           tight    = candidateTight.get(i);
 
             if (matches.isEmpty()) {
+                List<Transaction> reconciledMultiAccountMatches =
+                        findReconciledMultiAccountMatches(imported,
+                                store.getTransactions(), account.getId());
+                if (reconciledMultiAccountMatches.size() == 1) {
+                    reconcileSecondAccountImport(imported,
+                            reconciledMultiAccountMatches.get(0), store);
+                    result.reconciledCount++;
+                    continue;
+                } else if (reconciledMultiAccountMatches.size() > 1) {
+                    result.ambiguous.add(new AmbiguousMatch(imported,
+                            reconciledMultiAccountMatches));
+                    continue;
+                }
+
                 // No individual match — try group match (e.g. REDEEM group summing to CSV amount)
                 List<List<Transaction>> groupMatches = findGroupMatches(
                         imported, store.getTransactions(), account.getId());
@@ -425,17 +439,38 @@ public class ImportService {
         // Keep bank description as a note when different from the manual description.
         // Guard against double-appending if the same bank note is already present
         // (e.g. when re-reconciling a previously RECONCILED transaction).
-        if (!imported.getDescription().equalsIgnoreCase(manual.getDescription())) {
-            String bankNote = "Bank: " + imported.getDescription();
-            String existing = manual.getNotes();
-            boolean alreadyPresent = existing != null && existing.contains(bankNote);
-            if (!alreadyPresent) {
-                manual.setNotes(existing == null || existing.isBlank()
-                        ? bankNote : existing + " | " + bankNote);
-            }
-        }
+        appendImportedDescriptionNote(imported, manual);
         manual.setSourceIndicator(SourceIndicator.RECONCILED);
         store.saveTransactionsNow();
+    }
+
+    /**
+     * Records the second imported statement hash for an already-reconciled
+     * two-account transaction without replacing the first account's import hash.
+     */
+    public static void reconcileSecondAccountImport(Transaction imported,
+                                                    Transaction reconciled,
+                                                    DataStore store) {
+        if (reconciled.getAlternateImportHash() == null
+                || reconciled.getAlternateImportHash().isBlank()) {
+            reconciled.setAlternateImportHash(imported.getImportHash());
+        }
+        appendImportedDescriptionNote(imported, reconciled);
+        store.saveTransactionsNow();
+    }
+
+    private static void appendImportedDescriptionNote(Transaction imported,
+                                                      Transaction target) {
+        if (imported.getDescription().equalsIgnoreCase(target.getDescription())) {
+            return;
+        }
+        String bankNote = "Bank: " + imported.getDescription();
+        String existing = target.getNotes();
+        boolean alreadyPresent = existing != null && existing.contains(bankNote);
+        if (!alreadyPresent) {
+            target.setNotes(existing == null || existing.isBlank()
+                    ? bankNote : existing + " | " + bankNote);
+        }
     }
 
     // ── Recurring-match finder ────────────────────────────────────────────────
@@ -727,6 +762,27 @@ public class ImportService {
                         ? accountId.equals(t.getFromAccountId())
                         : accountId.equals(t.getToAccountId()))
                 .filter(t -> Math.abs(t.getAmountPaise() - imported.getAmountPaise()) < 100)
+                .filter(t -> Math.abs(ChronoUnit.DAYS.between(
+                                    t.getDate(), imported.getDate())) <= 1)
+                .collect(Collectors.toList());
+    }
+
+    private static List<Transaction> findReconciledMultiAccountMatches(
+            Transaction imported, List<Transaction> existing, String accountId) {
+        boolean importedIsDebit = accountId.equals(imported.getFromAccountId());
+
+        return existing.stream()
+                .filter(t -> t.getSourceIndicator() == SourceIndicator.RECONCILED)
+                .filter(t -> t.getType() == Transaction.Type.CC_PAYMENT
+                          || t.getType() == Transaction.Type.TRANSFER)
+                .filter(t -> t.getAlternateImportHash() == null
+                          || t.getAlternateImportHash().isBlank()
+                          || Objects.equals(t.getAlternateImportHash(),
+                                  imported.getImportHash()))
+                .filter(t -> importedIsDebit
+                        ? accountId.equals(t.getFromAccountId())
+                        : accountId.equals(t.getToAccountId()))
+                .filter(t -> t.getAmountPaise() == imported.getAmountPaise())
                 .filter(t -> Math.abs(ChronoUnit.DAYS.between(
                                     t.getDate(), imported.getDate())) <= 1)
                 .collect(Collectors.toList());

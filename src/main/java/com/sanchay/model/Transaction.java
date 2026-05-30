@@ -152,6 +152,7 @@ public class Transaction {
     private String         notes;
     private SourceIndicator sourceIndicator;
     private String         importHash;
+    private String         alternateImportHash;
     private String         groupTransactionId;
 
     // ── Sub-object fields ─────────────────────────────────────────────────────
@@ -222,6 +223,8 @@ public class Transaction {
     public void          setNotes(String n)              { this.notes = n; }
     public String        getImportHash()                 { return importHash; }
     public void          setImportHash(String h)         { this.importHash = h; }
+    public String        getAlternateImportHash()        { return alternateImportHash; }
+    public void          setAlternateImportHash(String h){ this.alternateImportHash = h; }
     public String        getGroupTransactionId()         { return groupTransactionId; }
     public void          setGroupTransactionId(String g) { this.groupTransactionId = g; }
 

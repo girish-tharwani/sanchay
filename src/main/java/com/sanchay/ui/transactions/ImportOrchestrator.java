@@ -85,7 +85,8 @@ class ImportOrchestrator {
         //   – 1+ still-MANUAL candidates → show dialog with only the available ones
         for (ImportService.AmbiguousMatch am : result.ambiguous) {
             List<Transaction> available = am.candidates.stream()
-                    .filter(c -> c.getSourceIndicator() == Transaction.SourceIndicator.MANUAL)
+                    .filter(c -> c.getSourceIndicator() == Transaction.SourceIndicator.MANUAL
+                              || c.getSourceIndicator() == Transaction.SourceIndicator.RECONCILED)
                     .collect(Collectors.toList());
 
             if (available.isEmpty()) {
@@ -111,7 +112,11 @@ class ImportOrchestrator {
             if (choice.isPresent()) {
                 Transaction chosen = choice.get();
                 if (chosen != null) {
-                    ImportService.reconcile(am.imported, chosen, ds);
+                    if (chosen.getSourceIndicator() == Transaction.SourceIndicator.RECONCILED) {
+                        ImportService.reconcileSecondAccountImport(am.imported, chosen, ds);
+                    } else {
+                        ImportService.reconcile(am.imported, chosen, ds);
+                    }
                     result.reconciledCount++;
                 } else {
                     // "Add as New" was clicked
