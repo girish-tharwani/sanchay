@@ -329,14 +329,32 @@ public final class UiUtils {
                     combo.getItems().setAll(masterList);
                 return;
             }
+            boolean deleting = old != null && text != null && text.length() < old.length();
             String lower = text == null ? "" : text.toLowerCase();
+            if (lower.isEmpty()) {
+                suppress[0] = true;
+                combo.setValue(null);
+                combo.getEditor().clear();
+                suppress[0] = false;
+                combo.getItems().setAll(masterList);
+                combo.hide();
+                return;
+            }
+            if (selected != null) {
+                int caret = combo.getEditor().getCaretPosition();
+                suppress[0] = true;
+                combo.setValue(null);
+                combo.getEditor().setText(text);
+                combo.getEditor().positionCaret(Math.min(caret, text.length()));
+                suppress[0] = false;
+            }
             List<Category> filtered = lower.isEmpty()
                     ? new ArrayList<>(masterList)
                     : masterList.stream()
                             .filter(c -> c.getName().toLowerCase().contains(lower))
                             .collect(Collectors.toList());
             combo.getItems().setAll(filtered);
-            if (!lower.isEmpty() && filtered.size() == 1
+            if (!deleting && !lower.isEmpty() && filtered.size() == 1
                     && filtered.get(0).getName().toLowerCase().startsWith(lower)) {
                 // Unambiguous prefix match — complete inline, select the suffix
                 String full = filtered.get(0).getName();
