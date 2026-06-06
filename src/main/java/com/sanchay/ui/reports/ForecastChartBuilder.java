@@ -5,6 +5,7 @@ import com.sanchay.model.BankAccount;
 import com.sanchay.model.CreditCardAccount;
 import com.sanchay.model.LoanAccount;
 import com.sanchay.service.CashFlowProjectionService;
+import com.sanchay.service.DataStore;
 import com.sanchay.service.ForecastStateService;
 import com.sanchay.service.MoneyFormatter;
 import com.sanchay.ui.UiUtils;
@@ -22,6 +23,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.StringConverter;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,6 +38,7 @@ class ForecastChartBuilder {
     private static final DateTimeFormatter MONTH_FMT =
             DateTimeFormatter.ofPattern("MMM yy", java.util.Locale.ENGLISH);
 
+    private final DataStore            ds = DataStore.getInstance();
     private final ForecastStateService forecastState;
     private final LineChart<String, Number> chart;
     private final FlowPane legendPane;
@@ -44,6 +48,7 @@ class ForecastChartBuilder {
 
         NumberAxis yAxis = buildYAxis();
         CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setGapStartAndEnd(false);
         chart = new LineChart<>(xAxis, yAxis);
         chart.getStyleClass().add("cash-flow-chart");
         chart.setAnimated(false);
@@ -62,7 +67,9 @@ class ForecastChartBuilder {
 
     LineChart<String, Number> getChart() { return chart; }
 
-    void rebuild(CashFlowProjectionService.ProjectionResult result, boolean showDetailedAccounts) {
+    void rebuild(CashFlowProjectionService.ProjectionResult result,
+                 boolean showDetailedAccounts,
+                 LocalDate forecastStartDate) {
         chart.getData().clear();
         legendPane.getChildren().clear();
 
@@ -70,7 +77,7 @@ class ForecastChartBuilder {
         if (showSum) {
             XYChart.Series<String, Number> totalSeries = new XYChart.Series<>();
             totalSeries.setName("Total");
-            for (CashFlowProjectionService.ProjectionPoint p : result.totalSeries()) {
+            for (CashFlowProjectionService.ProjectionPoint p : withTotalOpeningPoint(result, forecastStartDate)) {
                 totalSeries.getData().add(
                         new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
             }
@@ -82,9 +89,9 @@ class ForecastChartBuilder {
         boolean grouped = accounts.size() > 5 && !showDetailedAccounts;
 
         if (grouped) {
-            buildGroupedSeries(accounts, result.accountSeries());
+            buildGroupedSeries(accounts, result.accountSeries(), forecastStartDate);
         } else {
-            buildDetailedSeries(accounts, result.accountSeries());
+            buildDetailedSeries(accounts, result.accountSeries(), forecastStartDate);
         }
 
         applyDataPointTooltips();
@@ -92,7 +99,8 @@ class ForecastChartBuilder {
     }
 
     private void buildDetailedSeries(List<Account> accounts,
-                                     Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries) {
+                                     Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries,
+                                     LocalDate forecastStartDate) {
         Set<String> selection = forecastState.getAccountSelection();
         List<Account> toShow;
         if (selection == null || selection.isEmpty()) {
@@ -108,12 +116,11 @@ class ForecastChartBuilder {
             Account acc = toShow.get(i);
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName(acc.getName());
-            List<CashFlowProjectionService.ProjectionPoint> pts = accountSeries.get(acc.getId());
-            if (pts != null) {
-                for (CashFlowProjectionService.ProjectionPoint p : pts) {
-                    series.getData().add(
-                            new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
-                }
+            List<CashFlowProjectionService.ProjectionPoint> pts =
+                    withOpeningPoint(accountSeries.get(acc.getId()), acc, forecastStartDate);
+            for (CashFlowProjectionService.ProjectionPoint p : pts) {
+                series.getData().add(
+                        new XYChart.Data<>(p.date().format(MONTH_FMT), p.balancePaise() / 100.0));
             }
             chart.getData().add(series);
             String color = UiUtils.FORECAST_SERIES_COLORS[(i + 1) % UiUtils.FORECAST_SERIES_COLORS.length];
@@ -122,7 +129,8 @@ class ForecastChartBuilder {
     }
 
     private void buildGroupedSeries(List<Account> accounts,
-                                     Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries) {
+                                    Map<String, List<CashFlowProjectionService.ProjectionPoint>> accountSeries,
+                                    LocalDate forecastStartDate) {
         Map<String, List<String>> groupToIds = new LinkedHashMap<>();
         groupToIds.put("Bank Accounts", new ArrayList<>());
         groupToIds.put("Credit Cards",  new ArrayList<>());
@@ -136,8 +144,9 @@ class ForecastChartBuilder {
             else                                       groupToIds.get("Investments").add(acc.getId());
         }
 
-        List<String> dateLabels = accountSeries.values().stream()
-                .filter(pts -> pts != null && !pts.isEmpty())
+        List<String> dateLabels = accounts.stream()
+                .map(acc -> withOpeningPoint(accountSeries.get(acc.getId()), acc, forecastStartDate))
+                .filter(pts -> !pts.isEmpty())
                 .findFirst()
                 .map(pts -> pts.stream()
                         .map(p -> p.date().format(MONTH_FMT))
@@ -154,8 +163,13 @@ class ForecastChartBuilder {
 
             long[] sums = new long[n];
             for (String id : ids) {
-                List<CashFlowProjectionService.ProjectionPoint> pts = accountSeries.get(id);
-                if (pts == null) continue;
+                Account acc = accounts.stream()
+                        .filter(a -> a.getId().equals(id))
+                        .findFirst()
+                        .orElse(null);
+                if (acc == null) continue;
+                List<CashFlowProjectionService.ProjectionPoint> pts =
+                        withOpeningPoint(accountSeries.get(id), acc, forecastStartDate);
                 for (int i = 0; i < Math.min(n, pts.size()); i++) {
                     sums[i] += pts.get(i).balancePaise();
                 }
@@ -172,6 +186,38 @@ class ForecastChartBuilder {
             legendPane.getChildren().add(buildLegendEntry(groupName, color));
             seriesIdx++;
         }
+    }
+
+    private List<CashFlowProjectionService.ProjectionPoint> withTotalOpeningPoint(
+            CashFlowProjectionService.ProjectionResult result,
+            LocalDate forecastStartDate) {
+        LocalDate openingDate = openingPointDate(forecastStartDate);
+        long openingTotal = result.accounts().stream()
+                .mapToLong(acc -> ds.getForecastStartingBalancePaise(acc, forecastStartDate))
+                .sum();
+
+        List<CashFlowProjectionService.ProjectionPoint> points =
+                new ArrayList<>(result.totalSeries().size() + 1);
+        points.add(new CashFlowProjectionService.ProjectionPoint(openingDate, openingTotal));
+        points.addAll(result.totalSeries());
+        return points;
+    }
+
+    private List<CashFlowProjectionService.ProjectionPoint> withOpeningPoint(
+            List<CashFlowProjectionService.ProjectionPoint> points,
+            Account account,
+            LocalDate forecastStartDate) {
+        List<CashFlowProjectionService.ProjectionPoint> chartPoints =
+                new ArrayList<>((points == null ? 0 : points.size()) + 1);
+        chartPoints.add(new CashFlowProjectionService.ProjectionPoint(
+                openingPointDate(forecastStartDate),
+                ds.getForecastStartingBalancePaise(account, forecastStartDate)));
+        if (points != null) chartPoints.addAll(points);
+        return chartPoints;
+    }
+
+    private LocalDate openingPointDate(LocalDate forecastStartDate) {
+        return YearMonth.from(forecastStartDate).minusMonths(1).atEndOfMonth();
     }
 
     private void applySeriesColors(boolean showSum) {

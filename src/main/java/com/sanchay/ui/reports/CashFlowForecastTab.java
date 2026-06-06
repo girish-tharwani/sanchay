@@ -439,7 +439,7 @@ public class CashFlowForecastTab {
         updateChooseAccountsVisibility();
 
         // Build chart
-        chartBuilder.rebuild(result, showDetailedAccounts);
+        chartBuilder.rebuild(result, showDetailedAccounts, startDate);
 
         // Forecast table
         updateForecastTable(result.forecastedExpenses());
