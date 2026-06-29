@@ -89,8 +89,10 @@ public class TransactionsScreen {
         YearMonth toMonth = YearMonth.from(today).plusMonths(3);
         LocalDate toDate = toMonth.atEndOfMonth();
 
-        DatePicker fromPicker = new DatePicker(fromDate);
-        DatePicker toPicker   = new DatePicker(toDate);
+        boolean showMaturityFilter = isFdOrBondAccount(account);
+
+        DatePicker fromPicker = new DatePicker(showMaturityFilter ? null : fromDate);
+        DatePicker toPicker   = new DatePicker(showMaturityFilter ? null : toDate);
         fromPicker.setId("txn-from-date-picker");
         toPicker.setId("txn-to-date-picker");
         fromPicker.setPrefWidth(130);
@@ -102,12 +104,22 @@ public class TransactionsScreen {
         UiUtils.styleOnShow(fromPicker);
         UiUtils.styleOnShow(toPicker);
 
+        DatePicker maturityPicker = new DatePicker(showMaturityFilter ? today : null);
+        maturityPicker.setId("txn-maturity-date-picker");
+        maturityPicker.setPrefWidth(150);
+        maturityPicker.getStyleClass().add("filter-field");
+        UiUtils.applySmartDateConverter(maturityPicker);
+        UiUtils.styleOnShow(maturityPicker);
+
         Label fromLbl = new Label("FROM");
         fromLbl.setId("txn-from-date-label");
         fromLbl.getStyleClass().add("filter-label");
         Label toLbl = new Label("TO");
         toLbl.setId("txn-to-date-label");
         toLbl.getStyleClass().add("filter-label");
+        Label maturityLbl = new Label("MATURITY DATE");
+        maturityLbl.setId("txn-maturity-date-label");
+        maturityLbl.getStyleClass().add("filter-label");
 
         CheckBox pendingOnly = new CheckBox("Show pending review only");
         pendingOnly.setId("txn-pending-only-checkbox");
@@ -142,7 +154,12 @@ public class TransactionsScreen {
         filterRow.getChildren().addAll(
                 fromLbl, fromPicker,
                 toLbl, toPicker,
-                filterSep,
+                filterSep
+        );
+        if (showMaturityFilter) {
+            filterRow.getChildren().addAll(maturityLbl, maturityPicker);
+        }
+        filterRow.getChildren().addAll(
                 typeFilter,
                 search,
                 pendingOnly
@@ -218,10 +235,14 @@ public class TransactionsScreen {
             String q = search.getText().toLowerCase();
             LocalDate from = fromPicker.getValue();
             LocalDate to   = toPicker.getValue();
+            LocalDate maturityAfter = maturityPicker.getValue();
             List<Transaction> filtered = ds.getTransactions().stream()
                     .filter(t -> isForAccount(t, account))
                     .filter(t -> from == null || !t.getDate().isBefore(from))
                     .filter(t -> to   == null || !t.getDate().isAfter(to))
+                    .filter(t -> !showMaturityFilter
+                            || maturityAfter == null
+                            || isMaturityAfter(t, maturityAfter))
                     .filter(t -> typeFilter.getValue() == null || t.getType() == typeFilter.getValue())
                     .filter(t -> q.isEmpty()
                             || t.getDescription().toLowerCase().contains(q)
@@ -259,6 +280,7 @@ public class TransactionsScreen {
         search.textProperty().addListener((obs, o, n) -> applyFilter.run());
         fromPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         toPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
+        maturityPicker.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         typeFilter.valueProperty().addListener((obs, o, n) -> applyFilter.run());
         table.comparatorProperty().addListener((obs, o, n) -> applyFilter.run());
         pendingOnly.selectedProperty().addListener((obs, o, n) -> applyFilter.run());
@@ -467,6 +489,23 @@ public class TransactionsScreen {
     private boolean isForAccount(Transaction t, Account acc) {
         String id = acc.getId();
         return id.equals(t.getFromAccountId()) || id.equals(t.getToAccountId());
+    }
+
+    private boolean isFdOrBondAccount(Account acc) {
+        if (!(acc instanceof InvestmentAccount ia)) return false;
+        InvestmentAccount.InvestmentType type = ia.getInvestmentType();
+        return type == InvestmentAccount.InvestmentType.FIXED_DEPOSIT
+                || type == InvestmentAccount.InvestmentType.DEBT_BONDS;
+    }
+
+    private boolean isMaturityAfter(Transaction t, LocalDate date) {
+        LocalDate maturityDate = fdMaturityDate(t);
+        return maturityDate != null && maturityDate.isAfter(date);
+    }
+
+    private LocalDate fdMaturityDate(Transaction t) {
+        if (t.getInvestmentDetails() == null || t.getInvestmentDetails().getFd() == null) return null;
+        return t.getInvestmentDetails().getFd().getMaturityDate();
     }
 
     // ── Export CSV ────────────────────────────────────────────────────────────
