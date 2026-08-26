@@ -166,9 +166,16 @@ public class MainWindow {
 
         // ── Nav items ────────────────────────────────────────────────────────
         VBox topItems = new VBox(2);
+        Button accountsBtn = buildNavButton("Accounts", "🏦  Accounts");
+        ContextMenu accountCategoryMenu = buildAccountCategoryMenu();
+        accountsBtn.setOnContextMenuRequested(e -> {
+            populateAccountCategoryMenu(accountCategoryMenu);
+            accountCategoryMenu.show(accountsBtn, e.getScreenX(), e.getScreenY());
+            e.consume();
+        });
         topItems.getChildren().addAll(
                 buildNavButton("Dashboard",  "🏠  Dashboard"),
-                buildNavButton("Accounts",   "🏦  Accounts"),
+                accountsBtn,
                 buildNavButton("Recurring",  "🔁  Recurring"),
                 buildNavButton("Reports",         "📊  Reports"),
                 buildNavButton("FinancialPlan",   "🌐  Financial Plan"),
@@ -207,6 +214,41 @@ public class MainWindow {
         btn.setMaxWidth(Double.MAX_VALUE);
         btn.setOnAction(e -> navigateTo(key));
         return btn;
+    }
+
+    /** Provides direct access to the first active account in each account category. */
+    private ContextMenu buildAccountCategoryMenu() {
+        ContextMenu menu = new ContextMenu();
+        menu.getStyleClass().add("account-category-menu");
+        populateAccountCategoryMenu(menu);
+        menu.setOnShowing(e -> populateAccountCategoryMenu(menu));
+        return menu;
+    }
+
+    private void populateAccountCategoryMenu(ContextMenu menu) {
+        menu.getItems().setAll(
+                accountCategoryItem("Bank Accounts", Account.AccountCategory.BANK),
+                accountCategoryItem("Credit Cards", Account.AccountCategory.CREDIT_CARD),
+                accountCategoryItem("Loan Accounts", Account.AccountCategory.LOAN),
+                accountCategoryItem("Investments", Account.AccountCategory.INVESTMENT)
+        );
+    }
+
+    private MenuItem accountCategoryItem(String label, Account.AccountCategory category) {
+        Account firstAccount = firstActiveAccount(category);
+        MenuItem item = new MenuItem(label);
+        item.setDisable(firstAccount == null);
+        item.setOnAction(e -> navigateToTransactions(firstAccount));
+        return item;
+    }
+
+    private Account firstActiveAccount(Account.AccountCategory category) {
+        return DataStore.getInstance().getAccounts().stream()
+                .filter(account -> account.getAccountCategory() == category)
+                .filter(Account::isActive)
+                .sorted(java.util.Comparator.comparingInt(Account::getDisplayOrder))
+                .findFirst()
+                .orElse(null);
     }
 
     private StackPane buildMainPanelWrapper() {
@@ -296,7 +338,7 @@ public class MainWindow {
         updateSidebarHighlight("Accounts"); // Highlight Accounts since Transactions is a sub-view
 
         navCtx = new NavigationContext(
-                null,
+                this::navigateToTransactions,
                 () -> navigateTo("Accounts"),
                 () -> lastAccountExportDir,
                 dir -> lastAccountExportDir = dir);

@@ -49,6 +49,15 @@ public class TransactionsScreen {
         return DataStore.getInstance().getDateFormatter();
     }
 
+    /** Lists the active accounts a user can switch to without leaving this view. */
+    private List<Account> accountsInSameCategory() {
+        return DataStore.getInstance().getAccounts().stream()
+                .filter(candidate -> candidate.getAccountCategory() == account.getAccountCategory())
+                .filter(candidate -> candidate.isActive() || candidate.getId().equals(account.getId()))
+                .sorted(Comparator.comparingInt(Account::getDisplayOrder))
+                .collect(Collectors.toList());
+    }
+
     // ── Account Transactions view ─────────────────────────────────────────────
 
     private void buildTransactionsView() {
@@ -65,10 +74,32 @@ public class TransactionsScreen {
         back.getStyleClass().add("btn-secondary");
         back.setTooltip(new Tooltip("Back"));
         back.setOnAction(e -> navCtx.navigateBack());
-        Label title = new Label(account.getName() + " — Transactions");
-        title.setId("txn-screen-title");
-        title.getStyleClass().add("screen-title");
-        header.getChildren().addAll(back, title);
+        ComboBox<Account> accountSwitcher = new ComboBox<>();
+        accountSwitcher.setId("txn-account-switcher");
+        accountSwitcher.getStyleClass().add("txn-account-switcher");
+        accountSwitcher.setPrefWidth(300);
+        accountSwitcher.getItems().setAll(accountsInSameCategory());
+        accountSwitcher.setValue(account);
+        accountSwitcher.setCellFactory(lv -> {
+            if (lv != null) {
+                lv.getStyleClass().add("account-switcher-popup");
+            }
+            return new ListCell<>() {
+                @Override protected void updateItem(Account item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : item.getName());
+                }
+            };
+        });
+        accountSwitcher.setButtonCell(accountSwitcher.getCellFactory().call(null));
+        accountSwitcher.setOnAction(e -> {
+            Account selected = accountSwitcher.getValue();
+            if (selected != null && !selected.getId().equals(account.getId())) {
+                navCtx.navigateToTransactions(selected);
+            }
+        });
+
+        header.getChildren().addAll(back, accountSwitcher);
 
         TransactionStatsPanel statsPanel = new TransactionStatsPanel(account);
         statsPanel.addToLayout(header, panel);

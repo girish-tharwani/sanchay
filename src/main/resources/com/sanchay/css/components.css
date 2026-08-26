@@ -9,6 +9,71 @@
     -fx-text-fill: -brand-dark;
 }
 
+/* Account selector in the transactions header. */
+.txn-account-switcher {
+    -fx-background-color: -surface-teal-faint;
+    -fx-border-color: -brand-mid-22;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 0 4px 0 0;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+.txn-account-switcher > .list-cell {
+    -fx-text-fill: -brand-dark;
+}
+.txn-account-switcher:hover, .txn-account-switcher:showing, .txn-account-switcher:focused {
+    -fx-background-color: -surface-field;
+    -fx-border-color: -brand-mid-22;
+}
+.txn-account-switcher .arrow-button {
+    -fx-background-color: transparent;
+}
+.txn-account-switcher .arrow-button .arrow {
+    -fx-background-color: -brand-dark;
+}
+.account-switcher-popup {
+    -fx-background-color: -surface-teal-faint;
+    -fx-border-color: -brand-mid-22;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 4px;
+}
+.account-switcher-popup .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -brand-dark;
+    -fx-font-weight: 600;
+    -fx-padding: 7px 16px;
+}
+.account-switcher-popup .list-cell:filled:hover,
+.account-switcher-popup .list-cell:filled:selected {
+    -fx-background-color: -brand-mid-15;
+    -fx-text-fill: -brand-dark;
+}
+
+/* Right-click menu for quickly switching account categories. */
+.account-category-menu {
+    -fx-background-color: -surface-teal-faint;
+    -fx-background-radius: 6px;
+    -fx-border-color: -brand-mid-22;
+    -fx-border-radius: 6px;
+    -fx-padding: 4px;
+}
+.account-category-menu .menu-item {
+    -fx-background-color: transparent;
+    -fx-padding: 7px 16px;
+}
+.account-category-menu .menu-item .label {
+    -fx-text-fill: -brand-dark;
+    -fx-font-weight: 600;
+}
+.account-category-menu .menu-item:focused {
+    -fx-background-color: -brand-mid-15;
+}
+.account-category-menu .menu-item:disabled .label {
+    -fx-text-fill: -text-muted;
+}
+
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .card {
     -fx-background-color: -surface-card;
